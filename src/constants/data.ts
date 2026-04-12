@@ -55,14 +55,36 @@ export interface DocRecord {
   bgColor: string;
   accentColor: string;
   category: string;
+  pages?: number;
+  fileSize?: string;
+  translationStatus?: "translated" | "partial" | "none";
+  source?: string;
+  sourceAr?: string;
+  keyFields?: { label: string; value: string }[];
+  addedDate?: string;
 }
 
 export const records: DocRecord[] = [
-  { emoji: "📋", titleEn: "Discharge Pack", titleAr: "حزمة الخروج", isNew: true, date: "Today", meta: "Bilingual AR/EN · 5 pages · Updated today", bgColor: "var(--gold-pale)", accentColor: "var(--gold)", category: "Discharge" },
-  { emoji: "💊", titleEn: "Medication Schedule", titleAr: "جدول الأدوية", date: "Apr 11", meta: "5 medications · Starts Apr 11 · 2 pages", bgColor: "var(--teal-light)", accentColor: "var(--teal-deep)", category: "Prescriptions" },
-  { emoji: "🩻", titleEn: "MRI – Right Knee", titleAr: "رنين مغناطيسي – الركبة اليمنى", date: "Apr 2", meta: "DICOM format · 2.3 GB · Charité Hospital", bgColor: "#F0F2F5", accentColor: "var(--gray)", category: "Imaging" },
-  { emoji: "🔬", titleEn: "Pre-Op Lab Results", titleAr: "نتائج التحاليل قبل العملية", date: "Apr 9", meta: "All values normal · 3 pages · PDF", bgColor: "#E8F5EE", accentColor: "var(--success)", category: "Lab Results" },
-  { emoji: "📄", titleEn: "Surgical Report", titleAr: "التقرير الجراحي", date: "Apr 10", meta: "Dr. Mueller · 4 pages · German/English", bgColor: "var(--teal-light)", accentColor: "var(--teal-mid)", category: "Consultations" },
+  { emoji: "📋", titleEn: "Discharge Pack", titleAr: "حزمة الخروج", isNew: true, date: "Today", meta: "Bilingual AR/EN · 5 pages · Updated today", bgColor: "var(--gold-pale)", accentColor: "var(--gold)", category: "Discharge", pages: 5, fileSize: "1.4 MB", translationStatus: "translated", source: "Charité Hospital", sourceAr: "مستشفى شاريتيه", addedDate: "Apr 12",
+    keyFields: [{ label: "Surgeon", value: "Dr. Klaus Mueller" }, { label: "Procedure", value: "Total Knee Replacement" }, { label: "Date", value: "Apr 10, 2026" }, { label: "Follow-up", value: "Apr 17, 2026" }] },
+  { emoji: "💊", titleEn: "Medication Schedule", titleAr: "جدول الأدوية", date: "Apr 11", meta: "5 medications · Starts Apr 11 · 2 pages", bgColor: "var(--teal-light)", accentColor: "var(--teal-deep)", category: "Prescriptions", pages: 2, fileSize: "320 KB", translationStatus: "translated", source: "Dr. Klaus Mueller", sourceAr: "د. كلاوس مولر", addedDate: "Apr 11",
+    keyFields: [{ label: "Medications", value: "5 active" }, { label: "Duration", value: "10 days" }, { label: "Next refill", value: "Apr 21" }] },
+  { emoji: "🩻", titleEn: "MRI – Right Knee", titleAr: "رنين مغناطيسي – الركبة اليمنى", date: "Apr 2", meta: "12 images · Pre-operative scan · PDF report", bgColor: "#F0F2F5", accentColor: "var(--gray)", category: "Imaging", pages: 8, fileSize: "15.2 MB", translationStatus: "none", source: "Charité Radiology", sourceAr: "قسم الأشعة — شاريتيه", addedDate: "Apr 2",
+    keyFields: [{ label: "Body part", value: "Right Knee" }, { label: "Findings", value: "ACL tear confirmed" }, { label: "Radiologist", value: "Dr. H. Weber" }] },
+  { emoji: "🔬", titleEn: "Pre-Op Lab Results", titleAr: "نتائج التحاليل قبل العملية", date: "Apr 9", meta: "All values normal · 3 pages · PDF", bgColor: "#E8F5EE", accentColor: "var(--success)", category: "Lab Results", pages: 3, fileSize: "480 KB", translationStatus: "translated", source: "Charité Lab", sourceAr: "مختبر شاريتيه", addedDate: "Apr 9",
+    keyFields: [{ label: "CBC", value: "Normal" }, { label: "PT/INR", value: "1.0 — Normal" }, { label: "Creatinine", value: "0.9 mg/dL" }, { label: "HbA1c", value: "5.2%" }] },
+  { emoji: "📄", titleEn: "Surgical Report", titleAr: "التقرير الجراحي", date: "Apr 10", meta: "Dr. Mueller · 4 pages · German/English", bgColor: "var(--teal-light)", accentColor: "var(--teal-mid)", category: "Consultations", pages: 4, fileSize: "620 KB", translationStatus: "partial", source: "Charité Hospital", sourceAr: "مستشفى شاريتيه", addedDate: "Apr 10",
+    keyFields: [{ label: "Procedure", value: "TKR — Right" }, { label: "Duration", value: "2h 15m" }, { label: "Implant", value: "Smith & Nephew Genesis II" }, { label: "Complications", value: "None" }] },
+  { emoji: "🫀", titleEn: "Pre-Op ECG", titleAr: "تخطيط قلب قبل العملية", date: "Apr 8", meta: "Normal sinus rhythm · 1 page", bgColor: "#FDE8E8", accentColor: "#D94F4F", category: "ECG / ECHO", pages: 1, fileSize: "210 KB", translationStatus: "none", source: "Charité Cardiology", sourceAr: "قسم القلب — شاريتيه", addedDate: "Apr 8",
+    keyFields: [{ label: "Rhythm", value: "Normal sinus" }, { label: "Rate", value: "72 bpm" }, { label: "Intervals", value: "Normal" }] },
+  { emoji: "🛡️", titleEn: "Insurance Pre-Approval", titleAr: "موافقة التأمين المسبقة", date: "Mar 28", meta: "Bupa International · Approved · Ref BPA-2026-1122", bgColor: "#EDE8FD", accentColor: "#7C5CFC", category: "Insurance", pages: 3, fileSize: "540 KB", translationStatus: "translated", source: "Bupa International", sourceAr: "بوبا الدولية", addedDate: "Mar 28",
+    keyFields: [{ label: "Policy", value: "BPA-2026-1122" }, { label: "Coverage", value: "100% — Surgical" }, { label: "Validity", value: "Mar 28 – May 28" }, { label: "Status", value: "Approved ✓" }] },
+  { emoji: "🔬", titleEn: "Post-Op Day 2 Labs", titleAr: "تحاليل اليوم الثاني بعد العملية", isNew: true, date: "Apr 12", meta: "Hemoglobin slightly low · 2 pages", bgColor: "#FFF8E1", accentColor: "var(--warning)", category: "Lab Results", pages: 2, fileSize: "380 KB", translationStatus: "translated", source: "Charité Lab", sourceAr: "مختبر شاريتيه", addedDate: "Apr 12",
+    keyFields: [{ label: "Hemoglobin", value: "11.2 g/dL ↓" }, { label: "WBC", value: "8.4 — Normal" }, { label: "CRP", value: "18 mg/L ↑" }, { label: "Creatinine", value: "0.8 mg/dL" }] },
+  { emoji: "📄", titleEn: "Initial Consultation Notes", titleAr: "ملاحظات الاستشارة الأولى", date: "Mar 15", meta: "Dr. Mueller · 3 pages · Referral from KSA", bgColor: "var(--teal-light)", accentColor: "var(--teal-mid)", category: "Consultations", pages: 3, fileSize: "410 KB", translationStatus: "translated", source: "Dr. Klaus Mueller", sourceAr: "د. كلاوس مولر", addedDate: "Mar 15",
+    keyFields: [{ label: "Diagnosis", value: "Right ACL tear, Grade III" }, { label: "Recommendation", value: "Total Knee Replacement" }, { label: "Referred by", value: "Dr. Al-Rashid (Riyadh)" }] },
+  { emoji: "🛡️", titleEn: "Insurance Claim Receipt", titleAr: "إيصال مطالبة التأمين", date: "Apr 11", meta: "Claim submitted · Pending settlement", bgColor: "#EDE8FD", accentColor: "#7C5CFC", category: "Insurance", pages: 1, fileSize: "180 KB", translationStatus: "none", source: "Bupa International", sourceAr: "بوبا الدولية", addedDate: "Apr 11",
+    keyFields: [{ label: "Claim #", value: "CLM-2026-4488" }, { label: "Amount", value: "€24,500" }, { label: "Status", value: "Pending review" }] },
 ];
 
 export interface ChatMessage {
@@ -91,7 +113,7 @@ export const quickPrompts = [
   "اتصل بطبيبي",
 ];
 
-export const filterCategories = ["All", "Discharge", "Lab Results", "Prescriptions", "Imaging", "Consultations"];
+export const filterCategories = ["All", "Discharge", "Lab Results", "Prescriptions", "Imaging", "Consultations", "ECG / ECHO", "Insurance"];
 
 import type { TransportSegment } from "@/components/TransportCard";
 
