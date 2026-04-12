@@ -16,7 +16,7 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
   const dateStr = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }).toUpperCase();
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
       <div className="relative px-5 pt-3 pb-16 overflow-hidden" style={{ background: "linear-gradient(145deg, #004D5B, #006D7C)" }}>
         {/* Decorative circles */}
@@ -36,7 +36,7 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 -mt-8 pb-6 space-y-3 relative z-10" style={{ background: "transparent" }}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 -mt-8 pb-6 space-y-3 relative z-10" style={{ background: "transparent", WebkitOverflowScrolling: "touch" }}>
         {/* Trip Card */}
         <div className="rounded-2xl p-5 animate-fade-in-up" style={{ background: "var(--white)", boxShadow: "0 8px 32px rgba(0,77,91,0.14)" }}>
           <div className="flex items-center justify-between mb-1">
