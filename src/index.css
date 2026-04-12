@@ -146,3 +146,12 @@
   transform: scale(0.97);
   transition: transform 0.1s;
 }
+
+@keyframes shimmer-strip {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+.shimmer-strip {
+  animation: shimmer-strip 2s ease-in-out infinite;
+}
