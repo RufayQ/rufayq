@@ -54,7 +54,7 @@ const stayTypeOptions = [
   { icon: "🏥", en: "Hospital Stay", ar: "إقامة مستشفى" },
 ];
 
-const JourneyScreen = () => {
+const JourneyScreen = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => void }) => {
   const [expanded, setExpanded] = useState<number | null>(null);
   const [trips, setTrips] = useState<TripData[]>([defaultTrip]);
   const [showAddTrip, setShowAddTrip] = useState(false);
@@ -113,8 +113,8 @@ const JourneyScreen = () => {
 
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-        {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} />}
-        {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} />}
+        {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} />}
+        {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
         {activeSubTab === "steps" && (
           <StepsTab expanded={expanded} setExpanded={setExpanded} activeTrip={activeTrip} onAddTrip={() => setShowAddTrip(true)} />
         )}
@@ -186,7 +186,7 @@ const AddButton = ({ labelEn, labelAr, onClick }: { labelEn: string; labelAr: st
 );
 
 /* ─── TICKETS TAB ─── */
-const TicketsTab = ({ segments, onAdd }: { segments: TransportSegment[]; onAdd: () => void }) => (
+const TicketsTab = ({ segments, onAdd, onScan }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void }) => (
   <div className="pt-2">
     <div className="px-4 mb-3">
       <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR FULL TRANSPORT TIMELINE</p>
@@ -200,14 +200,20 @@ const TicketsTab = ({ segments, onAdd }: { segments: TransportSegment[]; onAdd: 
         )}
       </div>
     ))}
-    <div className="px-4 mt-2">
+    <div className="px-4 mt-2 space-y-2">
       <AddButton labelEn="＋ Add Transport" labelAr="إضافة وسيلة تنقل" onClick={onAdd} />
+      {onScan && (
+        <button onClick={onScan} className="w-full text-center text-[12px] py-1.5 btn-press" style={{ color: "var(--teal-mid)" }}>
+          📸 Or scan a boarding pass / booking confirmation
+          <span className="block font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>أو امسح بطاقة الصعود / تأكيد الحجز</span>
+        </button>
+      )}
     </div>
   </div>
 );
 
 /* ─── STAY TAB ─── */
-const StayTab = ({ onAdd }: { onAdd: () => void }) => (
+const StayTab = ({ onAdd, onScan }: { onAdd: () => void; onScan?: () => void }) => (
   <div className="pt-2">
     {/* Header */}
     <div className="px-4 pb-1">
