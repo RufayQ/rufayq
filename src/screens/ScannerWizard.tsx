@@ -108,6 +108,13 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
       fileInputRef.current.accept = accept;
       fileInputRef.current.click();
     }
+    // Demo fallback: if file dialog is dismissed or unavailable, use mock after short delay
+    setTimeout(() => {
+      if (!capturedFile) {
+        setCapturedFile({ name: "document_scan.pdf", type: "application/pdf", size: "1.2 MB" });
+        setStep(2);
+      }
+    }, 1500);
   };
 
   const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
