@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import StatusBar from "@/components/StatusBar";
 import BottomNav from "@/components/BottomNav";
 import HomeScreen from "@/screens/HomeScreen";
 import JourneyScreen from "@/screens/JourneyScreen";
 import RecordsScreen from "@/screens/RecordsScreen";
 import ChatScreen from "@/screens/ChatScreen";
+import CareHubScreen from "@/screens/CareHubScreen";
 import MedicationsScreen from "@/screens/MedicationsScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
 import LoginScreen from "@/screens/LoginScreen";
+import ScannerWizard from "@/screens/ScannerWizard";
 
-type Tab = "home" | "journey" | "records" | "chat";
+type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "main" | "medications" | "profile";
 
 const Index = () => {
@@ -19,6 +21,8 @@ const Index = () => {
     return seen ? "main" : "onboarding";
   });
   const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerCategory, setScannerCategory] = useState<string | null>(null);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("rufayq_onboarded", "true");
@@ -31,9 +35,16 @@ const Index = () => {
     setAppView("onboarding");
   };
 
+  const openScanner = (preselectedCategory?: string) => {
+    setScannerCategory(preselectedCategory || null);
+    setShowScanner(true);
+  };
+
   const handleNavigate = (tab: string) => {
     if (tab === "medications") {
       setAppView("medications");
+    } else if (tab === "scanner") {
+      openScanner();
     } else {
       setActiveTab(tab as Tab);
       setAppView("main");
@@ -53,9 +64,10 @@ const Index = () => {
       case "main":
         switch (activeTab) {
           case "home": return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;
-          case "journey": return <JourneyScreen />;
-          case "records": return <RecordsScreen />;
-          case "chat": return <ChatScreen />;
+          case "journey": return <JourneyScreen onOpenScanner={openScanner} />;
+          case "records": return <RecordsScreen onOpenScanner={() => openScanner()} />;
+          case "carehub": return <CareHubScreen />;
+          case "chat": return <ChatScreen onOpenScanner={() => openScanner()} />;
         }
     }
   };
@@ -86,6 +98,8 @@ const Index = () => {
         </div>
 
         {showNav && <BottomNav active={activeTab} onNavigate={setActiveTab} />}
+
+        {showScanner && <ScannerWizard onClose={() => setShowScanner(false)} preselectedCategory={scannerCategory} />}
       </div>
     </div>
   );
