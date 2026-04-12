@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
-import { Copy, Share2, Download } from "lucide-react";
+import { Copy, Share2, Download, RefreshCw } from "lucide-react";
 import { journeySteps, defaultTransportSegments } from "@/constants/data";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
@@ -87,8 +87,19 @@ const JourneyScreen = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => vo
     window.open(url, "_blank");
   };
 
+  const handleExportJourney = () => {
+    const text = journeySteps.map(s => `${s.titleEn}\t${s.status}\t${s.date || ""}`).join("\n");
+    const blob = new Blob([`Step\tStatus\tDate\n${text}`], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "treatment-journey.txt"; a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Journey exported · تم تصدير الرحلة", { duration: 2000 });
+  };
+
   const journeyMenuItems: HeaderMenuItem[] = [
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص", onClick: handleCopyJourney },
+    { icon: <Download size={14} />, label: "Export Journey", labelAr: "تصدير الرحلة", onClick: handleExportJourney },
     { icon: <Share2 size={14} />, label: "Share Progress", labelAr: "مشاركة التقدم", onClick: handleShareJourney },
   ];
 
