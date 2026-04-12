@@ -92,3 +92,63 @@ export const quickPrompts = [
 ];
 
 export const filterCategories = ["All", "Discharge", "Lab Results", "Prescriptions", "Imaging", "Consultations"];
+
+import type { TransportSegment } from "@/components/TransportCard";
+
+export const defaultTransportSegments: TransportSegment[] = [
+  {
+    id: "t1", type: "taxi", status: "completed",
+    fromCity: "Home, Riyadh", toCity: "King Khalid Intl Airport",
+    departureDateTime: "2026-04-05T06:00", arrivalDateTime: "2026-04-05T06:45",
+    duration: "~45 min", taxiProvider: "Careem", bookingRef: "CRM-8821",
+    distance: "38km", fare: "SAR 65",
+  },
+  {
+    id: "t2", type: "flight", status: "completed",
+    fromCode: "RUH", fromCity: "Riyadh", fromFull: "King Khalid Intl",
+    toCode: "FRA", toCity: "Frankfurt", toFull: "Frankfurt Airport",
+    departureDateTime: "2026-04-05T08:30", arrivalDateTime: "2026-04-05T12:45",
+    duration: "~5h 15m", airline: "Saudia", flightNumber: "SV 301",
+    bookingRef: "AB1234", seatClass: "Business", seatNumber: "24A",
+    layoverAfter: { duration: "2h 30m", airport: "Frankfurt", code: "FRA" },
+  },
+  {
+    id: "t3", type: "flight", status: "completed",
+    fromCode: "FRA", fromCity: "Frankfurt", fromFull: "Frankfurt Airport",
+    toCode: "BER", toCity: "Berlin", toFull: "Brandenburg Intl",
+    departureDateTime: "2026-04-05T15:15", arrivalDateTime: "2026-04-05T16:20",
+    duration: "~1h 05m", airline: "Lufthansa", flightNumber: "LH 188",
+    bookingRef: "AB1234", seatClass: "Business", seatNumber: "3F",
+  },
+  {
+    id: "t4", type: "medical", status: "completed",
+    fromCity: "Brandenburg Intl Airport", toCity: "Charité Hospital",
+    departureDateTime: "2026-04-05T17:00", arrivalDateTime: "2026-04-05T17:45",
+    duration: "~45 min", hospital: "Charité Hospital", hospitalPhone: "+49301234567",
+    mobilityType: "Wheelchair", arrangedBy: "Hospital", costInfo: "Covered",
+  },
+  {
+    id: "t5", type: "taxi", status: "completed",
+    fromCity: "Charité Hospital", toCity: "Hotel Adlon, Berlin",
+    departureDateTime: "2026-04-08T14:00", arrivalDateTime: "2026-04-08T14:30",
+    duration: "~30 min", taxiProvider: "Uber", bookingRef: "UBR-4412",
+    distance: "12km", fare: "€18",
+  },
+  {
+    id: "t6", type: "rental", status: "active",
+    fromCity: "Berlin", toCity: "Berlin",
+    departureDateTime: "2026-04-10T10:00", arrivalDateTime: "2026-04-15T10:00",
+    rentalCompany: "Sixt", carModel: "BMW 3 Series", carClass: "Premium",
+    bookingRef: "SXT-8834", rentalDays: 5, insured: true,
+    pickupLocation: "Hotel Adlon", returnLocation: "Brandenburg Airport",
+  },
+  {
+    id: "t7", type: "flight", status: "upcoming",
+    fromCode: "BER", fromCity: "Berlin", fromFull: "Brandenburg Intl",
+    toCode: "RUH", toCity: "Riyadh", toFull: "King Khalid Intl",
+    departureDateTime: "2026-04-15T15:00", arrivalDateTime: "2026-04-15T23:30",
+    duration: "~6h 30m", airline: "Saudia", flightNumber: "SV 302",
+    bookingRef: "AB1234", seatClass: "Business", seatNumber: "24A",
+    medicalAssistance: "Medical assistance requested — wheelchair at gate",
+  },
+];

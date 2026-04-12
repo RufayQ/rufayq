@@ -10,7 +10,7 @@ const RecordsScreen = () => {
   const filtered = activeFilter === "All" ? records : records.filter((r) => r.category === activeFilter);
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col relative" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
       <div className="relative px-5 pt-3 pb-4 overflow-hidden" style={{ background: "var(--teal-deep)" }}>
         <div className="flex items-center justify-between">
@@ -49,7 +49,7 @@ const RecordsScreen = () => {
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3" style={{ background: "var(--off-white)" }}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {/* Featured Discharge Pack */}
         <div className="relative rounded-2xl p-5 overflow-hidden" style={{ background: "linear-gradient(135deg, #0D1B2A, #1A3A4A)" }}>
           <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.2)" }} />

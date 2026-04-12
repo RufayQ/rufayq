@@ -42,7 +42,7 @@ const ChatScreen = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
       <div className="px-5 pt-3 pb-3" style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
         <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>04 — AI COMPANION</p>
@@ -100,7 +100,7 @@ const ChatScreen = () => {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3" style={{ background: "var(--off-white)" }}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-3.5 py-3 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {/* Date separator */}
         <div className="flex items-center gap-2 my-1">
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
