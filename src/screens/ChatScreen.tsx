@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Paperclip, MoreVertical, ChevronRight, X, Camera, Upload, Mic, Square, Trash2 } from "lucide-react";
+import { Send, Paperclip, ChevronRight, X, Camera, Upload, Mic, Square, Trash2, Copy } from "lucide-react";
+import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
+import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import { initialMessages, quickPrompts, type ChatMessage } from "@/constants/data";
 
@@ -136,7 +138,7 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
               </div>
             </div>
           </div>
-          <MoreVertical size={18} color="white" />
+          <HeaderMenu items={chatMenuItems} />
         </div>
       </div>
 
