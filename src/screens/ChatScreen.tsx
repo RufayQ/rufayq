@@ -239,19 +239,40 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
               <p className="font-arabic text-sm" dir="rtl" style={{ color: "var(--gray)" }}>ارفع وثيقة إلى رُفَيِّق</p>
             </div>
 
-            {/* Drop zone */}
-            <div className="mx-5 rounded-2xl flex flex-col items-center justify-center py-8" style={{ background: "var(--teal-light)", border: "2px dashed var(--teal-deep)", minHeight: 140 }}>
-              <div className="logo-pulse"><RufayQLogo size={32} variant="dark" /></div>
-              <p className="font-arabic text-[13px] mt-3" dir="rtl" style={{ color: "var(--teal-deep)" }}>اسحب الملف هنا أو اختر من الأسفل</p>
-              <p className="font-mono text-[9px] mt-1" style={{ color: "var(--gray)" }}>PDF · JPG · PNG · DICOM · DOC</p>
+            {/* Medical document type selector */}
+            <div className="px-5 mb-3">
+              <p className="text-[10px] font-mono tracking-wider mb-2" style={{ color: "var(--gold)" }}>DOCUMENT TYPE · نوع الوثيقة</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { emoji: "🔬", label: "Lab Results", ar: "تحاليل" },
+                  { emoji: "🩻", label: "Radiology", ar: "أشعة" },
+                  { emoji: "💊", label: "Prescription", ar: "وصفة طبية" },
+                  { emoji: "📋", label: "Discharge", ar: "ملخص خروج" },
+                  { emoji: "🫀", label: "ECG / ECHO", ar: "قلب" },
+                  { emoji: "🛡️", label: "Insurance", ar: "تأمين" },
+                ].map((t) => (
+                  <button
+                    key={t.label}
+                    onClick={() => {
+                      setUploadedFile({ name: `${t.label.toLowerCase().replace(/\s+/g, "_")}_scan.pdf`, size: "1.2 MB" });
+                      setUploadInstruction(t.label);
+                    }}
+                    className="flex flex-col items-center gap-1 py-3 rounded-xl card-press"
+                    style={{ background: uploadInstruction === t.label ? "var(--teal-light)" : "var(--off-white)", border: uploadInstruction === t.label ? "2px solid var(--teal-deep)" : "1px solid var(--gray-light)" }}
+                  >
+                    <span className="text-xl">{t.emoji}</span>
+                    <span className="text-[10px] font-bold" style={{ color: "var(--navy)" }}>{t.label}</span>
+                    <span className="font-arabic text-[8px]" style={{ color: "var(--gray)" }}>{t.ar}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Source buttons */}
-            <div className="flex gap-2 px-5 mt-3">
+            <div className="flex gap-2 px-5">
               {[
                 { emoji: "📷", label: "Camera", ar: "كاميرا" },
                 { emoji: "📁", label: "Files", ar: "ملفات" },
-                { emoji: "🖨️", label: "DICOM", ar: "DICOM" },
               ].map((s) => (
                 <button
                   key={s.label}
@@ -286,18 +307,10 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
                   onChange={(e) => setUploadInstruction(e.target.value)}
                   placeholder="أضف تعليمات للذكاء الاصطناعي... (اختياري)"
                   dir="rtl"
-                  rows={3}
+                  rows={2}
                   className="w-full font-arabic text-[13px] px-3 py-2 rounded-xl outline-none resize-none"
                   style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
                 />
-                {/* Suggestion pills */}
-                <div className="flex gap-1.5 mt-1.5 overflow-x-auto">
-                  {["أضفه لنتائج التحاليل", "ترجمه للعربية", "أرسله لطبيبي"].map((s) => (
-                    <button key={s} onClick={() => setUploadInstruction(s)} className="font-arabic text-[10px] px-2.5 py-1 rounded-full whitespace-nowrap btn-press" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
               </div>
             )}
 
