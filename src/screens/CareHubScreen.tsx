@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { ChevronDown, Star, Pin } from "lucide-react";
+import { ChevronDown, Star, Pin, Copy, Share2, Download } from "lucide-react";
+import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
+import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 
 type SubTab = "careplan" | "videos" | "education" | "faqs" | "nutrition" | "exercises";
 

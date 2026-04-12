@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { records, filterCategories, type DocRecord } from "@/constants/data";
 import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy } from "lucide-react";
+import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 
