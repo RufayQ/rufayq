@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import { InlineFlightRow } from "@/components/FlightTicketCard";
 import TransportCard, { LayoverIndicator, type TransportSegment } from "@/components/TransportCard";
+import TicketDetailSheet from "@/components/TicketDetailSheet";
 
 const phases = [
   { key: "before", label: "Before Travel", labelAr: "قبل السفر", color: "var(--teal-deep)" },
