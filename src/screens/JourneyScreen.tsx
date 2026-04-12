@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import { InlineFlightRow } from "@/components/FlightTicketCard";
 import TransportCard, { LayoverIndicator, type TransportSegment } from "@/components/TransportCard";
-import TicketDetailSheet, { type OverrideAnnotation, type SmartReminder } from "@/components/TicketDetailSheet";
+import TicketDetailSheet, { type OverrideAnnotation, type SmartReminder, getSystemReminders } from "@/components/TicketDetailSheet";
 
 const phases = [
   { key: "before", label: "Before Travel", labelAr: "قبل السفر", color: "var(--teal-deep)" },
@@ -219,11 +219,8 @@ const TicketsTab = ({ segments, onAdd, onScan }: { segments: TransportSegment[];
       {segments.map((seg) => (
         <div key={seg.id}>
           <TransportCard seg={seg} onTap={() => {
-            // Initialize system reminders if not yet done
             if (!ticketSystemReminders[seg.id]) {
-              const { getSystemReminders } = require("@/components/TicketDetailSheet");
-              // We need to generate them here — but the function is internal
-              // So we handle it via the component itself
+              setTicketSystemReminders((prev) => ({ ...prev, [seg.id]: getSystemReminders(seg) }));
             }
             setSelectedSeg(seg);
           }} />

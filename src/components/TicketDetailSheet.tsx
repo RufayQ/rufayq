@@ -102,7 +102,7 @@ function getOverrideFields(type: string): { key: string; label: string; labelAr:
 }
 
 /* ─── System-generated reminders by type ─── */
-function getSystemReminders(seg: TransportSegment): SmartReminder[] {
+export function getSystemReminders(seg: TransportSegment): SmartReminder[] {
   const base: SmartReminder[] = [];
   if (seg.type === "flight") {
     base.push(
