@@ -151,9 +151,24 @@ const TicketDetailSheet = ({ seg, onClose, notes, onSaveNotes, alarms, onToggleA
               {seg.airline || seg.trainOperator || seg.busOperator || seg.taxiProvider || seg.rentalCompany || seg.arrangedBy || ""} {seg.flightNumber || seg.trainNumber || ""}
             </p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "#F0F2F5" }}>
-            <X size={16} color="var(--gray)" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
+              style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.15)" }}
+              title="Save / Share"
+            >
+              {isExporting ? (
+                <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "var(--teal-deep)", borderTopColor: "transparent" }} />
+              ) : (
+                <Share2 size={14} color="var(--teal-deep)" />
+              )}
+            </button>
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "#F0F2F5" }}>
+              <X size={16} color="var(--gray)" />
+            </button>
+          </div>
         </div>
 
         {/* Tab pills */}
