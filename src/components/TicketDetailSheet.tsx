@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import html2canvas from "html2canvas";
 import type { TransportSegment } from "./TransportCard";
 
 function fmtDate(dt: string) {
@@ -59,6 +60,51 @@ interface TicketDetailSheetProps {
 const TicketDetailSheet = ({ seg, onClose, notes, onSaveNotes, alarms, onToggleAlarm }: TicketDetailSheetProps) => {
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "alarms">("details");
   const [draftNotes, setDraftNotes] = useState(notes);
+  const [isExporting, setIsExporting] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
+
+  const handleExport = useCallback(async () => {
+    if (!captureRef.current) return;
+    setIsExporting(true);
+    try {
+      // Force details tab for capture
+      const el = captureRef.current;
+      const canvas = await html2canvas(el, {
+        backgroundColor: "#FFFFFF",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const dataUrl = canvas.toDataURL("image/png");
+      const fileName = `${seg.type}-${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}-${seg.bookingRef || "ticket"}.png`;
+
+      // Try native share first (mobile), fallback to download
+      if (navigator.share && navigator.canShare) {
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          const file = new File([blob], fileName, { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: `Boarding Pass — ${seg.fromCode || seg.fromCity} → ${seg.toCode || seg.toCity}` });
+            toast.success("Shared successfully ✓ · تمت المشاركة بنجاح");
+            setIsExporting(false);
+            return;
+          }
+        } catch (shareErr) {
+          // User cancelled or share failed — fall through to download
+        }
+      }
+
+      // Fallback: download
+      const link = document.createElement("a");
+      link.download = fileName;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Boarding pass saved ✓ · تم حفظ بطاقة الصعود");
+    } catch (err) {
+      toast.error("Export failed · فشل التصدير");
+    }
+    setIsExporting(false);
+  }, [seg]);
 
   const typeLabels: Record<string, string> = {
     flight: "Flight Ticket", train: "Train Ticket", bus: "Bus Ticket",
@@ -105,9 +151,24 @@ const TicketDetailSheet = ({ seg, onClose, notes, onSaveNotes, alarms, onToggleA
               {seg.airline || seg.trainOperator || seg.busOperator || seg.taxiProvider || seg.rentalCompany || seg.arrangedBy || ""} {seg.flightNumber || seg.trainNumber || ""}
             </p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "#F0F2F5" }}>
-            <X size={16} color="var(--gray)" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
+              style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.15)" }}
+              title="Save / Share"
+            >
+              {isExporting ? (
+                <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "var(--teal-deep)", borderTopColor: "transparent" }} />
+              ) : (
+                <Share2 size={14} color="var(--teal-deep)" />
+              )}
+            </button>
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "#F0F2F5" }}>
+              <X size={16} color="var(--gray)" />
+            </button>
+          </div>
         </div>
 
         {/* Tab pills */}
@@ -137,7 +198,7 @@ const TicketDetailSheet = ({ seg, onClose, notes, onSaveNotes, alarms, onToggleA
         <div className="px-5 pb-8">
           {/* ─── DETAILS TAB ─── */}
           {activeTab === "details" && (
-            <div className="space-y-4 pt-2">
+            <div className="space-y-4 pt-2" ref={captureRef}>
               {/* Barcode section */}
               {hasBarcode && (
                 <div className="rounded-2xl p-4 text-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
@@ -286,6 +347,21 @@ const TicketDetailSheet = ({ seg, onClose, notes, onSaveNotes, alarms, onToggleA
                   </div>
                 </div>
               )}
+
+              {/* Export / Save button */}
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white btn-press"
+                style={{ background: "var(--teal-deep)" }}
+              >
+                {isExporting ? (
+                  <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "white", borderTopColor: "transparent" }} />
+                ) : (
+                  <Download size={16} />
+                )}
+                {isExporting ? "Exporting..." : "Save Boarding Pass"} · <span className="font-arabic">{isExporting ? "جارٍ التصدير..." : "حفظ بطاقة الصعود"}</span>
+              </button>
             </div>
           )}
 
