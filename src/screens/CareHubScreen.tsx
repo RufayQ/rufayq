@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Star, Pin, Copy, Share2, Download } from "lucide-react";
+import { ChevronDown, Star, Pin, Copy, Share2, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
@@ -29,8 +29,19 @@ const CareHubScreen = () => {
     window.open(url, "_blank");
   };
 
+  const handleExportCarePlan = () => {
+    const text = "Care Plan — Post-Op Day 5\nKnee Replacement\n\nTasks:\n- Morning meds 8AM\n- Elevate leg 30 min\n- Cold compress\n- Breathing exercises\n- Evening meds 8PM\n- Log pain level";
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "care-plan.txt"; a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Care plan exported · تم تصدير خطة الرعاية", { duration: 2000 });
+  };
+
   const careMenuItems: HeaderMenuItem[] = [
     { icon: <Copy size={14} />, label: "Copy Plan", labelAr: "نسخ الخطة", onClick: handleCopyCarePlan },
+    { icon: <Download size={14} />, label: "Export Plan", labelAr: "تصدير الخطة", onClick: handleExportCarePlan },
     { icon: <Share2 size={14} />, label: "Share with Doctor", labelAr: "مشاركة مع الطبيب", onClick: handleShareCarePlan },
   ];
 

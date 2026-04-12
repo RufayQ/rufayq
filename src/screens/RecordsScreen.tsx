@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { records, filterCategories, type DocRecord } from "@/constants/data";
-import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy } from "lucide-react";
+import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, RefreshCw } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
@@ -60,9 +60,16 @@ const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
     toast.success("Records exported · تم تصدير السجلات", { duration: 2000 });
   };
 
+  const handleShareRecords = () => {
+    const text = `Medical Records Summary\n\n${records.map(r => `📄 ${r.titleEn} — ${r.category} — ${r.date}`).join("\n")}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  };
+
   const recordsMenuItems: HeaderMenuItem[] = [
     { icon: <Copy size={14} />, label: "Copy All", labelAr: "نسخ الكل", onClick: handleCopyAllRecords },
     { icon: <Download size={14} />, label: "Export Records", labelAr: "تصدير السجلات", onClick: handleExportRecords },
+    { icon: <Share2 size={14} />, label: "Share Records", labelAr: "مشاركة السجلات", onClick: handleShareRecords },
   ];
 
   return (

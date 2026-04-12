@@ -39,7 +39,7 @@ const HeaderMenu = ({ items }: HeaderMenuProps) => {
 
       {open && (
         <div
-          className="absolute right-0 top-10 z-50 min-w-[180px] rounded-xl overflow-hidden animate-fade-in-up"
+          className="absolute right-0 top-10 z-[100] min-w-[180px] rounded-xl overflow-hidden animate-fade-in-up"
           style={{
             background: "var(--white)",
             boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
