@@ -88,6 +88,8 @@ const Index = () => {
       setAppView("medications");
     } else if (tab === "scanner") {
       openScanner();
+    } else if (tab === "settings") {
+      setAppView("settings");
     } else {
       setActiveTab(tab as Tab);
       setAppView("main");
