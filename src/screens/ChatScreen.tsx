@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Send, Paperclip, MoreVertical, ChevronRight, X, Camera, Upload, Mic } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Paperclip, MoreVertical, ChevronRight, X, Camera, Upload, Mic, Square, Trash2 } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import { initialMessages, quickPrompts, type ChatMessage } from "@/constants/data";
 
