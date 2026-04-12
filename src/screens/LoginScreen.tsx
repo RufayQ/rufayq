@@ -1,6 +1,6 @@
 import { useState } from "react";
-import LogoMark from "@/components/LogoMark";
-import Wordmark from "@/components/Wordmark";
+import RufayQLogo from "@/components/RufayQLogo";
+import RufayQWordmark from "@/components/RufayQWordmark";
 import { Eye, EyeOff } from "lucide-react";
 
 type AuthView = "login" | "register" | "otp";
@@ -140,8 +140,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   return (
     <div className="flex flex-col h-full overflow-y-auto px-6 pt-10 pb-6" style={{ background: "var(--off-white)" }}>
       <div className="flex flex-col items-center mb-8">
-        <LogoMark size={60} />
-        <div className="mt-2"><Wordmark size="text-xl" /></div>
+        <RufayQLogo size={60} variant="dark" />
+        <div className="mt-2"><RufayQWordmark size="md" variant="dark" /></div>
         <h2 className="font-display text-2xl mt-4" style={{ color: "var(--navy)" }}>Welcome back</h2>
         <p className="font-arabic text-base" dir="rtl" style={{ color: "var(--gray)" }}>مرحباً بعودتك</p>
         <p className="text-xs mt-1" style={{ color: "var(--gray)" }}>Sign in to your RufayQ companion · سجّل دخولك إلى رُفَيِّق</p>

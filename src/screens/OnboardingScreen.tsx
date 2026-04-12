@@ -1,6 +1,6 @@
 import { useState } from "react";
-import LogoMark from "@/components/LogoMark";
-import Wordmark from "@/components/Wordmark";
+import RufayQLogo from "@/components/RufayQLogo";
+import RufayQWordmark from "@/components/RufayQWordmark";
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -12,7 +12,7 @@ const slides = [
     content: (
       <>
         <div className="flex-1 flex flex-col items-center justify-center px-8">
-          <LogoMark size={100} />
+          <RufayQLogo size={80} variant="gold" />
           <h1 className="font-display text-4xl text-white mt-8 text-center" style={{ fontWeight: 300 }}>
             Never Alone Abroad
           </h1>
@@ -34,7 +34,6 @@ const slides = [
     content: (
       <>
         <div className="flex-1 flex flex-col items-center justify-center px-8">
-          {/* Timeline illustration */}
           <div className="flex items-center gap-0 mb-10">
             {[
               { icon: "🧳", label: "Before" },
@@ -76,7 +75,7 @@ const slides = [
       <>
         <div className="flex-1 flex flex-col items-center justify-center px-8">
           <p className="font-arabic text-7xl" style={{ color: "var(--teal-deep)" }} dir="rtl">رُفَيِّق</p>
-          <div className="mt-3"><Wordmark size="text-xl" /></div>
+          <div className="mt-3"><RufayQWordmark size="md" variant="dark" /></div>
           <h1 className="font-display text-3xl mt-8 text-center" style={{ fontWeight: 400, color: "var(--navy)" }}>
             Your Language, Your Care
           </h1>
@@ -118,8 +117,8 @@ const OnboardingScreen = ({ onComplete }: OnboardingScreenProps) => {
   if (showCTA) {
     return (
       <div className="flex flex-col h-full items-center justify-center px-8" style={{ background: "var(--navy)" }}>
-        <LogoMark size={60} />
-        <div className="mt-4"><Wordmark size="text-2xl" /></div>
+        <RufayQLogo size={80} variant="gold" />
+        <div className="mt-4"><RufayQWordmark size="lg" variant="light" showArabic /></div>
         <p className="text-sm mt-6 text-center" style={{ color: "rgba(255,255,255,0.6)" }}>
           Your AI Medical Buddy starts here
         </p>
@@ -146,7 +145,6 @@ const OnboardingScreen = ({ onComplete }: OnboardingScreenProps) => {
 
   return (
     <div className="flex flex-col h-full relative" style={{ background: slides[current].bg }}>
-      {/* Skip */}
       {current < 2 && (
         <button
           onClick={onComplete}
@@ -159,7 +157,6 @@ const OnboardingScreen = ({ onComplete }: OnboardingScreenProps) => {
 
       {slides[current].content}
 
-      {/* Dots + Next */}
       <div className="flex flex-col items-center pb-10 gap-6">
         <div className="flex gap-2">
           {[0, 1, 2].map((i) => (

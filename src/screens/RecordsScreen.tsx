@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { records, filterCategories } from "@/constants/data";
 import { Share2, Upload } from "lucide-react";
+import RufayQLogo from "@/components/RufayQLogo";
 
 const RecordsScreen = () => {
   const [activeFilter, setActiveFilter] = useState("All");
@@ -54,6 +55,10 @@ const RecordsScreen = () => {
         <div className="relative rounded-2xl p-5 overflow-hidden" style={{ background: "linear-gradient(135deg, #0D1B2A, #1A3A4A)" }}>
           <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.2)" }} />
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.08)" }} />
+          {/* Watermark logo */}
+          <div className="absolute bottom-3 right-3 z-0" style={{ opacity: 0.25 }}>
+            <RufayQLogo size={20} variant="dark" />
+          </div>
 
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-2">
