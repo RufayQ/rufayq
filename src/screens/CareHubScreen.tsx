@@ -389,6 +389,7 @@ const EducationTab = () => {
 /* ─── FAQs ─── */
 const FAQsTab = () => {
   const [openQ, setOpenQ] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const sections = [
     { title: "🚨 Emergency", ar: "حالات الطوارئ", questions: [
       { q: "When should I go to the ER?", qar: "متى يجب أن أذهب للطوارئ؟", a: "Go immediately if: fever >38.5°C, sudden severe pain, wound bleeding that won't stop, difficulty breathing, or chest pain.", aar: "اذهب فوراً إذا: حرارة أعلى من ٣٨.٥، ألم شديد مفاجئ، نزيف لا يتوقف، صعوبة في التنفس، أو ألم في الصدر.", emergency: true },
@@ -407,15 +408,63 @@ const FAQsTab = () => {
     ]},
   ];
 
+  const lc = search.toLowerCase();
+  const matchesQ = (q: { q: string; qar: string; a: string; aar: string }) =>
+    !lc || q.q.toLowerCase().includes(lc) || q.qar.includes(search) || q.a.toLowerCase().includes(lc) || q.aar.includes(search);
+
+  const filteredSections = sections
+    .map(s => ({ ...s, questions: s.questions.filter(matchesQ) }))
+    .filter(s => s.questions.length > 0);
+
+  const highlightText = (text: string, isArabic = false) => {
+    if (!lc) return text;
+    const query = isArabic ? search : lc;
+    const target = isArabic ? text : text.toLowerCase();
+    const idx = target.indexOf(query);
+    if (idx === -1) return text;
+    return (
+      <span>
+        {text.slice(0, idx)}
+        <span style={{ background: "rgba(197,150,90,0.25)", borderRadius: 2, padding: "0 1px" }}>{text.slice(idx, idx + query.length)}</span>
+        {text.slice(idx + query.length)}
+      </span>
+    );
+  };
+
   return (
     <div className="px-4 py-4 space-y-3">
       {/* Search */}
-      <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+      <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--white)", border: search ? "1.5px solid var(--teal-deep)" : "1px solid var(--gray-light)", transition: "border 200ms" }}>
         <span className="text-[14px]">🔍</span>
-        <input className="flex-1 text-[13px] bg-transparent outline-none font-arabic" dir="rtl" placeholder="ابحث في الأسئلة الشائعة..." style={{ color: "var(--navy)" }} />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="flex-1 text-[13px] bg-transparent outline-none font-arabic"
+          dir="rtl"
+          placeholder="ابحث في الأسئلة الشائعة..."
+          style={{ color: "var(--navy)" }}
+        />
+        {search && (
+          <button onClick={() => setSearch("")} className="text-[14px]" style={{ color: "var(--gray)" }}>✕</button>
+        )}
       </div>
 
-      {sections.map((s, si) => (
+      {/* Result count when searching */}
+      {search && (
+        <p className="text-[10px] font-mono px-1" style={{ color: "var(--gray)" }}>
+          {filteredSections.reduce((a, s) => a + s.questions.length, 0)} result(s) found
+        </p>
+      )}
+
+      {filteredSections.length === 0 && (
+        <div className="text-center py-8">
+          <span className="text-3xl">🔍</span>
+          <p className="text-[13px] mt-2" style={{ color: "var(--gray)" }}>No matching questions</p>
+          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد نتائج مطابقة</p>
+        </div>
+      )}
+
+      {filteredSections.map((s, si) => (
         <div key={si} className="rounded-2xl overflow-hidden" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
           <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--gray-light)" }}>
             <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{s.title}</p>
@@ -428,15 +477,15 @@ const FAQsTab = () => {
               <div key={qi}>
                 <button onClick={() => setOpenQ(isOpen ? null : key)} className="w-full px-4 py-3 text-left btn-press flex items-center gap-2" style={{ borderBottom: "1px solid var(--gray-light)" }}>
                   <div className="flex-1">
-                    <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{q.q}</p>
-                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{q.qar}</p>
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{highlightText(q.q)}</p>
+                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{highlightText(q.qar, true)}</p>
                   </div>
                   <ChevronDown size={16} style={{ color: "var(--gray)", transition: "transform 200ms ease", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", flexShrink: 0 }} />
                 </button>
                 {isOpen && (
                   <div className="px-4 py-3" style={{ background: "var(--off-white)" }}>
-                    <p className="text-[12px]" style={{ color: "var(--navy)" }}>{q.a}</p>
-                    <p className="font-arabic text-[10px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>{q.aar}</p>
+                    <p className="text-[12px]" style={{ color: "var(--navy)" }}>{highlightText(q.a)}</p>
+                    <p className="font-arabic text-[10px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>{highlightText(q.aar, true)}</p>
                     {(q as any).emergency && (
                       <a href="tel:112" className="mt-2 w-full py-2.5 rounded-xl text-[13px] font-bold text-white text-center block btn-press" style={{ background: "var(--error)" }}>
                         🚨 CALL EMERGENCY · اتصل بالطوارئ
