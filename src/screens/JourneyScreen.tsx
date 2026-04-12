@@ -187,31 +187,56 @@ const AddButton = ({ labelEn, labelAr, onClick }: { labelEn: string; labelAr: st
 );
 
 /* ─── TICKETS TAB ─── */
-const TicketsTab = ({ segments, onAdd, onScan }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void }) => (
-  <div className="pt-2">
-    <div className="px-4 mb-3">
-      <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR FULL TRANSPORT TIMELINE</p>
-      <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>جميع وسائل تنقلك في هذه الرحلة</p>
-    </div>
-    {segments.map((seg) => (
-      <div key={seg.id}>
-        <TransportCard seg={seg} />
-        {seg.layoverAfter && (
-          <LayoverIndicator duration={seg.layoverAfter.duration} airport={seg.layoverAfter.airport} code={seg.layoverAfter.code} />
+const TicketsTab = ({ segments, onAdd, onScan }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void }) => {
+  const [selectedSeg, setSelectedSeg] = useState<TransportSegment | null>(null);
+  const [ticketNotes, setTicketNotes] = useState<Record<string, string>>({});
+  const [ticketAlarms, setTicketAlarms] = useState<Record<string, number[]>>({});
+
+  const handleToggleAlarm = (segId: string, minutes: number) => {
+    setTicketAlarms((prev) => {
+      const current = prev[segId] || [];
+      return { ...prev, [segId]: current.includes(minutes) ? current.filter((m) => m !== minutes) : [...current, minutes] };
+    });
+  };
+
+  return (
+    <div className="pt-2">
+      <div className="px-4 mb-3">
+        <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR FULL TRANSPORT TIMELINE</p>
+        <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>جميع وسائل تنقلك في هذه الرحلة</p>
+        <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>Tap any ticket for full details, barcode & notes</p>
+      </div>
+      {segments.map((seg) => (
+        <div key={seg.id}>
+          <TransportCard seg={seg} onTap={() => setSelectedSeg(seg)} />
+          {seg.layoverAfter && (
+            <LayoverIndicator duration={seg.layoverAfter.duration} airport={seg.layoverAfter.airport} code={seg.layoverAfter.code} />
+          )}
+        </div>
+      ))}
+      <div className="px-4 mt-2 space-y-2">
+        <AddButton labelEn="＋ Add Transport" labelAr="إضافة وسيلة تنقل" onClick={onAdd} />
+        {onScan && (
+          <button onClick={onScan} className="w-full text-center text-[12px] py-1.5 btn-press" style={{ color: "var(--teal-mid)" }}>
+            📸 Or scan a boarding pass / booking confirmation
+            <span className="block font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>أو امسح بطاقة الصعود / تأكيد الحجز</span>
+          </button>
         )}
       </div>
-    ))}
-    <div className="px-4 mt-2 space-y-2">
-      <AddButton labelEn="＋ Add Transport" labelAr="إضافة وسيلة تنقل" onClick={onAdd} />
-      {onScan && (
-        <button onClick={onScan} className="w-full text-center text-[12px] py-1.5 btn-press" style={{ color: "var(--teal-mid)" }}>
-          📸 Or scan a boarding pass / booking confirmation
-          <span className="block font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>أو امسح بطاقة الصعود / تأكيد الحجز</span>
-        </button>
+
+      {selectedSeg && (
+        <TicketDetailSheet
+          seg={selectedSeg}
+          onClose={() => setSelectedSeg(null)}
+          notes={ticketNotes[selectedSeg.id] || ""}
+          onSaveNotes={(n) => setTicketNotes((prev) => ({ ...prev, [selectedSeg.id]: n }))}
+          alarms={ticketAlarms[selectedSeg.id] || []}
+          onToggleAlarm={(m) => handleToggleAlarm(selectedSeg.id, m)}
+        />
       )}
     </div>
-  </div>
-);
+  );
+};
 
 /* ─── STAY TAB ─── */
 const StayTab = ({ onAdd, onScan }: { onAdd: () => void; onScan?: () => void }) => (
