@@ -142,11 +142,11 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   };
 
   return (
-    <div className="absolute inset-0 z-[60] flex flex-col animate-slide-in-right" style={{ background: "#0D1B2A" }}>
+    <div className="absolute inset-0 z-[60] flex flex-col animate-slide-in-right" style={{ background: "var(--scanner-bg)" }}>
       <input ref={fileInputRef} type="file" className="hidden" onChange={onFileSelected} />
 
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 shrink-0" style={{ height: 52, background: "#0D1B2A" }}>
+      <div className="flex items-center justify-between px-4 shrink-0" style={{ height: 52, background: "var(--scanner-bg)" }}>
         <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
           <X size={16} color="white" />
         </button>
@@ -282,9 +282,9 @@ const Step1Capture = ({ onCapture }: { onCapture: (accept: string) => void }) =>
 
       <div className="w-full space-y-3 mt-8">
         {[
-          { emoji: "📷", en: "Scan with Camera", ar: "امسح بالكاميرا", gradient: "linear-gradient(135deg, #004D5B, #006D7C)", accept: "image/*;capture=camera" },
+          { emoji: "📷", en: "Scan with Camera", ar: "امسح بالكاميرا", gradient: "linear-gradient(135deg, var(--header-teal-from), var(--header-teal-to))", accept: "image/*;capture=camera" },
           { emoji: "📱", en: "Scan QR Code", ar: "امسح رمز QR", gradient: "linear-gradient(135deg, #3A2A1A, #2A1A0A)", accept: "qr", sub: "Boarding pass · Rx label · Hospital ID" },
-          { emoji: "🖼️", en: "Choose from Photos", ar: "اختر من الصور", gradient: "linear-gradient(135deg, #1A2A3A, #0D1B2A)", accept: "image/*" },
+          { emoji: "🖼️", en: "Choose from Photos", ar: "اختر من الصور", gradient: "linear-gradient(135deg, var(--header-dark-alt), var(--scanner-bg))", accept: "image/*" },
           { emoji: "📁", en: "Upload PDF or Document", ar: "ارفع PDF أو وثيقة", gradient: "linear-gradient(135deg, #2A1A3A, #1A0D24)", accept: ".pdf,.doc,.docx,.jpg,.png,.jpeg" },
           { emoji: "☁️", en: "Import from Cloud", ar: "استورد من السحابة", gradient: "linear-gradient(135deg, #1A2A14, #0D1A08)", accept: "*/*", sub: "Google Drive · iCloud · Dropbox · Email" },
         ].map((opt) => (
@@ -322,7 +322,7 @@ const Step2Review = ({ file, onRetake, onConfirm }: { file: { name: string; type
   const isImage = file.type.startsWith("image");
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "#0D1B2A" }}>
+    <div className="flex flex-col h-full" style={{ background: "var(--scanner-bg)" }}>
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
         {isImage ? (
           <div className="w-full rounded-2xl overflow-hidden relative" style={{ aspectRatio: "3/4", background: "rgba(255,255,255,0.05)", border: "2px solid var(--gold)" }}>
