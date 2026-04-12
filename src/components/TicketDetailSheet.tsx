@@ -198,7 +198,7 @@ const TicketDetailSheet = ({ seg, onClose, notes, onSaveNotes, alarms, onToggleA
         <div className="px-5 pb-8">
           {/* ─── DETAILS TAB ─── */}
           {activeTab === "details" && (
-            <div className="space-y-4 pt-2">
+            <div className="space-y-4 pt-2" ref={captureRef}>
               {/* Barcode section */}
               {hasBarcode && (
                 <div className="rounded-2xl p-4 text-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
