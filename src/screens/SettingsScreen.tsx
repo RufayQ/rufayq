@@ -55,6 +55,15 @@ const RadioOption = ({
 const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const stored = JSON.parse(localStorage.getItem("rufayq_settings") || "{}");
 
+  const applyThemeNow = (t: string) => {
+    const root = document.documentElement;
+    if (t === "system") {
+      root.classList.toggle("dark", window.matchMedia("(prefers-color-scheme: dark)").matches);
+    } else {
+      root.classList.toggle("dark", t === "dark");
+    }
+  };
+
   const [language, setLanguage] = useState(stored.language ?? "bilingual");
   const [theme, setTheme] = useState(stored.theme ?? "light");
   const [pushNotif, setPushNotif] = useState(stored.pushNotif ?? true);
