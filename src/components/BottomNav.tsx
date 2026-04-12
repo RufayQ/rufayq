@@ -1,4 +1,5 @@
 import { Home, HeartPulse, FileText, MessageCircle } from "lucide-react";
+import RufayQLogo from "@/components/RufayQLogo";
 
 type Tab = 'home' | 'journey' | 'records' | 'chat';
 
