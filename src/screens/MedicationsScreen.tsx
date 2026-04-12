@@ -16,8 +16,6 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
   const statusLabel = (s: string) =>
     s === "taken" ? "TAKEN ✓" : s === "due" ? "DUE" : s === "missed" ? "MISSED ✗" : "UPCOMING";
 
-  const statusLabel = (s: string) =>
-    s === "taken" ? "TAKEN ✓" : s === "due" ? "DUE" : "UPCOMING";
 
   const periods = [
     { key: "morning", label: "Morning", time: "8:00 AM — 12:00 PM", color: "var(--success)" },
