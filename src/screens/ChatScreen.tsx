@@ -194,7 +194,7 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
         {!input.trim() && (
           <div className="flex gap-2 px-3 pt-2">
             {[
-              { icon: <Camera size={13} />, label: "Scan", onClick: () => setShowUploadSheet(true) },
+              { icon: <Camera size={13} />, label: "Scan", onClick: () => onOpenScanner?.() },
               { icon: <Upload size={13} />, label: "Upload", onClick: () => setShowUploadSheet(true) },
               { icon: <Mic size={13} />, label: "Voice", onClick: () => {} },
             ].map((a) => (
@@ -205,7 +205,7 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
           </div>
         )}
         <div className="px-3 py-2.5 flex items-center gap-2">
-          <button onClick={() => setShowUploadSheet(true)} className="shrink-0">
+          <button onClick={() => onOpenScanner ? onOpenScanner() : setShowUploadSheet(true)} className="shrink-0">
             <Paperclip size={24} style={{ color: "var(--teal-deep)" }} />
           </button>
           <input
