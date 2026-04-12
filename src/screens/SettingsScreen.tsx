@@ -91,9 +91,9 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>LANGUAGE · اللغة</p>
           </div>
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            <RadioOption label="English Only" labelAr="الإنجليزية فقط" selected={language === "en"} onSelect={() => setLanguage("en")} />
-            <RadioOption label="العربية فقط" labelAr="Arabic Only" selected={language === "ar"} onSelect={() => setLanguage("ar")} />
-            <RadioOption label="Bilingual · ثنائي اللغة" labelAr="الإنجليزية والعربية" selected={language === "bilingual"} onSelect={() => setLanguage("bilingual")} />
+            <RadioOption label="English Only" labelAr="الإنجليزية فقط" selected={language === "en"} onSelect={() => update("language", setLanguage)("en")} />
+            <RadioOption label="العربية فقط" labelAr="Arabic Only" selected={language === "ar"} onSelect={() => update("language", setLanguage)("ar")} />
+            <RadioOption label="Bilingual · ثنائي اللغة" labelAr="الإنجليزية والعربية" selected={language === "bilingual"} onSelect={() => update("language", setLanguage)("bilingual")} />
           </div>
         </div>
 
