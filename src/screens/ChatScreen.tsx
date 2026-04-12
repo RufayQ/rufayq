@@ -133,7 +133,7 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
-      <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(160deg, #0D1B2A, #004D5B)", minHeight: 120 }}>
+      <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(160deg, var(--header-dark-from), var(--header-teal-from))", minHeight: 120 }}>
         {/* Decorative rings */}
         <div className="absolute -top-8 -right-8 w-[100px] h-[100px] rounded-full" style={{ border: "1px solid rgba(197,150,90,0.1)" }} />
         <div className="absolute -top-16 -right-16 w-[160px] h-[160px] rounded-full" style={{ border: "1px solid rgba(197,150,90,0.06)" }} />

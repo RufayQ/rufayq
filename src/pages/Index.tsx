@@ -134,7 +134,7 @@ const Index = () => {
   const showStatusBar = appView !== "onboarding";
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "#1A2A35" }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--phone-frame)" }}>
       <div
         className="relative flex flex-col overflow-hidden max-[500px]:!w-full max-[500px]:!h-screen max-[500px]:!rounded-none max-[500px]:!shadow-none"
         style={{
@@ -142,11 +142,11 @@ const Index = () => {
           height: "min(844px, calc(100vh - 48px))",
           borderRadius: 44,
           background: "#000",
-          boxShadow: "0 40px 120px rgba(0,0,0,0.7), 0 0 0 8px #2A3A45, 0 0 0 10px #1A2A35",
+          boxShadow: "0 40px 120px rgba(0,0,0,0.7), 0 0 0 8px var(--phone-ring), 0 0 0 10px var(--phone-frame)",
         }}
       >
         {showStatusBar && (
-          <div style={{ background: appView === "login" ? "var(--off-white)" : "linear-gradient(135deg, #004D5B, #006D7C)" }}>
+          <div style={{ background: appView === "login" ? "var(--off-white)" : "linear-gradient(135deg, var(--header-teal-from), var(--header-teal-to))" }}>
             <StatusBar dark={appView === "login"} />
           </div>
         )}

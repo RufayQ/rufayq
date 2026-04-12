@@ -54,7 +54,7 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
-      <div className="relative px-5 pt-3 pb-16 overflow-hidden" style={{ background: "linear-gradient(145deg, #004D5B, #006D7C)" }}>
+      <div className="relative px-5 pt-3 pb-16 overflow-hidden" style={{ background: "linear-gradient(145deg, var(--header-teal-from), var(--header-teal-to))" }}>
         <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.15)" }} />
         <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.08)" }} />
 
