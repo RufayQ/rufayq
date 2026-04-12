@@ -156,7 +156,51 @@ const TicketDetailSheet = ({
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "overrides" | "alarms">("details");
   const [draftNotes, setDraftNotes] = useState(notes);
   const [isExporting, setIsExporting] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
+
+  const buildShareText = useCallback(() => {
+    const icon = seg.type === "flight" ? "✈️" : seg.type === "train" ? "🚄" : seg.type === "bus" ? "🚌" : seg.type === "taxi" ? "🚕" : seg.type === "rental" ? "🚗" : "🚑";
+    const route = `${seg.fromCode || seg.fromCity} → ${seg.toCode || seg.toCity}`;
+    const carrier = seg.airline || seg.trainOperator || seg.busOperator || seg.taxiProvider || seg.rentalCompany || "";
+    const number = seg.flightNumber || seg.trainNumber || seg.busNumber || "";
+    const dep = new Date(seg.departureDateTime);
+    const arr = new Date(seg.arrivalDateTime);
+    const dateFmt = (d: Date) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+    const timeFmt = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+    let lines = [
+      `${icon} ${route}`,
+      `${carrier} ${number}`.trim(),
+      ``,
+      `📅 ${dateFmt(dep)}`,
+      `🛫 Departure: ${timeFmt(dep)}`,
+      `🛬 Arrival: ${timeFmt(arr)}`,
+    ];
+    if (seg.bookingRef) lines.push(`📋 Booking Ref: ${seg.bookingRef}`);
+    if (seg.seatClass) lines.push(`💺 Class: ${seg.seatClass}`);
+    if (seg.seatNumber) lines.push(`🪑 Seat: ${seg.seatNumber}`);
+    if (seg.duration) lines.push(`⏱ Duration: ${seg.duration}`);
+    if (seg.medicalAssistance) lines.push(`⚕️ ${seg.medicalAssistance}`);
+    lines.push(``, `— Shared via RufayQ`);
+    return lines.filter((l, i) => !(l === "" && lines[i - 1] === "")).join("\n");
+  }, [seg]);
+
+  const handleShareWhatsApp = useCallback(() => {
+    const text = buildShareText();
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    setShowShareMenu(false);
+    toast.success("Opening WhatsApp… · جارٍ فتح واتساب");
+  }, [buildShareText]);
+
+  const handleShareEmail = useCallback(() => {
+    const text = buildShareText();
+    const route = `${seg.fromCode || seg.fromCity} → ${seg.toCode || seg.toCity}`;
+    const subject = `Travel Details: ${route} — ${seg.airline || seg.trainOperator || ""} ${seg.flightNumber || seg.trainNumber || ""}`.trim();
+    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`, "_self");
+    setShowShareMenu(false);
+    toast.success("Opening email… · جارٍ فتح البريد");
+  }, [buildShareText, seg]);
 
   // Override form state
   const [selectedField, setSelectedField] = useState("");
