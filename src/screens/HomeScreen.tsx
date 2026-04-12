@@ -42,6 +42,10 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
       },
     },
     {
+      icon: <Settings size={14} />, label: "Settings", labelAr: "الإعدادات",
+      onClick: () => { onNavigate("settings"); },
+    },
+    {
       icon: <HelpCircle size={14} />, label: "Help & Support", labelAr: "المساعدة",
       onClick: () => { toast("Help · المساعدة", { description: "Support team available 24/7 · فريق الدعم متاح ٢٤/٧" }); },
     },

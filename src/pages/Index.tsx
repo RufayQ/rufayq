@@ -12,9 +12,10 @@ import ProfileScreen from "@/screens/ProfileScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
 import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
+import SettingsScreen from "@/screens/SettingsScreen";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
-type AppView = "onboarding" | "login" | "main" | "medications" | "profile";
+type AppView = "onboarding" | "login" | "main" | "medications" | "profile" | "settings";
 
 const toastMessages: Record<string, { en: string; ar: string }> = {
   flight: { en: "✓ Flight added to your Transport Timeline", ar: "✓ أُضيفت الرحلة إلى جدول تنقلك" },
@@ -87,6 +88,8 @@ const Index = () => {
       setAppView("medications");
     } else if (tab === "scanner") {
       openScanner();
+    } else if (tab === "settings") {
+      setAppView("settings");
     } else {
       setActiveTab(tab as Tab);
       setAppView("main");
@@ -111,6 +114,8 @@ const Index = () => {
         return <MedicationsScreen onBack={() => setAppView("main")} />;
       case "profile":
         return <ProfileScreen onBack={() => setAppView("main")} onLogout={handleLogout} />;
+      case "settings":
+        return <SettingsScreen onBack={() => setAppView("main")} />;
       case "main":
         switch (activeTab) {
           case "home": return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;
