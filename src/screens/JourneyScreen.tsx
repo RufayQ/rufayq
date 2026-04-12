@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { journeySteps, defaultTransportSegments } from "@/constants/data";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
@@ -202,12 +202,6 @@ const TicketsTab = ({ segments, onAdd, onScan }: { segments: TransportSegment[];
     });
   };
 
-  // Lazily initialize system reminders for a segment
-  const getSystemRemindersForSeg = (seg: TransportSegment): SmartReminder[] => {
-    if (ticketSystemReminders[seg.id]) return ticketSystemReminders[seg.id];
-    // Will be initialized on first render of the detail sheet
-    return [];
-  };
 
   return (
     <div className="pt-2">
