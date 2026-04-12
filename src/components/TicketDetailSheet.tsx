@@ -329,19 +329,55 @@ const TicketDetailSheet = ({
               {seg.airline || seg.trainOperator || seg.busOperator || seg.taxiProvider || seg.rentalCompany || seg.arrangedBy || ""} {seg.flightNumber || seg.trainNumber || ""}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 relative">
             <button
-              onClick={handleExport}
-              disabled={isExporting}
+              onClick={() => setShowShareMenu(!showShareMenu)}
               className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
               style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.15)" }}
-              title="Save / Share"
+              title="Share"
             >
-              {isExporting ? (
-                <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "var(--teal-deep)", borderTopColor: "transparent" }} />
-              ) : (
-                <Share2 size={14} color="var(--teal-deep)" />
-              )}
+              <Share2 size={14} color="var(--teal-deep)" />
+            </button>
+            {showShareMenu && (
+              <div
+                className="absolute right-0 top-10 z-50 rounded-xl overflow-hidden shadow-lg"
+                style={{ background: "white", border: "1px solid var(--gray-light)", minWidth: 200 }}
+              >
+                <button
+                  onClick={handleShareWhatsApp}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
+                >
+                  <MessageCircle size={16} color="#25D366" />
+                  <div>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>WhatsApp</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Share flight details · مشاركة عبر واتساب</p>
+                  </div>
+                </button>
+                <div style={{ height: 1, background: "var(--gray-light)" }} />
+                <button
+                  onClick={handleShareEmail}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
+                >
+                  <Mail size={16} color="var(--teal-deep)" />
+                  <div>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Email</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send via email · إرسال بالبريد</p>
+                  </div>
+                </button>
+                <div style={{ height: 1, background: "var(--gray-light)" }} />
+                <button
+                  onClick={() => { handleExport(); setShowShareMenu(false); }}
+                  disabled={isExporting}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
+                >
+                  <Image size={16} color="var(--gold)" />
+                  <div>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Save as Image</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Download boarding pass · حفظ كصورة</p>
+                  </div>
+                </button>
+              </div>
+            )}
             </button>
             <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "#F0F2F5" }}>
               <X size={16} color="var(--gray)" />
