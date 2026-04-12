@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, Star, Pin } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 
 type SubTab = "careplan" | "videos" | "education" | "faqs" | "nutrition" | "exercises";
