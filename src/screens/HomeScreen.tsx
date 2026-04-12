@@ -63,7 +63,6 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
                 م
               </button>
             </div>
-            </button>
           </div>
           <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>{dateStr}</p>
           <p className="font-display text-xl italic text-white" style={{ fontWeight: 300 }}>Good evening, Mohammed</p>
