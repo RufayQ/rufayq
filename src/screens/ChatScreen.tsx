@@ -34,6 +34,40 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    return () => { if (recordingTimerRef.current) clearInterval(recordingTimerRef.current); };
+  }, []);
+
+  const formatRecTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+
+  const startRecording = useCallback(() => {
+    setIsRecording(true);
+    setRecordingTime(0);
+    setRecordedAudio(null);
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingTime(prev => prev + 1);
+    }, 1000);
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    setIsRecording(false);
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    setRecordedAudio({ duration: recordingTime });
+  }, [recordingTime]);
+
+  const cancelRecording = useCallback(() => {
+    setIsRecording(false);
+    setRecordingTime(0);
+    setRecordedAudio(null);
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+  }, []);
+
+  const sendVoiceNote = useCallback((dur: number) => {
+    sendMessage(`🎤 Voice note · ${formatRecTime(dur)}`);
+    setRecordedAudio(null);
+    setRecordingTime(0);
+  }, []);
+
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
     const userMsg: ChatMessage = {
