@@ -381,7 +381,7 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
                   { emoji: "🩻", label: "Radiology", ar: "أشعة" },
                   { emoji: "💊", label: "Prescription", ar: "وصفة طبية" },
                   { emoji: "📋", label: "Discharge", ar: "ملخص خروج" },
-                  { emoji: "🫀", label: "ECG / ECHO", ar: "قلب" },
+                  { emoji: "🛂", label: "Passport/ID", ar: "جواز / هوية" },
                   { emoji: "🛡️", label: "Insurance", ar: "تأمين" },
                 ].map((t) => (
                   <button

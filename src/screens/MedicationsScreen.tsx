@@ -11,10 +11,11 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
 
   const statusColor = (s: string) =>
-    s === "taken" ? "var(--success)" : s === "due" ? "var(--warning)" : "var(--gray)";
+    s === "taken" ? "var(--success)" : s === "due" ? "var(--warning)" : s === "missed" ? "var(--error)" : "var(--gray)";
 
   const statusLabel = (s: string) =>
-    s === "taken" ? "TAKEN ✓" : s === "due" ? "DUE" : "UPCOMING";
+    s === "taken" ? "TAKEN ✓" : s === "due" ? "DUE" : s === "missed" ? "MISSED ✗" : "UPCOMING";
+
 
   const periods = [
     { key: "morning", label: "Morning", time: "8:00 AM — 12:00 PM", color: "var(--success)" },

@@ -83,6 +83,16 @@ export const records: DocRecord[] = [
     keyFields: [{ label: "Hemoglobin", value: "11.2 g/dL ↓" }, { label: "WBC", value: "8.4 — Normal" }, { label: "CRP", value: "18 mg/L ↑" }, { label: "Creatinine", value: "0.8 mg/dL" }] },
   { emoji: "📄", titleEn: "Initial Consultation Notes", titleAr: "ملاحظات الاستشارة الأولى", date: "Mar 15", meta: "Dr. Mueller · 3 pages · Referral from KSA", bgColor: "var(--teal-light)", accentColor: "var(--teal-mid)", category: "Consultations", pages: 3, fileSize: "410 KB", translationStatus: "translated", source: "Dr. Klaus Mueller", sourceAr: "د. كلاوس مولر", addedDate: "Mar 15",
     keyFields: [{ label: "Diagnosis", value: "Right ACL tear, Grade III" }, { label: "Recommendation", value: "Total Knee Replacement" }, { label: "Referred by", value: "Dr. Al-Rashid (Riyadh)" }] },
+  { emoji: "🛂", titleEn: "Passport — Mohammed Al-Rashidi", titleAr: "جواز سفر — محمد الراشدي", date: "Jan 12, 2024", meta: "Saudi Arabian · Exp: Jan 2034 · K482916", bgColor: "#E8F2E8", accentColor: "#2D6A2E", category: "Identity", pages: 2, fileSize: "3.2 MB", translationStatus: "translated", source: "Kingdom of Saudi Arabia", sourceAr: "المملكة العربية السعودية", addedDate: "Apr 1",
+    keyFields: [{ label: "Name", value: "Mohammed A. Al-Rashidi" }, { label: "Passport No.", value: "K482916" }, { label: "Nationality", value: "Saudi Arabian" }, { label: "Expiry", value: "Jan 11, 2034" }, { label: "Blood Type", value: "O+" }] },
+  { emoji: "🛂", titleEn: "Schengen Visa — Germany", titleAr: "تأشيرة شنغن — ألمانيا", date: "Mar 20, 2026", meta: "Medical visa · Valid Apr 1–30, 2026", bgColor: "#E8EAF0", accentColor: "#3B5998", category: "Identity", pages: 1, fileSize: "1.1 MB", translationStatus: "none", source: "German Embassy, Riyadh", sourceAr: "السفارة الألمانية — الرياض", addedDate: "Mar 20",
+    keyFields: [{ label: "Visa Type", value: "Medical — C Type" }, { label: "Valid From", value: "Apr 1, 2026" }, { label: "Valid To", value: "Apr 30, 2026" }, { label: "Entries", value: "Multiple" }] },
+  { emoji: "🪪", titleEn: "Saudi National ID", titleAr: "الهوية الوطنية السعودية", date: "Feb 15, 2025", meta: "ID No: •••• •••• 4821 · Exp: Feb 2030", bgColor: "#E8F2E8", accentColor: "#1A5A1A", category: "Identity", pages: 1, fileSize: "890 KB", translationStatus: "translated", source: "Ministry of Interior", sourceAr: "وزارة الداخلية", addedDate: "Apr 1",
+    keyFields: [{ label: "ID Number", value: "•••• •••• •••• 4821" }, { label: "Name", value: "Mohammed Al-Rashidi" }, { label: "Expiry", value: "Feb 14, 2030" }] },
+  { emoji: "🛡️", titleEn: "Insurance Card — Bupa", titleAr: "بطاقة التأمين — بوبا", date: "Jan 1, 2026", meta: "Bupa International · Gold Plan", bgColor: "#EDE8FD", accentColor: "#7C5CFC", category: "Insurance", pages: 1, fileSize: "450 KB", translationStatus: "none", source: "Bupa International", sourceAr: "بوبا الدولية", addedDate: "Apr 1",
+    keyFields: [{ label: "Policy", value: "BUPA-2026-7823" }, { label: "Plan", value: "Gold International" }, { label: "Coverage", value: "Worldwide" }, { label: "Valid", value: "Jan 1 – Dec 31, 2026" }] },
+  { emoji: "💉", titleEn: "Vaccination Record", titleAr: "سجل التطعيمات", date: "Mar 1, 2026", meta: "COVID-19, Tetanus, Hepatitis B", bgColor: "#E8F5EE", accentColor: "#3DAA6E", category: "Vaccinations", pages: 1, fileSize: "520 KB", translationStatus: "translated", source: "King Fahd Medical City", sourceAr: "مدينة الملك فهد الطبية", addedDate: "Mar 1",
+    keyFields: [{ label: "COVID-19", value: "Pfizer × 3 ✓" }, { label: "Tetanus", value: "2025 ✓" }, { label: "Hepatitis B", value: "2024 ✓" }] },
   { emoji: "🛡️", titleEn: "Insurance Claim Receipt", titleAr: "إيصال مطالبة التأمين", date: "Apr 11", meta: "Claim submitted · Pending settlement", bgColor: "#EDE8FD", accentColor: "#7C5CFC", category: "Insurance", pages: 1, fileSize: "180 KB", translationStatus: "none", source: "Bupa International", sourceAr: "بوبا الدولية", addedDate: "Apr 11",
     keyFields: [{ label: "Claim #", value: "CLM-2026-4488" }, { label: "Amount", value: "€24,500" }, { label: "Status", value: "Pending review" }] },
 ];
@@ -113,7 +123,7 @@ export const quickPrompts = [
   "اتصل بطبيبي",
 ];
 
-export const filterCategories = ["All", "Discharge", "Lab Results", "Prescriptions", "Imaging", "Consultations", "ECG / ECHO", "Insurance"];
+export const filterCategories = ["All", "Identity", "Discharge", "Lab Results", "Prescriptions", "Imaging", "Consultations", "ECG / ECHO", "Insurance", "Vaccinations"];
 
 import type { TransportSegment } from "@/components/TransportCard";
 

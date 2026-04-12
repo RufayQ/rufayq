@@ -15,6 +15,8 @@ const categories = [
     subs: ["Train", "Bus", "Ferry", "Other"] },
   { id: "hotel", emoji: "🏨", en: "Hotel / Stay", ar: "فندق / إقامة", color: "#2A1A35", paleBg: "#EEE8F2",
     subs: ["Hotel", "Apartment", "Hospital", "Private House"] },
+  { id: "passport", emoji: "🛂", en: "Passport / ID", ar: "جواز سفر / هوية", color: "#1A3A1A", paleBg: "#E8F2E8",
+    subs: ["Passport", "National ID", "Visa", "Residency Permit", "Travel Insurance Card"] },
   { id: "lab", emoji: "🔬", en: "Lab Results", ar: "نتائج التحاليل", color: "#3DAA6E", paleBg: "#E8F5EE",
     subs: ["Blood Test", "Urine", "Pathology", "Microbiology", "Other"] },
   { id: "prescription", emoji: "💊", en: "Prescription", ar: "وصفة طبية", color: "#004D5B", paleBg: "#E0F4F5",
@@ -56,6 +58,12 @@ const destinationsByCategory: Record<string, { en: string; ar: string; route: st
     { en: "Update Journey Steps", ar: "حدّث خطوات الرحلة", route: "Journey → Steps", checked: true },
     { en: "Send to KSA Doctor", ar: "أرسل لطبيبي", route: "Share", checked: false },
   ],
+  passport: [
+    { en: "Save to Profile", ar: "حفظ في الملف الشخصي", route: "Profile → ID", checked: true },
+    { en: "Save to Medical Records", ar: "حفظ في الملفات الطبية", route: "Records → Identity", checked: true },
+    { en: "Share with Hospital", ar: "مشاركة مع المستشفى", route: "Share", checked: false },
+    { en: "Attach to Insurance", ar: "إرفاق بالتأمين", route: "Insurance", checked: false },
+  ],
 };
 
 const extractedFieldsByCategory: Record<string, { label: string; value: string }[]> = {
@@ -85,12 +93,20 @@ const extractedFieldsByCategory: Record<string, { label: string; value: string }
     { label: "Discharge", value: "Apr 10, 2026" }, { label: "Follow-up", value: "Apr 17 — wound check" },
     { label: "Red Flags", value: "Fever >38.5°C, swelling" }, { label: "Physician", value: "Dr. Klaus Mueller" },
   ],
+  passport: [
+    { label: "Full Name", value: "Mohammed Abdullah Al-Rashidi" }, { label: "Name (Arabic)", value: "محمد عبدالله الراشدي" },
+    { label: "Passport No.", value: "K482916" }, { label: "Nationality", value: "Saudi Arabian" },
+    { label: "Date of Birth", value: "15 Mar 1985" }, { label: "Gender", value: "Male" },
+    { label: "Issue Date", value: "Jan 12, 2024" }, { label: "Expiry Date", value: "Jan 11, 2034" },
+    { label: "Issued By", value: "Kingdom of Saudi Arabia" },
+  ],
 };
 
 const sectionLabels: Record<string, string> = {
   flight: "Transport Timeline", lab: "Lab Results", hotel: "Accommodation",
   prescription: "Medications", discharge: "Discharge Pack", train: "Transport Timeline",
-  imaging: "Imaging Records", insurance: "Insurance Records", other: "Medical Records",
+  imaging: "Imaging Records", insurance: "Insurance Records", passport: "Profile",
+  other: "Medical Records",
 };
 
 const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
