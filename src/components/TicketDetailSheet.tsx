@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Download, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2 } from "lucide-react";
+import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Download, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Image } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import type { TransportSegment } from "./TransportCard";
@@ -156,7 +156,51 @@ const TicketDetailSheet = ({
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "overrides" | "alarms">("details");
   const [draftNotes, setDraftNotes] = useState(notes);
   const [isExporting, setIsExporting] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
+
+  const buildShareText = useCallback(() => {
+    const icon = seg.type === "flight" ? "✈️" : seg.type === "train" ? "🚄" : seg.type === "bus" ? "🚌" : seg.type === "taxi" ? "🚕" : seg.type === "rental" ? "🚗" : "🚑";
+    const route = `${seg.fromCode || seg.fromCity} → ${seg.toCode || seg.toCity}`;
+    const carrier = seg.airline || seg.trainOperator || seg.busOperator || seg.taxiProvider || seg.rentalCompany || "";
+    const number = seg.flightNumber || seg.trainNumber || seg.busNumber || "";
+    const dep = new Date(seg.departureDateTime);
+    const arr = new Date(seg.arrivalDateTime);
+    const dateFmt = (d: Date) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+    const timeFmt = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+    let lines = [
+      `${icon} ${route}`,
+      `${carrier} ${number}`.trim(),
+      ``,
+      `📅 ${dateFmt(dep)}`,
+      `🛫 Departure: ${timeFmt(dep)}`,
+      `🛬 Arrival: ${timeFmt(arr)}`,
+    ];
+    if (seg.bookingRef) lines.push(`📋 Booking Ref: ${seg.bookingRef}`);
+    if (seg.seatClass) lines.push(`💺 Class: ${seg.seatClass}`);
+    if (seg.seatNumber) lines.push(`🪑 Seat: ${seg.seatNumber}`);
+    if (seg.duration) lines.push(`⏱ Duration: ${seg.duration}`);
+    if (seg.medicalAssistance) lines.push(`⚕️ ${seg.medicalAssistance}`);
+    lines.push(``, `— Shared via RufayQ`);
+    return lines.filter((l, i) => !(l === "" && lines[i - 1] === "")).join("\n");
+  }, [seg]);
+
+  const handleShareWhatsApp = useCallback(() => {
+    const text = buildShareText();
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    setShowShareMenu(false);
+    toast.success("Opening WhatsApp… · جارٍ فتح واتساب");
+  }, [buildShareText]);
+
+  const handleShareEmail = useCallback(() => {
+    const text = buildShareText();
+    const route = `${seg.fromCode || seg.fromCity} → ${seg.toCode || seg.toCity}`;
+    const subject = `Travel Details: ${route} — ${seg.airline || seg.trainOperator || ""} ${seg.flightNumber || seg.trainNumber || ""}`.trim();
+    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`, "_self");
+    setShowShareMenu(false);
+    toast.success("Opening email… · جارٍ فتح البريد");
+  }, [buildShareText, seg]);
 
   // Override form state
   const [selectedField, setSelectedField] = useState("");
@@ -285,20 +329,58 @@ const TicketDetailSheet = ({
               {seg.airline || seg.trainOperator || seg.busOperator || seg.taxiProvider || seg.rentalCompany || seg.arrangedBy || ""} {seg.flightNumber || seg.trainNumber || ""}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 relative">
             <button
-              onClick={handleExport}
-              disabled={isExporting}
+              onClick={() => setShowShareMenu(!showShareMenu)}
               className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
               style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.15)" }}
-              title="Save / Share"
+              title="Share"
             >
-              {isExporting ? (
-                <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "var(--teal-deep)", borderTopColor: "transparent" }} />
-              ) : (
-                <Share2 size={14} color="var(--teal-deep)" />
-              )}
+              <Share2 size={14} color="var(--teal-deep)" />
             </button>
+            {showShareMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)} />
+                <div
+                  className="absolute right-0 top-10 z-50 rounded-xl overflow-hidden shadow-lg"
+                  style={{ background: "white", border: "1px solid var(--gray-light)", minWidth: 200 }}
+                >
+                <button
+                  onClick={handleShareWhatsApp}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
+                >
+                  <MessageCircle size={16} color="#25D366" />
+                  <div>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>WhatsApp</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Share flight details · مشاركة عبر واتساب</p>
+                  </div>
+                </button>
+                <div style={{ height: 1, background: "var(--gray-light)" }} />
+                <button
+                  onClick={handleShareEmail}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
+                >
+                  <Mail size={16} color="var(--teal-deep)" />
+                  <div>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Email</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send via email · إرسال بالبريد</p>
+                  </div>
+                </button>
+                <div style={{ height: 1, background: "var(--gray-light)" }} />
+                <button
+                  onClick={() => { handleExport(); setShowShareMenu(false); }}
+                  disabled={isExporting}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
+                >
+                  <Image size={16} color="var(--gold)" />
+                  <div>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Save as Image</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Download boarding pass · حفظ كصورة</p>
+                  </div>
+                </button>
+                </div>
+              </>
+            )}
             <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "#F0F2F5" }}>
               <X size={16} color="var(--gray)" />
             </button>
