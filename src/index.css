@@ -45,6 +45,46 @@
     --error: #D94F4F;
     --pending: #C0C8D0;
   }
+
+  .dark {
+    --background: 210 50% 8%;
+    --foreground: 40 20% 90%;
+    --card: 210 40% 12%;
+    --card-foreground: 40 20% 90%;
+    --popover: 210 40% 12%;
+    --popover-foreground: 40 20% 90%;
+    --primary: 186 80% 30%;
+    --primary-foreground: 40 20% 95%;
+    --secondary: 185 60% 35%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 30% 18%;
+    --muted-foreground: 210 15% 60%;
+    --accent: 30 44% 56%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 210 20% 22%;
+    --input: 210 20% 22%;
+    --ring: 186 80% 30%;
+
+    --teal-deep: #00929F;
+    --teal-mid: #00B4C5;
+    --teal-bright: #33D6E5;
+    --teal-light: #0D2A2E;
+    --gold: #D4A86A;
+    --gold-pale: #1E1A14;
+    --gold-light: #2A2318;
+    --navy: #E8ECF0;
+    --white: #141E28;
+    --off-white: #0F1820;
+    --ink: #E0E4E8;
+    --gray: #8A9AAA;
+    --gray-light: #1E2A35;
+    --success: #4DC880;
+    --warning: #F0B040;
+    --error: #E86060;
+    --pending: #3A4550;
+  }
 }
 
 @layer base {
