@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Paperclip, ChevronRight, X, Camera, Upload, Mic, Square, Trash2, Copy } from "lucide-react";
+import { Send, Paperclip, ChevronRight, X, Camera, Upload, Mic, Square, Trash2, Copy, Share2 } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
