@@ -57,8 +57,12 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-3">
             <RufayQWordmark size="sm" variant="light" />
-            <button onClick={onProfile} className="w-9 h-9 rounded-full flex items-center justify-center font-arabic text-sm font-bold btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
-              م
+            <div className="flex items-center gap-2">
+              <HeaderMenu items={homeMenuItems} />
+              <button onClick={onProfile} className="w-9 h-9 rounded-full flex items-center justify-center font-arabic text-sm font-bold btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
+                م
+              </button>
+            </div>
             </button>
           </div>
           <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>{dateStr}</p>
