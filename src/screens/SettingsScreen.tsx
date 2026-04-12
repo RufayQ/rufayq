@@ -65,14 +65,10 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const [biometric, setBiometric] = useState(stored.biometric ?? true);
   const [autoBackup, setAutoBackup] = useState(stored.autoBackup ?? true);
 
-  const persist = (patch: Record<string, unknown>) => {
+  const update = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T>>) => (val: T) => {
+    setter(val);
     const current = JSON.parse(localStorage.getItem("rufayq_settings") || "{}");
-    localStorage.setItem("rufayq_settings", JSON.stringify({ ...current, ...patch }));
-  };
-
-  const handleSave = () => {
-    persist({ language, theme, pushNotif, medReminder, appointmentAlert, soundEnabled, quietHours, biometric, autoBackup });
-    toast.success("Settings saved · تم حفظ الإعدادات");
+    localStorage.setItem("rufayq_settings", JSON.stringify({ ...current, [key]: val }));
   };
 
   return (
@@ -95,9 +91,9 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>LANGUAGE · اللغة</p>
           </div>
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            <RadioOption label="English Only" labelAr="الإنجليزية فقط" selected={language === "en"} onSelect={() => setLanguage("en")} />
-            <RadioOption label="العربية فقط" labelAr="Arabic Only" selected={language === "ar"} onSelect={() => setLanguage("ar")} />
-            <RadioOption label="Bilingual · ثنائي اللغة" labelAr="الإنجليزية والعربية" selected={language === "bilingual"} onSelect={() => setLanguage("bilingual")} />
+            <RadioOption label="English Only" labelAr="الإنجليزية فقط" selected={language === "en"} onSelect={() => update("language", setLanguage)("en")} />
+            <RadioOption label="العربية فقط" labelAr="Arabic Only" selected={language === "ar"} onSelect={() => update("language", setLanguage)("ar")} />
+            <RadioOption label="Bilingual · ثنائي اللغة" labelAr="الإنجليزية والعربية" selected={language === "bilingual"} onSelect={() => update("language", setLanguage)("bilingual")} />
           </div>
         </div>
 
@@ -111,27 +107,27 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             <ToggleRow
               icon={<Bell size={15} style={{ color: "var(--teal-deep)" }} />}
               label="Push Notifications" labelAr="الإشعارات الفورية"
-              on={pushNotif} onChange={(v) => { setPushNotif(v); toast(v ? "Notifications enabled · الإشعارات مفعلة" : "Notifications disabled · الإشعارات معطلة"); }}
+              on={pushNotif} onChange={(v) => { update("pushNotif", setPushNotif)(v); toast(v ? "Notifications enabled · الإشعارات مفعلة" : "Notifications disabled · الإشعارات معطلة"); }}
             />
             <ToggleRow
               icon={<Clock size={15} style={{ color: "var(--warning)" }} />}
               label="Medication Reminders" labelAr="تذكيرات الأدوية"
-              on={medReminder} onChange={setMedReminder} color="var(--warning)"
+              on={medReminder} onChange={update("medReminder", setMedReminder)} color="var(--warning)"
             />
             <ToggleRow
               icon={<Share2 size={15} style={{ color: "var(--teal-mid)" }} />}
               label="Appointment Alerts" labelAr="تنبيهات المواعيد"
-              on={appointmentAlert} onChange={setAppointmentAlert}
+              on={appointmentAlert} onChange={update("appointmentAlert", setAppointmentAlert)}
             />
             <ToggleRow
               icon={<Volume2 size={15} style={{ color: "var(--navy)" }} />}
               label="Sound" labelAr="الصوت"
-              on={soundEnabled} onChange={setSoundEnabled}
+              on={soundEnabled} onChange={update("soundEnabled", setSoundEnabled)}
             />
             <ToggleRow
               icon={<Moon size={15} style={{ color: "var(--gray)" }} />}
               label="Quiet Hours (10PM–7AM)" labelAr="ساعات الهدوء (١٠م–٧ص)"
-              on={quietHours} onChange={setQuietHours}
+              on={quietHours} onChange={update("quietHours", setQuietHours)}
             />
           </div>
         </div>
@@ -145,15 +141,15 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
             <RadioOption
               label="Light Mode" labelAr="الوضع الفاتح"
-              selected={theme === "light"} onSelect={() => setTheme("light")}
+              selected={theme === "light"} onSelect={() => update("theme", setTheme)("light")}
             />
             <RadioOption
               label="Dark Mode" labelAr="الوضع الداكن"
-              selected={theme === "dark"} onSelect={() => setTheme("dark")}
+              selected={theme === "dark"} onSelect={() => update("theme", setTheme)("dark")}
             />
             <RadioOption
               label="System Default" labelAr="حسب النظام"
-              selected={theme === "system"} onSelect={() => setTheme("system")}
+              selected={theme === "system"} onSelect={() => update("theme", setTheme)("system")}
             />
           </div>
           <p className="text-[10px] mt-1.5 px-1" style={{ color: "var(--gray)" }}>
@@ -171,25 +167,14 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             <ToggleRow
               icon={<Smartphone size={15} style={{ color: "var(--teal-deep)" }} />}
               label="Biometric Login" labelAr="تسجيل الدخول البيومتري"
-              on={biometric} onChange={setBiometric}
+              on={biometric} onChange={update("biometric", setBiometric)}
             />
             <ToggleRow
               icon={<Shield size={15} style={{ color: "var(--success)" }} />}
               label="Auto Backup" labelAr="نسخ احتياطي تلقائي"
-              on={autoBackup} onChange={setAutoBackup} color="var(--success)"
+              on={autoBackup} onChange={update("autoBackup", setAutoBackup)} color="var(--success)"
             />
           </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="mx-4 mt-6">
-          <button
-            onClick={handleSave}
-            className="w-full py-3 rounded-xl font-semibold text-white text-sm btn-press"
-            style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}
-          >
-            Save Changes · حفظ التغييرات
-          </button>
         </div>
 
         <p className="text-center font-mono text-[9px] mt-4" style={{ color: "var(--gray)" }}>
