@@ -167,14 +167,14 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
         {step === 5 && (
           <Step5Success
             category={selectedCategory}
-            onViewSection={() => onSave?.(selectedCategory) || onClose()}
+            onViewSection={() => { if (onSave) onSave(selectedCategory); else onClose(); }}
             onScanAnother={() => {
               setStep(1);
               setCapturedFile(null);
               setSelectedCategory(preselectedCategory || null);
               setSelectedSub(null);
             }}
-            onDone={() => onSave?.(selectedCategory) || onClose()}
+            onDone={() => { if (onSave) onSave(selectedCategory); else onClose(); }}
           />
         )}
       </div>
