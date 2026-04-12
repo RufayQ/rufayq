@@ -53,17 +53,25 @@ const RadioOption = ({
 );
 
 const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
-  const [language, setLanguage] = useState("bilingual");
-  const [theme, setTheme] = useState("light");
-  const [pushNotif, setPushNotif] = useState(true);
-  const [medReminder, setMedReminder] = useState(true);
-  const [appointmentAlert, setAppointmentAlert] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [quietHours, setQuietHours] = useState(false);
-  const [biometric, setBiometric] = useState(true);
-  const [autoBackup, setAutoBackup] = useState(true);
+  const stored = JSON.parse(localStorage.getItem("rufayq_settings") || "{}");
+
+  const [language, setLanguage] = useState(stored.language ?? "bilingual");
+  const [theme, setTheme] = useState(stored.theme ?? "light");
+  const [pushNotif, setPushNotif] = useState(stored.pushNotif ?? true);
+  const [medReminder, setMedReminder] = useState(stored.medReminder ?? true);
+  const [appointmentAlert, setAppointmentAlert] = useState(stored.appointmentAlert ?? true);
+  const [soundEnabled, setSoundEnabled] = useState(stored.soundEnabled ?? true);
+  const [quietHours, setQuietHours] = useState(stored.quietHours ?? false);
+  const [biometric, setBiometric] = useState(stored.biometric ?? true);
+  const [autoBackup, setAutoBackup] = useState(stored.autoBackup ?? true);
+
+  const persist = (patch: Record<string, unknown>) => {
+    const current = JSON.parse(localStorage.getItem("rufayq_settings") || "{}");
+    localStorage.setItem("rufayq_settings", JSON.stringify({ ...current, ...patch }));
+  };
 
   const handleSave = () => {
+    persist({ language, theme, pushNotif, medReminder, appointmentAlert, soundEnabled, quietHours, biometric, autoBackup });
     toast.success("Settings saved · تم حفظ الإعدادات");
   };
 
