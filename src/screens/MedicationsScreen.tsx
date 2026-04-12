@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { medications, type Medication } from "@/constants/data";
-import { ArrowLeft, Plus, X, Copy } from "lucide-react";
+import { ArrowLeft, Plus, X, Copy, Share2, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -17,7 +18,6 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
   const statusLabel = (s: string) =>
     s === "taken" ? "TAKEN ✓" : s === "due" ? "DUE" : s === "missed" ? "MISSED ✗" : "UPCOMING";
 
-
   const periods = [
     { key: "morning", label: "Morning", time: "8:00 AM — 12:00 PM", color: "var(--success)" },
     { key: "afternoon", label: "Afternoon", time: "12:00 PM — 6:00 PM", color: "var(--teal-deep)" },
@@ -26,6 +26,44 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
 
   const takenCount = medications.filter((m) => m.status === "taken").length + takenIds.size;
 
+  const handleCopyAllMeds = () => {
+    const text = medications.map(m =>
+      `💊 ${m.name} (${m.nameAr}) — ${m.dosage} — ${m.frequency} — ${m.time}`
+    ).join("\n");
+    navigator.clipboard.writeText(`Medication Schedule\nجدول الأدوية\n\n${text}`);
+    toast.success("All medications copied · تم نسخ جميع الأدوية", { duration: 2000 });
+  };
+
+  const handleExportMeds = () => {
+    const text = medications.map(m =>
+      `${m.name}\t${m.nameAr}\t${m.dosage}\t${m.frequency}\t${m.time}\t${m.status}`
+    ).join("\n");
+    const blob = new Blob([`Name\tName (AR)\tDosage\tFrequency\tTime\tStatus\n${text}`], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "medications-schedule.txt"; a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Medications exported · تم تصدير الأدوية", { duration: 2000 });
+  };
+
+  const handleShareMeds = () => {
+    const text = `Medication Schedule\nجدول الأدوية\n\n${medications.map(m => `💊 ${m.name} — ${m.dosage} — ${m.time}`).join("\n")}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  };
+
+  const handleResetTaken = () => {
+    setTakenIds(new Set());
+    toast.success("Reset today's tracking · تم إعادة التتبع", { duration: 2000 });
+  };
+
+  const medsMenuItems: HeaderMenuItem[] = [
+    { icon: <Copy size={14} />, label: "Copy All Meds", labelAr: "نسخ جميع الأدوية", onClick: handleCopyAllMeds },
+    { icon: <Download size={14} />, label: "Export Schedule", labelAr: "تصدير الجدول", onClick: handleExportMeds },
+    { icon: <Share2 size={14} />, label: "Share with Doctor", labelAr: "مشاركة مع الطبيب", onClick: handleShareMeds },
+    { icon: <RefreshCw size={14} />, label: "Reset Today", labelAr: "إعادة تتبع اليوم", onClick: handleResetTaken },
+  ];
+
   return (
     <div className="flex flex-col h-full relative">
       {/* Header */}
@@ -33,7 +71,7 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
         <div className="flex items-center justify-between mb-3">
           <button onClick={onBack} className="btn-press"><ArrowLeft size={20} color="white" /></button>
           <p className="font-display text-lg text-white">Medications · <span className="font-arabic">الأدوية</span></p>
-          <Plus size={20} color="white" className="cursor-pointer" />
+          <HeaderMenu items={medsMenuItems} />
         </div>
         <div className="flex gap-2">
           {[`${medications.length} Medications`, "Next Due: 8PM", `${takenCount}/${medications.length} Taken`].map((s) => (
