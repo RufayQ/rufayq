@@ -114,7 +114,7 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
           <div className="grid grid-cols-2 gap-2">
             {[
               { emoji: "🤖", label: "Ask RufayQ AI", labelAr: "اسأل رُفَيِّق", tab: "chat" },
-              { emoji: "🗺️", label: "My Journey", labelAr: "رحلتي", tab: "journey" },
+              { emoji: "📸", label: "Scan Document", labelAr: "امسح وثيقة", tab: "scanner" },
               { emoji: "📁", label: "All Records", labelAr: "جميع الملفات", tab: "records" },
               { emoji: "📋", label: "Discharge Pack", labelAr: "حزمة الخروج", tab: "records" },
             ].map((a) => (

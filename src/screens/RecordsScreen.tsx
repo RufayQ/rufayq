@@ -3,7 +3,7 @@ import { records, filterCategories } from "@/constants/data";
 import { Share2, Upload } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 
-const RecordsScreen = () => {
+const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedDoc, setSelectedDoc] = useState<number | null>(null);
   const [showUpload, setShowUpload] = useState(false);
@@ -20,8 +20,8 @@ const RecordsScreen = () => {
             <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Your Documents</p>
             <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>ملفاتك الطبية</p>
           </div>
-          <button onClick={() => setShowUpload(true)} className="px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
-            ＋ Upload
+          <button onClick={() => onOpenScanner?.()} className="px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
+            ＋ Scan & Import
           </button>
         </div>
         <div className="flex gap-2 mt-3">
