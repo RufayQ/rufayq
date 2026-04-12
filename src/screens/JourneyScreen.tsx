@@ -454,8 +454,14 @@ const StayTab = ({ onAdd, onScan }: { onAdd: () => void; onScan?: () => void }) 
     </div>
 
     {/* Add button */}
-    <div className="px-4 mt-3">
+    <div className="px-4 mt-3 space-y-2">
       <AddButton labelEn="＋ Add Accommodation" labelAr="إضافة إقامة" onClick={onAdd} />
+      {onScan && (
+        <button onClick={onScan} className="w-full text-center text-[12px] py-1.5 btn-press" style={{ color: "var(--teal-mid)" }}>
+          📸 Or scan a hotel booking confirmation
+          <span className="block font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>أو امسح تأكيد الحجز</span>
+        </button>
+      )}
     </div>
   </div>
 );
