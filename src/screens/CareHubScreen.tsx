@@ -1,81 +1,582 @@
+import { useState } from "react";
 import RufayQLogo from "@/components/RufayQLogo";
 
-const CareHubScreen = () => (
-  <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
-    {/* Header */}
-    <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(135deg, var(--gold), #A07A3A)" }}>
-      <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full" style={{ border: "1px solid rgba(255,255,255,0.15)" }} />
-      <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>05 — CARE HUB</p>
-      <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Care Hub</p>
-      <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>مركز الرعاية</p>
-    </div>
+type SubTab = "careplan" | "videos" | "education" | "faqs" | "nutrition" | "exercises";
 
-    <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-4" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-      {/* Vitals Summary */}
-      <div className="rounded-2xl p-5" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-        <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--gold)" }}>VITALS OVERVIEW</p>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: "Blood Pressure", value: "120/80", unit: "mmHg", emoji: "❤️", ar: "ضغط الدم" },
-            { label: "Heart Rate", value: "72", unit: "bpm", emoji: "💓", ar: "نبض القلب" },
-            { label: "Temperature", value: "36.8", unit: "°C", emoji: "🌡️", ar: "الحرارة" },
-            { label: "Pain Level", value: "3", unit: "/10", emoji: "😐", ar: "مستوى الألم" },
-          ].map((v) => (
-            <div key={v.label} className="rounded-xl p-3" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-              <span className="text-lg">{v.emoji}</span>
-              <p className="text-[18px] font-bold mt-1" style={{ color: "var(--navy)" }}>{v.value}<span className="text-[11px] font-normal" style={{ color: "var(--gray)" }}> {v.unit}</span></p>
-              <p className="text-[10px]" style={{ color: "var(--gray)" }}>{v.label}</p>
-              <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "var(--gray)" }}>{v.ar}</p>
-            </div>
-          ))}
+const subTabs: { id: SubTab; emoji: string; en: string }[] = [
+  { id: "careplan", emoji: "📋", en: "Care Plan" },
+  { id: "videos", emoji: "🎬", en: "Videos" },
+  { id: "education", emoji: "📚", en: "Education" },
+  { id: "faqs", emoji: "❓", en: "FAQs" },
+  { id: "nutrition", emoji: "🥗", en: "Nutrition" },
+  { id: "exercises", emoji: "🏃", en: "Exercises" },
+];
+
+const CareHubScreen = () => {
+  const [activeTab, setActiveTab] = useState<SubTab>("careplan");
+
+  return (
+    <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
+      {/* Header */}
+      <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(145deg, #0D1B2A, #1A2A35)" }}>
+        <svg className="absolute bottom-0 right-0" width="80" height="80" viewBox="0 0 80 80" fill="none">
+          <path d="M80 0 A80 80 0 0 1 0 80" stroke="rgba(197,150,90,0.2)" strokeWidth="1.5" fill="none" />
+        </svg>
+        <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(197,150,90,0.6)" }}>04 — CARE HUB</p>
+        <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Your Recovery Hub</p>
+        <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>مركز التعافي الخاص بك</p>
+        {/* Patient status */}
+        <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+          <span className="text-[14px]">🦽</span>
+          <div className="flex-1">
+            <p className="text-[11px] text-white font-medium">Post-Op Day 5 · Knee Replacement</p>
+            <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "rgba(255,255,255,0.4)" }}>اليوم الخامس بعد العملية · استبدال الركبة</p>
+          </div>
+          <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(61,170,110,0.2)", color: "#3DAA6E" }}>On Track</span>
         </div>
       </div>
 
-      {/* Care Plan */}
-      <div className="rounded-2xl p-5" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-        <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>CARE PLAN</p>
-        <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Post-Surgery Recovery</p>
-        <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>خطة التعافي بعد العملية</p>
-        <div className="mt-3 space-y-2">
-          {[
-            { task: "Physical therapy — 3x/week", ar: "علاج طبيعي — ٣ مرات أسبوعياً", done: true },
-            { task: "Wound check — daily", ar: "فحص الجرح — يومياً", done: true },
-            { task: "Ice pack — 4x/day", ar: "كمادة ثلج — ٤ مرات يومياً", done: false },
-            { task: "Leg elevation — 3x/day", ar: "رفع الرجل — ٣ مرات يومياً", done: false },
-          ].map((t, i) => (
-            <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-lg" style={{ background: "var(--off-white)" }}>
-              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px]" style={{ background: t.done ? "var(--success)" : "var(--gray-light)", color: t.done ? "#fff" : "var(--gray)" }}>
+      {/* Sub-tabs */}
+      <div className="shrink-0 overflow-x-auto px-4 py-2 flex gap-2" style={{ background: "var(--white)", borderBottom: "1px solid var(--gray-light)", WebkitOverflowScrolling: "touch" }}>
+        {subTabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)}
+            className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium btn-press transition-all whitespace-nowrap"
+            style={{
+              background: activeTab === t.id ? "var(--teal-deep)" : "var(--white)",
+              color: activeTab === t.id ? "#fff" : "var(--gray)",
+              border: activeTab === t.id ? "none" : "1px solid var(--gray-light)",
+            }}>
+            {t.emoji} {t.en}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
+        {activeTab === "careplan" && <CarePlanTab />}
+        {activeTab === "videos" && <VideosTab />}
+        {activeTab === "education" && <EducationTab />}
+        {activeTab === "faqs" && <FAQsTab />}
+        {activeTab === "nutrition" && <NutritionTab />}
+        {activeTab === "exercises" && <ExercisesTab />}
+      </div>
+    </div>
+  );
+};
+
+/* ─── CARE PLAN ─── */
+const CarePlanTab = () => {
+  const [tasks, setTasks] = useState([
+    { en: "Morning meds 8AM", ar: "أدوية الصباح ٨ ص", done: false },
+    { en: "Elevate leg 30 min", ar: "رفع الرجل ٣٠ دقيقة", done: true },
+    { en: "Cold compress", ar: "كمادة باردة", done: false },
+    { en: "Breathing exercises", ar: "تمارين التنفس", done: false },
+    { en: "Evening meds 8PM", ar: "أدوية المساء ٨ م", done: false },
+    { en: "Log pain level", ar: "تسجيل مستوى الألم", done: false },
+  ]);
+  const [painLevel, setPainLevel] = useState(3);
+
+  const toggleTask = (i: number) => setTasks(prev => prev.map((t, idx) => idx === i ? { ...t, done: !t.done } : t));
+  const doneCount = tasks.filter(t => t.done).length;
+
+  const milestones = [
+    { date: "Apr 15", emoji: "✈️", en: "Return Flight", ar: "رحلة العودة" },
+    { date: "Apr 17", emoji: "🏥", en: "Wound Check", ar: "فحص الجرح" },
+    { date: "Apr 22", emoji: "🔬", en: "7-Day Labs", ar: "تحاليل ٧ أيام" },
+    { date: "May 1", emoji: "🏃", en: "Start Physio", ar: "بدء العلاج الطبيعي" },
+    { date: "May 15", emoji: "📋", en: "30-Day Review", ar: "مراجعة ٣٠ يوم" },
+    { date: "Jun 15", emoji: "🎉", en: "Recovery!", ar: "تعافي كامل!" },
+  ];
+
+  return (
+    <div className="px-4 py-4 space-y-4">
+      {/* Daily Tasks */}
+      <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>TODAY'S TASKS</p>
+          <span className="text-[10px] font-bold" style={{ color: "var(--teal-deep)" }}>{doneCount}/{tasks.length}</span>
+        </div>
+        <div className="w-full h-1.5 rounded-full mb-3" style={{ background: "var(--gray-light)" }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${(doneCount / tasks.length) * 100}%`, background: "var(--success)" }} />
+        </div>
+        <div className="space-y-2">
+          {tasks.map((t, i) => (
+            <button key={i} onClick={() => toggleTask(i)} className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl btn-press text-left transition-all"
+              style={{ background: t.done ? "rgba(61,170,110,0.06)" : "var(--off-white)" }}>
+              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0"
+                style={{ background: t.done ? "var(--success)" : "var(--gray-light)", color: t.done ? "#fff" : "var(--gray)" }}>
                 {t.done ? "✓" : ""}
               </div>
               <div className="flex-1">
-                <p className="text-[12px]" style={{ color: t.done ? "var(--gray)" : "var(--navy)", textDecoration: t.done ? "line-through" : "none" }}>{t.task}</p>
+                <p className="text-[12px]" style={{ color: t.done ? "var(--gray)" : "var(--navy)", textDecoration: t.done ? "line-through" : "none" }}>{t.en}</p>
                 <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{t.ar}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Milestones */}
+      <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+        <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--gold)" }}>RECOVERY MILESTONES</p>
+        <div className="flex gap-3 overflow-x-auto pb-2" style={{ WebkitOverflowScrolling: "touch" }}>
+          {milestones.map((m, i) => (
+            <div key={i} className="shrink-0 w-[120px] rounded-xl p-3 text-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+              <span className="text-[24px]">{m.emoji}</span>
+              <p className="text-[11px] font-bold mt-1" style={{ color: "var(--navy)" }}>{m.en}</p>
+              <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "var(--gray)" }}>{m.ar}</p>
+              <p className="font-mono text-[9px] mt-1" style={{ color: "var(--gold)" }}>{m.date}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Vitals */}
+      <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+        <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--gold)" }}>VITALS TRACKING</p>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-xl p-3 text-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+            <p className="text-[9px] font-mono" style={{ color: "var(--gray)" }}>PAIN</p>
+            <p className="text-[22px] font-bold" style={{ color: painLevel <= 3 ? "var(--success)" : painLevel <= 6 ? "var(--warning)" : "var(--error)" }}>{painLevel}</p>
+            <p className="text-[8px]" style={{ color: "var(--gray)" }}>/10</p>
+            <input type="range" min={0} max={10} value={painLevel} onChange={e => setPainLevel(+e.target.value)}
+              className="w-full mt-1" style={{ accentColor: "var(--teal-deep)", height: 4 }} />
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+            <p className="text-[9px] font-mono" style={{ color: "var(--gray)" }}>TEMP</p>
+            <p className="text-[22px] font-bold" style={{ color: "var(--navy)" }}>36.8</p>
+            <p className="text-[8px]" style={{ color: "var(--gray)" }}>°C</p>
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+            <p className="text-[9px] font-mono" style={{ color: "var(--gray)" }}>SWELLING</p>
+            <p className="text-[16px] font-bold mt-1" style={{ color: "var(--warning)" }}>Mild</p>
+            <p className="font-arabic text-[8px]" style={{ color: "var(--gray)" }}>خفيف</p>
+          </div>
+        </div>
+
+        {/* 7-day pain chart */}
+        <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--gray-light)" }}>
+          <p className="text-[10px] mb-2" style={{ color: "var(--gray)" }}>7-Day Pain Trend</p>
+          <div className="flex items-end gap-1.5 h-12">
+            {[7, 6, 5, 4, 4, 3, 3].map((v, i) => (
+              <div key={i} className="flex-1 rounded-t" style={{
+                height: `${(v / 10) * 100}%`,
+                background: v <= 4 ? "var(--teal-deep)" : "var(--warning)",
+                opacity: i === 6 ? 1 : 0.5 + (i * 0.07),
+              }} />
+            ))}
+          </div>
+          <div className="flex justify-between mt-1">
+            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+              <span key={i} className="text-[8px] flex-1 text-center" style={{ color: "var(--gray)" }}>{d}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── VIDEOS ─── */
+const VideosTab = () => {
+  const [filter, setFilter] = useState("All");
+  const filters = ["All", "Mobility", "Recovery", "Safety", "Care", "Travel"];
+  const videos = [
+    { title: "Post-Op Knee Exercises", ar: "تمارين ما بعد العملية", duration: "12:30", cat: "Mobility", progress: 30 },
+    { title: "Wound Care at Home", ar: "العناية بالجرح في المنزل", duration: "8:15", cat: "Care", progress: 0 },
+    { title: "Managing Pain Safely", ar: "إدارة الألم بأمان", duration: "10:00", cat: "Recovery", progress: 0 },
+    { title: "Traveling After Surgery", ar: "السفر بعد العملية", duration: "6:45", cat: "Travel", progress: 0 },
+    { title: "Red Flag Symptoms", ar: "أعراض الخطر", duration: "5:20", cat: "Safety", progress: 0 },
+  ];
+  const featured = videos[0];
+  const filtered = filter === "All" ? videos.slice(1) : videos.filter(v => v.cat === filter);
+
+  return (
+    <div className="px-4 py-4 space-y-4">
+      {/* Featured */}
+      <div className="rounded-2xl overflow-hidden" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
+        <div className="relative h-[180px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0D1B2A, #004D5B)" }}>
+          <span className="text-5xl">🎬</span>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}>
+              <span className="text-white text-2xl ml-1">▶</span>
+            </div>
+          </div>
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(197,150,90,0.3)", color: "#C5965A" }}>{featured.progress}% watched</span>
+            <span className="text-[10px] text-white font-mono">{featured.duration}</span>
+          </div>
+        </div>
+        <div className="p-4" style={{ background: "var(--white)" }}>
+          <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>{featured.title}</p>
+          <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>{featured.ar}</p>
+          <button className="mt-2 px-4 py-1.5 rounded-full text-[11px] font-bold text-white btn-press" style={{ background: "var(--teal-deep)" }}>
+            ▶ Continue Watching
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
+        {filters.map(f => (
+          <button key={f} onClick={() => setFilter(f)} className="shrink-0 px-3 py-1 rounded-full text-[10px] font-medium btn-press"
+            style={{ background: filter === f ? "var(--teal-deep)" : "var(--white)", color: filter === f ? "#fff" : "var(--gray)", border: "1px solid var(--gray-light)" }}>
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {/* Video list */}
+      {filtered.map((v, i) => (
+        <div key={i} className="flex gap-3 p-3 rounded-xl btn-press" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+          <div className="w-20 h-14 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #1A2A35, #004D5B)" }}>
+            <span className="text-xl">▶</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-bold truncate" style={{ color: "var(--navy)" }}>{v.title}</p>
+            <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{v.ar}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{v.duration}</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>{v.cat}</span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ─── EDUCATION ─── */
+const EducationTab = () => {
+  const modules = [
+    { en: "Understanding Your Surgery", ar: "فهم عمليتك الجراحية", done: true },
+    { en: "Post-Op Day 1–3", ar: "الأيام ١-٣ بعد العملية", done: true },
+    { en: "Pain Management", ar: "إدارة الألم", done: true },
+    { en: "Wound Care Basics", ar: "أساسيات العناية بالجرح", done: false, current: true },
+    { en: "Mobility & Exercises", ar: "الحركة والتمارين", done: false },
+    { en: "Nutrition for Recovery", ar: "التغذية للتعافي", done: false },
+    { en: "Preparing for Travel Home", ar: "الاستعداد للسفر", done: false },
+    { en: "Post-Return Care", ar: "الرعاية بعد العودة", done: false },
+  ];
+  const doneCount = modules.filter(m => m.done).length;
+
+  const articles = [
+    { emoji: "🩹", en: "Signs of Wound Infection", ar: "علامات التهاب الجرح", time: "3 min" },
+    { emoji: "💊", en: "Understanding Your Medications", ar: "فهم أدويتك", time: "5 min" },
+    { emoji: "🛫", en: "Flying After Knee Surgery", ar: "السفر الجوي بعد عملية الركبة", time: "4 min" },
+  ];
+
+  return (
+    <div className="px-4 py-4 space-y-4">
+      {/* Learning Path */}
+      <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>LEARNING PATH</p>
+          <span className="text-[10px] font-bold" style={{ color: "var(--teal-deep)" }}>{doneCount}/8 complete</span>
+        </div>
+        <div className="w-full h-1.5 rounded-full mb-3" style={{ background: "var(--gray-light)" }}>
+          <div className="h-full rounded-full" style={{ width: `${(doneCount / 8) * 100}%`, background: "var(--gold)" }} />
+        </div>
+        <div className="space-y-1.5">
+          {modules.map((m, i) => (
+            <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-lg"
+              style={{ background: m.current ? "var(--gold-pale)" : m.done ? "rgba(61,170,110,0.04)" : "var(--off-white)" }}>
+              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] shrink-0"
+                style={{
+                  background: m.done ? "var(--success)" : m.current ? "var(--gold)" : "var(--gray-light)",
+                  color: m.done || m.current ? "#fff" : "var(--gray)",
+                }}>
+                {m.done ? "✓" : m.current ? "→" : "🔒"}
+              </div>
+              <div className="flex-1">
+                <p className="text-[12px]" style={{ color: m.done ? "var(--gray)" : "var(--navy)", fontWeight: m.current ? 700 : 400 }}>{m.en}</p>
+                <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "var(--gray)" }}>{m.ar}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Emergency Contacts */}
-      <div className="rounded-2xl p-5" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-        <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--gold)" }}>EMERGENCY CONTACTS</p>
-        {[
-          { name: "Dr. Klaus Mueller", role: "Treating Physician", phone: "+4930450", emoji: "👨‍⚕️", ar: "الطبيب المعالج" },
-          { name: "Charité Hospital", role: "Main Hospital", phone: "+493045050", emoji: "🏥", ar: "المستشفى الرئيسي" },
-          { name: "Saudi Embassy Berlin", role: "Embassy", phone: "+493050200", emoji: "🇸🇦", ar: "السفارة السعودية" },
-        ].map((c, i) => (
-          <div key={i} className="flex items-center gap-3 py-2.5" style={{ borderBottom: i < 2 ? "1px solid var(--gray-light)" : "none" }}>
-            <span className="text-xl">{c.emoji}</span>
-            <div className="flex-1">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{c.name}</p>
-              <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{c.ar}</p>
+      {/* Articles */}
+      <p className="font-mono text-[9px] tracking-widest px-1" style={{ color: "var(--gold)" }}>RECOMMENDED READING</p>
+      {articles.map((a, i) => (
+        <div key={i} className="flex items-center gap-3 p-3 rounded-xl btn-press" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+          <span className="text-2xl">{a.emoji}</span>
+          <div className="flex-1">
+            <p className="text-[12px] font-bold" style={{ color: "var(--navy)" }}>{a.en}</p>
+            <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{a.ar}</p>
+          </div>
+          <span className="font-mono text-[9px]" style={{ color: "var(--gold)" }}>{a.time}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ─── FAQs ─── */
+const FAQsTab = () => {
+  const [openQ, setOpenQ] = useState<string | null>(null);
+  const sections = [
+    { title: "🚨 Emergency", ar: "حالات الطوارئ", questions: [
+      { q: "When should I go to the ER?", qar: "متى يجب أن أذهب للطوارئ؟", a: "Go immediately if: fever >38.5°C, sudden severe pain, wound bleeding that won't stop, difficulty breathing, or chest pain.", aar: "اذهب فوراً إذا: حرارة أعلى من ٣٨.٥، ألم شديد مفاجئ، نزيف لا يتوقف، صعوبة في التنفس، أو ألم في الصدر.", emergency: true },
+    ]},
+    { title: "💊 Medications", ar: "الأدوية", questions: [
+      { q: "Can I take pain meds with food?", qar: "هل يمكنني تناول مسكنات الألم مع الطعام؟", a: "Yes, always take ibuprofen with food to protect your stomach. Omeprazole should be taken 30 minutes before eating.", aar: "نعم، تناول الإيبوبروفين دائماً مع الطعام لحماية المعدة. الأوميبرازول يؤخذ قبل الأكل بـ٣٠ دقيقة." },
+    ]},
+    { title: "✈️ Travel", ar: "السفر", questions: [
+      { q: "Can I fly 10 days after surgery?", qar: "هل يمكنني السفر بالطائرة بعد ١٠ أيام من العملية؟", a: "Your surgeon has cleared you for travel on Apr 15. Wear compression stockings, move every hour, and stay hydrated.", aar: "وافق جراحك على سفرك في ١٥ أبريل. ارتدِ جوارب ضاغطة وتحرك كل ساعة واشرب الماء." },
+    ]},
+    { title: "🏠 After Return", ar: "بعد العودة", questions: [
+      { q: "When is my first follow-up in KSA?", qar: "متى أول متابعة في السعودية؟", a: "Your first follow-up is scheduled for April 17 — a wound check at your local hospital. Bring your discharge summary.", aar: "أول متابعة مجدولة في ١٧ أبريل — فحص الجرح في مستشفاك المحلي. أحضر ملخص الخروج." },
+    ]},
+    { title: "🧠 Mental Health", ar: "الصحة النفسية", questions: [
+      { q: "I feel anxious about recovery", qar: "أشعر بالقلق بشأن التعافي", a: "Recovery anxiety is completely normal. Talking about it helps. RufayQ is here 24/7 to listen and support you.", aar: "القلق من التعافي طبيعي تماماً. التحدث عنه يساعد. رُفَيِّق موجود ٢٤/٧ للاستماع ودعمك.", mental: true },
+    ]},
+  ];
+
+  return (
+    <div className="px-4 py-4 space-y-3">
+      {/* Search */}
+      <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+        <span className="text-[14px]">🔍</span>
+        <input className="flex-1 text-[13px] bg-transparent outline-none font-arabic" dir="rtl" placeholder="ابحث في الأسئلة الشائعة..." style={{ color: "var(--navy)" }} />
+      </div>
+
+      {sections.map((s, si) => (
+        <div key={si} className="rounded-2xl overflow-hidden" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+          <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--gray-light)" }}>
+            <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{s.title}</p>
+            <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{s.ar}</p>
+          </div>
+          {s.questions.map((q, qi) => {
+            const key = `${si}-${qi}`;
+            const isOpen = openQ === key;
+            return (
+              <div key={qi}>
+                <button onClick={() => setOpenQ(isOpen ? null : key)} className="w-full px-4 py-3 text-left btn-press" style={{ borderBottom: "1px solid var(--gray-light)" }}>
+                  <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{q.q}</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{q.qar}</p>
+                </button>
+                {isOpen && (
+                  <div className="px-4 py-3" style={{ background: "var(--off-white)" }}>
+                    <p className="text-[12px]" style={{ color: "var(--navy)" }}>{q.a}</p>
+                    <p className="font-arabic text-[10px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>{q.aar}</p>
+                    {(q as any).emergency && (
+                      <a href="tel:112" className="mt-2 w-full py-2.5 rounded-xl text-[13px] font-bold text-white text-center block btn-press" style={{ background: "var(--error)" }}>
+                        🚨 CALL EMERGENCY · اتصل بالطوارئ
+                      </a>
+                    )}
+                    {(q as any).mental && (
+                      <button className="mt-2 w-full py-2.5 rounded-xl text-[13px] font-bold text-white btn-press" style={{ background: "var(--gold)" }}>
+                        💬 Talk to RufayQ · تحدث مع رُفَيِّق
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+
+      <button className="w-full py-3 rounded-2xl text-[14px] font-bold text-white btn-press" style={{ background: "var(--gold)" }}>
+        💬 Ask RufayQ · اسأل رُفَيِّق
+      </button>
+    </div>
+  );
+};
+
+/* ─── NUTRITION ─── */
+const NutritionTab = () => {
+  const [waterCount, setWaterCount] = useState(5);
+
+  const nutrients = [
+    { name: "Protein", ar: "بروتين", why: "Essential for tissue repair", goal: "60g/day", gradient: "linear-gradient(135deg, #004D5B, #006D7C)",
+      foods: ["Chicken breast", "Greek yogurt", "Lentils", "Eggs"] },
+    { name: "Vitamin C", ar: "فيتامين سي", why: "Boosts wound healing", goal: "200mg/day", gradient: "linear-gradient(135deg, #C5965A, #A07A3A)",
+      foods: ["Oranges", "Bell peppers", "Broccoli", "Kiwi"] },
+    { name: "Omega-3", ar: "أوميغا ٣", why: "Reduces inflammation", goal: "2g/day", gradient: "linear-gradient(135deg, #1A2A35, #0D1B2A)",
+      foods: ["Salmon", "Walnuts", "Flax seeds", "Sardines"] },
+  ];
+
+  const meals = [
+    { time: "Breakfast", ar: "فطور", emoji: "🍳", items: "Eggs, whole wheat toast, avocado, orange juice", tags: ["High protein", "Vitamin C"] },
+    { time: "Lunch", ar: "غداء", emoji: "🥗", items: "Grilled chicken salad, quinoa, mixed vegetables", tags: ["High protein", "Iron"] },
+    { time: "Dinner", ar: "عشاء", emoji: "🍛", items: "Baked salmon, brown rice, steamed broccoli", tags: ["Omega-3", "Vitamin C"] },
+  ];
+
+  return (
+    <div className="px-4 py-4 space-y-4">
+      {/* Water Tracker */}
+      <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+        <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>WATER INTAKE</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{waterCount}/8 glasses</p>
+          <p className="font-mono text-[10px]" style={{ color: "var(--teal-deep)" }}>{(waterCount * 0.25).toFixed(2)}L / 2L</p>
+        </div>
+        <div className="flex gap-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <button key={i} onClick={() => setWaterCount(i + 1)} className="text-[20px] btn-press" style={{ opacity: i < waterCount ? 1 : 0.25 }}>
+              💧
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Nutrients */}
+      <div className="flex gap-3 overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
+        {nutrients.map((n, i) => (
+          <div key={i} className="shrink-0 w-[200px] rounded-2xl p-4 text-white" style={{ background: n.gradient }}>
+            <p className="text-[15px] font-bold">{n.name}</p>
+            <p className="font-arabic text-[11px]" style={{ opacity: 0.6 }}>{n.ar}</p>
+            <p className="text-[10px] mt-1" style={{ opacity: 0.7 }}>{n.why}</p>
+            <span className="inline-block mt-2 px-2 py-0.5 rounded-full text-[9px] font-bold" style={{ background: "rgba(197,150,90,0.3)", color: "#F0D9BB" }}>{n.goal}</span>
+            <div className="mt-2 space-y-0.5">
+              {n.foods.map((f, fi) => <p key={fi} className="text-[10px]" style={{ opacity: 0.8 }}>• {f}</p>)}
             </div>
-            <a href={`tel:${c.phone}`} className="px-3 py-1.5 rounded-full text-[10px] font-bold btn-press" style={{ background: "var(--success)", color: "#fff" }}>📞 Call</a>
           </div>
         ))}
       </div>
+
+      {/* Foods to Avoid */}
+      <div className="rounded-2xl p-4" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.15)" }}>
+        <p className="text-[12px] font-bold" style={{ color: "var(--error)" }}>⚠️ Foods to Avoid · أطعمة يجب تجنبها</p>
+        <div className="mt-2 space-y-1">
+          {["Alcohol — slows healing", "Excessive sugar — increases inflammation", "Processed foods — low nutrient value", "Caffeine excess — dehydration risk"].map((f, i) => (
+            <p key={i} className="text-[11px]" style={{ color: "var(--navy)" }}>• {f}</p>
+          ))}
+        </div>
+      </div>
+
+      {/* Meals */}
+      <p className="font-mono text-[9px] tracking-widest px-1" style={{ color: "var(--gold)" }}>SUGGESTED MEALS</p>
+      {meals.map((m, i) => (
+        <div key={i} className="rounded-xl p-3" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[18px]">{m.emoji}</span>
+            <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{m.time}</p>
+            <p className="font-arabic text-[10px]" style={{ color: "var(--gray)" }}>{m.ar}</p>
+          </div>
+          <p className="text-[11px]" style={{ color: "var(--gray)" }}>{m.items}</p>
+          <div className="flex gap-1.5 mt-1.5">
+            {m.tags.map((t, ti) => (
+              <span key={ti} className="text-[8px] px-2 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>{t}</span>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
-  </div>
-);
+  );
+};
+
+/* ─── EXERCISES ─── */
+const ExercisesTab = () => {
+  const [doneExercises, setDoneExercises] = useState<number[]>([]);
+  const [expandedEx, setExpandedEx] = useState<number | null>(null);
+
+  const exercises = [
+    { name: "Ankle Pumps", ar: "تحريك الكاحل", difficulty: "Easy", duration: "5 min", reps: "10 reps × 3 sets",
+      steps: ["Lie flat on your back", "Point toes forward, hold 3s", "Pull toes toward you, hold 3s", "Repeat 10 times"],
+      stepsAr: ["استلقِ على ظهرك", "وجّه أصابع القدم للأمام، ثبّت ٣ ثوان", "اسحب الأصابع نحوك، ثبّت ٣ ثوان", "كرر ١٠ مرات"] },
+    { name: "Quad Sets", ar: "تمارين العضلة الرباعية", difficulty: "Easy", duration: "5 min", reps: "10 reps × 3 sets",
+      steps: ["Sit with legs extended", "Tighten thigh muscle", "Press knee down, hold 5s", "Relax and repeat"],
+      stepsAr: ["اجلس مع فرد الرجلين", "شدّ عضلة الفخذ", "اضغط الركبة لأسفل ٥ ثوان", "استرخِ وكرر"] },
+    { name: "Heel Slides", ar: "تمرير الكعب", difficulty: "Medium", duration: "8 min", reps: "10 reps × 2 sets",
+      steps: ["Lie on back, legs straight", "Slowly bend knee sliding heel", "Hold at comfortable bend 3s", "Slide back slowly"],
+      stepsAr: ["استلقِ على ظهرك والرجلان ممدودتان", "اثنِ الركبة ببطء", "ثبّت ٣ ثوان", "أعد الرجل ببطء"] },
+    { name: "Seated Knee Extension", ar: "مد الركبة جالساً", difficulty: "Medium", duration: "8 min", reps: "8 reps × 3 sets",
+      steps: ["Sit in chair, feet flat", "Slowly straighten knee", "Hold straight for 5s", "Lower slowly with control"],
+      stepsAr: ["اجلس على كرسي", "افرد الركبة ببطء", "ثبّت ٥ ثوان", "أنزل ببطء"] },
+    { name: "Standing Balance", ar: "توازن الوقوف", difficulty: "Hard", duration: "10 min", reps: "30s × 4 sets",
+      steps: ["Stand holding chair back", "Shift weight to surgical leg", "Try releasing hand briefly", "Hold 30 seconds"],
+      stepsAr: ["قف ممسكاً بظهر الكرسي", "انقل الوزن للرجل المعالجة", "حاول رفع اليد لحظات", "ثبّت ٣٠ ثانية"] },
+  ];
+
+  const weekDays = [
+    { short: "أحد", done: true }, { short: "اثن", done: true }, { short: "ثلا", done: true },
+    { short: "أربع", done: false }, { short: "خمي", done: false }, { short: "جمع", done: false }, { short: "سبت", done: false },
+  ];
+
+  return (
+    <div className="px-4 py-4 space-y-4">
+      {/* Disclaimer */}
+      <div className="rounded-xl px-4 py-3" style={{ background: "var(--gold-pale)", border: "1px solid rgba(197,150,90,0.3)" }}>
+        <p className="text-[11px] font-bold" style={{ color: "var(--gold)" }}>⚠️ Only do exercises approved by your physiotherapist</p>
+        <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>قم فقط بالتمارين الموصى بها من أخصائي العلاج الطبيعي</p>
+      </div>
+
+      {/* Phase badge */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] px-3 py-1 rounded-full font-bold" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
+          Phase 1 of 3 — Gentle Mobility
+        </span>
+        <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>Week 1-2</span>
+      </div>
+
+      {/* Exercises */}
+      {exercises.map((ex, i) => {
+        const isDone = doneExercises.includes(i);
+        const isExpanded = expandedEx === i;
+        const diffColor = ex.difficulty === "Easy" ? "var(--success)" : ex.difficulty === "Medium" ? "var(--warning)" : "var(--error)";
+
+        return (
+          <div key={i} className="rounded-2xl overflow-hidden" style={{
+            background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+            borderLeft: isDone ? "4px solid var(--success)" : "4px solid transparent",
+          }}>
+            <button onClick={() => setExpandedEx(isExpanded ? null : i)} className="w-full p-4 text-left btn-press">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[9px] px-2 py-0.5 rounded-full font-bold" style={{ background: `${diffColor}20`, color: diffColor }}>{ex.difficulty}</span>
+                <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{ex.duration}</span>
+              </div>
+              <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>{ex.name}</p>
+              <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>{ex.ar}</p>
+              <p className="font-mono text-[10px] mt-1" style={{ color: "var(--gold)" }}>{ex.reps}</p>
+            </button>
+
+            {isExpanded && (
+              <div className="px-4 pb-4">
+                <div className="space-y-1.5 mb-3">
+                  {ex.steps.map((s, si) => (
+                    <div key={si}>
+                      <p className="text-[11px]" style={{ color: "var(--navy)" }}>{si + 1}. {s}</p>
+                      <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "var(--gray)" }}>{ex.stepsAr[si]}</p>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={(e) => {
+                  e.stopPropagation();
+                  setDoneExercises(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
+                }} className="w-full py-2.5 rounded-xl text-[13px] font-bold btn-press"
+                  style={{
+                    background: isDone ? "rgba(61,170,110,0.1)" : "var(--teal-deep)",
+                    color: isDone ? "var(--success)" : "#fff",
+                  }}>
+                  {isDone ? "✓ Done · تم" : "Mark as Done · تم"}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Weekly dots */}
+      <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+        <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--gold)" }}>THIS WEEK</p>
+        <div className="flex justify-between">
+          {weekDays.map((d, i) => (
+            <div key={i} className="flex flex-col items-center gap-1">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px]"
+                style={{ background: d.done ? "var(--teal-deep)" : "var(--gray-light)", color: d.done ? "#fff" : "var(--gray)" }}>
+                {d.done ? "✓" : ""}
+              </div>
+              <span className="font-arabic text-[8px]" style={{ color: "var(--gray)" }}>{d.short}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default CareHubScreen;

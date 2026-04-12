@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { X, RotateCw, Sun, Contrast, Crop, Palette } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 
@@ -28,6 +28,70 @@ const categories = [
     subs: ["Referral", "Consultation Note", "Surgical Report", "Consent Form", "Vaccination", "Medical Certificate", "Other"] },
 ];
 
+const destinationsByCategory: Record<string, { en: string; ar: string; route: string; checked: boolean }[]> = {
+  flight: [
+    { en: "Add to Transport Timeline", ar: "أضف لجدول التنقل", route: "Journey → Tickets", checked: true },
+    { en: "Save to Medical Records", ar: "حفظ في الملفات", route: "Records → General", checked: true },
+    { en: "Send to KSA Doctor", ar: "أرسل لطبيبي", route: "Share", checked: false },
+  ],
+  lab: [
+    { en: "Add to Lab Results", ar: "أضف لنتائج التحاليل", route: "Records → Lab", checked: true },
+    { en: "Update Care Hub Vitals", ar: "حدّث قراءات الرعاية", route: "Care Hub → Vitals", checked: true },
+    { en: "Translate to Arabic", ar: "ترجم للعربية", route: "Translation", checked: false },
+    { en: "Send to KSA Doctor", ar: "أرسل لطبيبي", route: "Share", checked: false },
+  ],
+  hotel: [
+    { en: "Add to Accommodation", ar: "أضف للإقامة", route: "Journey → Stay", checked: true },
+    { en: "Save to Records", ar: "حفظ في الملفات", route: "Records → General", checked: true },
+  ],
+  prescription: [
+    { en: "Update Medication Schedule", ar: "حدّث جدول الأدوية", route: "Medications", checked: true },
+    { en: "Save to Records", ar: "حفظ في الملفات", route: "Records → Prescription", checked: true },
+    { en: "Set medication reminders", ar: "فعّل تذكيرات الأدوية", route: "Notifications", checked: true },
+  ],
+  discharge: [
+    { en: "Update Care Plan", ar: "حدّث خطة الرعاية", route: "Care Hub → Care Plan", checked: true },
+    { en: "Save to Discharge Pack", ar: "أضف لحزمة الخروج", route: "Records → Discharge", checked: true },
+    { en: "Update Journey Steps", ar: "حدّث خطوات الرحلة", route: "Journey → Steps", checked: true },
+    { en: "Send to KSA Doctor", ar: "أرسل لطبيبي", route: "Share", checked: false },
+  ],
+};
+
+const extractedFieldsByCategory: Record<string, { label: string; value: string }[]> = {
+  flight: [
+    { label: "Airline", value: "Saudia" }, { label: "Flight No.", value: "SV 301" },
+    { label: "From", value: "RUH — Riyadh" }, { label: "To", value: "BER — Berlin" },
+    { label: "Date", value: "Apr 5, 2026" }, { label: "Time", value: "08:30" },
+    { label: "PNR", value: "AB1234" }, { label: "Class", value: "Business" },
+  ],
+  lab: [
+    { label: "Test", value: "CBC — Complete Blood Count" }, { label: "Result", value: "See details" },
+    { label: "Hemoglobin", value: "14.2 g/dL ✓" }, { label: "WBC", value: "7,200 /μL ✓" },
+    { label: "Platelets", value: "245,000 /μL ✓" }, { label: "CRP", value: "12 mg/L ⚠" },
+  ],
+  hotel: [
+    { label: "Hotel", value: "Hotel Berlin Mitte" }, { label: "Check-in", value: "Apr 5, 14:00" },
+    { label: "Check-out", value: "Apr 8, 07:00" }, { label: "Ref", value: "HTL-2026-4821" },
+    { label: "Room", value: "Deluxe Double" }, { label: "Rate", value: "€185/night" },
+  ],
+  prescription: [
+    { label: "Medication", value: "Ibuprofen 400mg" }, { label: "Dose", value: "1 tablet" },
+    { label: "Frequency", value: "3× daily" }, { label: "Duration", value: "14 days" },
+    { label: "Medication 2", value: "Omeprazole 20mg" }, { label: "Refills", value: "2" },
+  ],
+  discharge: [
+    { label: "Diagnosis", value: "Right knee arthroplasty" }, { label: "Procedure", value: "Total knee replacement" },
+    { label: "Discharge", value: "Apr 10, 2026" }, { label: "Follow-up", value: "Apr 17 — wound check" },
+    { label: "Red Flags", value: "Fever >38.5°C, swelling" }, { label: "Physician", value: "Dr. Klaus Mueller" },
+  ],
+};
+
+const sectionLabels: Record<string, string> = {
+  flight: "Transport Timeline", lab: "Lab Results", hotel: "Accommodation",
+  prescription: "Medications", discharge: "Discharge Pack", train: "Transport Timeline",
+  imaging: "Imaging Records", insurance: "Insurance Records", other: "Medical Records",
+};
+
 const ScannerWizard = ({ onClose, preselectedCategory }: ScannerWizardProps) => {
   const [step, setStep] = useState(1);
   const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(null);
@@ -52,8 +116,6 @@ const ScannerWizard = ({ onClose, preselectedCategory }: ScannerWizardProps) => 
       setStep(2);
     }
   };
-
-  const selectedCat = categories.find((c) => c.id === selectedCategory);
 
   return (
     <div className="absolute inset-0 z-[60] flex flex-col animate-slide-in-right" style={{ background: "#0D1B2A" }}>
@@ -81,9 +143,7 @@ const ScannerWizard = ({ onClose, preselectedCategory }: ScannerWizardProps) => 
         {step === 1 && <Step1Capture onCapture={handleFileCapture} />}
         {step === 2 && capturedFile && (
           <Step2Review file={capturedFile} onRetake={() => setStep(1)} onConfirm={() => {
-            if (preselectedCategory) {
-              setSelectedCategory(preselectedCategory);
-            }
+            if (preselectedCategory) setSelectedCategory(preselectedCategory);
             setStep(3);
           }} />
         )}
@@ -93,10 +153,27 @@ const ScannerWizard = ({ onClose, preselectedCategory }: ScannerWizardProps) => 
             selectedSub={selectedSub}
             onSelect={(id) => { setSelectedCategory(id); setSelectedSub(null); }}
             onSelectSub={setSelectedSub}
-            onContinue={() => {
-              // Steps 4-5 will be in Part C
-              onClose();
+            onContinue={() => setStep(4)}
+          />
+        )}
+        {step === 4 && (
+          <Step4AIReview
+            category={selectedCategory}
+            fileName={capturedFile?.name || "document"}
+            onSave={() => setStep(5)}
+          />
+        )}
+        {step === 5 && (
+          <Step5Success
+            category={selectedCategory}
+            onViewSection={onClose}
+            onScanAnother={() => {
+              setStep(1);
+              setCapturedFile(null);
+              setSelectedCategory(preselectedCategory || null);
+              setSelectedSub(null);
             }}
+            onDone={onClose}
           />
         )}
       </div>
@@ -154,14 +231,12 @@ const Step2Review = ({ file, onRetake, onConfirm }: { file: { name: string; type
 
   return (
     <div className="flex flex-col h-full" style={{ background: "#0D1B2A" }}>
-      {/* Preview area */}
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
         {isImage ? (
           <div className="w-full rounded-2xl overflow-hidden relative" style={{ aspectRatio: "3/4", background: "rgba(255,255,255,0.05)", border: "2px solid var(--gold)" }}>
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-6xl">📄</span>
             </div>
-            {/* Corner handles */}
             {[{ t: 8, l: 8 }, { t: 8, r: 8 }, { b: 8, l: 8 }, { b: 8, r: 8 }].map((pos, i) => (
               <div key={i} className="absolute w-5 h-5 rounded-full" style={{
                 background: "var(--gold)", top: (pos as any).t, bottom: (pos as any).b, left: (pos as any).l, right: (pos as any).r,
@@ -180,7 +255,6 @@ const Step2Review = ({ file, onRetake, onConfirm }: { file: { name: string; type
         )}
       </div>
 
-      {/* Enhance toolbar (images only) */}
       {isImage && (
         <div className="flex justify-center gap-2 px-4 pb-3">
           {[
@@ -197,7 +271,6 @@ const Step2Review = ({ file, onRetake, onConfirm }: { file: { name: string; type
         </div>
       )}
 
-      {/* Bottom actions */}
       <div className="flex gap-3 px-5 pb-8 pt-3">
         <button onClick={onRetake} className="flex-1 py-3.5 rounded-xl text-[13px] font-medium btn-press" style={{ border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
           Retake · <span className="font-arabic">إعادة</span>
@@ -220,13 +293,11 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
 
   return (
     <div className="pb-8" style={{ background: "var(--off-white)" }}>
-      {/* Header */}
       <div className="px-5 py-4" style={{ background: "var(--white)", borderBottom: "1px solid var(--gray-light)" }}>
         <p className="text-[20px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>What type of document is this?</p>
         <p className="font-arabic text-[15px]" dir="rtl" style={{ color: "var(--gray)" }}>ما نوع هذه الوثيقة؟</p>
       </div>
 
-      {/* AI Detection Banner */}
       <div className="mx-4 mt-3 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--teal-light)", borderLeft: "3px solid var(--teal-deep)" }}>
         <RufayQLogo size={16} variant="dark" />
         <div className="flex-1">
@@ -235,7 +306,6 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
         </div>
       </div>
 
-      {/* Category Grid */}
       <div className="grid grid-cols-3 gap-2.5 px-4 mt-4">
         {categories.map((cat) => {
           const isSelected = selected === cat.id;
@@ -258,7 +328,6 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
         })}
       </div>
 
-      {/* Sub-categories */}
       {selectedCat && (
         <div className="px-4 mt-4">
           <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: selectedCat.color }}>SUB-CATEGORY</p>
@@ -281,7 +350,6 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
         </div>
       )}
 
-      {/* Continue Button */}
       <div className="px-4 mt-6">
         <button
           onClick={onContinue}
@@ -294,6 +362,249 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
           }}
         >
           Continue → · <span className="font-arabic">متابعة →</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ─── STEP 4: AI REVIEW & DATA EXTRACT ─── */
+const Step4AIReview = ({ category, fileName, onSave }: {
+  category: string | null; fileName: string; onSave: () => void;
+}) => {
+  const [processing, setProcessing] = useState(true);
+  const [processStep, setProcessStep] = useState(0);
+  const [destinations, setDestinations] = useState<boolean[]>([]);
+
+  const cat = categories.find(c => c.id === category);
+  const fields = extractedFieldsByCategory[category || ""] || extractedFieldsByCategory["flight"];
+  const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
+
+  useEffect(() => {
+    setDestinations(dests.map(d => d.checked));
+  }, [category]);
+
+  useEffect(() => {
+    if (!processing) return;
+    const timers = [
+      setTimeout(() => setProcessStep(1), 800),
+      setTimeout(() => setProcessStep(2), 1800),
+      setTimeout(() => setProcessStep(3), 3000),
+      setTimeout(() => setProcessStep(4), 4200),
+      setTimeout(() => setProcessing(false), 5500),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [processing]);
+
+  const toggleDest = (i: number) => {
+    setDestinations(prev => prev.map((v, idx) => idx === i ? !v : v));
+  };
+
+  const processingSteps = [
+    { emoji: "🔍", en: "Reading document content", ar: "قراءة محتوى الوثيقة" },
+    { emoji: "🌐", en: "Detecting language", ar: "اكتشاف اللغة" },
+    { emoji: "🧠", en: "Extracting key information", ar: "استخراج المعلومات" },
+    { emoji: "📍", en: "Mapping to your journey", ar: "ربطها برحلتك العلاجية" },
+  ];
+
+  if (processing) {
+    return (
+      <div className="flex flex-col items-center justify-center px-6" style={{ minHeight: "100%", background: "#0D1B2A" }}>
+        <div className="logo-pulse">
+          <RufayQLogo size={56} variant="gold" />
+        </div>
+        <p className="text-[16px] text-white mt-4 text-center" style={{ fontFamily: "'DM Sans'" }}>
+          RufayQ is reading your document
+        </p>
+        <p className="font-arabic text-[14px] mt-1 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>
+          رُفَيِّق يقرأ وثيقتك...
+        </p>
+
+        <div className="w-full mt-8 space-y-3">
+          {processingSteps.map((ps, i) => {
+            const isDone = processStep > i;
+            const isActive = processStep === i;
+            return (
+              <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
+                style={{
+                  background: isDone ? "rgba(61,170,110,0.1)" : isActive ? "rgba(255,255,255,0.05)" : "transparent",
+                  opacity: processStep >= i ? 1 : 0.3,
+                  transition: "all 0.4s ease",
+                }}
+              >
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-[16px]"
+                  style={{ background: isDone ? "rgba(61,170,110,0.2)" : "rgba(255,255,255,0.08)" }}>
+                  {isDone ? <span style={{ color: "#3DAA6E" }}>✓</span> : ps.emoji}
+                </div>
+                <div className="flex-1">
+                  <p className="text-[13px]" style={{ color: isDone ? "#3DAA6E" : "rgba(255,255,255,0.8)" }}>{ps.en}</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "rgba(255,255,255,0.4)" }}>{ps.ar}</p>
+                </div>
+                {isActive && (
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map(d => (
+                      <div key={d} className="w-1.5 h-1.5 rounded-full typing-dot" style={{ background: "var(--teal-bright)", animationDelay: `${d * 0.2}s` }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Results view
+  return (
+    <div className="pb-8" style={{ background: "var(--off-white)" }}>
+      {/* Document Preview Strip */}
+      <div className="mx-4 mt-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <div className="w-9 h-9 rounded-full flex items-center justify-center text-[18px]" style={{ background: cat?.paleBg || "#E0F4F5" }}>
+          {cat?.emoji || "📄"}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{cat?.en || "Document"}</p>
+          <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>{fileName}</p>
+        </div>
+        <span className="text-[9px] px-2 py-1 rounded-full font-bold" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Processed</span>
+      </div>
+
+      {/* Extracted Data */}
+      <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+        <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--gold)" }}>EXTRACTED INFORMATION</p>
+        <p className="font-arabic text-[10px] mb-3" dir="rtl" style={{ color: "var(--gray)" }}>المعلومات المستخرجة</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+          {fields.map((f, i) => (
+            <div key={i}>
+              <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{f.label}</p>
+              <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{f.value}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: "1px solid var(--gray-light)" }}>
+          <span className="text-[9px]">🌐</span>
+          <p className="text-[10px]" style={{ color: "var(--gray)" }}>Language: <strong style={{ color: "var(--navy)" }}>German / English</strong></p>
+          <span className="text-[9px] px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Translated</span>
+        </div>
+      </div>
+
+      {/* Edit note */}
+      <div className="flex items-center gap-2 px-5 mt-3">
+        <span className="text-[11px]">✏️</span>
+        <p className="text-[11px]" style={{ color: "var(--gray)" }}>Tap any field to edit before saving</p>
+      </div>
+      <div className="px-5 mt-0.5">
+        <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>اضغط على أي حقل لتعديله قبل الحفظ</p>
+      </div>
+
+      {/* Save Destinations */}
+      <div className="mx-4 mt-4 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+        <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--gray)" }}>SAVE TO: · <span className="font-arabic">احفظ في:</span></p>
+        <div className="space-y-2.5">
+          {dests.map((dest, i) => (
+            <button key={i} onClick={() => toggleDest(i)} className="w-full flex items-center gap-3 py-2 btn-press">
+              <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all" style={{
+                background: destinations[i] ? "var(--teal-deep)" : "transparent",
+                border: destinations[i] ? "none" : "1.5px solid var(--teal-deep)",
+              }}>
+                {destinations[i] && <span className="text-[10px] text-white">✓</span>}
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{dest.en}</p>
+                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{dest.ar}</p>
+              </div>
+              <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{dest.route}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Save CTA */}
+      <div className="px-4 mt-5">
+        <button onClick={onSave} className="w-full flex items-center justify-center gap-2 rounded-2xl text-[16px] font-bold text-white btn-press" style={{ background: "var(--gold)", height: 52 }}>
+          <RufayQLogo size={18} variant="light" />
+          <span>Save to RufayQ</span>
+          <span className="font-arabic text-[13px]" style={{ opacity: 0.8 }}>حفظ</span>
+          <span className="ml-1">→</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ─── STEP 5: SUCCESS ─── */
+const Step5Success = ({ category, onViewSection, onScanAnother, onDone }: {
+  category: string | null; onViewSection: () => void; onScanAnother: () => void; onDone: () => void;
+}) => {
+  const [showContent, setShowContent] = useState(false);
+  const cat = categories.find(c => c.id === category);
+  const section = sectionLabels[category || ""] || "Records";
+
+  const actionsTaken: { en: string; ar: string }[] = [];
+  const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
+  dests.filter(d => d.checked).forEach(d => {
+    actionsTaken.push({ en: d.en, ar: d.ar });
+  });
+
+  useEffect(() => {
+    const t = setTimeout(() => setShowContent(true), 1000);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center px-5 pt-16 pb-8" style={{ minHeight: "100%", background: "#0D1B2A" }}>
+      {/* Success checkmark */}
+      <div className="w-16 h-16 rounded-full flex items-center justify-center text-[28px] text-white"
+        style={{
+          background: "#3DAA6E",
+          animation: "success-bounce 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards",
+        }}>
+        ✓
+      </div>
+      <div className="mt-3" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.4s ease 0.2s" }}>
+        <RufayQLogo size={32} variant="gold" />
+      </div>
+
+      <h2 className="font-display text-[32px] text-white mt-4 text-center" style={{ fontWeight: 300, opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.4s" }}>
+        Document Saved!
+      </h2>
+      <p className="font-arabic text-[18px] mt-1 text-center" dir="rtl"
+        style={{ color: "rgba(255,255,255,0.55)", opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.5s" }}>
+        تم حفظ الوثيقة بنجاح
+      </p>
+
+      {/* Actions Taken */}
+      <div className="w-full rounded-2xl p-4 mt-6" style={{
+        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+        opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.7s",
+      }}>
+        <p className="font-mono text-[10px] tracking-widest mb-3" style={{ color: "var(--gold)" }}>
+          ✓ RUFAYQ UPDATED: · <span className="font-arabic">قام رُفَيِّق بتحديث:</span>
+        </p>
+        <div className="space-y-2.5">
+          {actionsTaken.map((a, i) => (
+            <div key={i} className="flex items-start gap-2.5">
+              <span className="text-[12px] mt-0.5" style={{ color: "#3DAA6E" }}>✓</span>
+              <div>
+                <p className="text-[12px] text-white">{a.en}</p>
+                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "rgba(255,255,255,0.4)" }}>{a.ar}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Navigation buttons */}
+      <div className="w-full mt-6 space-y-3" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.9s" }}>
+        <button onClick={onViewSection} className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white btn-press" style={{ background: "var(--gold)", height: 48 }}>
+          View in {section} · <span className="font-arabic text-[12px]">عرض في {section}</span>
+        </button>
+        <button onClick={onScanAnother} className="w-full py-3 rounded-2xl text-[14px] font-medium btn-press" style={{ border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)", height: 44 }}>
+          Scan Another Document · <span className="font-arabic text-[12px]">امسح وثيقة أخرى</span>
+        </button>
+        <button onClick={onDone} className="w-full py-2 text-[13px] text-center" style={{ color: "rgba(255,255,255,0.5)" }}>
+          Done · <span className="font-arabic">تم</span>
         </button>
       </div>
     </div>
