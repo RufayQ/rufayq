@@ -501,7 +501,7 @@ const Step4AIReview = ({ category, fileName, onSave }: {
 
   if (processing) {
     return (
-      <div className="flex flex-col items-center justify-center px-6" style={{ minHeight: "100%", background: "#0D1B2A" }}>
+      <div className="flex flex-col items-center justify-center px-6" style={{ minHeight: "100%", background: "var(--scanner-bg)" }}>
         <div className="logo-pulse">
           <RufayQLogo size={56} variant="gold" />
         </div>
@@ -645,7 +645,7 @@ const Step5Success = ({ category, onViewSection, onScanAnother, onDone }: {
   }, []);
 
   return (
-    <div className="flex flex-col items-center px-5 pt-16 pb-8" style={{ minHeight: "100%", background: "#0D1B2A" }}>
+    <div className="flex flex-col items-center px-5 pt-16 pb-8" style={{ minHeight: "100%", background: "var(--scanner-bg)" }}>
       {/* Success checkmark */}
       <div className="w-16 h-16 rounded-full flex items-center justify-center text-[28px] text-white"
         style={{

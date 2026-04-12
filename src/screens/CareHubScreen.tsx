@@ -263,7 +263,7 @@ const VideosTab = () => {
     <div className="px-4 py-4 space-y-4">
       {/* Featured */}
       <div className="rounded-2xl overflow-hidden" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
-        <div className="relative h-[180px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0D1B2A, #004D5B)" }}>
+        <div className="relative h-[180px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, var(--header-dark-from), var(--header-teal-from))" }}>
           <span className="text-5xl">🎬</span>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}>
@@ -315,7 +315,7 @@ const VideosTab = () => {
         const isPinned = pinned.includes(vi);
         return (
           <div key={vi} className="flex gap-3 p-3 rounded-xl btn-press relative" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", borderLeft: isPinned ? "3px solid var(--gold)" : "3px solid transparent" }}>
-            <div className="w-20 h-14 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1A2A35, #004D5B)" }}>
+            <div className="w-20 h-14 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden" style={{ background: "linear-gradient(135deg, var(--header-dark-to), var(--header-teal-from))" }}>
               <span className="text-xl">▶</span>
               {/* Mini progress bar */}
               <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: "rgba(255,255,255,0.2)" }}>
