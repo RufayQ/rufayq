@@ -16,7 +16,7 @@ const promptPills = [
   { emoji: "⚠️", text: "أعراض الخطر" },
 ];
 
-const ChatScreen = () => {
+const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
