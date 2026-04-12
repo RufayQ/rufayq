@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Send, Paperclip, MoreVertical, ChevronRight, X, Camera, Upload, Mic } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Paperclip, MoreVertical, ChevronRight, X, Camera, Upload, Mic, Square, Trash2 } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import { initialMessages, quickPrompts, type ChatMessage } from "@/constants/data";
 
@@ -24,11 +24,49 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
   const [showUploadSheet, setShowUploadSheet] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string } | null>(null);
   const [uploadInstruction, setUploadInstruction] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordedAudio, setRecordedAudio] = useState<{ duration: number } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    return () => { if (recordingTimerRef.current) clearInterval(recordingTimerRef.current); };
+  }, []);
+
+  const formatRecTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+
+  const startRecording = useCallback(() => {
+    setIsRecording(true);
+    setRecordingTime(0);
+    setRecordedAudio(null);
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingTime(prev => prev + 1);
+    }, 1000);
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    setIsRecording(false);
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    setRecordedAudio({ duration: recordingTime });
+  }, [recordingTime]);
+
+  const cancelRecording = useCallback(() => {
+    setIsRecording(false);
+    setRecordingTime(0);
+    setRecordedAudio(null);
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+  }, []);
+
+  const sendVoiceNote = useCallback((dur: number) => {
+    sendMessage(`🎤 Voice note · ${formatRecTime(dur)}`);
+    setRecordedAudio(null);
+    setRecordingTime(0);
+  }, []);
 
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
@@ -190,13 +228,66 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
 
       {/* Input area */}
       <div className="shrink-0" style={{ background: "var(--white)", borderTop: "1px solid var(--gray-light)" }}>
-        {/* Quick action pills when input empty */}
-        {!input.trim() && (
+
+        {/* Recording state */}
+        {isRecording && (
+          <div className="px-3 pt-3 pb-1">
+            <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.2)" }}>
+              <div className="w-3 h-3 rounded-full" style={{ background: "#D94F4F", animation: "pulse 1s ease-in-out infinite" }} />
+              <div className="flex-1">
+                <p className="text-[12px] font-bold" style={{ color: "#D94F4F" }}>Recording... · جاري التسجيل</p>
+                {/* Waveform visualization */}
+                <div className="flex items-center gap-0.5 mt-1.5 h-4">
+                  {Array.from({ length: 28 }).map((_, i) => (
+                    <div key={i} className="w-[3px] rounded-full" style={{
+                      background: "#D94F4F",
+                      height: `${20 + Math.sin((Date.now() / 200) + i * 0.8) * 60 + Math.random() * 20}%`,
+                      opacity: 0.4 + Math.random() * 0.4,
+                      transition: "height 150ms ease",
+                    }} />
+                  ))}
+                </div>
+              </div>
+              <span className="font-mono text-[14px] font-bold" style={{ color: "#D94F4F" }}>{formatRecTime(recordingTime)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Recorded audio preview */}
+        {recordedAudio && !isRecording && (
+          <div className="px-3 pt-3 pb-1">
+            <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.2)" }}>
+              <Mic size={18} style={{ color: "var(--teal-deep)" }} />
+              <div className="flex-1">
+                <p className="text-[12px] font-semibold" style={{ color: "var(--teal-deep)" }}>Voice note ready · ملاحظة صوتية جاهزة</p>
+                <div className="flex items-center gap-1 mt-1">
+                  {/* Static waveform */}
+                  <div className="flex items-center gap-0.5 h-3 flex-1">
+                    {Array.from({ length: 35 }).map((_, i) => (
+                      <div key={i} className="w-[2px] rounded-full" style={{
+                        background: "var(--teal-deep)",
+                        height: `${25 + Math.sin(i * 0.6) * 50 + (i % 3) * 15}%`,
+                        opacity: 0.5,
+                      }} />
+                    ))}
+                  </div>
+                  <span className="font-mono text-[11px] shrink-0" style={{ color: "var(--teal-deep)" }}>{formatRecTime(recordedAudio.duration)}</span>
+                </div>
+              </div>
+              <button onClick={cancelRecording} className="w-8 h-8 rounded-full flex items-center justify-center btn-press" style={{ background: "rgba(217,79,79,0.1)" }}>
+                <Trash2 size={14} style={{ color: "#D94F4F" }} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Quick action pills when input empty and not recording */}
+        {!input.trim() && !isRecording && !recordedAudio && (
           <div className="flex gap-2 px-3 pt-2">
             {[
               { icon: <Camera size={13} />, label: "Scan", onClick: () => onOpenScanner?.() },
               { icon: <Upload size={13} />, label: "Upload", onClick: () => setShowUploadSheet(true) },
-              { icon: <Mic size={13} />, label: "Voice", onClick: () => {} },
+              { icon: <Mic size={13} />, label: "Voice", onClick: startRecording },
             ].map((a) => (
               <button key={a.label} onClick={a.onClick} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium btn-press" style={{ background: "var(--off-white)", color: "var(--teal-deep)", border: "1px solid var(--gray-light)" }}>
                 {a.icon} {a.label}
@@ -204,27 +295,69 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
             ))}
           </div>
         )}
+
         <div className="px-3 py-2.5 flex items-center gap-2">
-          <button onClick={() => onOpenScanner ? onOpenScanner() : setShowUploadSheet(true)} className="shrink-0">
-            <Paperclip size={24} style={{ color: "var(--teal-deep)" }} />
-          </button>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-            placeholder="اسأل رُفَيِّق..."
-            dir="rtl"
-            className="flex-1 font-arabic text-[14px] px-4 py-2.5 rounded-full outline-none transition-all"
-            style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
-          />
-          <button
-            onClick={() => sendMessage(input)}
-            className="w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0 transition-all btn-press"
-            style={{ background: input.trim() ? "var(--teal-deep)" : "var(--gray-light)" }}
-            disabled={!input.trim()}
-          >
-            <Send size={16} style={{ color: input.trim() ? "#fff" : "var(--gray)" }} />
-          </button>
+          {isRecording ? (
+            <>
+              <button onClick={cancelRecording} className="w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0 btn-press" style={{ background: "rgba(217,79,79,0.1)" }}>
+                <Trash2 size={16} style={{ color: "#D94F4F" }} />
+              </button>
+              <div className="flex-1 flex items-center justify-center">
+                <p className="font-arabic text-[13px]" style={{ color: "var(--gray)" }}>اضغط لإيقاف التسجيل</p>
+              </div>
+              <button onClick={stopRecording} className="w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0 btn-press" style={{ background: "#D94F4F" }}>
+                <Square size={14} fill="#fff" style={{ color: "#fff" }} />
+              </button>
+            </>
+          ) : recordedAudio ? (
+            <>
+              <button onClick={() => onOpenScanner ? onOpenScanner() : setShowUploadSheet(true)} className="shrink-0">
+                <Paperclip size={24} style={{ color: "var(--teal-deep)" }} />
+              </button>
+              <div className="flex-1 flex items-center justify-center">
+                <p className="font-arabic text-[12px]" style={{ color: "var(--gray)" }}>أرسل الملاحظة الصوتية أو احذفها</p>
+              </div>
+              <button
+                onClick={() => sendVoiceNote(recordedAudio.duration)}
+                className="w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0 btn-press"
+                style={{ background: "var(--teal-deep)" }}
+              >
+                <Send size={16} style={{ color: "#fff" }} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => onOpenScanner ? onOpenScanner() : setShowUploadSheet(true)} className="shrink-0">
+                <Paperclip size={24} style={{ color: "var(--teal-deep)" }} />
+              </button>
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+                placeholder="اسأل رُفَيِّق..."
+                dir="rtl"
+                className="flex-1 font-arabic text-[14px] px-4 py-2.5 rounded-full outline-none transition-all"
+                style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+              />
+              {input.trim() ? (
+                <button
+                  onClick={() => sendMessage(input)}
+                  className="w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0 transition-all btn-press"
+                  style={{ background: "var(--teal-deep)" }}
+                >
+                  <Send size={16} style={{ color: "#fff" }} />
+                </button>
+              ) : (
+                <button
+                  onClick={startRecording}
+                  className="w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0 transition-all btn-press"
+                  style={{ background: "var(--gray-light)" }}
+                >
+                  <Mic size={18} style={{ color: "var(--teal-deep)" }} />
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
 

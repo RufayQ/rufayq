@@ -190,48 +190,116 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
 };
 
 /* ─── STEP 1: CAPTURE ─── */
-const Step1Capture = ({ onCapture }: { onCapture: (accept: string) => void }) => (
-  <div className="flex flex-col items-center justify-center px-6 py-10" style={{ minHeight: "100%" }}>
-    <div className="logo-pulse">
-      <RufayQLogo size={52} variant="gold" />
-    </div>
-    <h2 className="font-display text-[32px] text-white mt-5 text-center" style={{ fontWeight: 300 }}>Scan or Import</h2>
-    <p className="font-arabic text-[18px] mt-2 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>امسح أو استورد وثيقتك</p>
+const Step1Capture = ({ onCapture }: { onCapture: (accept: string) => void }) => {
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
-    <div className="w-full space-y-3 mt-8">
-      {[
-        { emoji: "📷", en: "Scan with Camera", ar: "امسح بالكاميرا", gradient: "linear-gradient(135deg, #004D5B, #006D7C)", accept: "image/*;capture=camera" },
-        { emoji: "🖼️", en: "Choose from Photos", ar: "اختر من الصور", gradient: "linear-gradient(135deg, #1A2A3A, #0D1B2A)", accept: "image/*" },
-        { emoji: "📁", en: "Upload PDF or Document", ar: "ارفع PDF أو وثيقة", gradient: "linear-gradient(135deg, #2A1A3A, #1A0D24)", accept: ".pdf,.doc,.docx,.jpg,.png,.jpeg" },
-        { emoji: "☁️", en: "Import from Cloud", ar: "استورد من السحابة", gradient: "linear-gradient(135deg, #1A2A14, #0D1A08)", accept: "*/*", sub: "Google Drive · iCloud · Dropbox · Email" },
-      ].map((opt) => (
+  if (showQRScanner) {
+    return (
+      <div className="flex flex-col items-center px-6 py-8" style={{ minHeight: "100%" }}>
+        {/* QR Scanner UI */}
+        <div className="relative w-full rounded-2xl overflow-hidden" style={{ aspectRatio: "1", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", maxWidth: 300 }}>
+          {/* Scanner frame */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative" style={{ width: "70%", height: "70%" }}>
+              {/* Corner brackets */}
+              {[
+                { top: 0, left: 0, borderTop: "3px solid var(--gold)", borderLeft: "3px solid var(--gold)" },
+                { top: 0, right: 0, borderTop: "3px solid var(--gold)", borderRight: "3px solid var(--gold)" },
+                { bottom: 0, left: 0, borderBottom: "3px solid var(--gold)", borderLeft: "3px solid var(--gold)" },
+                { bottom: 0, right: 0, borderBottom: "3px solid var(--gold)", borderRight: "3px solid var(--gold)" },
+              ].map((style, i) => (
+                <div key={i} className="absolute" style={{ ...style, width: 24, height: 24, borderRadius: 2 } as any} />
+              ))}
+              {/* Scanning line animation */}
+              <div className="absolute left-2 right-2" style={{ height: 2, background: "linear-gradient(90deg, transparent, var(--gold), transparent)", animation: "qrScan 2s ease-in-out infinite" }} />
+            </div>
+          </div>
+          {/* Center QR icon */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-5xl" style={{ opacity: 0.2 }}>📱</span>
+          </div>
+        </div>
+
+        <p className="text-[16px] text-white font-bold mt-5" style={{ fontFamily: "'DM Sans'" }}>Scan QR Code</p>
+        <p className="font-arabic text-[14px] mt-1" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>امسح رمز QR</p>
+        <p className="text-[11px] text-center mt-2 px-8" style={{ color: "rgba(255,255,255,0.4)" }}>
+          Point your camera at a QR code on a medical document, boarding pass, or prescription label
+        </p>
+        <p className="font-arabic text-[10px] text-center mt-1 px-6" dir="rtl" style={{ color: "rgba(255,255,255,0.3)" }}>
+          وجّه الكاميرا نحو رمز QR على وثيقة طبية أو بطاقة صعود أو ملصق وصفة
+        </p>
+
+        {/* Demo: simulate QR detection */}
         <button
-          key={opt.en}
-          onClick={() => onCapture(opt.accept)}
-          className="w-full flex items-center gap-4 px-5 rounded-2xl card-press"
-          style={{ background: opt.gradient, height: 72 }}
+          onClick={() => onCapture("image/*")}
+          className="mt-6 px-6 py-3 rounded-xl text-[13px] font-bold text-white btn-press"
+          style={{ background: "var(--gold)" }}
         >
-          <div className="w-12 h-12 rounded-full flex items-center justify-center text-[28px]" style={{ background: "rgba(255,255,255,0.1)" }}>
-            {opt.emoji}
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] text-white font-bold" style={{ fontFamily: "'DM Sans'" }}>{opt.en}</p>
-            <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "rgba(255,255,255,0.6)" }}>{opt.ar}</p>
-            {opt.sub && <p className="text-[9px] mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{opt.sub}</p>}
-          </div>
-          <span className="text-white text-xl" style={{ opacity: 0.4 }}>›</span>
+          📱 Simulate QR Detection · محاكاة الكشف
         </button>
-      ))}
-    </div>
 
-    <p className="font-mono text-[9px] mt-8 text-center" style={{ color: "rgba(255,255,255,0.35)" }}>
-      🔒 All documents encrypted in your secure vault
-    </p>
-    <p className="font-arabic text-[9px] text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.25)" }}>
-      جميع الوثائق مشفرة في خزنتك الآمنة
-    </p>
-  </div>
-);
+        <button
+          onClick={() => setShowQRScanner(false)}
+          className="mt-3 text-[12px] font-medium btn-press"
+          style={{ color: "rgba(255,255,255,0.5)" }}
+        >
+          ← Back to sources · العودة
+        </button>
+
+        <style>{`
+          @keyframes qrScan {
+            0%, 100% { top: 10%; opacity: 0.3; }
+            50% { top: 85%; opacity: 1; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center px-6 py-10" style={{ minHeight: "100%" }}>
+      <div className="logo-pulse">
+        <RufayQLogo size={52} variant="gold" />
+      </div>
+      <h2 className="font-display text-[32px] text-white mt-5 text-center" style={{ fontWeight: 300 }}>Scan or Import</h2>
+      <p className="font-arabic text-[18px] mt-2 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>امسح أو استورد وثيقتك</p>
+
+      <div className="w-full space-y-3 mt-8">
+        {[
+          { emoji: "📷", en: "Scan with Camera", ar: "امسح بالكاميرا", gradient: "linear-gradient(135deg, #004D5B, #006D7C)", accept: "image/*;capture=camera" },
+          { emoji: "📱", en: "Scan QR Code", ar: "امسح رمز QR", gradient: "linear-gradient(135deg, #3A2A1A, #2A1A0A)", accept: "qr", sub: "Boarding pass · Rx label · Hospital ID" },
+          { emoji: "🖼️", en: "Choose from Photos", ar: "اختر من الصور", gradient: "linear-gradient(135deg, #1A2A3A, #0D1B2A)", accept: "image/*" },
+          { emoji: "📁", en: "Upload PDF or Document", ar: "ارفع PDF أو وثيقة", gradient: "linear-gradient(135deg, #2A1A3A, #1A0D24)", accept: ".pdf,.doc,.docx,.jpg,.png,.jpeg" },
+          { emoji: "☁️", en: "Import from Cloud", ar: "استورد من السحابة", gradient: "linear-gradient(135deg, #1A2A14, #0D1A08)", accept: "*/*", sub: "Google Drive · iCloud · Dropbox · Email" },
+        ].map((opt) => (
+          <button
+            key={opt.en}
+            onClick={() => opt.accept === "qr" ? setShowQRScanner(true) : onCapture(opt.accept)}
+            className="w-full flex items-center gap-4 px-5 rounded-2xl card-press"
+            style={{ background: opt.gradient, height: 72 }}
+          >
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[28px]" style={{ background: "rgba(255,255,255,0.1)" }}>
+              {opt.emoji}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-[15px] text-white font-bold" style={{ fontFamily: "'DM Sans'" }}>{opt.en}</p>
+              <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "rgba(255,255,255,0.6)" }}>{opt.ar}</p>
+              {opt.sub && <p className="text-[9px] mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{opt.sub}</p>}
+            </div>
+            <span className="text-white text-xl" style={{ opacity: 0.4 }}>›</span>
+          </button>
+        ))}
+      </div>
+
+      <p className="font-mono text-[9px] mt-8 text-center" style={{ color: "rgba(255,255,255,0.35)" }}>
+        🔒 All documents encrypted in your secure vault
+      </p>
+      <p className="font-arabic text-[9px] text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.25)" }}>
+        جميع الوثائق مشفرة في خزنتك الآمنة
+      </p>
+    </div>
+  );
+};
 
 /* ─── STEP 2: REVIEW ─── */
 const Step2Review = ({ file, onRetake, onConfirm }: { file: { name: string; type: string; size: string }; onRetake: () => void; onConfirm: () => void }) => {
