@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, Star, Pin } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 
 type SubTab = "careplan" | "videos" | "education" | "faqs" | "nutrition" | "exercises";
@@ -180,16 +181,49 @@ const CarePlanTab = () => {
 /* ─── VIDEOS ─── */
 const VideosTab = () => {
   const [filter, setFilter] = useState("All");
+  const [starred, setStarred] = useState<number[]>([]);
+  const [pinned, setPinned] = useState<number[]>([]);
   const filters = ["All", "Mobility", "Recovery", "Safety", "Care", "Travel"];
   const videos = [
-    { title: "Post-Op Knee Exercises", ar: "تمارين ما بعد العملية", duration: "12:30", cat: "Mobility", progress: 30 },
-    { title: "Wound Care at Home", ar: "العناية بالجرح في المنزل", duration: "8:15", cat: "Care", progress: 0 },
-    { title: "Managing Pain Safely", ar: "إدارة الألم بأمان", duration: "10:00", cat: "Recovery", progress: 0 },
-    { title: "Traveling After Surgery", ar: "السفر بعد العملية", duration: "6:45", cat: "Travel", progress: 0 },
-    { title: "Red Flag Symptoms", ar: "أعراض الخطر", duration: "5:20", cat: "Safety", progress: 0 },
+    { title: "Post-Op Knee Exercises", ar: "تمارين ما بعد العملية", duration: "12:30", totalSec: 750, watchedSec: 225, cat: "Mobility" },
+    { title: "Wound Care at Home", ar: "العناية بالجرح في المنزل", duration: "8:15", totalSec: 495, watchedSec: 495, cat: "Care" },
+    { title: "Managing Pain Safely", ar: "إدارة الألم بأمان", duration: "10:00", totalSec: 600, watchedSec: 0, cat: "Recovery" },
+    { title: "Traveling After Surgery", ar: "السفر بعد العملية", duration: "6:45", totalSec: 405, watchedSec: 120, cat: "Travel" },
+    { title: "Red Flag Symptoms", ar: "أعراض الخطر", duration: "5:20", totalSec: 320, watchedSec: 0, cat: "Safety" },
   ];
+
+  const getStatus = (v: typeof videos[0]) => {
+    const pct = Math.round((v.watchedSec / v.totalSec) * 100);
+    if (pct >= 100) return { label: "Completed", color: "var(--success)", pct: 100 };
+    if (pct > 0) return { label: `${pct}% watched`, color: "var(--gold)", pct };
+    return { label: "Not started", color: "var(--gray)", pct: 0 };
+  };
+
+  const formatWatched = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const toggleStar = (i: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStarred(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
+  };
+  const togglePin = (i: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPinned(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
+  };
+
   const featured = videos[0];
+  const featuredStatus = getStatus(featured);
   const filtered = filter === "All" ? videos.slice(1) : videos.filter(v => v.cat === filter);
+
+  // Sort: pinned first
+  const sorted = [...filtered].sort((a, b) => {
+    const ai = videos.indexOf(a), bi = videos.indexOf(b);
+    const ap = pinned.includes(ai) ? 0 : 1, bp = pinned.includes(bi) ? 0 : 1;
+    return ap - bp;
+  });
 
   return (
     <div className="px-4 py-4 space-y-4">
@@ -202,16 +236,29 @@ const VideosTab = () => {
               <span className="text-white text-2xl ml-1">▶</span>
             </div>
           </div>
-          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(197,150,90,0.3)", color: "#C5965A" }}>{featured.progress}% watched</span>
-            <span className="text-[10px] text-white font-mono">{featured.duration}</span>
+          {/* Progress bar overlay at bottom of video */}
+          <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: "rgba(255,255,255,0.15)" }}>
+            <div className="h-full" style={{ width: `${featuredStatus.pct}%`, background: "var(--gold)", transition: "width 600ms ease" }} />
+          </div>
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between" style={{ marginBottom: 3 }}>
+            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(197,150,90,0.3)", color: "#C5965A" }}>{featuredStatus.label}</span>
+            <span className="text-[10px] text-white font-mono">{formatWatched(featured.watchedSec)} / {featured.duration}</span>
+          </div>
+          {/* Star & Pin */}
+          <div className="absolute top-3 right-3 flex gap-2">
+            <button onClick={(e) => toggleStar(0, e)} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)" }}>
+              <Star size={14} fill={starred.includes(0) ? "#C5965A" : "none"} color={starred.includes(0) ? "#C5965A" : "#fff"} />
+            </button>
+            <button onClick={(e) => togglePin(0, e)} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)" }}>
+              <Pin size={14} fill={pinned.includes(0) ? "#C5965A" : "none"} color={pinned.includes(0) ? "#C5965A" : "#fff"} />
+            </button>
           </div>
         </div>
         <div className="p-4" style={{ background: "var(--white)" }}>
           <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>{featured.title}</p>
           <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>{featured.ar}</p>
           <button className="mt-2 px-4 py-1.5 rounded-full text-[11px] font-bold text-white btn-press" style={{ background: "var(--teal-deep)" }}>
-            ▶ Continue Watching
+            ▶ {featuredStatus.pct > 0 && featuredStatus.pct < 100 ? "Continue Watching" : featuredStatus.pct >= 100 ? "Watch Again" : "Start Watching"}
           </button>
         </div>
       </div>
@@ -227,21 +274,47 @@ const VideosTab = () => {
       </div>
 
       {/* Video list */}
-      {filtered.map((v, i) => (
-        <div key={i} className="flex gap-3 p-3 rounded-xl btn-press" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-          <div className="w-20 h-14 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #1A2A35, #004D5B)" }}>
-            <span className="text-xl">▶</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-bold truncate" style={{ color: "var(--navy)" }}>{v.title}</p>
-            <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{v.ar}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{v.duration}</span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>{v.cat}</span>
+      {sorted.map((v) => {
+        const vi = videos.indexOf(v);
+        const status = getStatus(v);
+        const isStarred = starred.includes(vi);
+        const isPinned = pinned.includes(vi);
+        return (
+          <div key={vi} className="flex gap-3 p-3 rounded-xl btn-press relative" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", borderLeft: isPinned ? "3px solid var(--gold)" : "3px solid transparent" }}>
+            <div className="w-20 h-14 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1A2A35, #004D5B)" }}>
+              <span className="text-xl">▶</span>
+              {/* Mini progress bar */}
+              <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: "rgba(255,255,255,0.2)" }}>
+                <div className="h-full" style={{ width: `${status.pct}%`, background: status.pct >= 100 ? "var(--success)" : "var(--gold)" }} />
+              </div>
+              {status.pct >= 100 && (
+                <div className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px]" style={{ background: "var(--success)", color: "#fff" }}>✓</div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-bold truncate" style={{ color: "var(--navy)" }}>{v.title}</p>
+                  <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{v.ar}</p>
+                </div>
+                <div className="flex gap-1 ml-1 shrink-0">
+                  <button onClick={(e) => toggleStar(vi, e)} className="p-0.5">
+                    <Star size={12} fill={isStarred ? "#C5965A" : "none"} color={isStarred ? "#C5965A" : "var(--gray-light)"} />
+                  </button>
+                  <button onClick={(e) => togglePin(vi, e)} className="p-0.5">
+                    <Pin size={12} fill={isPinned ? "#C5965A" : "none"} color={isPinned ? "#C5965A" : "var(--gray-light)"} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{formatWatched(v.watchedSec)} / {v.duration}</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: `${status.color}15`, color: status.color }}>{status.label}</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>{v.cat}</span>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
@@ -353,9 +426,12 @@ const FAQsTab = () => {
             const isOpen = openQ === key;
             return (
               <div key={qi}>
-                <button onClick={() => setOpenQ(isOpen ? null : key)} className="w-full px-4 py-3 text-left btn-press" style={{ borderBottom: "1px solid var(--gray-light)" }}>
-                  <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{q.q}</p>
-                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{q.qar}</p>
+                <button onClick={() => setOpenQ(isOpen ? null : key)} className="w-full px-4 py-3 text-left btn-press flex items-center gap-2" style={{ borderBottom: "1px solid var(--gray-light)" }}>
+                  <div className="flex-1">
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{q.q}</p>
+                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{q.qar}</p>
+                  </div>
+                  <ChevronDown size={16} style={{ color: "var(--gray)", transition: "transform 200ms ease", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", flexShrink: 0 }} />
                 </button>
                 {isOpen && (
                   <div className="px-4 py-3" style={{ background: "var(--off-white)" }}>
