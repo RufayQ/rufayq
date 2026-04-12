@@ -5,6 +5,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 interface ScannerWizardProps {
   onClose: () => void;
   preselectedCategory?: string | null;
+  onSave?: (category: string | null) => void;
 }
 
 const categories = [
@@ -92,7 +93,7 @@ const sectionLabels: Record<string, string> = {
   imaging: "Imaging Records", insurance: "Insurance Records", other: "Medical Records",
 };
 
-const ScannerWizard = ({ onClose, preselectedCategory }: ScannerWizardProps) => {
+const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
   const [step, setStep] = useState(1);
   const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(preselectedCategory || null);
@@ -166,14 +167,14 @@ const ScannerWizard = ({ onClose, preselectedCategory }: ScannerWizardProps) => 
         {step === 5 && (
           <Step5Success
             category={selectedCategory}
-            onViewSection={onClose}
+            onViewSection={() => { if (onSave) onSave(selectedCategory); else onClose(); }}
             onScanAnother={() => {
               setStep(1);
               setCapturedFile(null);
               setSelectedCategory(preselectedCategory || null);
               setSelectedSub(null);
             }}
-            onDone={onClose}
+            onDone={() => { if (onSave) onSave(selectedCategory); else onClose(); }}
           />
         )}
       </div>
