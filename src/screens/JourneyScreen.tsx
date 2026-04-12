@@ -38,12 +38,30 @@ const defaultTrip: TripData = {
   },
 };
 
+const transportTypeOptions = [
+  { icon: "✈️", en: "Flight", ar: "طيران" },
+  { icon: "🚄", en: "Train", ar: "قطار" },
+  { icon: "🚌", en: "Bus", ar: "باص" },
+  { icon: "🚕", en: "Taxi", ar: "تاكسي" },
+  { icon: "🚗", en: "Rental", ar: "إيجار" },
+  { icon: "🚑", en: "Medical", ar: "طبي" },
+];
+
+const stayTypeOptions = [
+  { icon: "🏨", en: "Hotel", ar: "فندق" },
+  { icon: "🏢", en: "Apartment", ar: "شقة" },
+  { icon: "🏠", en: "Private House", ar: "منزل" },
+  { icon: "🏥", en: "Hospital Stay", ar: "إقامة مستشفى" },
+];
+
 const JourneyScreen = () => {
   const [expanded, setExpanded] = useState<number | null>(null);
   const [trips, setTrips] = useState<TripData[]>([defaultTrip]);
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
   const [transportSegments] = useState<TransportSegment[]>(defaultTransportSegments);
+  const [showAddTransport, setShowAddTransport] = useState(false);
+  const [showAddStay, setShowAddStay] = useState(false);
 
   const activeTrip = trips.find((t) => t.status === "active") || trips[0];
   const doneCount = journeySteps.filter((s) => s.status === "done").length;
@@ -61,7 +79,6 @@ const JourneyScreen = () => {
         <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>02 — JOURNEY MAP</p>
         <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Treatment Journey</p>
         <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>خريطة رحلتك العلاجية</p>
-
         <div className="mt-3 rounded-lg px-3.5 py-2.5" style={{ background: "rgba(255,255,255,0.08)" }}>
           <div className="flex items-center gap-3">
             <div className="flex-1 h-2 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
@@ -86,9 +103,7 @@ const JourneyScreen = () => {
               color: activeSubTab === tab.key ? "white" : "var(--gray)",
               border: activeSubTab === tab.key ? "none" : "1px solid var(--gray-light)",
               boxShadow: activeSubTab === tab.key ? "0 4px 12px rgba(0,77,91,0.25)" : "none",
-              fontFamily: "'DM Sans'",
-              fontSize: 13,
-              fontWeight: 700,
+              fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700,
             }}
           >
             <span>{tab.icon}</span> {tab.label}
@@ -98,31 +113,86 @@ const JourneyScreen = () => {
 
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-        {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} />}
-        {activeSubTab === "stay" && <StayTab />}
+        {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} />}
+        {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} />}
         {activeSubTab === "steps" && (
-          <StepsTab
-            expanded={expanded}
-            setExpanded={setExpanded}
-            activeTrip={activeTrip}
-            onAddTrip={() => setShowAddTrip(true)}
-          />
+          <StepsTab expanded={expanded} setExpanded={setExpanded} activeTrip={activeTrip} onAddTrip={() => setShowAddTrip(true)} />
         )}
       </div>
 
       <AddTripSheet open={showAddTrip} onClose={() => setShowAddTrip(false)} onSubmit={handleAddTrip} />
+
+      {/* Add Transport Sheet */}
+      {showAddTransport && (
+        <TypePickerSheet
+          title="Add Transport" titleAr="إضافة وسيلة تنقل"
+          options={transportTypeOptions}
+          onClose={() => setShowAddTransport(false)}
+        />
+      )}
+
+      {/* Add Stay Sheet */}
+      {showAddStay && (
+        <TypePickerSheet
+          title="Add Accommodation" titleAr="إضافة إقامة"
+          options={stayTypeOptions}
+          onClose={() => setShowAddStay(false)}
+        />
+      )}
     </div>
   );
 };
 
+/* ─── TYPE PICKER BOTTOM SHEET ─── */
+const TypePickerSheet = ({ title, titleAr, options, onClose }: {
+  title: string; titleAr: string;
+  options: { icon: string; en: string; ar: string }[];
+  onClose: () => void;
+}) => (
+  <div className="absolute inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
+    <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.5)" }} />
+    <div className="relative animate-slide-up rounded-t-3xl" style={{ background: "var(--white)" }} onClick={(e) => e.stopPropagation()}>
+      <div className="flex justify-center pt-3"><div style={{ width: 36, height: 4, background: "#DEE4E9", borderRadius: 2 }} /></div>
+      <div className="px-5 pt-4 pb-2">
+        <p className="font-display text-xl" style={{ color: "var(--navy)" }}>{title}</p>
+        <p className="font-arabic text-sm" dir="rtl" style={{ color: "var(--gray)" }}>{titleAr}</p>
+      </div>
+      <div className="px-5 pb-6" style={{ display: "grid", gridTemplateColumns: options.length > 4 ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
+        {options.map((o) => (
+          <button key={o.en} className="rounded-xl flex flex-col items-center justify-center gap-1 card-press" style={{ height: 70, background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+            <span className="text-[26px]">{o.icon}</span>
+            <span className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>{o.en}</span>
+            <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>{o.ar}</span>
+          </button>
+        ))}
+      </div>
+      <button onClick={onClose} className="w-full py-3 text-[13px] font-medium mb-4 btn-press" style={{ color: "var(--gray)" }}>
+        Cancel · <span className="font-arabic">إلغاء</span>
+      </button>
+    </div>
+  </div>
+);
+
+/* ─── ADD BUTTON (reusable dashed) ─── */
+const AddButton = ({ labelEn, labelAr, onClick }: { labelEn: string; labelAr: string; onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center justify-between px-5 btn-press"
+    style={{ height: 52, borderRadius: 14, border: "1.5px dashed var(--teal-mid)", background: "rgba(0,77,91,0.04)" }}
+  >
+    <span className="text-sm font-bold" style={{ color: "var(--teal-deep)", fontFamily: "'DM Sans'" }}>{labelEn}</span>
+    <span className="font-arabic text-[13px]" dir="rtl" style={{ color: "var(--gray)" }}>{labelAr}</span>
+  </button>
+);
+
 /* ─── TICKETS TAB ─── */
-const TicketsTab = ({ segments }: { segments: TransportSegment[] }) => (
+const TicketsTab = ({ segments, onAdd }: { segments: TransportSegment[]; onAdd: () => void }) => (
   <div className="pt-2">
     <div className="px-4 mb-3">
       <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR FULL TRANSPORT TIMELINE</p>
       <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>جميع وسائل تنقلك في هذه الرحلة</p>
     </div>
-    {segments.map((seg, i) => (
+    {segments.map((seg) => (
       <div key={seg.id}>
         <TransportCard seg={seg} />
         {seg.layoverAfter && (
@@ -130,72 +200,256 @@ const TicketsTab = ({ segments }: { segments: TransportSegment[] }) => (
         )}
       </div>
     ))}
+    <div className="px-4 mt-2">
+      <AddButton labelEn="＋ Add Transport" labelAr="إضافة وسيلة تنقل" onClick={onAdd} />
+    </div>
   </div>
 );
 
 /* ─── STAY TAB ─── */
-const StayTab = () => (
-  <div className="px-4 pt-4 space-y-3">
-    {/* Hotel card */}
-    <div className="rounded-2xl overflow-hidden" style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
-      <div className="p-4" style={{ background: "linear-gradient(135deg, #1A3A4A, #0D2535)" }}>
-        <div className="flex items-center justify-between mb-2">
-          <span className="font-mono text-[9px] tracking-widest" style={{ color: "rgba(255,255,255,0.7)" }}>🏨 ACCOMMODATION</span>
-          <span className="font-mono text-[8px] px-2 py-0.5 rounded-full" style={{ background: "var(--success)", color: "white" }}>CONFIRMED</span>
-        </div>
-        <p className="font-display text-lg text-white font-semibold">Hotel Adlon Kempinski</p>
-        <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.55)" }}>Unter den Linden 77, Berlin</p>
-        <p className="font-arabic text-[11px] mt-1" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>فندق أدلون كمبينسكي — برلين</p>
+const StayTab = ({ onAdd }: { onAdd: () => void }) => (
+  <div className="pt-2">
+    {/* Header */}
+    <div className="px-4 pb-1">
+      <div className="flex items-center justify-between">
+        <p className="text-[14px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Your Accommodation</p>
+        <p className="font-mono text-[10px]" style={{ color: "var(--gold)" }}>Total: 12 nights</p>
       </div>
-      <div className="p-4" style={{ background: "var(--white)" }}>
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div>
-            <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>CHECK-IN</p>
-            <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>Apr 5</p>
-          </div>
-          <div>
-            <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>CHECK-OUT</p>
-            <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>Apr 15</p>
-          </div>
-          <div>
-            <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>NIGHTS</p>
-            <p className="text-[13px] font-bold" style={{ color: "var(--gold)" }}>10</p>
-          </div>
+      <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>إقامتك خلال رحلة العلاج</p>
+      <div className="flex gap-2 mt-2">
+        {["Berlin · 12 nights", "Checked in: Apr 5", "Check out: Apr 15"].map((c, i) => (
+          <span key={c} className="font-mono text-[9px] px-2 py-1 rounded-full" style={{
+            background: i === 0 ? "var(--teal-light)" : "var(--white)",
+            color: i === 0 ? "var(--teal-deep)" : "var(--gray)",
+            border: i === 0 ? "none" : "1px solid var(--gray-light)",
+          }}>{c}</span>
+        ))}
+      </div>
+    </div>
+
+    {/* Hotel Card */}
+    <div className="mx-4 mt-3 rounded-2xl overflow-hidden relative" style={{ boxShadow: "0 6px 24px rgba(0,0,0,0.1)" }}>
+      <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: "var(--success)" }} />
+      <div className="ml-1">
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-5" style={{ height: 36, background: "linear-gradient(135deg, #1A3A4A, #0D2535)" }}>
+          <span className="font-mono text-[9px] tracking-widest" style={{ color: "rgba(255,255,255,0.7)" }}>🏨 HOTEL</span>
+          <span className="font-mono text-[8px] px-2 py-0.5 rounded-full" style={{ background: "var(--success)", color: "white" }}>COMPLETED ✓</span>
         </div>
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {["Suite · جناح", "Breakfast ✓", "WiFi ✓", "Halal meals ✓", "Airport shuttle"].map((c) => (
-            <span key={c} className="font-mono text-[9px] px-2 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--gray)", border: "1px solid var(--gray-light)" }}>{c}</span>
-          ))}
+        {/* Image area */}
+        <div className="relative flex items-center justify-center" style={{ height: 100, background: "linear-gradient(135deg, #1A3A4A, #0D2535)" }}>
+          <span className="text-[48px]">🏨</span>
+          <span className="absolute top-2 right-3 font-mono text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--gold)", color: "white" }}>★ 4.5</span>
+          <span className="absolute bottom-2 right-3 text-[11px]" style={{ color: "rgba(255,255,255,0.7)", fontFamily: "'DM Sans'" }}>€185/night</span>
         </div>
-        <div className="mt-3 flex gap-2">
-          <button className="flex-1 py-2.5 rounded-xl text-[12px] font-semibold text-white btn-press" style={{ background: "var(--teal-deep)" }}>
-            View Booking
-          </button>
-          <button className="flex-1 py-2.5 rounded-xl text-[12px] font-medium btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
-            📞 Call Hotel
-          </button>
+        {/* Info */}
+        <div className="px-5 pt-3 pb-4" style={{ background: "var(--white)" }}>
+          <p className="text-[16px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Hotel Berlin Mitte</p>
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--gray)" }}>📍 Auguststraße 12, 10117 Berlin</p>
+          <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>فندق برلين ميتي</p>
+          <p className="text-[11px] mt-1" style={{ color: "var(--gold)" }}>★★★★☆</p>
+
+          {/* Check-in/out */}
+          <div className="flex mt-3">
+            <div className="flex-1">
+              <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>CHECK-IN</p>
+              <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Apr 5</p>
+              <p className="text-[11px]" style={{ color: "var(--gray)" }}>14:00</p>
+            </div>
+            <div style={{ width: 1, background: "var(--gray-light)", margin: "0 12px" }} />
+            <div className="flex-1 text-right">
+              <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>CHECK-OUT</p>
+              <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Apr 8</p>
+              <p className="text-[11px]" style={{ color: "var(--gray)" }}>07:00</p>
+            </div>
+          </div>
+
+          {/* Room details */}
+          <div className="mt-3 rounded-lg p-3" style={{ background: "var(--teal-light)" }}>
+            <div className="grid grid-cols-2 gap-y-2">
+              {[
+                { label: "ROOM TYPE", value: "Deluxe Double — ♿" },
+                { label: "CONFIRMATION", value: "HTL-4821" },
+                { label: "INCLUDES", value: "Breakfast · Free Cancel" },
+                { label: "SPECIAL", value: "🦽 Wheelchair accessible" },
+              ].map((r) => (
+                <div key={r.label}>
+                  <p className="font-mono text-[8px] tracking-wider" style={{ color: "rgba(0,77,91,0.6)" }}>{r.label}</p>
+                  <p className="text-[11px]" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{r.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Amenities */}
+          <div className="flex gap-1.5 mt-3 overflow-x-auto">
+            {["🛜 WiFi", "🍳 Breakfast", "♿ Accessible", "🅿️ Parking"].map((a) => (
+              <span key={a} className="font-mono text-[9px] px-2 py-1 rounded-full whitespace-nowrap" style={{ background: "var(--off-white)", color: "var(--gray)", border: "1px solid var(--gray-light)" }}>{a}</span>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 mt-3">
+            <button className="flex-1 py-2 rounded-xl text-[11px] font-medium btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--teal-deep)" }}>📍 Directions</button>
+            <button className="flex-1 py-2 rounded-xl text-[11px] font-bold text-white btn-press" style={{ background: "var(--gold)" }}>Open Booking</button>
+          </div>
         </div>
       </div>
     </div>
 
-    {/* Hospital stay */}
-    <div className="rounded-2xl p-4" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-      <div className="flex items-center gap-2 mb-2">
-        <span>🏥</span>
-        <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>HOSPITAL STAY</p>
-      </div>
-      <p className="text-[14px] font-semibold" style={{ color: "var(--navy)" }}>Charité Hospital — Ward 4B</p>
-      <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>مستشفى شاريتيه — جناح ٤ب</p>
-      <div className="flex gap-4 mt-2">
-        <div>
-          <p className="font-mono text-[8px]" style={{ color: "var(--gray)" }}>ADMITTED</p>
-          <p className="text-[12px] font-bold" style={{ color: "var(--navy)" }}>Apr 8</p>
+    {/* Hospital Stay Card */}
+    <div className="mx-4 mt-3 rounded-2xl overflow-hidden relative" style={{ boxShadow: "0 6px 24px rgba(0,0,0,0.1)" }}>
+      <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: "var(--success)" }} />
+      <div className="ml-1">
+        <div className="flex items-center justify-between px-5" style={{ height: 36, background: "linear-gradient(135deg, #004D5B, #003A45)" }}>
+          <span className="font-mono text-[9px] tracking-widest" style={{ color: "rgba(255,255,255,0.7)" }}>🏥 HOSPITAL STAY</span>
+          <span className="font-mono text-[8px] px-2 py-0.5 rounded-full" style={{ background: "var(--success)", color: "white" }}>COMPLETED ✓</span>
         </div>
-        <div>
-          <p className="font-mono text-[8px]" style={{ color: "var(--gray)" }}>DISCHARGED</p>
-          <p className="text-[12px] font-bold" style={{ color: "var(--success)" }}>Apr 11</p>
+        <div className="relative flex items-center justify-center" style={{ height: 80, background: "linear-gradient(135deg, #004D5B, #003A45)" }}>
+          <span className="text-[40px]">🏥</span>
+          <span className="absolute bottom-2 left-3 font-mono text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "white" }}>MEDICAL STAY ⚕️</span>
+        </div>
+        <div className="px-5 pt-3 pb-4" style={{ background: "var(--white)" }}>
+          <p className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Charité — Universitätsmedizin Berlin</p>
+          <p className="font-arabic text-[11px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>مستشفى شاريتيه — برلين</p>
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--gray)" }}>📍 Charitéplatz 1, 10117 Berlin</p>
+
+          <div className="flex mt-3">
+            <div className="flex-1">
+              <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>ADMITTED</p>
+              <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Apr 8</p>
+              <p className="text-[11px]" style={{ color: "var(--gray)" }}>07:00</p>
+            </div>
+            <div style={{ width: 1, background: "var(--gray-light)", margin: "0 12px" }} />
+            <div className="flex-1 text-right">
+              <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>DISCHARGED</p>
+              <p className="text-[14px] font-bold" style={{ color: "var(--success)" }}>Apr 10</p>
+              <p className="text-[11px]" style={{ color: "var(--gray)" }}>16:00</p>
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-lg p-3" style={{ background: "var(--teal-light)" }}>
+            <div className="grid grid-cols-2 gap-y-2">
+              {[
+                { label: "WARD", value: "Orthopedic — Station C4" },
+                { label: "ROOM", value: "Room 412 — Bed A" },
+                { label: "PATIENT ID", value: "CHB-2026-9823" },
+                { label: "PHYSICIAN", value: "Dr. Klaus Mueller" },
+              ].map((r) => (
+                <div key={r.label}>
+                  <p className="font-mono text-[8px] tracking-wider" style={{ color: "rgba(0,77,91,0.6)" }}>{r.label}</p>
+                  <p className="text-[11px]" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{r.value}</p>
+                </div>
+              ))}
+            </div>
+            <p className="font-arabic text-[10px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>د. كلاوس مولر</p>
+          </div>
+
+          <div className="mt-3 rounded-lg p-3" style={{ background: "var(--gold-pale)", border: "1px solid rgba(197,150,90,0.3)" }}>
+            <p className="text-[11px] font-semibold" style={{ color: "var(--gold)" }}>📋 Discharge Plan Ready</p>
+            <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>خطة الخروج جاهزة</p>
+            <p className="text-[11px] mt-1" style={{ color: "var(--teal-deep)" }}>View Discharge Pack →</p>
+          </div>
+
+          <div className="flex gap-2 mt-3">
+            <button className="flex-1 py-2 rounded-xl text-[11px] font-medium btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--success)" }}>📞 Call Ward</button>
+            <button className="flex-1 py-2 rounded-xl text-[11px] font-bold text-white btn-press" style={{ background: "var(--gold)" }}>📋 View Records</button>
+          </div>
         </div>
       </div>
+    </div>
+
+    {/* Apartment Card */}
+    <div className="mx-4 mt-3 rounded-2xl overflow-hidden relative" style={{ boxShadow: "0 6px 24px rgba(0,0,0,0.1)" }}>
+      <div className="absolute left-0 top-0 bottom-0 w-1 shimmer-strip" style={{ background: "var(--gold)" }} />
+      <div className="ml-1">
+        <div className="flex items-center justify-between px-5" style={{ height: 36, background: "linear-gradient(135deg, #2A1A35, #1A0D24)" }}>
+          <span className="font-mono text-[9px] tracking-widest" style={{ color: "rgba(255,255,255,0.7)" }}>🏢 APARTMENT</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.6)" }}>Airbnb</span>
+            <span className="font-mono text-[8px] px-2 py-0.5 rounded-full pulse-gold" style={{ background: "var(--gold)", color: "white" }}>ACTIVE ●</span>
+          </div>
+        </div>
+        <div className="relative flex items-center justify-center" style={{ height: 80, background: "linear-gradient(135deg, #2A1A35, #1A0D24)" }}>
+          <span className="text-[40px]">🏢</span>
+          <span className="absolute bottom-2 right-3 text-[11px]" style={{ color: "rgba(255,255,255,0.7)", fontFamily: "'DM Sans'" }}>€95/night</span>
+        </div>
+        <div className="px-5 pt-3 pb-4" style={{ background: "var(--white)" }}>
+          <p className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Mitte Recovery Apartment</p>
+          <p className="font-arabic text-[11px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>شقة ميتي للتعافي</p>
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--gray)" }}>📍 Rosenthaler Str. 38, Ground Floor, 10178 Berlin</p>
+
+          <div className="flex mt-3">
+            <div className="flex-1">
+              <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>CHECK-IN</p>
+              <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Apr 10</p>
+              <p className="text-[11px]" style={{ color: "var(--gray)" }}>17:00</p>
+            </div>
+            <div style={{ width: 1, background: "var(--gray-light)", margin: "0 12px" }} />
+            <div className="flex-1 text-right">
+              <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>CHECK-OUT</p>
+              <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Apr 15</p>
+              <p className="text-[11px]" style={{ color: "var(--gray)" }}>10:00</p>
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-lg p-3" style={{ background: "#F5F0FA" }}>
+            <div className="grid grid-cols-2 gap-y-2">
+              {[
+                { label: "BOOKING REF", value: "AIRBNB-HM9KL2" },
+                { label: "HOST", value: "Maria Schmidt" },
+                { label: "HOST PHONE", value: "+491709876543" },
+                { label: "NIGHTS", value: "5" },
+              ].map((r) => (
+                <div key={r.label}>
+                  <p className="font-mono text-[8px] tracking-wider" style={{ color: "rgba(42,26,53,0.5)" }}>{r.label}</p>
+                  <p className="text-[11px]" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{r.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-[10px] mt-2 italic" style={{ color: "var(--gray)" }}>Ground floor, wheelchair accessible, full kitchen</p>
+          <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>دور أرضي، مهيأ للكرسي المتحرك، مطبخ كامل</p>
+
+          <div className="flex gap-1.5 mt-2 overflow-x-auto">
+            {["🛜 WiFi", "🍳 Kitchen", "♿ Accessible", "🏠 Ground Floor", "🧺 Washing"].map((a) => (
+              <span key={a} className="font-mono text-[9px] px-2 py-1 rounded-full whitespace-nowrap" style={{ background: "var(--off-white)", color: "var(--gray)", border: "1px solid var(--gray-light)" }}>{a}</span>
+            ))}
+          </div>
+
+          <div className="flex gap-2 mt-3">
+            <button className="flex-1 py-2 rounded-xl text-[11px] font-medium btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--teal-deep)" }}>📞 Contact Host</button>
+            <button className="flex-1 py-2 rounded-xl text-[11px] font-bold text-white btn-press" style={{ background: "var(--gold)" }}>Open in Airbnb</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Stay Summary */}
+    <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+      <div className="flex items-center justify-between mb-3">
+        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>STAY SUMMARY</p>
+        <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>ملخص الإقامة</p>
+      </div>
+      {[
+        { label: "Total nights", value: "12" },
+        { label: "Hotel (3 nights)", value: "€555" },
+        { label: "Hospital (2 nights)", value: "Covered by insurance" },
+        { label: "Apartment (5 nights)", value: "€475" },
+        { label: "TOTAL", value: "~€1,030 + hospital", bold: true },
+        { label: "Wheelchair accessible", value: "✓ All properties" },
+      ].map((r) => (
+        <div key={r.label} className="flex justify-between py-1.5" style={{ borderBottom: "1px solid var(--gray-light)" }}>
+          <p className="text-[12px]" style={{ color: "var(--gray)", fontFamily: "'DM Sans'" }}>{r.label}</p>
+          <p className={`text-[12px] ${r.bold ? "font-bold" : ""}`} style={{ color: r.bold ? "var(--navy)" : "var(--navy)", fontFamily: "'DM Sans'" }}>{r.value}</p>
+        </div>
+      ))}
+    </div>
+
+    {/* Add button */}
+    <div className="px-4 mt-3">
+      <AddButton labelEn="＋ Add Accommodation" labelAr="إضافة إقامة" onClick={onAdd} />
     </div>
   </div>
 );
@@ -295,14 +549,7 @@ const StepsTab = ({
         );
       })}
 
-      <button
-        onClick={onAddTrip}
-        className="w-full mt-3 py-4 rounded-xl flex items-center justify-between px-5 btn-press"
-        style={{ border: "1.5px dashed var(--teal-mid)", background: "var(--white)" }}
-      >
-        <span className="text-sm font-bold" style={{ color: "var(--teal-deep)", fontFamily: "'DM Sans'" }}>＋ Add New Trip</span>
-        <span className="font-arabic text-[13px]" dir="rtl" style={{ color: "var(--gray)" }}>إضافة رحلة جديدة</span>
-      </button>
+      <AddButton labelEn="＋ Add New Trip" labelAr="إضافة رحلة جديدة" onClick={onAddTrip} />
     </div>
   </div>
 );
