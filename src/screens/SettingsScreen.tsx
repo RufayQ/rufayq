@@ -141,15 +141,15 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
             <RadioOption
               label="Light Mode" labelAr="الوضع الفاتح"
-              selected={theme === "light"} onSelect={() => setTheme("light")}
+              selected={theme === "light"} onSelect={() => update("theme", setTheme)("light")}
             />
             <RadioOption
               label="Dark Mode" labelAr="الوضع الداكن"
-              selected={theme === "dark"} onSelect={() => setTheme("dark")}
+              selected={theme === "dark"} onSelect={() => update("theme", setTheme)("dark")}
             />
             <RadioOption
               label="System Default" labelAr="حسب النظام"
-              selected={theme === "system"} onSelect={() => setTheme("system")}
+              selected={theme === "system"} onSelect={() => update("theme", setTheme)("system")}
             />
           </div>
           <p className="text-[10px] mt-1.5 px-1" style={{ color: "var(--gray)" }}>
