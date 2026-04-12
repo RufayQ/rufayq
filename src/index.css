@@ -44,6 +44,16 @@
     --warning: #E0A030;
     --error: #D94F4F;
     --pending: #C0C8D0;
+
+    /* Header gradients */
+    --header-teal-from: #004D5B;
+    --header-teal-to: #006D7C;
+    --header-dark-from: #0D1B2A;
+    --header-dark-to: #1A2A35;
+    --header-dark-alt: #1A3A4A;
+    --scanner-bg: #0D1B2A;
+    --phone-frame: #1A2A35;
+    --phone-ring: #2A3A45;
   }
 
   .dark {
@@ -84,6 +94,16 @@
     --warning: #F0B040;
     --error: #E86060;
     --pending: #3A4550;
+
+    /* Header gradients — dark mode */
+    --header-teal-from: #003845;
+    --header-teal-to: #004D5B;
+    --header-dark-from: #060E16;
+    --header-dark-to: #0C1822;
+    --header-dark-alt: #0E2030;
+    --scanner-bg: #060E16;
+    --phone-frame: #0C1822;
+    --phone-ring: #182530;
   }
 }
 
