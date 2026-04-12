@@ -167,25 +167,14 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             <ToggleRow
               icon={<Smartphone size={15} style={{ color: "var(--teal-deep)" }} />}
               label="Biometric Login" labelAr="تسجيل الدخول البيومتري"
-              on={biometric} onChange={setBiometric}
+              on={biometric} onChange={update("biometric", setBiometric)}
             />
             <ToggleRow
               icon={<Shield size={15} style={{ color: "var(--success)" }} />}
               label="Auto Backup" labelAr="نسخ احتياطي تلقائي"
-              on={autoBackup} onChange={setAutoBackup} color="var(--success)"
+              on={autoBackup} onChange={update("autoBackup", setAutoBackup)} color="var(--success)"
             />
           </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="mx-4 mt-6">
-          <button
-            onClick={handleSave}
-            className="w-full py-3 rounded-xl font-semibold text-white text-sm btn-press"
-            style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}
-          >
-            Save Changes · حفظ التغييرات
-          </button>
         </div>
 
         <p className="text-center font-mono text-[9px] mt-4" style={{ color: "var(--gray)" }}>
