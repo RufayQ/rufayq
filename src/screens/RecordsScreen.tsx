@@ -1,19 +1,51 @@
-import { useState } from "react";
-import { records, filterCategories } from "@/constants/data";
-import { Share2, Upload } from "lucide-react";
+import { useState, useMemo } from "react";
+import { records, filterCategories, type DocRecord } from "@/constants/data";
+import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
+
+type SortMode = "newest" | "oldest" | "category";
 
 const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
   const [activeFilter, setActiveFilter] = useState("All");
-  const [selectedDoc, setSelectedDoc] = useState<number | null>(null);
-  const [showUpload, setShowUpload] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<DocRecord | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("newest");
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
-  const filtered = activeFilter === "All" ? records : records.filter((r) => r.category === activeFilter);
+  // Dynamic stats
+  const totalFiles = records.length;
+  const translatedCount = records.filter(r => r.translationStatus === "translated").length;
+  const newCount = records.filter(r => r.isNew).length;
+
+  // Filter + search + sort
+  const filtered = useMemo(() => {
+    let result = activeFilter === "All" ? [...records] : records.filter(r => r.category === activeFilter);
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(r =>
+        r.titleEn.toLowerCase().includes(q) || r.titleAr.includes(searchQuery) ||
+        r.category.toLowerCase().includes(q) || r.meta.toLowerCase().includes(q) ||
+        r.source?.toLowerCase().includes(q)
+      );
+    }
+
+    if (sortMode === "oldest") result.reverse();
+    if (sortMode === "category") result.sort((a, b) => a.category.localeCompare(b.category));
+
+    return result;
+  }, [activeFilter, searchQuery, sortMode]);
+
+  const translationBadge = (status?: string) => {
+    if (status === "translated") return { label: "AR ✓", bg: "rgba(61,170,110,0.1)", color: "var(--success)" };
+    if (status === "partial") return { label: "Partial", bg: "rgba(224,160,48,0.1)", color: "var(--warning)" };
+    return { label: "EN only", bg: "rgba(107,122,138,0.1)", color: "var(--gray)" };
+  };
 
   return (
     <div className="flex flex-col relative" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
-      <div className="relative px-5 pt-3 pb-4 overflow-hidden" style={{ background: "var(--teal-deep)" }}>
+      <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "var(--teal-deep)" }}>
         <div className="flex items-center justify-between">
           <div>
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "rgba(255,255,255,0.4)" }}>03 — MEDICAL RECORDS</p>
@@ -25,146 +57,276 @@ const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
           </button>
         </div>
         <div className="flex gap-2 mt-3">
-          {["5 Files", "3 Translated", "1 New"].map((s) => (
+          {[`${totalFiles} Files`, `${translatedCount} Translated`, newCount > 0 ? `${newCount} New` : null].filter(Boolean).map((s) => (
             <span key={s} className="font-mono text-[9px] px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>{s}</span>
           ))}
         </div>
       </div>
 
-      {/* Filter Pills */}
-      <div className="flex gap-2 px-4 py-3 overflow-x-auto" style={{ background: "var(--off-white)" }}>
-        {filterCategories.map((f) => (
-          <button
-            key={f}
-            onClick={() => setActiveFilter(f)}
-            className="text-[11px] px-3 py-1.5 rounded-full whitespace-nowrap btn-press transition-all"
-            style={{
-              background: activeFilter === f ? "var(--teal-deep)" : "var(--white)",
-              color: activeFilter === f ? "#fff" : "var(--gray)",
-              border: activeFilter === f ? "none" : "1px solid var(--gray-light)",
-              boxShadow: activeFilter === f ? "0 2px 8px rgba(0,77,91,0.2)" : "none",
-            }}
-          >
-            {f}
+      {/* Search bar */}
+      <div className="px-4 pt-3 pb-1 shrink-0" style={{ background: "var(--off-white)" }}>
+        <div className="rounded-xl px-3 py-2.5 flex items-center gap-2" style={{ background: "var(--white)", border: searchQuery ? "1.5px solid var(--teal-deep)" : "1px solid var(--gray-light)", transition: "border 200ms" }}>
+          <Search size={15} style={{ color: "var(--gray)", flexShrink: 0 }} />
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="flex-1 text-[13px] bg-transparent outline-none"
+            placeholder="Search records..."
+            style={{ color: "var(--navy)" }}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")}><X size={14} style={{ color: "var(--gray)" }} /></button>
+          )}
+        </div>
+      </div>
+
+      {/* Filter Pills + Sort */}
+      <div className="shrink-0 px-4 py-2 flex items-center gap-2" style={{ background: "var(--off-white)" }}>
+        <div className="flex-1 flex gap-2 overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+          {filterCategories.map((f) => (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              className="text-[10px] px-2.5 py-1.5 rounded-full whitespace-nowrap btn-press transition-all shrink-0"
+              style={{
+                background: activeFilter === f ? "var(--teal-deep)" : "var(--white)",
+                color: activeFilter === f ? "#fff" : "var(--gray)",
+                border: activeFilter === f ? "none" : "1px solid var(--gray-light)",
+              }}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        {/* Sort button */}
+        <div className="relative shrink-0">
+          <button onClick={() => setShowSortMenu(!showSortMenu)} className="w-8 h-8 rounded-lg flex items-center justify-center btn-press" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+            <ArrowUpDown size={14} style={{ color: "var(--teal-deep)" }} />
           </button>
-        ))}
+          {showSortMenu && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setShowSortMenu(false)} />
+              <div className="absolute right-0 top-10 z-40 rounded-xl py-1 w-36" style={{ background: "var(--white)", boxShadow: "0 8px 24px rgba(0,0,0,0.15)", border: "1px solid var(--gray-light)" }}>
+                {([["newest", "Newest first"], ["oldest", "Oldest first"], ["category", "By category"]] as const).map(([k, label]) => (
+                  <button key={k} onClick={() => { setSortMode(k); setShowSortMenu(false); }}
+                    className="w-full px-3 py-2 text-left text-[11px] btn-press"
+                    style={{ color: sortMode === k ? "var(--teal-deep)" : "var(--navy)", fontWeight: sortMode === k ? 700 : 400, background: sortMode === k ? "var(--teal-light)" : "transparent" }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {/* Featured Discharge Pack */}
-        <div className="relative rounded-2xl p-5 overflow-hidden" style={{ background: "linear-gradient(135deg, #0D1B2A, #1A3A4A)" }}>
-          <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.2)" }} />
-          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.08)" }} />
-          {/* Watermark logo */}
-          <div className="absolute bottom-3 right-3 z-0" style={{ opacity: 0.25 }}>
-            <RufayQLogo size={20} variant="dark" />
-          </div>
-
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>FEATURED · DISCHARGE PACK</p>
-              <span className="font-mono text-[8px] px-2 py-0.5 rounded-full" style={{ background: "var(--gold)", color: "#fff" }}>NEW</span>
+        {activeFilter === "All" && !searchQuery && (
+          <div className="relative rounded-2xl p-5 overflow-hidden" style={{ background: "linear-gradient(135deg, #0D1B2A, #1A3A4A)" }}>
+            <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.2)" }} />
+            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.08)" }} />
+            <div className="absolute bottom-3 right-3 z-0" style={{ opacity: 0.25 }}>
+              <RufayQLogo size={20} variant="dark" />
             </div>
-            <p className="font-display text-lg text-white font-semibold">Post-Surgery Instructions</p>
-            <p className="font-arabic text-xs" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>تعليمات ما بعد الجراحة</p>
-
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {["Arabic ✓", "English ✓", "5 pages", "Updated today", "Dr. Mueller"].map((c) => (
-                <span key={c} className="font-mono text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}>{c}</span>
-              ))}
-            </div>
-
-            <div className="h-px my-4" style={{ background: "rgba(255,255,255,0.1)" }} />
-
-            <div className="grid grid-cols-2 gap-2">
-              <button className="py-2.5 rounded-xl text-[13px] font-semibold text-white btn-press" style={{ background: "var(--gold)" }}>
-                View in Arabic
-              </button>
-              <button className="py-2.5 rounded-xl text-[13px] font-medium text-white flex items-center justify-center gap-1.5 btn-press" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <Share2 size={13} /> Share to KSA
-              </button>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>FEATURED · DISCHARGE PACK</p>
+                <span className="font-mono text-[8px] px-2 py-0.5 rounded-full" style={{ background: "var(--gold)", color: "#fff" }}>NEW</span>
+              </div>
+              <p className="font-display text-lg text-white font-semibold">Post-Surgery Instructions</p>
+              <p className="font-arabic text-xs" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>تعليمات ما بعد الجراحة</p>
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {["Arabic ✓", "English ✓", "5 pages", "Updated today", "Dr. Mueller"].map((c) => (
+                  <span key={c} className="font-mono text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}>{c}</span>
+                ))}
+              </div>
+              <div className="h-px my-4" style={{ background: "rgba(255,255,255,0.1)" }} />
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setSelectedDoc(records[0])} className="py-2.5 rounded-xl text-[13px] font-semibold text-white btn-press" style={{ background: "var(--gold)" }}>
+                  View Details
+                </button>
+                <button className="py-2.5 rounded-xl text-[13px] font-medium text-white flex items-center justify-center gap-1.5 btn-press" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}>
+                  <Share2 size={13} /> Share to KSA
+                </button>
+              </div>
             </div>
           </div>
+        )}
+
+        {/* Results count */}
+        <div className="flex items-center justify-between mt-1">
+          <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>
+            {searchQuery ? `SEARCH RESULTS — ${filtered.length}` : `ALL DOCUMENTS — ${filtered.length} FILES`}
+          </p>
         </div>
+
+        {/* Empty state */}
+        {filtered.length === 0 && (
+          <div className="text-center py-10">
+            <span className="text-4xl">📂</span>
+            <p className="text-[14px] font-semibold mt-3" style={{ color: "var(--navy)" }}>No documents found</p>
+            <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد مستندات مطابقة</p>
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="mt-3 px-4 py-2 rounded-full text-[12px] font-medium btn-press" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
+                Clear search
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Documents List */}
-        <p className="font-mono text-[10px] tracking-widest mt-2" style={{ color: "var(--gray)" }}>ALL DOCUMENTS — {filtered.length} FILES</p>
-        {filtered.map((doc, i) => (
-          <button
-            key={i}
-            onClick={() => setSelectedDoc(i)}
-            className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left card-press"
-            style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
-          >
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ background: doc.bgColor }}>
-              {doc.emoji}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{doc.titleEn}</p>
-                {doc.isNew && (
-                  <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "var(--gold)", color: "#fff" }}>NEW</span>
-                )}
+        {filtered.map((doc, i) => {
+          const tb = translationBadge(doc.translationStatus);
+          return (
+            <button
+              key={`${doc.titleEn}-${i}`}
+              onClick={() => setSelectedDoc(doc)}
+              className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left card-press"
+              style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+            >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: doc.bgColor }}>
+                {doc.emoji}
               </div>
-              <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{doc.titleAr}</p>
-              <p className="text-[10px] mt-0.5 truncate" style={{ color: "var(--gray)" }}>{doc.meta}</p>
-            </div>
-            <span className="text-lg shrink-0" style={{ color: doc.accentColor }}>›</span>
-          </button>
-        ))}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{doc.titleEn}</p>
+                  {doc.isNew && (
+                    <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "var(--gold)", color: "#fff" }}>NEW</span>
+                  )}
+                </div>
+                <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{doc.titleAr}</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: tb.bg, color: tb.color }}>{tb.label}</span>
+                  <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{doc.date}</span>
+                  {doc.pages && <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>· {doc.pages}p</span>}
+                </div>
+              </div>
+              <ChevronDown size={16} className="-rotate-90 shrink-0" style={{ color: doc.accentColor }} />
+            </button>
+          );
+        })}
+
+        <div style={{ height: 24 }} />
       </div>
 
-      {/* Document Detail Sheet */}
-      {selectedDoc !== null && (
+      {/* Document Detail Sheet — Full Enhanced */}
+      {selectedDoc && (
         <div className="absolute inset-0 z-20 flex flex-col justify-end" onClick={() => setSelectedDoc(null)}>
-          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.4)" }} />
-          <div className="relative rounded-t-2xl p-5 pt-3 animate-slide-up" style={{ background: "var(--white)", maxHeight: "80%" }} onClick={(e) => e.stopPropagation()}>
-            <div className="w-8 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--gray-light)" }} />
-            <div className="flex flex-col items-center mb-4">
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl mb-3" style={{ background: filtered[selectedDoc].bgColor }}>
-                {filtered[selectedDoc].emoji}
-              </div>
-              <p className="text-base font-semibold" style={{ color: "var(--navy)" }}>{filtered[selectedDoc].titleEn}</p>
-              <p className="font-arabic text-sm" dir="rtl" style={{ color: "var(--gray)" }}>{filtered[selectedDoc].titleAr}</p>
-              <p className="font-mono text-[10px] mt-2" style={{ color: "var(--gray)" }}>{filtered[selectedDoc].meta}</p>
+          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.5)" }} />
+          <div className="relative rounded-t-3xl animate-slide-up overflow-y-auto" style={{ background: "var(--white)", maxHeight: "85%" }} onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 z-10 flex justify-center pt-3 pb-1" style={{ background: "var(--white)" }}>
+              <div style={{ width: 36, height: 4, background: "#DEE4E9", borderRadius: 2 }} />
             </div>
-            <button className="w-full py-3 rounded-xl font-semibold text-white mb-2 btn-press" style={{ background: "var(--teal-deep)" }}>
-              View Document · عرض المستند
-            </button>
-            <button className="w-full py-3 rounded-xl font-medium mb-2 btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
-              Share · مشاركة
-            </button>
-            <button className="w-full py-2 text-sm font-medium btn-press" style={{ color: "var(--gold)" }}>
-              Translate to Arabic · ترجمة للعربية
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Upload Sheet */}
-      {showUpload && (
-        <div className="absolute inset-0 z-20 flex flex-col justify-end" onClick={() => setShowUpload(false)}>
-          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.4)" }} />
-          <div className="relative rounded-t-2xl p-5 pt-3 animate-slide-up" style={{ background: "var(--white)" }} onClick={(e) => e.stopPropagation()}>
-            <div className="w-8 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--gray-light)" }} />
-            <p className="text-base font-semibold" style={{ color: "var(--navy)" }}>Upload Medical Document</p>
-            <p className="font-arabic text-sm mb-4" dir="rtl" style={{ color: "var(--gray)" }}>رفع وثيقة طبية</p>
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {[
-                { emoji: "📷", en: "Scan Document", ar: "مسح ضوئي" },
-                { emoji: "📁", en: "From Files", ar: "من الملفات" },
-                { emoji: "🖨️", en: "From DICOM", ar: "من DICOM" },
-              ].map((o) => (
-                <button key={o.en} className="rounded-xl p-3 flex flex-col items-center gap-1 card-press" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-                  <span className="text-2xl">{o.emoji}</span>
-                  <span className="text-[10px] font-medium" style={{ color: "var(--navy)" }}>{o.en}</span>
-                  <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>{o.ar}</span>
-                </button>
-              ))}
+            {/* Doc header */}
+            <div className="px-5 pt-2 pb-4">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: selectedDoc.bgColor }}>
+                  {selectedDoc.emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[16px] font-bold" style={{ color: "var(--navy)" }}>{selectedDoc.titleEn}</p>
+                    {selectedDoc.isNew && (
+                      <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "var(--gold)", color: "#fff" }}>NEW</span>
+                    )}
+                  </div>
+                  <p className="font-arabic text-[13px]" dir="rtl" style={{ color: "var(--gray)" }}>{selectedDoc.titleAr}</p>
+                </div>
+              </div>
+
+              {/* Meta chips */}
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {selectedDoc.source && (
+                  <span className="text-[9px] px-2 py-1 rounded-full flex items-center gap-1" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>
+                    <FileText size={10} /> {selectedDoc.source}
+                  </span>
+                )}
+                <span className="text-[9px] px-2 py-1 rounded-full flex items-center gap-1" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>
+                  <Clock size={10} /> {selectedDoc.date}
+                </span>
+                {selectedDoc.pages && (
+                  <span className="text-[9px] px-2 py-1 rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>
+                    {selectedDoc.pages} pages
+                  </span>
+                )}
+                {selectedDoc.fileSize && (
+                  <span className="text-[9px] px-2 py-1 rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>
+                    {selectedDoc.fileSize}
+                  </span>
+                )}
+                {(() => {
+                  const tb = translationBadge(selectedDoc.translationStatus);
+                  return (
+                    <span className="text-[9px] px-2 py-1 rounded-full flex items-center gap-1" style={{ background: tb.bg, color: tb.color }}>
+                      <Globe size={10} /> {tb.label}
+                    </span>
+                  );
+                })()}
+                <span className="text-[9px] px-2 py-1 rounded-full" style={{ background: `${selectedDoc.accentColor}15`, color: selectedDoc.accentColor }}>
+                  {selectedDoc.category}
+                </span>
+              </div>
             </div>
-            <div className="border-2 border-dashed rounded-xl p-6 text-center" style={{ borderColor: "var(--gray-light)" }}>
-              <Upload size={24} className="mx-auto mb-2" style={{ color: "var(--gray)" }} />
-              <p className="text-xs" style={{ color: "var(--gray)" }}>Drag files here · اسحب الملفات هنا</p>
+
+            {/* Key extracted fields */}
+            {selectedDoc.keyFields && selectedDoc.keyFields.length > 0 && (
+              <div className="px-5 pb-4">
+                <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>KEY INFORMATION</p>
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--gray-light)" }}>
+                  {selectedDoc.keyFields.map((kf, idx) => (
+                    <div key={idx} className="flex items-center justify-between px-3 py-2.5" style={{ background: idx % 2 === 0 ? "var(--white)" : "var(--off-white)", borderBottom: idx < selectedDoc.keyFields!.length - 1 ? "1px solid var(--gray-light)" : "none" }}>
+                      <span className="text-[11px]" style={{ color: "var(--gray)" }}>{kf.label}</span>
+                      <span className="text-[11px] font-semibold text-right" style={{ color: "var(--navy)" }}>{kf.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Source info */}
+            {selectedDoc.source && (
+              <div className="px-5 pb-4">
+                <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--teal-light)" }}>
+                    <FileText size={14} style={{ color: "var(--teal-deep)" }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>{selectedDoc.source}</p>
+                    <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "var(--gray)" }}>{selectedDoc.sourceAr}</p>
+                  </div>
+                  <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{selectedDoc.addedDate || selectedDoc.date}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="px-5 pb-2 space-y-2">
+              <button className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 btn-press" style={{ background: "var(--teal-deep)" }}>
+                <FileText size={16} /> View Document · عرض المستند
+              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button className="py-3 rounded-xl font-medium flex items-center justify-center gap-1.5 btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
+                  <Share2 size={14} /> Share
+                </button>
+                <button className="py-3 rounded-xl font-medium flex items-center justify-center gap-1.5 btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
+                  <Download size={14} /> Download
+                </button>
+              </div>
+              {selectedDoc.translationStatus !== "translated" && (
+                <button className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 btn-press" style={{ background: "var(--gold-pale)", color: "var(--gold)", border: "1px solid rgba(197,150,90,0.3)" }}>
+                  <Globe size={14} /> Translate to Arabic · ترجمة للعربية
+                </button>
+              )}
+            </div>
+
+            {/* Ask AI */}
+            <div className="px-5 pt-2 pb-6">
+              <button className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 btn-press" style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}>
+                <RufayQLogo size={14} variant="dark" />
+                Ask RufayQ about this · اسأل رُفَيِّق
+              </button>
             </div>
           </div>
         </div>
