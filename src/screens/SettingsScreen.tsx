@@ -83,7 +83,7 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="relative px-5 pt-3 pb-4 flex items-center gap-3" style={{ background: "linear-gradient(145deg, #004D5B, #006D7C)" }}>
+      <div className="relative px-5 pt-3 pb-4 flex items-center gap-3" style={{ background: "linear-gradient(145deg, var(--header-teal-from), var(--header-teal-to))" }}>
         <button onClick={onBack} className="btn-press"><ArrowLeft size={20} color="white" /></button>
         <div className="flex-1">
           <p className="font-display text-lg text-white">Settings</p>

@@ -315,12 +315,12 @@ const StayTab = ({ onAdd, onScan }: { onAdd: () => void; onScan?: () => void }) 
       <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: "var(--success)" }} />
       <div className="ml-1">
         {/* Header bar */}
-        <div className="flex items-center justify-between px-5" style={{ height: 36, background: "linear-gradient(135deg, #1A3A4A, #0D2535)" }}>
+        <div className="flex items-center justify-between px-5" style={{ height: 36, background: "linear-gradient(135deg, var(--header-dark-alt), var(--header-dark-from))" }}>
           <span className="font-mono text-[9px] tracking-widest" style={{ color: "rgba(255,255,255,0.7)" }}>🏨 HOTEL</span>
           <span className="font-mono text-[8px] px-2 py-0.5 rounded-full" style={{ background: "var(--success)", color: "white" }}>COMPLETED ✓</span>
         </div>
         {/* Image area */}
-        <div className="relative flex items-center justify-center" style={{ height: 100, background: "linear-gradient(135deg, #1A3A4A, #0D2535)" }}>
+        <div className="relative flex items-center justify-center" style={{ height: 100, background: "linear-gradient(135deg, var(--header-dark-alt), var(--header-dark-from))" }}>
           <span className="text-[48px]">🏨</span>
           <span className="absolute top-2 right-3 font-mono text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--gold)", color: "white" }}>★ 4.5</span>
           <span className="absolute bottom-2 right-3 text-[11px]" style={{ color: "rgba(255,255,255,0.7)", fontFamily: "'DM Sans'" }}>€185/night</span>
@@ -384,11 +384,11 @@ const StayTab = ({ onAdd, onScan }: { onAdd: () => void; onScan?: () => void }) 
     <div className="mx-4 mt-3 rounded-2xl overflow-hidden relative" style={{ boxShadow: "0 6px 24px rgba(0,0,0,0.1)" }}>
       <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: "var(--success)" }} />
       <div className="ml-1">
-        <div className="flex items-center justify-between px-5" style={{ height: 36, background: "linear-gradient(135deg, #004D5B, #003A45)" }}>
+        <div className="flex items-center justify-between px-5" style={{ height: 36, background: "linear-gradient(135deg, var(--header-teal-from), var(--header-teal-to))" }}>
           <span className="font-mono text-[9px] tracking-widest" style={{ color: "rgba(255,255,255,0.7)" }}>🏥 HOSPITAL STAY</span>
           <span className="font-mono text-[8px] px-2 py-0.5 rounded-full" style={{ background: "var(--success)", color: "white" }}>COMPLETED ✓</span>
         </div>
-        <div className="relative flex items-center justify-center" style={{ height: 80, background: "linear-gradient(135deg, #004D5B, #003A45)" }}>
+        <div className="relative flex items-center justify-center" style={{ height: 80, background: "linear-gradient(135deg, var(--header-teal-from), var(--header-teal-to))" }}>
           <span className="text-[40px]">🏥</span>
           <span className="absolute bottom-2 left-3 font-mono text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "white" }}>MEDICAL STAY ⚕️</span>
         </div>

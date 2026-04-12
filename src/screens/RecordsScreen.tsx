@@ -156,7 +156,7 @@ const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {/* Featured Discharge Pack */}
         {activeFilter === "All" && !searchQuery && (
-          <div className="relative rounded-2xl p-5 overflow-hidden" style={{ background: "linear-gradient(135deg, #0D1B2A, #1A3A4A)" }}>
+          <div className="relative rounded-2xl p-5 overflow-hidden" style={{ background: "linear-gradient(135deg, var(--header-dark-from), var(--header-dark-alt))" }}>
             <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.2)" }} />
             <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.08)" }} />
             <div className="absolute bottom-3 right-3 z-0" style={{ opacity: 0.25 }}>

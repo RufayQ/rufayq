@@ -48,7 +48,7 @@ const CareHubScreen = () => {
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
-      <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(145deg, #0D1B2A, #1A2A35)" }}>
+      <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(145deg, var(--header-dark-from), var(--header-dark-to))" }}>
         <svg className="absolute bottom-0 right-0" width="80" height="80" viewBox="0 0 80 80" fill="none">
           <path d="M80 0 A80 80 0 0 1 0 80" stroke="rgba(197,150,90,0.2)" strokeWidth="1.5" fill="none" />
         </svg>
@@ -263,7 +263,7 @@ const VideosTab = () => {
     <div className="px-4 py-4 space-y-4">
       {/* Featured */}
       <div className="rounded-2xl overflow-hidden" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
-        <div className="relative h-[180px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0D1B2A, #004D5B)" }}>
+        <div className="relative h-[180px] flex items-center justify-center" style={{ background: "linear-gradient(135deg, var(--header-dark-from), var(--header-teal-from))" }}>
           <span className="text-5xl">🎬</span>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}>
@@ -315,7 +315,7 @@ const VideosTab = () => {
         const isPinned = pinned.includes(vi);
         return (
           <div key={vi} className="flex gap-3 p-3 rounded-xl btn-press relative" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", borderLeft: isPinned ? "3px solid var(--gold)" : "3px solid transparent" }}>
-            <div className="w-20 h-14 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1A2A35, #004D5B)" }}>
+            <div className="w-20 h-14 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden" style={{ background: "linear-gradient(135deg, var(--header-dark-to), var(--header-teal-from))" }}>
               <span className="text-xl">▶</span>
               {/* Mini progress bar */}
               <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: "rgba(255,255,255,0.2)" }}>
@@ -550,11 +550,11 @@ const NutritionTab = () => {
   const [waterCount, setWaterCount] = useState(5);
 
   const nutrients = [
-    { name: "Protein", ar: "بروتين", why: "Essential for tissue repair", goal: "60g/day", gradient: "linear-gradient(135deg, #004D5B, #006D7C)",
+    { name: "Protein", ar: "بروتين", why: "Essential for tissue repair", goal: "60g/day", gradient: "linear-gradient(135deg, var(--header-teal-from), var(--header-teal-to))",
       foods: ["Chicken breast", "Greek yogurt", "Lentils", "Eggs"] },
     { name: "Vitamin C", ar: "فيتامين سي", why: "Boosts wound healing", goal: "200mg/day", gradient: "linear-gradient(135deg, #C5965A, #A07A3A)",
       foods: ["Oranges", "Bell peppers", "Broccoli", "Kiwi"] },
-    { name: "Omega-3", ar: "أوميغا ٣", why: "Reduces inflammation", goal: "2g/day", gradient: "linear-gradient(135deg, #1A2A35, #0D1B2A)",
+    { name: "Omega-3", ar: "أوميغا ٣", why: "Reduces inflammation", goal: "2g/day", gradient: "linear-gradient(135deg, var(--header-dark-to), var(--header-dark-from))",
       foods: ["Salmon", "Walnuts", "Flax seeds", "Sardines"] },
   ];
 
