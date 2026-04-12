@@ -65,14 +65,10 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const [biometric, setBiometric] = useState(stored.biometric ?? true);
   const [autoBackup, setAutoBackup] = useState(stored.autoBackup ?? true);
 
-  const persist = (patch: Record<string, unknown>) => {
+  const update = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T>>) => (val: T) => {
+    setter(val);
     const current = JSON.parse(localStorage.getItem("rufayq_settings") || "{}");
-    localStorage.setItem("rufayq_settings", JSON.stringify({ ...current, ...patch }));
-  };
-
-  const handleSave = () => {
-    persist({ language, theme, pushNotif, medReminder, appointmentAlert, soundEnabled, quietHours, biometric, autoBackup });
-    toast.success("Settings saved · تم حفظ الإعدادات");
+    localStorage.setItem("rufayq_settings", JSON.stringify({ ...current, [key]: val }));
   };
 
   return (
