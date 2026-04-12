@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
+import { useTheme } from "@/hooks/useTheme";
 import StatusBar from "@/components/StatusBar";
 import BottomNav from "@/components/BottomNav";
 import HomeScreen from "@/screens/HomeScreen";
@@ -30,6 +31,8 @@ const toastMessages: Record<string, { en: string; ar: string }> = {
 };
 
 const Index = () => {
+  const { refresh: refreshTheme } = useTheme();
+
   const [appView, setAppView] = useState<AppView>(() => {
     const seen = localStorage.getItem("rufayq_onboarded");
     return seen ? "main" : "onboarding";
@@ -115,7 +118,7 @@ const Index = () => {
       case "profile":
         return <ProfileScreen onBack={() => setAppView("main")} onLogout={handleLogout} />;
       case "settings":
-        return <SettingsScreen onBack={() => setAppView("main")} />;
+        return <SettingsScreen onBack={() => { refreshTheme(); setAppView("main"); }} />;
       case "main":
         switch (activeTab) {
           case "home": return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;

@@ -55,6 +55,15 @@ const RadioOption = ({
 const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const stored = JSON.parse(localStorage.getItem("rufayq_settings") || "{}");
 
+  const applyThemeNow = (t: string) => {
+    const root = document.documentElement;
+    if (t === "system") {
+      root.classList.toggle("dark", window.matchMedia("(prefers-color-scheme: dark)").matches);
+    } else {
+      root.classList.toggle("dark", t === "dark");
+    }
+  };
+
   const [language, setLanguage] = useState(stored.language ?? "bilingual");
   const [theme, setTheme] = useState(stored.theme ?? "light");
   const [pushNotif, setPushNotif] = useState(stored.pushNotif ?? true);
@@ -141,20 +150,17 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
             <RadioOption
               label="Light Mode" labelAr="الوضع الفاتح"
-              selected={theme === "light"} onSelect={() => update("theme", setTheme)("light")}
+              selected={theme === "light"} onSelect={() => { update("theme", setTheme)("light"); applyThemeNow("light"); }}
             />
             <RadioOption
               label="Dark Mode" labelAr="الوضع الداكن"
-              selected={theme === "dark"} onSelect={() => update("theme", setTheme)("dark")}
+              selected={theme === "dark"} onSelect={() => { update("theme", setTheme)("dark"); applyThemeNow("dark"); }}
             />
             <RadioOption
               label="System Default" labelAr="حسب النظام"
-              selected={theme === "system"} onSelect={() => update("theme", setTheme)("system")}
+              selected={theme === "system"} onSelect={() => { update("theme", setTheme)("system"); applyThemeNow("system"); }}
             />
           </div>
-          <p className="text-[10px] mt-1.5 px-1" style={{ color: "var(--gray)" }}>
-            Theme changes will apply in a future update · سيتم تطبيق تغييرات المظهر في تحديث قادم
-          </p>
         </div>
 
         {/* Security & Privacy */}
