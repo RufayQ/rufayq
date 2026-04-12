@@ -60,6 +60,51 @@ interface TicketDetailSheetProps {
 const TicketDetailSheet = ({ seg, onClose, notes, onSaveNotes, alarms, onToggleAlarm }: TicketDetailSheetProps) => {
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "alarms">("details");
   const [draftNotes, setDraftNotes] = useState(notes);
+  const [isExporting, setIsExporting] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
+
+  const handleExport = useCallback(async () => {
+    if (!captureRef.current) return;
+    setIsExporting(true);
+    try {
+      // Force details tab for capture
+      const el = captureRef.current;
+      const canvas = await html2canvas(el, {
+        backgroundColor: "#FFFFFF",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const dataUrl = canvas.toDataURL("image/png");
+      const fileName = `${seg.type}-${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}-${seg.bookingRef || "ticket"}.png`;
+
+      // Try native share first (mobile), fallback to download
+      if (navigator.share && navigator.canShare) {
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          const file = new File([blob], fileName, { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: `Boarding Pass — ${seg.fromCode || seg.fromCity} → ${seg.toCode || seg.toCity}` });
+            toast.success("Shared successfully ✓ · تمت المشاركة بنجاح");
+            setIsExporting(false);
+            return;
+          }
+        } catch (shareErr) {
+          // User cancelled or share failed — fall through to download
+        }
+      }
+
+      // Fallback: download
+      const link = document.createElement("a");
+      link.download = fileName;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Boarding pass saved ✓ · تم حفظ بطاقة الصعود");
+    } catch (err) {
+      toast.error("Export failed · فشل التصدير");
+    }
+    setIsExporting(false);
+  }, [seg]);
 
   const typeLabels: Record<string, string> = {
     flight: "Flight Ticket", train: "Train Ticket", bus: "Bus Ticket",
