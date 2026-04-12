@@ -107,27 +107,27 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             <ToggleRow
               icon={<Bell size={15} style={{ color: "var(--teal-deep)" }} />}
               label="Push Notifications" labelAr="الإشعارات الفورية"
-              on={pushNotif} onChange={(v) => { setPushNotif(v); toast(v ? "Notifications enabled · الإشعارات مفعلة" : "Notifications disabled · الإشعارات معطلة"); }}
+              on={pushNotif} onChange={(v) => { update("pushNotif", setPushNotif)(v); toast(v ? "Notifications enabled · الإشعارات مفعلة" : "Notifications disabled · الإشعارات معطلة"); }}
             />
             <ToggleRow
               icon={<Clock size={15} style={{ color: "var(--warning)" }} />}
               label="Medication Reminders" labelAr="تذكيرات الأدوية"
-              on={medReminder} onChange={setMedReminder} color="var(--warning)"
+              on={medReminder} onChange={update("medReminder", setMedReminder)} color="var(--warning)"
             />
             <ToggleRow
               icon={<Share2 size={15} style={{ color: "var(--teal-mid)" }} />}
               label="Appointment Alerts" labelAr="تنبيهات المواعيد"
-              on={appointmentAlert} onChange={setAppointmentAlert}
+              on={appointmentAlert} onChange={update("appointmentAlert", setAppointmentAlert)}
             />
             <ToggleRow
               icon={<Volume2 size={15} style={{ color: "var(--navy)" }} />}
               label="Sound" labelAr="الصوت"
-              on={soundEnabled} onChange={setSoundEnabled}
+              on={soundEnabled} onChange={update("soundEnabled", setSoundEnabled)}
             />
             <ToggleRow
               icon={<Moon size={15} style={{ color: "var(--gray)" }} />}
               label="Quiet Hours (10PM–7AM)" labelAr="ساعات الهدوء (١٠م–٧ص)"
-              on={quietHours} onChange={setQuietHours}
+              on={quietHours} onChange={update("quietHours", setQuietHours)}
             />
           </div>
         </div>
