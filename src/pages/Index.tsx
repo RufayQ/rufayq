@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import StatusBar from "@/components/StatusBar";
 import BottomNav from "@/components/BottomNav";
 import HomeScreen from "@/screens/HomeScreen";
@@ -15,6 +16,18 @@ import ScannerWizard from "@/screens/ScannerWizard";
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "main" | "medications" | "profile";
 
+const toastMessages: Record<string, { en: string; ar: string }> = {
+  flight: { en: "✓ Flight added to your Transport Timeline", ar: "✓ أُضيفت الرحلة إلى جدول تنقلك" },
+  train: { en: "✓ Train ticket added to Transport Timeline", ar: "✓ أُضيفت تذكرة القطار لجدول تنقلك" },
+  hotel: { en: "✓ Hotel added to your Stay", ar: "✓ أُضيف الفندق إلى إقامتك" },
+  lab: { en: "✓ Lab results saved · Check Records", ar: "✓ حُفظت نتائج التحاليل" },
+  prescription: { en: "✓ Medications updated from prescription", ar: "✓ حُدّثت الأدوية من الوصفة" },
+  discharge: { en: "✓ Discharge pack saved · Care Plan updated", ar: "✓ حُفظت حزمة الخروج" },
+  imaging: { en: "✓ Imaging saved to Records", ar: "✓ حُفظت الأشعة في ملفاتك" },
+  insurance: { en: "✓ Insurance document saved", ar: "✓ حُفظت وثيقة التأمين" },
+  other: { en: "✓ Document saved to Records", ar: "✓ حُفظت الوثيقة في ملفاتك" },
+};
+
 const Index = () => {
   const [appView, setAppView] = useState<AppView>(() => {
     const seen = localStorage.getItem("rufayq_onboarded");
@@ -23,6 +36,9 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
+  const [badges, setBadges] = useState<Partial<Record<Tab, boolean>>>({
+    carehub: true,
+  });
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("rufayq_onboarded", "true");
@@ -40,6 +56,32 @@ const Index = () => {
     setShowScanner(true);
   };
 
+  const handleScannerSave = useCallback((category: string | null) => {
+    setShowScanner(false);
+    const msg = toastMessages[category || "other"] || toastMessages.other;
+
+    // Show toast
+    toast.success(msg.en, { description: msg.ar, duration: 4000 });
+
+    // Set badge on Records
+    setBadges(prev => ({ ...prev, records: true }));
+
+    // Navigate based on category
+    if (category === "flight" || category === "train") {
+      setActiveTab("journey");
+    } else if (category === "hotel") {
+      setActiveTab("journey");
+    } else if (category === "prescription") {
+      setAppView("medications");
+    } else if (category === "discharge") {
+      setBadges(prev => ({ ...prev, carehub: true }));
+      setActiveTab("records");
+    } else {
+      setActiveTab("records");
+    }
+    setAppView("main");
+  }, []);
+
   const handleNavigate = (tab: string) => {
     if (tab === "medications") {
       setAppView("medications");
@@ -48,6 +90,14 @@ const Index = () => {
     } else {
       setActiveTab(tab as Tab);
       setAppView("main");
+    }
+  };
+
+  const handleTabNavigate = (tab: Tab) => {
+    setActiveTab(tab);
+    // Clear badge when visiting tab
+    if (badges[tab]) {
+      setBadges(prev => ({ ...prev, [tab]: false }));
     }
   };
 
@@ -97,9 +147,15 @@ const Index = () => {
           {renderContent()}
         </div>
 
-        {showNav && <BottomNav active={activeTab} onNavigate={setActiveTab} />}
+        {showNav && <BottomNav active={activeTab} onNavigate={handleTabNavigate} badges={badges} />}
 
-        {showScanner && <ScannerWizard onClose={() => setShowScanner(false)} preselectedCategory={scannerCategory} />}
+        {showScanner && (
+          <ScannerWizard
+            onClose={() => setShowScanner(false)}
+            preselectedCategory={scannerCategory}
+            onSave={handleScannerSave}
+          />
+        )}
       </div>
     </div>
   );
