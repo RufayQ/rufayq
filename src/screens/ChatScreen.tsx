@@ -24,7 +24,11 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
   const [showUploadSheet, setShowUploadSheet] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string } | null>(null);
   const [uploadInstruction, setUploadInstruction] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordedAudio, setRecordedAudio] = useState<{ duration: number } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
