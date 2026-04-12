@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ExternalLink, Phone } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ExternalLink, Phone, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 export interface TransportSegment {
@@ -208,9 +208,42 @@ export const LayoverIndicator = ({ duration, airport, code }: { duration: string
   </div>
 );
 
+const useCountdown = (targetDate: string, enabled: boolean) => {
+  const [timeLeft, setTimeLeft] = useState("");
+  useEffect(() => {
+    if (!enabled) return;
+    const calc = () => {
+      const diff = new Date(targetDate).getTime() - Date.now();
+      if (diff <= 0) { setTimeLeft(""); return; }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      if (d > 0) setTimeLeft(`${d}d ${h}h ${m}m`);
+      else if (h > 0) setTimeLeft(`${h}h ${m}m ${s}s`);
+      else setTimeLeft(`${m}m ${s}s`);
+    };
+    calc();
+    const id = setInterval(calc, 1000);
+    return () => clearInterval(id);
+  }, [targetDate, enabled]);
+  return timeLeft;
+};
+
+const CountdownBanner = ({ timeLeft }: { timeLeft: string }) => (
+  <div className="flex items-center justify-center gap-1.5 py-1.5" style={{ background: "rgba(197,150,90,0.15)" }}>
+    <Clock size={11} style={{ color: "var(--gold)" }} />
+    <span className="font-mono text-[10px] font-bold tracking-wide" style={{ color: "var(--gold)" }}>
+      DEPARTS IN {timeLeft}
+    </span>
+  </div>
+);
+
 const TransportCard = ({ seg, onTap }: { seg: TransportSegment; onTap?: () => void }) => {
   const cfg = typeConfig[seg.type];
   const stripColor = statusColors[seg.status];
+  const showCountdown = seg.status === "upcoming" || seg.status === "active";
+  const countdown = useCountdown(seg.departureDateTime, showCountdown);
 
   const openLink = (url: string, name: string) => {
     window.open(url, "_blank");
@@ -323,6 +356,9 @@ const TransportCard = ({ seg, onTap }: { seg: TransportSegment; onTap?: () => vo
             { label: "COST", value: seg.costInfo || "—" },
           ]} />
         )}
+
+        {/* Countdown banner */}
+        {showCountdown && countdown && <CountdownBanner timeLeft={countdown} />}
 
         {/* Action row */}
         <ActionRow>
