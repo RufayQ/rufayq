@@ -13,12 +13,15 @@ const getStoredTheme = (): Theme => {
 
 const applyTheme = (theme: Theme) => {
   const root = document.documentElement;
+  root.classList.add("theme-transition");
   if (theme === "system") {
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     root.classList.toggle("dark", prefersDark);
   } else {
     root.classList.toggle("dark", theme === "dark");
   }
+  // Remove transition class after animation completes to avoid interfering with other transitions
+  setTimeout(() => root.classList.remove("theme-transition"), 450);
 };
 
 export const useTheme = () => {
