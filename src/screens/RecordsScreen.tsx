@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { records, filterCategories, type DocRecord } from "@/constants/data";
-import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock } from "lucide-react";
+import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy } from "lucide-react";
+import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 
 type SortMode = "newest" | "oldest" | "category";
@@ -273,13 +274,36 @@ const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
             {/* Key extracted fields */}
             {selectedDoc.keyFields && selectedDoc.keyFields.length > 0 && (
               <div className="px-5 pb-4">
-                <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>KEY INFORMATION</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>KEY INFORMATION</p>
+                  <button
+                    onClick={() => {
+                      const text = selectedDoc.keyFields!.map(kf => `${kf.label}: ${kf.value}`).join("\n");
+                      navigator.clipboard.writeText(text).then(() => toast.success("Key info copied · تم نسخ المعلومات"));
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg btn-press"
+                    style={{ background: "var(--teal-light)" }}
+                  >
+                    <Copy size={11} style={{ color: "var(--teal-deep)" }} />
+                    <span className="text-[9px] font-medium" style={{ color: "var(--teal-deep)" }}>Copy All</span>
+                  </button>
+                </div>
                 <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--gray-light)" }}>
                   {selectedDoc.keyFields.map((kf, idx) => (
-                    <div key={idx} className="flex items-center justify-between px-3 py-2.5" style={{ background: idx % 2 === 0 ? "var(--white)" : "var(--off-white)", borderBottom: idx < selectedDoc.keyFields!.length - 1 ? "1px solid var(--gray-light)" : "none" }}>
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        navigator.clipboard.writeText(kf.value).then(() => toast.success(`${kf.label} copied · تم النسخ`));
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2.5 btn-press"
+                      style={{ background: idx % 2 === 0 ? "var(--white)" : "var(--off-white)", borderBottom: idx < selectedDoc.keyFields!.length - 1 ? "1px solid var(--gray-light)" : "none" }}
+                    >
                       <span className="text-[11px]" style={{ color: "var(--gray)" }}>{kf.label}</span>
-                      <span className="text-[11px] font-semibold text-right" style={{ color: "var(--navy)" }}>{kf.value}</span>
-                    </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-semibold text-right" style={{ color: "var(--navy)" }}>{kf.value}</span>
+                        <Copy size={10} style={{ color: "var(--gray)", opacity: 0.4 }} />
+                      </div>
+                    </button>
                   ))}
                 </div>
               </div>

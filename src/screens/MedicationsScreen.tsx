@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { medications, type Medication } from "@/constants/data";
-import { ArrowLeft, Plus, X } from "lucide-react";
+import { ArrowLeft, Plus, X, Copy } from "lucide-react";
+import { toast } from "sonner";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -130,17 +131,36 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
               </div>
             )}
 
-            <button
-              onClick={() => {
-                const key = `${selectedMed.name}-${selectedMed.time}`;
-                setTakenIds((prev) => new Set(prev).add(key));
-                setSelectedMed(null);
-              }}
-              className="w-full py-3.5 rounded-xl font-semibold text-white btn-press"
-              style={{ background: "var(--success)" }}
-            >
-              Mark as Taken · تم تناوله ✓
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  const lines = [
+                    `💊 ${selectedMed.name} (${selectedMed.nameAr})`,
+                    `Dose: ${selectedMed.dosage}`,
+                    `Frequency: ${selectedMed.frequency}`,
+                    `Time: ${selectedMed.time}`,
+                    selectedMed.instructions ? `⚠️ ${selectedMed.instructions}` : "",
+                    selectedMed.redFlags ? `🚨 ${selectedMed.redFlags}` : "",
+                  ].filter(Boolean).join("\n");
+                  navigator.clipboard.writeText(lines).then(() => toast.success("Medication info copied · تم نسخ معلومات الدواء"));
+                }}
+                className="py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 btn-press"
+                style={{ border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+              >
+                <Copy size={15} /> Copy Info
+              </button>
+              <button
+                onClick={() => {
+                  const key = `${selectedMed.name}-${selectedMed.time}`;
+                  setTakenIds((prev) => new Set(prev).add(key));
+                  setSelectedMed(null);
+                }}
+                className="py-3.5 rounded-xl font-semibold text-white btn-press"
+                style={{ background: "var(--success)" }}
+              >
+                Taken ✓
+              </button>
+            </div>
           </div>
         </div>
       )}

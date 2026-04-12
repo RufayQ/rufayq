@@ -158,16 +158,19 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
               </div>
             )}
 
-            <div className="flex items-center justify-between py-3 px-4" style={{ borderBottom: "1px solid var(--gray-light)" }}>
+            <button onClick={() => copyToClipboard(passportData.nationalIdFull, "National ID")} className="w-full flex items-center justify-between py-3 px-4 btn-press" style={{ borderBottom: "1px solid var(--gray-light)" }}>
               <div className="flex items-center gap-3">
                 <span className="text-xl">🪪</span>
-                <div>
+                <div className="text-left">
                   <p className="text-[13px]" style={{ color: "var(--navy)" }}>National ID</p>
                   <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>الهوية الوطنية</p>
                 </div>
               </div>
-              <span className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{passportData.nationalId}</span>
-            </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{passportData.nationalId}</span>
+                <Copy size={11} style={{ color: "var(--teal-deep)", opacity: 0.5 }} />
+              </div>
+            </button>
 
             <div className="flex items-center justify-between py-3 px-4" style={{ borderBottom: "1px solid var(--gray-light)" }}>
               <div className="flex items-center gap-3">
@@ -191,7 +194,9 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
               <div className="flex-1">
                 <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{passportData.emergencyName}</p>
                 <p className="text-[11px]" style={{ color: "var(--gray)" }}>{passportData.emergencyRelation}</p>
-                <p className="font-mono text-[11px]" style={{ color: "var(--teal-deep)" }}>{passportData.emergencyPhone}</p>
+                <button onClick={() => copyToClipboard(passportData.emergencyPhone, "Phone")} className="font-mono text-[11px] flex items-center gap-1 btn-press" style={{ color: "var(--teal-deep)" }}>
+                  {passportData.emergencyPhone} <Copy size={10} style={{ opacity: 0.5 }} />
+                </button>
               </div>
               <button className="px-3 py-1.5 rounded-full text-[11px] font-bold text-white btn-press" style={{ background: "#D94F4F" }}>
                 Call · اتصل
@@ -204,16 +209,19 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         <div className="mt-4 mx-4">
           <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>INSURANCE</p>
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            <div className="flex items-center justify-between py-3 px-4" style={{ borderBottom: "1px solid var(--gray-light)" }}>
+            <button onClick={() => copyToClipboard(passportData.insuranceRef, "Insurance Ref")} className="w-full flex items-center justify-between py-3 px-4 btn-press" style={{ borderBottom: "1px solid var(--gray-light)" }}>
               <div className="flex items-center gap-3">
                 <span className="text-xl">🛡️</span>
-                <div>
+                <div className="text-left">
                   <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>Bupa International</p>
                   <p className="text-[10px]" style={{ color: "var(--gray)" }}>{passportData.insurancePlan}</p>
                 </div>
               </div>
-              <span className="font-mono text-[10px]" style={{ color: "var(--gold)" }}>{passportData.insuranceRef}</span>
-            </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-[10px]" style={{ color: "var(--gold)" }}>{passportData.insuranceRef}</span>
+                <Copy size={11} style={{ color: "var(--teal-deep)", opacity: 0.5 }} />
+              </div>
+            </button>
           </div>
         </div>
 
