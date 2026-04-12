@@ -208,7 +208,7 @@ export const LayoverIndicator = ({ duration, airport, code }: { duration: string
   </div>
 );
 
-const TransportCard = ({ seg }: { seg: TransportSegment }) => {
+const TransportCard = ({ seg, onTap }: { seg: TransportSegment; onTap?: () => void }) => {
   const cfg = typeConfig[seg.type];
   const stripColor = statusColors[seg.status];
 
@@ -218,7 +218,11 @@ const TransportCard = ({ seg }: { seg: TransportSegment }) => {
   };
 
   return (
-    <div className="mx-4 mb-3.5 overflow-hidden relative" style={{ borderRadius: 20, boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }}>
+    <div
+      className="mx-4 mb-3.5 overflow-hidden relative card-press"
+      style={{ borderRadius: 20, boxShadow: "0 8px 32px rgba(0,0,0,0.15)", cursor: "pointer" }}
+      onClick={onTap}
+    >
       {/* Left status strip */}
       <div className={`absolute left-0 top-0 bottom-0 w-1 ${seg.status === "active" ? "shimmer-strip" : ""}`} style={{ background: stripColor }} />
 
@@ -326,33 +330,9 @@ const TransportCard = ({ seg }: { seg: TransportSegment }) => {
             {seg.bookingRef ? `Ref: ${seg.bookingRef}` : ""}
           </p>
           <div className="flex gap-2">
-            {seg.type === "flight" && seg.airline && (
-              <GoldPill
-                label={`${seg.airline} App`}
-                onClick={() => {
-                  const link = airlineLinks[seg.airline!];
-                  openLink(link?.web || `https://www.google.com/search?q=${seg.airline}+manage+booking`, seg.airline!);
-                }}
-              />
-            )}
-            {seg.type === "train" && (
-              <GoldPill label={`Open in ${seg.trainOperator || "DB"}`} onClick={() => openLink("https://www.bahn.de", seg.trainOperator || "DB")} />
-            )}
-            {seg.type === "bus" && (
-              <GoldPill label={`Open in ${seg.busOperator || "FlixBus"}`} onClick={() => openLink("https://www.flixbus.com", seg.busOperator || "FlixBus")} />
-            )}
-            {seg.type === "taxi" && seg.driverPhone && (
-              <GreenPill label="Call Driver" onClick={() => window.open(`tel:${seg.driverPhone}`)} />
-            )}
-            {seg.type === "taxi" && !seg.driverPhone && (
-              <GoldPill label="Book a Ride" onClick={() => openLink("https://www.uber.com", "Uber")} />
-            )}
-            {seg.type === "rental" && (
-              <GoldPill label={`Open in ${seg.rentalCompany || "Hertz"}`} onClick={() => openLink("https://www.hertz.com", seg.rentalCompany || "Hertz")} />
-            )}
-            {seg.type === "medical" && seg.hospitalPhone && (
-              <GreenPill label="Call Transport" onClick={() => window.open(`tel:${seg.hospitalPhone}`)} />
-            )}
+            <span className="text-[10px] px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
+              Tap for details →
+            </span>
           </div>
         </ActionRow>
       </div>
