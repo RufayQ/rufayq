@@ -378,7 +378,8 @@ const TicketDetailSheet = ({
                     <p className="text-[10px]" style={{ color: "var(--gray)" }}>Download boarding pass · حفظ كصورة</p>
                   </div>
                 </button>
-              </div>
+                </div>
+              </>
             )}
             <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "#F0F2F5" }}>
               <X size={16} color="var(--gray)" />
