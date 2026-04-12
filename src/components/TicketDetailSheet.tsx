@@ -339,10 +339,12 @@ const TicketDetailSheet = ({
               <Share2 size={14} color="var(--teal-deep)" />
             </button>
             {showShareMenu && (
-              <div
-                className="absolute right-0 top-10 z-50 rounded-xl overflow-hidden shadow-lg"
-                style={{ background: "white", border: "1px solid var(--gray-light)", minWidth: 200 }}
-              >
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)} />
+                <div
+                  className="absolute right-0 top-10 z-50 rounded-xl overflow-hidden shadow-lg"
+                  style={{ background: "white", border: "1px solid var(--gray-light)", minWidth: 200 }}
+                >
                 <button
                   onClick={handleShareWhatsApp}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
