@@ -95,6 +95,92 @@ export const filterCategories = ["All", "Discharge", "Lab Results", "Prescriptio
 
 import type { TransportSegment } from "@/components/TransportCard";
 
+export interface TripTransport {
+  id: string; type: "flight" | "taxi" | "train" | "bus" | "rental" | "medical";
+  status: "completed" | "upcoming" | "active" | "cancelled";
+  sortDate: string; airline?: string; flightNumber?: string; bookingRef?: string;
+  fromCode?: string; fromCity?: string; fromAirport?: string;
+  toCode?: string; toCity?: string; toAirport?: string;
+  fromAddress?: string; toAddress?: string;
+  departure?: string; arrival?: string;
+  seatClass?: string; seat?: string;
+  provider?: string; fare?: string; distance?: string;
+  mobility?: string; arrangedBy?: string;
+  notes?: string; notesAR?: string;
+  duration?: string;
+}
+
+export interface TripAccommodation {
+  id: string; type: "hotel" | "hospital" | "apartment";
+  status: "completed" | "active" | "upcoming";
+  name: string; nameAR: string; address: string;
+  checkIn: string; checkOut: string;
+  bookingRef?: string; ratePerNight?: string; totalNights?: number;
+  stars?: number; roomType?: string;
+  amenities?: string[]; phone?: string; platform?: string;
+  patientId?: string; ward?: string; room?: string;
+  physician?: string; physicianAR?: string;
+  hostName?: string; hostPhone?: string;
+  notes?: string; notesAR?: string;
+}
+
+export const defaultTripTransport: TripTransport[] = [
+  { id: "t-001", type: "flight", status: "completed", sortDate: "2026-04-05T08:30",
+    airline: "Saudia", flightNumber: "SV 301", bookingRef: "AB1234",
+    fromCode: "RUH", fromCity: "Riyadh", fromAirport: "King Khalid Intl",
+    toCode: "BER", toCity: "Berlin", toAirport: "Brandenburg Intl",
+    departure: "2026-04-05T08:30", arrival: "2026-04-05T14:00",
+    seatClass: "Business", seat: "24A", duration: "~5h 30m" },
+  { id: "t-002", type: "taxi", status: "completed", sortDate: "2026-04-05T14:45",
+    provider: "Uber", bookingRef: "UBR-4821",
+    fromAddress: "Berlin Brandenburg Airport",
+    toAddress: "Charité Hospital, Charitépl. 1, Berlin",
+    departure: "2026-04-05T14:45", arrival: "2026-04-05T15:30",
+    fare: "€38", distance: "32km", duration: "~45 min" },
+  { id: "t-003", type: "medical", status: "completed", sortDate: "2026-04-10T16:00",
+    provider: "Charité Hospital Transport", bookingRef: "CHB-TRANS-001",
+    fromAddress: "Charité Hospital",
+    toAddress: "Mitte Recovery Apartment, Rosenthaler Str. 38",
+    departure: "2026-04-10T16:00", arrival: "2026-04-10T16:45",
+    mobility: "Wheelchair", arrangedBy: "Charité Hospital",
+    notes: "Wheelchair assisted", notesAR: "مساعدة بالكرسي المتحرك", duration: "~45 min" },
+  { id: "t-004", type: "flight", status: "upcoming", sortDate: "2026-04-15T15:00",
+    airline: "Saudia", flightNumber: "SV 302", bookingRef: "AB1234",
+    fromCode: "BER", fromCity: "Berlin", fromAirport: "Brandenburg Intl",
+    toCode: "RUH", toCity: "Riyadh", toAirport: "King Khalid Intl",
+    departure: "2026-04-15T15:00", arrival: "2026-04-15T23:30",
+    seatClass: "Business", seat: "24A", duration: "~6h 30m",
+    notes: "Wheelchair at gate requested", notesAR: "تم طلب كرسي متحرك عند البوابة" },
+];
+
+export const defaultTripAccommodation: TripAccommodation[] = [
+  { id: "a-001", type: "hotel", status: "completed",
+    name: "Hotel Berlin Mitte", nameAR: "فندق برلين ميتي",
+    address: "Auguststraße 12, 10117 Berlin",
+    checkIn: "2026-04-05T14:00", checkOut: "2026-04-08T07:00",
+    bookingRef: "HTL-2026-BERLIN-4821", ratePerNight: "€185", totalNights: 3, stars: 4.5,
+    roomType: "Deluxe Double — Accessible",
+    amenities: ["WiFi", "Breakfast", "Accessible", "Parking"],
+    phone: "+49301234567", platform: "booking.com" },
+  { id: "a-002", type: "hospital", status: "completed",
+    name: "Charité — Universitätsmedizin Berlin", nameAR: "مستشفى شاريتيه — برلين",
+    address: "Charitéplatz 1, 10117 Berlin",
+    checkIn: "2026-04-08T07:00", checkOut: "2026-04-10T16:00",
+    patientId: "CHB-2026-9823", ward: "Orthopedic — Station C4",
+    room: "Room 412 — Bed A",
+    physician: "Dr. Klaus Mueller", physicianAR: "د. كلاوس مولر",
+    phone: "+4930450" },
+  { id: "a-003", type: "apartment", status: "active",
+    name: "Mitte Recovery Apartment", nameAR: "شقة ميتي للتعافي",
+    address: "Rosenthaler Str. 38, Ground Floor, 10178 Berlin",
+    checkIn: "2026-04-10T17:00", checkOut: "2026-04-15T10:00",
+    bookingRef: "AIRBNB-HM9KL2", ratePerNight: "€95", totalNights: 5,
+    platform: "Airbnb", hostName: "Maria Schmidt", hostPhone: "+491709876543",
+    amenities: ["WiFi", "Kitchen", "Accessible", "Ground Floor", "Washer"],
+    notes: "Ground floor, wheelchair accessible, full kitchen",
+    notesAR: "دور أرضي، مهيأ للكرسي المتحرك، مطبخ كامل" },
+];
+
 export const defaultTransportSegments: TransportSegment[] = [
   {
     id: "t1", type: "flight", status: "completed",
