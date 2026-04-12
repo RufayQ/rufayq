@@ -103,6 +103,33 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
     }
   };
 
+  const handleCopyChat = () => {
+    const text = messages.map(m => `[${m.time}] ${m.sender === "user" ? "You" : "RufayQ AI"}: ${m.text}`).join("\n\n");
+    navigator.clipboard.writeText(text);
+    toast.success("Chat copied · تم نسخ المحادثة", { duration: 2000 });
+  };
+
+  const handleExportChat = () => {
+    const text = messages.map(m => `[${m.time}] ${m.sender === "user" ? "You" : "RufayQ AI"}: ${m.text}`).join("\n\n");
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "rufayq-chat.txt"; a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Chat exported · تم تصدير المحادثة", { duration: 2000 });
+  };
+
+  const handleClearChat = () => {
+    setMessages(initialMessages);
+    toast.success("Chat cleared · تم مسح المحادثة", { duration: 2000 });
+  };
+
+  const chatMenuItems: HeaderMenuItem[] = [
+    { icon: <Copy size={14} />, label: "Copy Chat", labelAr: "نسخ المحادثة", onClick: handleCopyChat },
+    { icon: <Share2 size={14} />, label: "Export Chat", labelAr: "تصدير المحادثة", onClick: handleExportChat },
+    { icon: <Trash2 size={14} />, label: "Clear Chat", labelAr: "مسح المحادثة", onClick: handleClearChat, danger: true },
+  ];
+
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
