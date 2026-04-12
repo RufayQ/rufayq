@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import html2canvas from "html2canvas";
 import type { TransportSegment } from "./TransportCard";
 
 function fmtDate(dt: string) {
