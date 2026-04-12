@@ -1,5 +1,7 @@
 import { useState } from "react";
 import RufayQWordmark from "@/components/RufayQWordmark";
+import HeaderMenu, { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
+import { toast } from "sonner";
 import { medications } from "@/constants/data";
 
 interface HomeScreenProps {
@@ -14,6 +16,37 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
   const todayMeds = medications.filter((_, i) => i < 3);
   const dateStr = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }).toUpperCase();
 
+  const homeMenuItems = [
+    {
+      icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث",
+      onClick: () => { window.location.reload(); },
+    },
+    {
+      icon: <Bell size={14} />, label: "Notifications", labelAr: "الإشعارات",
+      onClick: () => { toast("Notifications · الإشعارات", { description: "All notifications are up to date · جميع الإشعارات محدّثة" }); },
+    },
+    {
+      icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص",
+      onClick: () => {
+        const text = `RufayQ – Trip Summary\nActive Trip: Berlin, DE – Orthopedic Surgery\nProgress: Day 7/12 (58%)\nMedications: ${todayMeds.map(m => `${m.name} (${m.status})`).join(", ")}\n\nرُفَيِّق – ملخص الرحلة\nالرحلة: برلين، ألمانيا – جراحة العظام\nالتقدم: يوم ٧ / ١٢`;
+        navigator.clipboard.writeText(text);
+        toast("Copied · تم النسخ");
+      },
+    },
+    {
+      icon: <Share2 size={14} />, label: "Share App", labelAr: "مشاركة التطبيق",
+      onClick: () => {
+        const url = window.location.origin;
+        const msg = encodeURIComponent(`Check out RufayQ – your medical travel companion!\nجرّب رُفَيِّق – رفيقك في الرحلة العلاجية\n${url}`);
+        window.open(`https://wa.me/?text=${msg}`, "_blank");
+      },
+    },
+    {
+      icon: <HelpCircle size={14} />, label: "Help & Support", labelAr: "المساعدة",
+      onClick: () => { toast("Help · المساعدة", { description: "Support team available 24/7 · فريق الدعم متاح ٢٤/٧" }); },
+    },
+  ];
+
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
@@ -24,9 +57,12 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-3">
             <RufayQWordmark size="sm" variant="light" />
-            <button onClick={onProfile} className="w-9 h-9 rounded-full flex items-center justify-center font-arabic text-sm font-bold btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
-              م
-            </button>
+            <div className="flex items-center gap-2">
+              <HeaderMenu items={homeMenuItems} />
+              <button onClick={onProfile} className="w-9 h-9 rounded-full flex items-center justify-center font-arabic text-sm font-bold btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
+                م
+              </button>
+            </div>
           </div>
           <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>{dateStr}</p>
           <p className="font-display text-xl italic text-white" style={{ fontWeight: 300 }}>Good evening, Mohammed</p>
