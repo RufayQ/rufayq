@@ -550,11 +550,11 @@ const NutritionTab = () => {
   const [waterCount, setWaterCount] = useState(5);
 
   const nutrients = [
-    { name: "Protein", ar: "بروتين", why: "Essential for tissue repair", goal: "60g/day", gradient: "linear-gradient(135deg, #004D5B, #006D7C)",
+    { name: "Protein", ar: "بروتين", why: "Essential for tissue repair", goal: "60g/day", gradient: "linear-gradient(135deg, var(--header-teal-from), var(--header-teal-to))",
       foods: ["Chicken breast", "Greek yogurt", "Lentils", "Eggs"] },
     { name: "Vitamin C", ar: "فيتامين سي", why: "Boosts wound healing", goal: "200mg/day", gradient: "linear-gradient(135deg, #C5965A, #A07A3A)",
       foods: ["Oranges", "Bell peppers", "Broccoli", "Kiwi"] },
-    { name: "Omega-3", ar: "أوميغا ٣", why: "Reduces inflammation", goal: "2g/day", gradient: "linear-gradient(135deg, #1A2A35, #0D1B2A)",
+    { name: "Omega-3", ar: "أوميغا ٣", why: "Reduces inflammation", goal: "2g/day", gradient: "linear-gradient(135deg, var(--header-dark-to), var(--header-dark-from))",
       foods: ["Salmon", "Walnuts", "Flax seeds", "Sardines"] },
   ];
 
