@@ -152,9 +152,6 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
               selected={theme === "system"} onSelect={() => update("theme", setTheme)("system")}
             />
           </div>
-          <p className="text-[10px] mt-1.5 px-1" style={{ color: "var(--gray)" }}>
-            Theme changes will apply in a future update · سيتم تطبيق تغييرات المظهر في تحديث قادم
-          </p>
         </div>
 
         {/* Security & Privacy */}
