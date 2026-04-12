@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { records, filterCategories, type DocRecord } from "@/constants/data";
 import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy } from "lucide-react";
+import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 
@@ -43,6 +44,27 @@ const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
     return { label: "EN only", bg: "rgba(107,122,138,0.1)", color: "var(--gray)" };
   };
 
+  const handleCopyAllRecords = () => {
+    const text = records.map(r => `${r.titleEn} — ${r.category} — ${r.meta}`).join("\n");
+    navigator.clipboard.writeText(`Medical Records Summary\n\n${text}`);
+    toast.success("Records copied · تم نسخ السجلات", { duration: 2000 });
+  };
+
+  const handleExportRecords = () => {
+    const text = records.map(r => `${r.titleEn}\t${r.category}\t${r.meta}\t${r.source || ""}`).join("\n");
+    const blob = new Blob([`Title\tCategory\tMeta\tSource\n${text}`], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "medical-records.txt"; a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Records exported · تم تصدير السجلات", { duration: 2000 });
+  };
+
+  const recordsMenuItems: HeaderMenuItem[] = [
+    { icon: <Copy size={14} />, label: "Copy All", labelAr: "نسخ الكل", onClick: handleCopyAllRecords },
+    { icon: <Download size={14} />, label: "Export Records", labelAr: "تصدير السجلات", onClick: handleExportRecords },
+  ];
+
   return (
     <div className="flex flex-col relative" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
@@ -53,9 +75,12 @@ const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
             <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Your Documents</p>
             <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>ملفاتك الطبية</p>
           </div>
-          <button onClick={() => onOpenScanner?.()} className="px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
-            ＋ Scan & Import
-          </button>
+          <div className="flex items-center gap-2">
+            <HeaderMenu items={recordsMenuItems} />
+            <button onClick={() => onOpenScanner?.()} className="px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
+              ＋ Scan
+            </button>
+          </div>
         </div>
         <div className="flex gap-2 mt-3">
           {[`${totalFiles} Files`, `${translatedCount} Translated`, newCount > 0 ? `${newCount} New` : null].filter(Boolean).map((s) => (
