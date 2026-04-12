@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import { InlineFlightRow } from "@/components/FlightTicketCard";
 import TransportCard, { LayoverIndicator, type TransportSegment } from "@/components/TransportCard";
-import TicketDetailSheet from "@/components/TicketDetailSheet";
+import TicketDetailSheet, { type OverrideAnnotation, type SmartReminder, getSystemReminders } from "@/components/TicketDetailSheet";
 
 const phases = [
   { key: "before", label: "Before Travel", labelAr: "قبل السفر", color: "var(--teal-deep)" },
@@ -191,6 +191,9 @@ const TicketsTab = ({ segments, onAdd, onScan }: { segments: TransportSegment[];
   const [selectedSeg, setSelectedSeg] = useState<TransportSegment | null>(null);
   const [ticketNotes, setTicketNotes] = useState<Record<string, string>>({});
   const [ticketAlarms, setTicketAlarms] = useState<Record<string, number[]>>({});
+  const [ticketOverrides, setTicketOverrides] = useState<Record<string, OverrideAnnotation[]>>({});
+  const [ticketSystemReminders, setTicketSystemReminders] = useState<Record<string, SmartReminder[]>>({});
+  const [ticketMutedAlerts, setTicketMutedAlerts] = useState<Record<string, boolean>>({});
 
   const handleToggleAlarm = (segId: string, minutes: number) => {
     setTicketAlarms((prev) => {
@@ -198,6 +201,7 @@ const TicketsTab = ({ segments, onAdd, onScan }: { segments: TransportSegment[];
       return { ...prev, [segId]: current.includes(minutes) ? current.filter((m) => m !== minutes) : [...current, minutes] };
     });
   };
+
 
   return (
     <div className="pt-2">
@@ -208,7 +212,12 @@ const TicketsTab = ({ segments, onAdd, onScan }: { segments: TransportSegment[];
       </div>
       {segments.map((seg) => (
         <div key={seg.id}>
-          <TransportCard seg={seg} onTap={() => setSelectedSeg(seg)} />
+          <TransportCard seg={seg} onTap={() => {
+            if (!ticketSystemReminders[seg.id]) {
+              setTicketSystemReminders((prev) => ({ ...prev, [seg.id]: getSystemReminders(seg) }));
+            }
+            setSelectedSeg(seg);
+          }} />
           {seg.layoverAfter && (
             <LayoverIndicator duration={seg.layoverAfter.duration} airport={seg.layoverAfter.airport} code={seg.layoverAfter.code} />
           )}
@@ -232,6 +241,12 @@ const TicketsTab = ({ segments, onAdd, onScan }: { segments: TransportSegment[];
           onSaveNotes={(n) => setTicketNotes((prev) => ({ ...prev, [selectedSeg.id]: n }))}
           alarms={ticketAlarms[selectedSeg.id] || []}
           onToggleAlarm={(m) => handleToggleAlarm(selectedSeg.id, m)}
+          overrides={ticketOverrides[selectedSeg.id] || []}
+          onSaveOverrides={(ovrs) => setTicketOverrides((prev) => ({ ...prev, [selectedSeg.id]: ovrs }))}
+          systemReminders={ticketSystemReminders[selectedSeg.id] || []}
+          onUpdateSystemReminders={(reminders) => setTicketSystemReminders((prev) => ({ ...prev, [selectedSeg.id]: reminders }))}
+          systemAlertsMuted={ticketMutedAlerts[selectedSeg.id] || false}
+          onToggleSystemAlertsMuted={() => setTicketMutedAlerts((prev) => ({ ...prev, [selectedSeg.id]: !prev[selectedSeg.id] }))}
         />
       )}
     </div>
