@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Download, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Image } from "lucide-react";
+import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Download, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Image, Copy } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import type { TransportSegment } from "./TransportCard";
@@ -364,6 +364,25 @@ const TicketDetailSheet = ({
                   <div>
                     <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Email</p>
                     <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send via email · إرسال بالبريد</p>
+                  </div>
+                </button>
+                <div style={{ height: 1, background: "var(--gray-light)" }} />
+                <button
+                  onClick={() => {
+                    const text = buildShareText();
+                    navigator.clipboard.writeText(text).then(() => {
+                      toast.success("Copied to clipboard · تم النسخ");
+                    }).catch(() => {
+                      toast.error("Failed to copy · فشل النسخ");
+                    });
+                    setShowShareMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
+                >
+                  <Copy size={16} color="var(--teal-deep)" />
+                  <div>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Copy Text</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Copy to clipboard · نسخ النص</p>
                   </div>
                 </button>
                 <div style={{ height: 1, background: "var(--gray-light)" }} />
