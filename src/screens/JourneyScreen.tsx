@@ -75,14 +75,36 @@ const JourneyScreen = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => vo
     setTrips([...trips, trip]);
   };
 
+  const handleCopyJourney = () => {
+    const text = `Treatment Journey — Berlin\n${doneCount}/${journeySteps.length} steps completed\n\nSteps:\n${journeySteps.map((s, i) => `${i + 1}. ${s.titleEn} — ${s.status}`).join("\n")}`;
+    navigator.clipboard.writeText(text);
+    toast.success("Journey copied · تم نسخ الرحلة", { duration: 2000 });
+  };
+
+  const handleShareJourney = () => {
+    const text = `Treatment Journey — Berlin\n${doneCount}/${journeySteps.length} steps completed`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  };
+
+  const journeyMenuItems: HeaderMenuItem[] = [
+    { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص", onClick: handleCopyJourney },
+    { icon: <Share2 size={14} />, label: "Share Progress", labelAr: "مشاركة التقدم", onClick: handleShareJourney },
+  ];
+
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
       <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "var(--navy)" }}>
         <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.12)" }} />
-        <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>02 — JOURNEY MAP</p>
-        <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Treatment Journey</p>
-        <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>خريطة رحلتك العلاجية</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>02 — JOURNEY MAP</p>
+            <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Treatment Journey</p>
+            <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>خريطة رحلتك العلاجية</p>
+          </div>
+          <HeaderMenu items={journeyMenuItems} />
+        </div>
         <div className="mt-3 rounded-lg px-3.5 py-2.5" style={{ background: "rgba(255,255,255,0.08)" }}>
           <div className="flex items-center gap-3">
             <div className="flex-1 h-2 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>

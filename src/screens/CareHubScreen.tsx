@@ -18,6 +18,22 @@ const subTabs: { id: SubTab; emoji: string; en: string }[] = [
 const CareHubScreen = () => {
   const [activeTab, setActiveTab] = useState<SubTab>("careplan");
 
+  const handleCopyCarePlan = () => {
+    navigator.clipboard.writeText("Care Plan Summary\nPost-Op Day 5 · Knee Replacement\nStatus: On Track\n\nFollow your prescribed exercises, medications, and follow-up appointments.");
+    toast.success("Care plan copied · تم نسخ خطة الرعاية", { duration: 2000 });
+  };
+
+  const handleShareCarePlan = () => {
+    const text = "Care Plan Summary — Post-Op Day 5 · Knee Replacement · Status: On Track";
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  };
+
+  const careMenuItems: HeaderMenuItem[] = [
+    { icon: <Copy size={14} />, label: "Copy Plan", labelAr: "نسخ الخطة", onClick: handleCopyCarePlan },
+    { icon: <Share2 size={14} />, label: "Share with Doctor", labelAr: "مشاركة مع الطبيب", onClick: handleShareCarePlan },
+  ];
+
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
@@ -25,9 +41,14 @@ const CareHubScreen = () => {
         <svg className="absolute bottom-0 right-0" width="80" height="80" viewBox="0 0 80 80" fill="none">
           <path d="M80 0 A80 80 0 0 1 0 80" stroke="rgba(197,150,90,0.2)" strokeWidth="1.5" fill="none" />
         </svg>
-        <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(197,150,90,0.6)" }}>04 — CARE HUB</p>
-        <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Your Recovery Hub</p>
-        <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>مركز التعافي الخاص بك</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(197,150,90,0.6)" }}>04 — CARE HUB</p>
+            <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Your Recovery Hub</p>
+            <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>مركز التعافي الخاص بك</p>
+          </div>
+          <HeaderMenu items={careMenuItems} />
+        </div>
         {/* Patient status */}
         <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
           <span className="text-[14px]">🦽</span>
