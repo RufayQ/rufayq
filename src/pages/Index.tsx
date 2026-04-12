@@ -114,6 +114,8 @@ const Index = () => {
         return <MedicationsScreen onBack={() => setAppView("main")} />;
       case "profile":
         return <ProfileScreen onBack={() => setAppView("main")} onLogout={handleLogout} />;
+      case "settings":
+        return <SettingsScreen onBack={() => setAppView("main")} />;
       case "main":
         switch (activeTab) {
           case "home": return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;
