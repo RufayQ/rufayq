@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { medications, type Medication } from "@/constants/data";
-import { ArrowLeft, Plus, X, Copy, Share2, Download, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Copy, Share2, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
+import MedicationDetailSheet, { type MedNote } from "@/components/MedicationDetailSheet";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -11,6 +12,10 @@ interface MedicationsScreenProps {
 const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
   const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
+  const [medNotes, setMedNotes] = useState<Record<string, MedNote[]>>({});
+  const [medReminders, setMedReminders] = useState<Record<string, number[]>>({});
+
+  const medKey = (m: Medication) => `${m.name}-${m.time}`;
 
   const statusColor = (s: string) =>
     s === "taken" ? "var(--success)" : s === "due" ? "var(--warning)" : s === "missed" ? "var(--error)" : "var(--gray)";
@@ -96,8 +101,10 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
               </div>
               <div className="space-y-2 pl-3" style={{ borderLeft: `2px dashed var(--gray-light)` }}>
                 {meds.map((med, i) => {
-                  const key = `${med.name}-${med.time}`;
+                  const key = medKey(med);
                   const isTaken = med.status === "taken" || takenIds.has(key);
+                  const noteCount = (medNotes[key] || []).length;
+                  const reminderCount = (medReminders[key] || []).length;
                   return (
                     <div key={i} className="flex items-center gap-3">
                       <span className="font-mono text-[11px] w-14 shrink-0" style={{ color: "var(--gray)" }}>{med.time}</span>
@@ -110,7 +117,11 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
                         <div className="flex-1 text-left">
                           <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{med.name}</p>
                           <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{med.nameAr}</p>
-                          <p className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{med.frequency}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{med.frequency}</p>
+                            {noteCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--gold-pale)", color: "var(--gold)" }}>📝 {noteCount}</span>}
+                            {reminderCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>⏰ {reminderCount}</span>}
+                          </div>
                         </div>
                         <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded-full" style={{
                           color: isTaken ? "var(--success)" : med.status === "due" ? "var(--warning)" : "var(--gray)",
@@ -130,77 +141,25 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
 
       {/* Medication Detail Sheet */}
       {selectedMed && (
-        <div className="absolute inset-0 z-20 flex flex-col justify-end" onClick={() => setSelectedMed(null)}>
-          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.4)" }} />
-          <div className="relative rounded-t-2xl p-5 pt-3 animate-slide-up overflow-y-auto" style={{ background: "var(--white)", maxHeight: "85%" }} onClick={(e) => e.stopPropagation()}>
-            <div className="w-8 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--gray-light)" }} />
-
-            <div className="text-center mb-4">
-              <span className="text-4xl">💊</span>
-              <p className="font-display text-2xl mt-2" style={{ color: "var(--navy)" }}>{selectedMed.name}</p>
-              <p className="font-arabic text-base" dir="rtl" style={{ color: "var(--gray)" }}>{selectedMed.nameAr}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {[
-                { label: "DOSE", value: selectedMed.dosage },
-                { label: "FREQUENCY", value: selectedMed.frequency },
-                { label: "TIME", value: selectedMed.time },
-                { label: "WITH FOOD?", value: "Yes" },
-              ].map((d) => (
-                <div key={d.label} className="rounded-lg p-3" style={{ background: "var(--off-white)" }}>
-                  <p className="font-mono text-[9px] tracking-wider" style={{ color: "var(--gray)" }}>{d.label}</p>
-                  <p className="text-[13px] font-medium mt-0.5" style={{ color: "var(--navy)" }}>{d.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {selectedMed.instructions && (
-              <div className="rounded-xl p-3 mb-3" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-                <p className="text-xs" style={{ color: "var(--navy)" }}>⚠️ {selectedMed.instructions}</p>
-                {selectedMed.instructionsAr && <p className="font-arabic text-[11px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>{selectedMed.instructionsAr}</p>}
-              </div>
-            )}
-
-            {selectedMed.redFlags && (
-              <div className="rounded-xl p-3 mb-4" style={{ background: "rgba(217,79,79,0.05)", border: "1px solid var(--error)" }}>
-                <p className="text-xs" style={{ color: "var(--error)" }}>🚨 {selectedMed.redFlags}</p>
-                {selectedMed.redFlagsAr && <p className="font-arabic text-[11px] mt-1" dir="rtl" style={{ color: "var(--error)" }}>{selectedMed.redFlagsAr}</p>}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => {
-                  const lines = [
-                    `💊 ${selectedMed.name} (${selectedMed.nameAr})`,
-                    `Dose: ${selectedMed.dosage}`,
-                    `Frequency: ${selectedMed.frequency}`,
-                    `Time: ${selectedMed.time}`,
-                    selectedMed.instructions ? `⚠️ ${selectedMed.instructions}` : "",
-                    selectedMed.redFlags ? `🚨 ${selectedMed.redFlags}` : "",
-                  ].filter(Boolean).join("\n");
-                  navigator.clipboard.writeText(lines).then(() => toast.success("Medication info copied · تم نسخ معلومات الدواء"));
-                }}
-                className="py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 btn-press"
-                style={{ border: "1px solid var(--gray-light)", color: "var(--navy)" }}
-              >
-                <Copy size={15} /> Copy Info
-              </button>
-              <button
-                onClick={() => {
-                  const key = `${selectedMed.name}-${selectedMed.time}`;
-                  setTakenIds((prev) => new Set(prev).add(key));
-                  setSelectedMed(null);
-                }}
-                className="py-3.5 rounded-xl font-semibold text-white btn-press"
-                style={{ background: "var(--success)" }}
-              >
-                Taken ✓
-              </button>
-            </div>
-          </div>
-        </div>
+        <MedicationDetailSheet
+          med={selectedMed}
+          onClose={() => setSelectedMed(null)}
+          isTaken={selectedMed.status === "taken" || takenIds.has(medKey(selectedMed))}
+          onMarkTaken={() => {
+            const key = medKey(selectedMed);
+            setTakenIds((prev) => new Set(prev).add(key));
+          }}
+          notes={medNotes[medKey(selectedMed)] || []}
+          onSaveNotes={(notes) => setMedNotes((prev) => ({ ...prev, [medKey(selectedMed)]: notes }))}
+          reminders={medReminders[medKey(selectedMed)] || []}
+          onToggleReminder={(minutes) => {
+            const key = medKey(selectedMed);
+            setMedReminders((prev) => {
+              const current = prev[key] || [];
+              return { ...prev, [key]: current.includes(minutes) ? current.filter((m) => m !== minutes) : [...current, minutes] };
+            });
+          }}
+        />
       )}
     </div>
   );
