@@ -156,7 +156,7 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
               { emoji: "🤖", label: "Ask RufayQ AI", labelAr: "اسأل رُفَيِّق", tab: "chat" },
               { emoji: "📸", label: "Scan Document", labelAr: "امسح وثيقة", tab: "scanner" },
               { emoji: "📁", label: "All Records", labelAr: "جميع الملفات", tab: "records" },
-              { emoji: "📋", label: "Discharge Pack", labelAr: "حزمة الخروج", tab: "records" },
+              { emoji: "💎", label: "Plans & Pricing", labelAr: "الأسعار والباقات", tab: "pricing" },
             ].map((a) => (
               <button
                 key={a.label}
