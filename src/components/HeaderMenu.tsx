@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { MoreVertical, Copy, Share2, Download, Trash2, RefreshCw, FileText, Bell, Settings, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,20 +17,34 @@ interface HeaderMenuProps {
 
 const HeaderMenu = ({ items }: HeaderMenuProps) => {
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+
+  const updatePos = useCallback(() => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+  }, []);
 
   useEffect(() => {
     if (!open) return;
+    updatePos();
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node) &&
+          buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  }, [open, updatePos]);
 
   return (
-    <div className="relative" ref={menuRef}>
+    <>
       <button
+        ref={buttonRef}
         onClick={() => setOpen(!open)}
         className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
         style={{ background: "rgba(255,255,255,0.1)" }}
@@ -37,10 +52,13 @@ const HeaderMenu = ({ items }: HeaderMenuProps) => {
         <MoreVertical size={16} color="white" />
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
-          className="absolute right-0 top-10 z-[100] min-w-[180px] rounded-xl overflow-hidden animate-fade-in-up"
+          ref={menuRef}
+          className="fixed z-[9999] min-w-[180px] rounded-xl overflow-hidden animate-fade-in-up"
           style={{
+            top: pos.top,
+            right: pos.right,
             background: "var(--white)",
             boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
             border: "1px solid var(--gray-light)",
@@ -65,9 +83,10 @@ const HeaderMenu = ({ items }: HeaderMenuProps) => {
               </div>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 
