@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
-import { Copy, Share2, Download, RefreshCw } from "lucide-react";
-import { journeySteps, defaultTransportSegments } from "@/constants/data";
+import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2 } from "lucide-react";
+import { journeySteps, defaultTransportSegments, appointments, type Appointment } from "@/constants/data";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import { InlineFlightRow } from "@/components/FlightTicketCard";
@@ -18,6 +18,7 @@ const phases = [
 const subTabs = [
   { key: "tickets", icon: "✈️", label: "Tickets" },
   { key: "stay", icon: "🏨", label: "Stay" },
+  { key: "appointments", icon: "🩺", label: "Appts" },
   { key: "steps", icon: "🗺️", label: "Steps" },
 ];
 
@@ -152,6 +153,7 @@ const JourneyScreen = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => vo
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} />}
         {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
+        {activeSubTab === "appointments" && <AppointmentsTab />}
         {activeSubTab === "steps" && (
           <StepsTab expanded={expanded} setExpanded={setExpanded} activeTrip={activeTrip} onAddTrip={() => setShowAddTrip(true)} />
         )}
