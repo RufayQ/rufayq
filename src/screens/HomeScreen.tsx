@@ -2,7 +2,8 @@ import { useState } from "react";
 import RufayQWordmark from "@/components/RufayQWordmark";
 import HeaderMenu, { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
 import { toast } from "sonner";
-import { medications } from "@/constants/data";
+import { medications, appointments } from "@/constants/data";
+import { Plus, MapPin, Video, Building2 } from "lucide-react";
 
 interface HomeScreenProps {
   onNavigate: (tab: string) => void;
@@ -106,9 +107,14 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
               </div>
             ))}
           </div>
-          <button onClick={() => onNavigate("journey")} className="block ml-auto mt-2 text-xs btn-press" style={{ color: "var(--teal-mid)" }}>
-            View full journey →
-          </button>
+          <div className="flex items-center justify-between mt-2">
+            <button onClick={() => onNavigate("journey")} className="text-xs btn-press" style={{ color: "var(--teal-mid)" }}>
+              View full journey →
+            </button>
+            <button onClick={() => onNavigate("journey")} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold btn-press" style={{ background: "var(--teal-deep)", color: "#fff" }}>
+              <Plus size={10} /> New Trip
+            </button>
+          </div>
         </div>
 
         {/* Alert Banner */}
@@ -125,8 +131,30 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
           <span className="text-lg" style={{ color: "var(--gold)" }}>›</span>
         </button>
 
-        {/* Today's Medications */}
+        {/* Upcoming Appointments */}
         <div className="stagger-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>UPCOMING APPOINTMENTS</p>
+            <button onClick={() => onNavigate("journey")} className="text-[10px] btn-press" style={{ color: "var(--teal-mid)" }}>View all →</button>
+          </div>
+          <div className="space-y-2">
+            {appointments.filter(a => a.status === "upcoming").slice(0, 2).map((apt) => (
+              <button key={apt.id} onClick={() => onNavigate("journey")} className="w-full rounded-xl p-3 flex items-center gap-3 text-left card-press" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: apt.type === "telemedicine" ? "var(--teal-light)" : "var(--gold-pale)" }}>
+                  {apt.type === "telemedicine" ? <Video size={16} style={{ color: "var(--teal-deep)" }} /> : apt.type === "clinic" ? <Building2 size={16} style={{ color: "var(--gold)" }} /> : <MapPin size={16} style={{ color: "var(--success)" }} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{apt.doctorName}</p>
+                  <p className="text-[10px]" style={{ color: "var(--gray)" }}>{apt.specialty} · {apt.date}</p>
+                </div>
+                <span className="font-mono text-[10px] font-semibold" style={{ color: "var(--teal-deep)" }}>{apt.time}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Today's Medications */}
+        <div className="stagger-4">
           <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>TODAY'S MEDICATIONS</p>
           <div className="space-y-2">
             {todayMeds.map((med, i) => (
