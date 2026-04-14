@@ -7,7 +7,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 
 type SortMode = "newest" | "oldest" | "category";
 
-const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
+const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => void; onNavigate?: (tab: string) => void }) => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedDoc, setSelectedDoc] = useState<DocRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
