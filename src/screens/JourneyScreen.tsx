@@ -645,4 +645,119 @@ const StepsTab = ({
   </div>
 );
 
+/* ─── APPOINTMENTS TAB ─── */
+const AppointmentsTab = () => {
+  const [showAddAppt, setShowAddAppt] = useState(false);
+  const upcomingAppts = appointments.filter(a => a.status === "upcoming");
+  const pastAppts = appointments.filter(a => a.status === "completed" || a.status === "cancelled");
+
+  const typeIcon = (type: Appointment["type"]) => {
+    if (type === "telemedicine") return <Video size={14} style={{ color: "var(--teal-deep)" }} />;
+    if (type === "clinic") return <Building2 size={14} style={{ color: "var(--gold)" }} />;
+    return <MapPin size={14} style={{ color: "var(--success)" }} />;
+  };
+
+  const typeLabel = (type: Appointment["type"]) => {
+    if (type === "telemedicine") return "Telemedicine";
+    if (type === "clinic") return "Clinic";
+    return "Hospital";
+  };
+
+  const statusBadge = (status: Appointment["status"]) => {
+    if (status === "completed") return { label: "DONE ✓", bg: "rgba(61,170,110,0.1)", color: "var(--success)" };
+    if (status === "cancelled") return { label: "CANCELLED", bg: "rgba(217,79,79,0.1)", color: "var(--error)" };
+    return { label: "UPCOMING", bg: "rgba(197,150,90,0.1)", color: "var(--gold)" };
+  };
+
+  const renderApptCard = (apt: Appointment) => {
+    const sb = statusBadge(apt.status);
+    return (
+      <div key={apt.id} className="rounded-xl p-4 card-press" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: apt.type === "telemedicine" ? "var(--teal-light)" : apt.type === "clinic" ? "var(--gold-pale)" : "rgba(61,170,110,0.1)" }}>
+            {typeIcon(apt.type)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{apt.doctorName}</p>
+              <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0 ml-2" style={{ background: sb.bg, color: sb.color }}>{sb.label}</span>
+            </div>
+            <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{apt.doctorNameAr}</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>{apt.specialty}</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>{typeLabel(apt.type)}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="font-mono text-[10px]" style={{ color: "var(--teal-deep)" }}>📅 {apt.date}</span>
+              <span className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>🕐 {apt.time}</span>
+            </div>
+            <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>📍 {apt.location}</p>
+            {apt.notes && <p className="text-[10px] mt-1 italic" style={{ color: "var(--gray)" }}>{apt.notes}</p>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="px-4 pt-2 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR APPOINTMENTS</p>
+          <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>مواعيدك الطبية</p>
+        </div>
+        <button onClick={() => setShowAddAppt(true)} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--teal-deep)", color: "#fff" }}>
+          <Plus size={12} /> Add
+        </button>
+      </div>
+
+      {/* Upcoming */}
+      {upcomingAppts.length > 0 && (
+        <>
+          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>UPCOMING — {upcomingAppts.length}</p>
+          {upcomingAppts.map(renderApptCard)}
+        </>
+      )}
+
+      {/* Past */}
+      {pastAppts.length > 0 && (
+        <>
+          <p className="font-mono text-[9px] tracking-widest mt-2" style={{ color: "var(--gray)" }}>PAST — {pastAppts.length}</p>
+          {pastAppts.map(renderApptCard)}
+        </>
+      )}
+
+      {/* Add Appointment Sheet */}
+      {showAddAppt && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setShowAddAppt(false)}>
+          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.5)" }} />
+          <div className="relative animate-slide-up rounded-t-3xl" style={{ background: "var(--white)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-center pt-3"><div style={{ width: 36, height: 4, background: "#DEE4E9", borderRadius: 2 }} /></div>
+            <div className="px-5 pt-4 pb-2">
+              <p className="font-display text-xl" style={{ color: "var(--navy)" }}>Add Appointment</p>
+              <p className="font-arabic text-sm" dir="rtl" style={{ color: "var(--gray)" }}>إضافة موعد طبي</p>
+            </div>
+            <div className="px-5 pb-6" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              {[
+                { icon: "🏥", en: "Hospital", ar: "مستشفى" },
+                { icon: "🏢", en: "Clinic", ar: "عيادة" },
+                { icon: "💻", en: "Telemedicine", ar: "عن بُعد" },
+              ].map((o) => (
+                <button key={o.en} onClick={() => { setShowAddAppt(false); toast.success(`${o.en} appointment form · نموذج موعد ${o.ar}`, { description: "Coming soon · قريباً" }); }} className="rounded-xl flex flex-col items-center justify-center gap-1 card-press" style={{ height: 70, background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+                  <span className="text-[26px]">{o.icon}</span>
+                  <span className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>{o.en}</span>
+                  <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>{o.ar}</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowAddAppt(false)} className="w-full py-3 text-[13px] font-medium mb-4 btn-press" style={{ color: "var(--gray)" }}>
+              Cancel · <span className="font-arabic">إلغاء</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default JourneyScreen;
