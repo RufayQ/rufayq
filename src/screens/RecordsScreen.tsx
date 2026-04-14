@@ -84,6 +84,9 @@ const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
           </div>
           <div className="flex items-center gap-2">
             <HeaderMenu items={recordsMenuItems} />
+            <button onClick={() => onNavigate?.("medications")} className="px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--teal-deep)", color: "#fff" }}>
+              ＋ Meds
+            </button>
             <button onClick={() => onOpenScanner?.()} className="px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
               ＋ Scan
             </button>
@@ -235,7 +238,23 @@ const RecordsScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
                   {doc.pages && <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>· {doc.pages}p</span>}
                 </div>
               </div>
-              <ChevronDown size={16} className="-rotate-90 shrink-0" style={{ color: doc.accentColor }} />
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toast("RufayQ AI · رُفَيِّق", {
+                      description: `Analyzing "${doc.titleEn}"... Ask me anything about this record.\nجاري تحليل "${doc.titleAr}"... اسألني أي سؤال عن هذا السجل.`,
+                      duration: 4000,
+                    });
+                  }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
+                  style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}
+                  title="Ask RufayQ about this record"
+                >
+                  <RufayQLogo size={13} variant="dark" />
+                </button>
+                <ChevronDown size={16} className="-rotate-90" style={{ color: doc.accentColor }} />
+              </div>
             </button>
           );
         })}
