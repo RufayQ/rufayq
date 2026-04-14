@@ -125,6 +125,32 @@ export const quickPrompts = [
 
 export const filterCategories = ["All", "Identity", "Discharge", "Lab Results", "Prescriptions", "Imaging", "Consultations", "ECG / ECHO", "Insurance", "Vaccinations"];
 
+export interface Appointment {
+  id: string;
+  doctorName: string;
+  doctorNameAr: string;
+  specialty: string;
+  specialtyAr: string;
+  location: string;
+  locationAr: string;
+  type: "in-person" | "telemedicine" | "clinic";
+  date: string;
+  time: string;
+  status: "completed" | "upcoming" | "cancelled";
+  hospital?: string;
+  hospitalAr?: string;
+  notes?: string;
+  notesAr?: string;
+}
+
+export const appointments: Appointment[] = [
+  { id: "apt-001", doctorName: "Dr. Klaus Mueller", doctorNameAr: "د. كلاوس مولر", specialty: "Orthopedics", specialtyAr: "جراحة العظام", location: "Charité Hospital, Berlin", locationAr: "مستشفى شاريتيه، برلين", type: "in-person", date: "Apr 9", time: "09:00 AM", status: "completed", hospital: "Charité", hospitalAr: "شاريتيه", notes: "Pre-op consultation completed", notesAr: "تم الاستشارة قبل العملية" },
+  { id: "apt-002", doctorName: "Dr. Klaus Mueller", doctorNameAr: "د. كلاوس مولر", specialty: "Orthopedics", specialtyAr: "جراحة العظام", location: "Charité Hospital, Berlin", locationAr: "مستشفى شاريتيه، برلين", type: "in-person", date: "Apr 17", time: "10:00 AM", status: "upcoming", hospital: "Charité", hospitalAr: "شاريتيه", notes: "7-day post-op follow-up", notesAr: "متابعة ٧ أيام بعد العملية" },
+  { id: "apt-003", doctorName: "Dr. Sarah Al-Rashid", doctorNameAr: "د. سارة الراشد", specialty: "Physiotherapy", specialtyAr: "العلاج الطبيعي", location: "King Fahd Medical City, Riyadh", locationAr: "مدينة الملك فهد الطبية، الرياض", type: "in-person", date: "Apr 22", time: "02:00 PM", status: "upcoming", hospital: "KFMC", hospitalAr: "مدينة الملك فهد", notes: "Initial physiotherapy session", notesAr: "جلسة العلاج الطبيعي الأولى" },
+  { id: "apt-004", doctorName: "Dr. Klaus Mueller", doctorNameAr: "د. كلاوس مولر", specialty: "Orthopedics", specialtyAr: "جراحة العظام", location: "Telemedicine", locationAr: "عن بُعد", type: "telemedicine", date: "May 1", time: "11:00 AM", status: "upcoming", notes: "Remote check-in — review X-ray", notesAr: "مراجعة عن بُعد — مراجعة الأشعة" },
+  { id: "apt-005", doctorName: "Dr. Ahmed Al-Harbi", doctorNameAr: "د. أحمد الحربي", specialty: "Orthopedics", specialtyAr: "جراحة العظام", location: "KFMC, Riyadh", locationAr: "مدينة الملك فهد، الرياض", type: "clinic", date: "May 15", time: "10:00 AM", status: "upcoming", hospital: "KFMC", hospitalAr: "مدينة الملك فهد", notes: "30-day follow-up with Saudi team", notesAr: "متابعة ٣٠ يوم مع الفريق السعودي" },
+];
+
 import type { TransportSegment } from "@/components/TransportCard";
 
 export interface TripTransport {
