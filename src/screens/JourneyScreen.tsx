@@ -154,7 +154,7 @@ const JourneyScreen = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => vo
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} />}
         {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
-        {activeSubTab === "appointments" && <AppointmentsTab />}
+        {activeSubTab === "appointments" && <AppointmentsTab onOpenScanner={onOpenScanner} />}
         {activeSubTab === "steps" && (
           <StepsTab expanded={expanded} setExpanded={setExpanded} activeTrip={activeTrip} onAddTrip={() => setShowAddTrip(true)} />
         )}
