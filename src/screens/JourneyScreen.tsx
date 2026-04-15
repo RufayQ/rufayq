@@ -8,6 +8,7 @@ import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import { InlineFlightRow } from "@/components/FlightTicketCard";
 import TransportCard, { LayoverIndicator, type TransportSegment } from "@/components/TransportCard";
 import TicketDetailSheet, { type OverrideAnnotation, type SmartReminder, getSystemReminders } from "@/components/TicketDetailSheet";
+import AppointmentFormSheet, { type AppointmentFormData } from "@/components/AppointmentFormSheet";
 
 const phases = [
   { key: "before", label: "Before Travel", labelAr: "قبل السفر", color: "var(--teal-deep)" },
@@ -646,10 +647,11 @@ const StepsTab = ({
 );
 
 /* ─── APPOINTMENTS TAB ─── */
-const AppointmentsTab = () => {
+const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => void }) => {
   const [showAddAppt, setShowAddAppt] = useState(false);
-  const upcomingAppts = appointments.filter(a => a.status === "upcoming");
-  const pastAppts = appointments.filter(a => a.status === "completed" || a.status === "cancelled");
+  const [localAppts, setLocalAppts] = useState<Appointment[]>(appointments);
+  const upcomingAppts = localAppts.filter(a => a.status === "upcoming");
+  const pastAppts = localAppts.filter(a => a.status === "completed" || a.status === "cancelled");
 
   const typeIcon = (type: Appointment["type"]) => {
     if (type === "telemedicine") return <Video size={14} style={{ color: "var(--teal-deep)" }} />;
@@ -667,6 +669,28 @@ const AppointmentsTab = () => {
     if (status === "completed") return { label: "DONE ✓", bg: "rgba(61,170,110,0.1)", color: "var(--success)" };
     if (status === "cancelled") return { label: "CANCELLED", bg: "rgba(217,79,79,0.1)", color: "var(--error)" };
     return { label: "UPCOMING", bg: "rgba(197,150,90,0.1)", color: "var(--gold)" };
+  };
+
+  const handleAddAppointment = (data: AppointmentFormData) => {
+    const newAppt: Appointment = {
+      id: `apt-${Date.now()}`,
+      doctorName: data.doctorName || "TBD",
+      doctorNameAr: data.doctorNameAr || "لم يحدد",
+      specialty: data.specialty || data.appointmentType,
+      specialtyAr: data.specialty || data.appointmentType,
+      location: data.location || data.hospital || "TBD",
+      locationAr: data.locationAr || data.hospitalAr || "لم يحدد",
+      type: data.visitType === "telemedicine" ? "telemedicine" : data.visitType === "clinic" ? "clinic" : "in-person",
+      date: data.date ? new Date(data.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "TBD",
+      time: data.time || "TBD",
+      status: "upcoming",
+      hospital: data.hospital,
+      hospitalAr: data.hospitalAr,
+      notes: data.notes,
+      notesAr: data.notesAr,
+    };
+    setLocalAppts(prev => [...prev, newAppt]);
+    toast.success("Appointment added · تم إضافة الموعد", { duration: 3000 });
   };
 
   const renderApptCard = (apt: Appointment) => {
@@ -727,35 +751,12 @@ const AppointmentsTab = () => {
         </>
       )}
 
-      {/* Add Appointment Sheet */}
-      {showAddAppt && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setShowAddAppt(false)}>
-          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.5)" }} />
-          <div className="relative animate-slide-up rounded-t-3xl" style={{ background: "var(--white)" }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-center pt-3"><div style={{ width: 36, height: 4, background: "#DEE4E9", borderRadius: 2 }} /></div>
-            <div className="px-5 pt-4 pb-2">
-              <p className="font-display text-xl" style={{ color: "var(--navy)" }}>Add Appointment</p>
-              <p className="font-arabic text-sm" dir="rtl" style={{ color: "var(--gray)" }}>إضافة موعد طبي</p>
-            </div>
-            <div className="px-5 pb-6" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-              {[
-                { icon: "🏥", en: "Hospital", ar: "مستشفى" },
-                { icon: "🏢", en: "Clinic", ar: "عيادة" },
-                { icon: "💻", en: "Telemedicine", ar: "عن بُعد" },
-              ].map((o) => (
-                <button key={o.en} onClick={() => { setShowAddAppt(false); toast.success(`${o.en} appointment form · نموذج موعد ${o.ar}`, { description: "Coming soon · قريباً" }); }} className="rounded-xl flex flex-col items-center justify-center gap-1 card-press" style={{ height: 70, background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-                  <span className="text-[26px]">{o.icon}</span>
-                  <span className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>{o.en}</span>
-                  <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>{o.ar}</span>
-                </button>
-              ))}
-            </div>
-            <button onClick={() => setShowAddAppt(false)} className="w-full py-3 text-[13px] font-medium mb-4 btn-press" style={{ color: "var(--gray)" }}>
-              Cancel · <span className="font-arabic">إلغاء</span>
-            </button>
-          </div>
-        </div>
-      )}
+      <AppointmentFormSheet
+        open={showAddAppt}
+        onClose={() => setShowAddAppt(false)}
+        onSubmit={handleAddAppointment}
+        onScan={() => onOpenScanner?.()}
+      />
     </div>
   );
 };
