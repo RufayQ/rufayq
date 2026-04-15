@@ -78,30 +78,30 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
           onClick={() => onNavigate("home")}
           className="flex items-center justify-center btn-press"
           style={{
-            width: 52,
-            height: 52,
+            width: 50,
+            height: 50,
             borderRadius: "50%",
             background: isHomeActive
               ? "linear-gradient(135deg, var(--teal-deep), var(--navy))"
-              : "var(--off-white)",
-            border: isHomeActive ? "none" : "2px solid var(--gray-light)",
+              : "var(--white)",
+            border: isHomeActive ? "2.5px solid var(--gold)" : "2px solid var(--gray-light)",
             boxShadow: isHomeActive
-              ? "0 4px 16px rgba(0,77,91,0.35)"
+              ? "0 4px 16px rgba(0,77,91,0.35), 0 0 0 3px rgba(197,150,90,0.15)"
               : "0 2px 8px rgba(0,0,0,0.08)",
-            marginTop: -18,
-            marginBottom: 4,
+            marginTop: -20,
+            marginBottom: 2,
             transition: "all 200ms ease",
           }}
           aria-label="Home tab"
         >
-          <RufayQLogo size={26} variant={isHomeActive ? "light" : "dark"} />
+          <RufayQLogo size={24} variant={isHomeActive ? "light" : "dark"} />
         </button>
         <span className="font-arabic" style={{
           color: isHomeActive ? "var(--teal-deep)" : "var(--gray)",
           fontSize: 9,
           fontWeight: 600,
           fontFamily: "'Noto Naskh Arabic', serif",
-          marginTop: -2,
+          marginTop: 0,
         }}>
           رُفَيِّق
         </span>
