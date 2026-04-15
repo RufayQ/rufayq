@@ -15,9 +15,10 @@ import OnboardingScreen from "@/screens/OnboardingScreen";
 import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
 import SettingsScreen from "@/screens/SettingsScreen";
+import SupportScreen from "@/screens/SupportScreen";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
-type AppView = "onboarding" | "login" | "main" | "medications" | "profile" | "settings" | "pricing";
+type AppView = "onboarding" | "login" | "main" | "medications" | "profile" | "settings" | "pricing" | "support";
 
 const toastMessages: Record<string, { en: string; ar: string }> = {
   flight: { en: "✓ Flight added to your Transport Timeline", ar: "✓ أُضيفت الرحلة إلى جدول تنقلك" },
@@ -41,6 +42,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
+  const [chatContext, setChatContext] = useState<string | null>(null);
   const [badges, setBadges] = useState<Partial<Record<Tab, boolean>>>({
     carehub: true,
   });
