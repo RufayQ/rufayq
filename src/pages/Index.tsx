@@ -141,7 +141,6 @@ const Index = () => {
           case "carehub": return <CareHubScreen />;
           case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} />;
         }
-        }
     }
   };
 
