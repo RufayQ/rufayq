@@ -6,7 +6,7 @@ import { medications, appointments } from "@/constants/data";
 import { Plus, MapPin, Video, Building2 } from "lucide-react";
 
 interface HomeScreenProps {
-  onNavigate: (tab: string) => void;
+  onNavigate: (tab: string, context?: string) => void;
   onProfile: () => void;
 }
 
@@ -185,6 +185,8 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
               { emoji: "📸", label: "Scan Document", labelAr: "امسح وثيقة", tab: "scanner" },
               { emoji: "📁", label: "All Records", labelAr: "جميع الملفات", tab: "records" },
               { emoji: "💎", label: "Plans & Pricing", labelAr: "الأسعار والباقات", tab: "pricing" },
+              { emoji: "🎫", label: "Customer Support", labelAr: "الدعم الفني", tab: "support" },
+              { emoji: "💊", label: "Medications", labelAr: "الأدوية", tab: "medications" },
             ].map((a) => (
               <button
                 key={a.label}
