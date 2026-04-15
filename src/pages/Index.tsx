@@ -89,7 +89,7 @@ const Index = () => {
     setAppView("main");
   }, []);
 
-  const handleNavigate = (tab: string) => {
+  const handleNavigate = (tab: string, context?: string) => {
     if (tab === "medications") {
       setAppView("medications");
     } else if (tab === "scanner") {
@@ -98,6 +98,12 @@ const Index = () => {
       setAppView("settings");
     } else if (tab === "pricing") {
       setAppView("pricing");
+    } else if (tab === "support") {
+      setAppView("support");
+    } else if (tab === "chat" && context) {
+      setChatContext(context);
+      setActiveTab("chat");
+      setAppView("main");
     } else {
       setActiveTab(tab as Tab);
       setAppView("main");
@@ -106,7 +112,6 @@ const Index = () => {
 
   const handleTabNavigate = (tab: Tab) => {
     setActiveTab(tab);
-    // Clear badge when visiting tab
     if (badges[tab]) {
       setBadges(prev => ({ ...prev, [tab]: false }));
     }
@@ -126,13 +131,16 @@ const Index = () => {
         return <SettingsScreen onBack={() => { refreshTheme(); setAppView("main"); }} />;
       case "pricing":
         return <PricingScreen onBack={() => setAppView("main")} />;
+      case "support":
+        return <SupportScreen onBack={() => setAppView("main")} />;
       case "main":
         switch (activeTab) {
           case "home": return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;
           case "journey": return <JourneyScreen onOpenScanner={openScanner} />;
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
           case "carehub": return <CareHubScreen />;
-          case "chat": return <ChatScreen onOpenScanner={() => openScanner()} />;
+          case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} />;
+        }
         }
     }
   };
