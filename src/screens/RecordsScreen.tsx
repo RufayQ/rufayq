@@ -7,7 +7,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 
 type SortMode = "newest" | "oldest" | "category";
 
-const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => void; onNavigate?: (tab: string) => void }) => {
+const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => void; onNavigate?: (tab: string, context?: string) => void }) => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedDoc, setSelectedDoc] = useState<DocRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -242,10 +242,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    toast("RufayQ AI · رُفَيِّق", {
-                      description: `Analyzing "${doc.titleEn}"... Ask me anything about this record.\nجاري تحليل "${doc.titleAr}"... اسألني أي سؤال عن هذا السجل.`,
-                      duration: 4000,
-                    });
+                    onNavigate?.("chat", `📄 اسأل عن: "${doc.titleEn}" — ${doc.titleAr}\n\nأريد معرفة تفاصيل هذا السجل الطبي. ما هي النتائج الرئيسية؟`);
                   }}
                   className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
                   style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}

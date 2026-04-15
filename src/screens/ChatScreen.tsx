@@ -18,9 +18,10 @@ const promptPills = [
   { emoji: "⚠️", text: "أعراض الخطر" },
 ];
 
-const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
+const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [contextProcessed, setContextProcessed] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const [showUploadSheet, setShowUploadSheet] = useState(false);
@@ -35,6 +36,15 @@ const ChatScreen = ({ onOpenScanner }: { onOpenScanner?: () => void }) => {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  // Handle incoming context from Records AI inquiry
+  useEffect(() => {
+    if (initialContext && !contextProcessed) {
+      setContextProcessed(true);
+      sendMessage(initialContext);
+      onClearContext?.();
+    }
+  }, [initialContext, contextProcessed]);
 
   useEffect(() => {
     return () => { if (recordingTimerRef.current) clearInterval(recordingTimerRef.current); };

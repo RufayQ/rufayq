@@ -6,7 +6,7 @@ import { medications, appointments } from "@/constants/data";
 import { Plus, MapPin, Video, Building2 } from "lucide-react";
 
 interface HomeScreenProps {
-  onNavigate: (tab: string) => void;
+  onNavigate: (tab: string, context?: string) => void;
   onProfile: () => void;
 }
 
@@ -117,6 +117,26 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
           </div>
         </div>
 
+        {/* Past Journeys */}
+        <div className="stagger-2">
+          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>PAST JOURNEYS</p>
+          <div className="space-y-2">
+            {[
+              { dest: "Istanbul, Turkey", specialty: "Dental Implants", date: "Jan 2026", emoji: "🦷", status: "completed" },
+              { dest: "Bangkok, Thailand", specialty: "Cardiac Check-up", date: "Sep 2025", emoji: "❤️", status: "completed" },
+            ].map((trip, i) => (
+              <button key={i} onClick={() => onNavigate("journey")} className="w-full rounded-xl p-3 flex items-center gap-3 text-left card-press" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0" style={{ background: "var(--off-white)" }}>{trip.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{trip.dest}</p>
+                  <p className="text-[10px]" style={{ color: "var(--gray)" }}>{trip.specialty} · {trip.date}</p>
+                </div>
+                <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(61,170,110,0.1)", color: "var(--success)" }}>DONE ✓</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Alert Banner */}
         <button
           onClick={() => onNavigate("records")}
@@ -185,6 +205,8 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
               { emoji: "📸", label: "Scan Document", labelAr: "امسح وثيقة", tab: "scanner" },
               { emoji: "📁", label: "All Records", labelAr: "جميع الملفات", tab: "records" },
               { emoji: "💎", label: "Plans & Pricing", labelAr: "الأسعار والباقات", tab: "pricing" },
+              { emoji: "🎫", label: "Customer Support", labelAr: "الدعم الفني", tab: "support" },
+              { emoji: "💊", label: "Medications", labelAr: "الأدوية", tab: "medications" },
             ].map((a) => (
               <button
                 key={a.label}
