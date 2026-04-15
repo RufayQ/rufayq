@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      support_tickets: {
+        Row: {
+          category: Database["public"]["Enums"]["ticket_category"]
+          created_at: string
+          description: string
+          id: string
+          priority: Database["public"]["Enums"]["ticket_priority"]
+          resolution_notes: string | null
+          status: Database["public"]["Enums"]["ticket_status"]
+          ticket_number: string
+          title: string
+          updated_at: string
+          user_email: string | null
+          user_name: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["ticket_category"]
+          created_at?: string
+          description: string
+          id?: string
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          resolution_notes?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_number?: string
+          title: string
+          updated_at?: string
+          user_email?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["ticket_category"]
+          created_at?: string
+          description?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          resolution_notes?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_number?: string
+          title?: string
+          updated_at?: string
+          user_email?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +67,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      ticket_category: "billing" | "technical" | "medical" | "general"
+      ticket_priority: "low" | "medium" | "high" | "urgent"
+      ticket_status: "open" | "in_progress" | "resolved" | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +196,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      ticket_category: ["billing", "technical", "medical", "general"],
+      ticket_priority: ["low", "medium", "high", "urgent"],
+      ticket_status: ["open", "in_progress", "resolved", "closed"],
+    },
   },
 } as const
