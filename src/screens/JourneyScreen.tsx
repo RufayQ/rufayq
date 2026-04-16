@@ -248,6 +248,10 @@ const TicketsTab = ({ segments, onAdd, onScan }: { segments: TransportSegment[];
         <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR FULL TRANSPORT TIMELINE</p>
         <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>جميع وسائل تنقلك في هذه الرحلة</p>
         <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>Tap any ticket for full details, barcode & notes</p>
+        <div className="mt-2 rounded-lg p-2" style={{ background: "rgba(217,79,79,0.05)", border: "1px solid rgba(217,79,79,0.15)" }}>
+          <p className="text-[8px] leading-relaxed" style={{ color: "var(--error)" }}>⚠️ All flight/transport info is user-entered. RufayQ does not connect to airline systems. Verify with your carrier.</p>
+          <p className="font-arabic text-[8px]" dir="rtl" style={{ color: "var(--error)" }}>جميع معلومات النقل مُدخلة يدوياً. تحقق من شركة النقل مباشرة.</p>
+        </div>
       </div>
       {segments.map((seg) => (
         <div key={seg.id}>
