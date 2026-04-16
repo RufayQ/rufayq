@@ -70,6 +70,16 @@ const AirlineConfirmSheet = ({ flight, onConfirm, onClose, showWarning }: Confir
             <p className="font-arabic text-[10px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>سيحيلك رُفَيِّق إلى تطبيق {arName} لعرض حجزك أو تعديله.</p>
           </div>
 
+          {/* Disclaimer */}
+          <div className="mt-3 rounded-lg p-2.5" style={{ background: "rgba(217,79,79,0.05)", border: "1px solid rgba(217,79,79,0.2)" }}>
+            <p className="text-[9px] leading-relaxed" style={{ color: "var(--error)" }}>
+              ⚠️ <strong>Disclaimer:</strong> RufayQ does NOT read from or connect to any official airline system. All flight information shown is manually entered by the user. Verify all details with your airline directly. RufayQ is not responsible for any discrepancies.
+            </p>
+            <p className="font-arabic text-[8px] mt-1 leading-relaxed" dir="rtl" style={{ color: "var(--error)" }}>
+              تنويه: رُفَيِّق لا يقرأ من أنظمة شركات الطيران الرسمية. جميع المعلومات المعروضة مدخلة يدوياً. تحقق من التفاصيل مع شركة الطيران مباشرة. رُفَيِّق غير مسؤول عن أي تناقضات.
+            </p>
+          </div>
+
           <p className="text-[9px] mt-2" style={{ color: "var(--gray)" }}>RufayQ is not affiliated with this airline. · <span className="font-arabic" dir="rtl">رُفَيِّق غير مرتبط بهذه الشركة.</span></p>
 
           <button onClick={onConfirm} className="w-full mt-4 btn-press" style={{ height: 48, borderRadius: 12, background: "var(--teal-deep)", color: "white", fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600 }}>
