@@ -68,6 +68,8 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
       borderTop: "1px solid var(--gray-light)",
       height: 64,
       paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      overflow: "visible",
+      zIndex: 20,
     }}>
       {/* Left tabs */}
       {leftTabs.map(renderTab)}

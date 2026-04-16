@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Star, Zap, Shield, Crown } from "lucide-react";
+import { ArrowLeft, Check, Zap, Shield, Crown, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 interface PricingScreenProps {
@@ -16,7 +16,6 @@ const plans = [
     period: "",
     icon: "🌱",
     color: "var(--gray)",
-    bg: "var(--off-white)",
     features: [
       "1 active trip",
       "Basic medication tracking",
@@ -43,7 +42,6 @@ const plans = [
     period: "/month",
     icon: "⚡",
     color: "var(--teal-deep)",
-    bg: "var(--teal-light)",
     popular: true,
     features: [
       "Unlimited trips",
@@ -77,7 +75,6 @@ const plans = [
     period: "",
     icon: "👑",
     color: "var(--gold)",
-    bg: "var(--gold-pale)",
     features: [
       "Everything in Professional",
       "Multi-patient management",
@@ -103,22 +100,34 @@ const plans = [
   },
 ];
 
+const addOns = [
+  { id: "ai-boost", name: "AI Boost Pack", nameAr: "حزمة ذكاء إضافية", price: "$2.99", priceAr: "١١ ر.س", unit: "/50 messages", icon: "🤖", desc: "Extra 50 AI messages when you run out", descAr: "٥٠ رسالة إضافية عند نفاد رصيدك" },
+  { id: "translation", name: "Priority Translation", nameAr: "ترجمة فورية", price: "$4.99", priceAr: "١٩ ر.س", unit: "/month", icon: "🌐", desc: "Instant bilingual document translation", descAr: "ترجمة مستندات ثنائية اللغة فورية" },
+  { id: "family", name: "Family Pack", nameAr: "حزمة العائلة", price: "$6.99", priceAr: "٢٦ ر.س", unit: "/month", icon: "👨‍👩‍👧‍👦", desc: "Add up to 3 family members", descAr: "أضف حتى ٣ أفراد من العائلة" },
+  { id: "storage", name: "Extra Storage", nameAr: "تخزين إضافي", price: "$1.99", priceAr: "٧ ر.س", unit: "/10 GB", icon: "💾", desc: "10 GB additional document storage", descAr: "١٠ جيجا تخزين مستندات إضافية" },
+];
+
 const comparisonFeatures = [
-  { feature: "Active Trips", free: "1", pro: "Unlimited", enterprise: "Unlimited" },
-  { feature: "Document Storage", free: "5 docs", pro: "Unlimited", enterprise: "Unlimited" },
-  { feature: "AI Messages", free: "10/day", pro: "Unlimited", enterprise: "Unlimited" },
-  { feature: "Medication Tracking", free: "Basic", pro: "Advanced", enterprise: "Advanced" },
-  { feature: "Smart Reminders", free: "—", pro: "✓", enterprise: "✓" },
-  { feature: "Care Team Sharing", free: "—", pro: "✓", enterprise: "✓" },
-  { feature: "Bilingual Export", free: "—", pro: "✓", enterprise: "✓" },
-  { feature: "Hospital API", free: "—", pro: "—", enterprise: "✓" },
-  { feature: "HIPAA Compliance", free: "—", pro: "—", enterprise: "✓" },
-  { feature: "Support", free: "Community", pro: "Priority", enterprise: "Dedicated" },
+  { feature: "Active Trips", featureAr: "رحلات نشطة", free: "1", pro: "Unlimited", enterprise: "Unlimited" },
+  { feature: "Document Storage", featureAr: "تخزين مستندات", free: "5 docs", pro: "Unlimited", enterprise: "Unlimited" },
+  { feature: "AI Messages", featureAr: "رسائل ذكية", free: "10/day", pro: "Unlimited", enterprise: "Unlimited" },
+  { feature: "Medication Tracking", featureAr: "تتبع أدوية", free: "Basic", pro: "Advanced", enterprise: "Advanced" },
+  { feature: "Smart Reminders", featureAr: "تذكيرات ذكية", free: "—", pro: "✓", enterprise: "✓" },
+  { feature: "Care Team Sharing", featureAr: "مشاركة فريق", free: "—", pro: "✓", enterprise: "✓" },
+  { feature: "Bilingual Export", featureAr: "تصدير ثنائي", free: "—", pro: "✓", enterprise: "✓" },
+  { feature: "Smart Scan AI", featureAr: "مسح ذكي", free: "5/month", pro: "Unlimited", enterprise: "Unlimited" },
+  { feature: "Hospital API", featureAr: "ربط مستشفيات", free: "—", pro: "—", enterprise: "✓" },
+  { feature: "HIPAA Compliance", featureAr: "توافق HIPAA", free: "—", pro: "—", enterprise: "✓" },
+  { feature: "Support", featureAr: "دعم", free: "Community", pro: "Priority", enterprise: "Dedicated" },
+  { feature: "Add-ons", featureAr: "إضافات", free: "—", pro: "✓", enterprise: "Included" },
 ];
 
 const PricingScreen = ({ onBack }: PricingScreenProps) => {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [showComparison, setShowComparison] = useState(false);
+  const [showAddOns, setShowAddOns] = useState(false);
+  const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   const handleSelectPlan = (planId: string) => {
     if (planId === "free") return;
@@ -133,6 +142,22 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
     }
   };
 
+  const toggleAddOn = (id: string) => {
+    setSelectedAddOns(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const faqs = [
+    { q: "Can I cancel anytime?", a: "Yes, cancel anytime. No contracts. Your data stays safe for 30 days.", qAr: "هل يمكنني الإلغاء في أي وقت؟" },
+    { q: "Is my data secure?", a: "Yes, all data is encrypted end-to-end with AES-256. We comply with GDPR and healthcare data regulations.", qAr: "هل بياناتي آمنة؟" },
+    { q: "Do you support Saudi Riyals?", a: "Yes! SAR pricing is available at checkout. We also accept MADA cards.", qAr: "هل تدعمون الريال السعودي؟" },
+    { q: "Can I switch plans mid-month?", a: "Yes! Upgrade anytime and pay the prorated difference. Downgrades take effect next billing cycle.", qAr: "هل يمكنني تغيير الباقة؟" },
+    { q: "What happens to my data if I downgrade?", a: "Your data is preserved. Features beyond your plan limit become read-only until you upgrade again.", qAr: "ماذا يحدث لبياناتي عند التخفيض؟" },
+  ];
+
   return (
     <div className="flex flex-col h-full relative">
       {/* Header */}
@@ -142,8 +167,6 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
           <p className="font-display text-lg text-white">Plans & Pricing · <span className="font-arabic">الأسعار</span></p>
           <div className="w-8" />
         </div>
-
-        {/* Billing toggle */}
         <div className="flex justify-center">
           <div className="flex rounded-full p-0.5" style={{ background: "rgba(255,255,255,0.1)" }}>
             {(["monthly", "yearly"] as const).map((b) => (
@@ -163,8 +186,9 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
         </div>
       </div>
 
-      {/* Plans */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-6" style={{ background: "var(--off-white)" }}>
+        {/* Plans */}
         <div className="space-y-3 mt-3">
           {plans.map((plan) => (
             <div
@@ -181,7 +205,6 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
                   ⭐ MOST POPULAR
                 </div>
               )}
-
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -202,7 +225,6 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
                   )}
                 </div>
               </div>
-
               <div className="space-y-1.5 mb-4">
                 {plan.features.map((f, i) => (
                   <div key={i} className="flex items-center gap-2">
@@ -211,7 +233,6 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
                   </div>
                 ))}
               </div>
-
               <button
                 onClick={() => handleSelectPlan(plan.id)}
                 disabled={plan.active}
@@ -228,33 +249,88 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
           ))}
         </div>
 
-        {/* Feature comparison toggle */}
+        {/* Pay As You Go - Add-ons */}
+        <button
+          onClick={() => setShowAddOns(!showAddOns)}
+          className="w-full mt-4 py-3 rounded-xl font-medium text-[12px] btn-press flex items-center justify-center gap-2"
+          style={{ background: "var(--gold-pale)", border: "1px solid var(--gold)", color: "var(--gold)" }}
+        >
+          <Zap size={14} />
+          {showAddOns ? "Hide" : "Show"} Pay-As-You-Go Add-ons · إضافات حسب الاستخدام
+          {showAddOns ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+
+        {showAddOns && (
+          <div className="mt-3 space-y-2">
+            <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>PAY-AS-YOU-GO ADD-ONS</p>
+            {addOns.map((addon) => {
+              const selected = selectedAddOns.has(addon.id);
+              return (
+                <button
+                  key={addon.id}
+                  onClick={() => toggleAddOn(addon.id)}
+                  className="w-full rounded-xl p-3.5 flex items-center gap-3 text-left transition-all"
+                  style={{
+                    background: selected ? "var(--teal-light)" : "var(--white)",
+                    border: selected ? "2px solid var(--teal-deep)" : "1px solid var(--gray-light)",
+                  }}
+                >
+                  <span className="text-2xl">{addon.icon}</span>
+                  <div className="flex-1">
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{addon.name}</p>
+                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{addon.nameAr}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: "var(--gray)" }}>{addon.desc}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[14px] font-bold" style={{ color: "var(--teal-deep)" }}>{addon.price}</p>
+                    <p className="text-[9px]" style={{ color: "var(--gray)" }}>{addon.unit}</p>
+                  </div>
+                </button>
+              );
+            })}
+            {selectedAddOns.size > 0 && (
+              <button
+                onClick={() => toast.success("Add-ons added to cart · أُضيفت الإضافات", { description: `${selectedAddOns.size} add-on(s) selected` })}
+                className="w-full py-3 rounded-xl font-semibold text-white btn-press"
+                style={{ background: "var(--teal-deep)" }}
+              >
+                Add {selectedAddOns.size} Add-on{selectedAddOns.size > 1 ? "s" : ""} · إضافة
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Feature Comparison */}
         <button
           onClick={() => setShowComparison(!showComparison)}
-          className="w-full mt-4 py-3 rounded-xl font-medium text-[12px] btn-press"
+          className="w-full mt-4 py-3 rounded-xl font-medium text-[12px] btn-press flex items-center justify-center gap-2"
           style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
         >
-          {showComparison ? "Hide" : "Show"} Feature Comparison · مقارنة المزايا
+          <Shield size={14} />
+          {showComparison ? "Hide" : "Show"} Full Feature Comparison · مقارنة المزايا
+          {showComparison ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
 
         {showComparison && (
           <div className="mt-3 rounded-2xl overflow-hidden" style={{ border: "1px solid var(--gray-light)" }}>
-            {/* Header row */}
             <div className="grid grid-cols-4 px-3 py-2" style={{ background: "var(--navy)" }}>
               <p className="text-[9px] font-mono tracking-wider text-white">FEATURE</p>
               <p className="text-[9px] font-mono tracking-wider text-white text-center">BASIC</p>
               <p className="text-[9px] font-mono tracking-wider text-center" style={{ color: "var(--gold)" }}>PRO</p>
-              <p className="text-[9px] font-mono tracking-wider text-white text-center">ENTERPRISE</p>
+              <p className="text-[9px] font-mono tracking-wider text-white text-center">ENT.</p>
             </div>
             {comparisonFeatures.map((row, i) => (
               <div key={i} className="grid grid-cols-4 px-3 py-2" style={{
                 background: i % 2 === 0 ? "var(--white)" : "var(--off-white)",
                 borderBottom: "1px solid var(--gray-light)",
               }}>
-                <p className="text-[10px] font-medium" style={{ color: "var(--navy)" }}>{row.feature}</p>
-                <p className="text-[10px] text-center" style={{ color: "var(--gray)" }}>{row.free}</p>
-                <p className="text-[10px] text-center font-semibold" style={{ color: "var(--teal-deep)" }}>{row.pro}</p>
-                <p className="text-[10px] text-center" style={{ color: "var(--navy)" }}>{row.enterprise}</p>
+                <div>
+                  <p className="text-[10px] font-medium" style={{ color: "var(--navy)" }}>{row.feature}</p>
+                  <p className="font-arabic text-[8px]" dir="rtl" style={{ color: "var(--gray)" }}>{row.featureAr}</p>
+                </div>
+                <p className="text-[10px] text-center self-center" style={{ color: "var(--gray)" }}>{row.free}</p>
+                <p className="text-[10px] text-center font-semibold self-center" style={{ color: "var(--teal-deep)" }}>{row.pro}</p>
+                <p className="text-[10px] text-center self-center" style={{ color: "var(--navy)" }}>{row.enterprise}</p>
               </div>
             ))}
           </div>
@@ -263,17 +339,35 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
         {/* FAQ */}
         <div className="mt-4 space-y-2">
           <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>FREQUENTLY ASKED</p>
-          {[
-            { q: "Can I cancel anytime?", a: "Yes, cancel anytime. No contracts.", qAr: "هل يمكنني الإلغاء في أي وقت؟" },
-            { q: "Is my data secure?", a: "Yes, all data is encrypted end-to-end.", qAr: "هل بياناتي آمنة؟" },
-            { q: "Do you support Saudi Riyals?", a: "Yes! SAR pricing available at checkout.", qAr: "هل تدعمون الريال السعودي؟" },
-          ].map((faq, i) => (
-            <div key={i} className="rounded-xl p-3" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-              <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{faq.q}</p>
-              <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{faq.qAr}</p>
-              <p className="text-[11px] mt-1" style={{ color: "var(--gray)" }}>{faq.a}</p>
-            </div>
+          {faqs.map((faq, i) => (
+            <button
+              key={i}
+              onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
+              className="w-full rounded-xl p-3 text-left transition-all"
+              style={{ background: "var(--white)", border: expandedFaq === i ? "1px solid var(--teal-deep)" : "1px solid var(--gray-light)" }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{faq.q}</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{faq.qAr}</p>
+                </div>
+                {expandedFaq === i ? <ChevronUp size={14} color="var(--teal-deep)" /> : <ChevronDown size={14} color="var(--gray)" />}
+              </div>
+              {expandedFaq === i && (
+                <p className="text-[11px] mt-2 pt-2 leading-relaxed" style={{ color: "var(--gray)", borderTop: "1px solid var(--gray-light)" }}>
+                  {faq.a}
+                </p>
+              )}
+            </button>
           ))}
+        </div>
+
+        {/* Money-back guarantee */}
+        <div className="mt-4 rounded-xl p-4 text-center" style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.12)" }}>
+          <span className="text-2xl">🛡️</span>
+          <p className="text-[13px] font-semibold mt-1" style={{ color: "var(--teal-deep)" }}>14-Day Money-Back Guarantee</p>
+          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>ضمان استرداد الأموال خلال ١٤ يوماً</p>
+          <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>Not satisfied? Get a full refund, no questions asked.</p>
         </div>
       </div>
     </div>

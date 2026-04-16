@@ -3,9 +3,16 @@ import { Send, Paperclip, ChevronRight, X, Camera, Upload, Mic, Square, Trash2, 
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
-import { initialMessages, quickPrompts, type ChatMessage } from "@/constants/data";
+import { quickPrompts } from "@/constants/data";
 
-const aiResponse = "شكراً لسؤالك. رُفَيِّق هنا دائماً ويعمل على طلبك.\n\nسأرسل لك التفاصيل المطلوبة خلال لحظات. هل هناك شيء آخر تريده؟";
+interface ChatMessage {
+  id: number;
+  text: string;
+  sender: "ai" | "user";
+  time: string;
+}
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const promptPills = [
   { emoji: "📎", text: "ارفع وثيقة" },
@@ -16,6 +23,10 @@ const promptPills = [
   { emoji: "📤", text: "أرسل تقريري" },
   { emoji: "🇸🇦", text: "احجز متابعة" },
   { emoji: "⚠️", text: "أعراض الخطر" },
+];
+
+const initialMessages: ChatMessage[] = [
+  { id: 1, text: "مرحباً محمد 👋 أنا رُفَيِّق، رفيقك الذكي في رحلتك العلاجية.\n\nكيف يمكنني مساعدتك اليوم؟ يمكنني:\n• شرح أدويتك ونتائج تحاليلك\n• مساعدتك في فهم تقارير الخروج\n• الإجابة على أسئلتك الطبية\n• تنظيم مواعيدك ومتابعاتك", sender: "ai", time: "2:14 PM" },
 ];
 
 const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void }) => {
@@ -80,7 +91,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
     setRecordingTime(0);
   }, []);
 
-  const sendMessage = (text: string) => {
+  const sendMessage = async (text: string) => {
     if (!text.trim()) return;
     const userMsg: ChatMessage = {
       id: Date.now(),
@@ -90,18 +101,123 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
     };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setIsTyping(true);
 
-    setTimeout(() => setIsTyping(true), 400);
-    setTimeout(() => {
-      const aiMsg: ChatMessage = {
-        id: Date.now() + 1,
-        text: aiResponse,
-        sender: "ai",
-        time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-      };
+    // Build message history for AI
+    const allMessages = [...messages, userMsg];
+    const apiMessages = allMessages.map(m => ({
+      role: m.sender === "ai" ? "assistant" as const : "user" as const,
+      content: m.text,
+    }));
+
+    try {
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ messages: apiMessages }),
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        if (resp.status === 429) {
+          toast.error("Rate limit exceeded · تم تجاوز الحد المسموح");
+        } else if (resp.status === 402) {
+          toast.error("AI credits exhausted · نفدت رصيد الذكاء الاصطناعي");
+        } else {
+          toast.error("AI error · خطأ في الذكاء الاصطناعي");
+        }
+        setIsTyping(false);
+        return;
+      }
+
+      if (!resp.body) {
+        setIsTyping(false);
+        return;
+      }
+
+      // Stream the response
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let assistantSoFar = "";
+      let assistantMsgCreated = false;
+      const assistantId = Date.now() + 1;
+      const assistantTime = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+
       setIsTyping(false);
-      setMessages((prev) => [...prev, aiMsg]);
-    }, 1800);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantSoFar += content;
+              if (!assistantMsgCreated) {
+                assistantMsgCreated = true;
+                setMessages(prev => [...prev, { id: assistantId, text: assistantSoFar, sender: "ai", time: assistantTime }]);
+              } else {
+                const finalText = assistantSoFar;
+                setMessages(prev => prev.map((m) => m.id === assistantId ? { ...m, text: finalText } : m));
+              }
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Flush remaining
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split("\n")) {
+          if (!raw) continue;
+          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+          if (raw.startsWith(":") || raw.trim() === "") continue;
+          if (!raw.startsWith("data: ")) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantSoFar += content;
+              const finalText = assistantSoFar;
+              setMessages(prev => prev.map((m) => m.id === assistantId ? { ...m, text: finalText } : m));
+            }
+          } catch { /* ignore */ }
+        }
+      }
+
+      // If no content was streamed, add a fallback message
+      if (!assistantMsgCreated) {
+        setMessages(prev => [...prev, {
+          id: assistantId,
+          text: "عذراً، لم أتمكن من الرد. يرجى المحاولة مرة أخرى.",
+          sender: "ai",
+          time: assistantTime,
+        }]);
+      }
+    } catch (err) {
+      console.error("Chat error:", err);
+      setIsTyping(false);
+      toast.error("Connection error · خطأ في الاتصال");
+    }
   };
 
   const handleUploadSend = () => {
@@ -144,10 +260,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
       <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(160deg, var(--header-dark-from), var(--header-teal-from))", minHeight: 120 }}>
-        {/* Decorative rings */}
         <div className="absolute -top-8 -right-8 w-[100px] h-[100px] rounded-full" style={{ border: "1px solid rgba(197,150,90,0.1)" }} />
         <div className="absolute -top-16 -right-16 w-[160px] h-[160px] rounded-full" style={{ border: "1px solid rgba(197,150,90,0.06)" }} />
-        {/* ECG wave */}
         <svg className="absolute bottom-0 left-0 w-full" height="20" style={{ opacity: 0.12 }}>
           <polyline
             points="0,10 20,10 30,4 35,16 40,8 50,10 70,10 90,10 100,4 105,16 110,8 120,10 140,10 160,10 170,4 175,16 180,8 190,10 210,10 230,10 240,4 245,16 250,8 260,10 280,10 300,10 310,4 315,16 320,8 330,10 350,10 370,10 380,4 385,16 390,8 400,10"
@@ -156,7 +270,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
             <animateTransform attributeName="transform" type="translate" values="-200,0;0,0" dur="8s" repeatCount="indefinite" />
           </polyline>
         </svg>
-
         <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>04 — AI COMPANION</p>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -188,7 +301,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
         <ChevronRight size={14} style={{ color: "var(--gold)" }} />
       </div>
 
-      {/* Quick Prompts — 8 pills */}
+      {/* Quick Prompts */}
       <div className="flex gap-2 px-3 py-2.5 overflow-x-auto shrink-0" style={{ background: "var(--off-white)" }}>
         {promptPills.map((p) => (
           <button
@@ -214,7 +327,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-3.5 py-3 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-        {/* Date separator */}
         <div className="flex items-center gap-2 my-1">
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
           <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>Today</span>
@@ -231,8 +343,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
                 </div>
               )}
               <div
-                className="max-w-[78%] px-3.5 py-3 font-arabic text-[13px] leading-relaxed"
-                dir="rtl"
+                className="max-w-[78%] px-3.5 py-3 text-[13px] leading-relaxed"
+                dir="auto"
                 style={{
                   background: isAi ? "var(--white)" : "var(--teal-deep)",
                   color: isAi ? "var(--ink)" : "#fff",
@@ -267,15 +379,12 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
 
       {/* Input area */}
       <div className="shrink-0" style={{ background: "var(--white)", borderTop: "1px solid var(--gray-light)" }}>
-
-        {/* Recording state */}
         {isRecording && (
           <div className="px-3 pt-3 pb-1">
             <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.2)" }}>
               <div className="w-3 h-3 rounded-full" style={{ background: "#D94F4F", animation: "pulse 1s ease-in-out infinite" }} />
               <div className="flex-1">
                 <p className="text-[12px] font-bold" style={{ color: "#D94F4F" }}>Recording... · جاري التسجيل</p>
-                {/* Waveform visualization */}
                 <div className="flex items-center gap-0.5 mt-1.5 h-4">
                   {Array.from({ length: 28 }).map((_, i) => (
                     <div key={i} className="w-[3px] rounded-full" style={{
@@ -292,7 +401,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
           </div>
         )}
 
-        {/* Recorded audio preview */}
         {recordedAudio && !isRecording && (
           <div className="px-3 pt-3 pb-1">
             <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.2)" }}>
@@ -300,7 +408,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
               <div className="flex-1">
                 <p className="text-[12px] font-semibold" style={{ color: "var(--teal-deep)" }}>Voice note ready · ملاحظة صوتية جاهزة</p>
                 <div className="flex items-center gap-1 mt-1">
-                  {/* Static waveform */}
                   <div className="flex items-center gap-0.5 h-3 flex-1">
                     {Array.from({ length: 35 }).map((_, i) => (
                       <div key={i} className="w-[2px] rounded-full" style={{
@@ -320,7 +427,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
           </div>
         )}
 
-        {/* Quick action pills when input empty and not recording */}
         {!input.trim() && !isRecording && !recordedAudio && (
           <div className="flex gap-2 px-3 pt-2">
             {[
@@ -410,8 +516,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
               <p className="font-display text-xl" style={{ color: "var(--navy)" }}>Upload to RufayQ</p>
               <p className="font-arabic text-sm" dir="rtl" style={{ color: "var(--gray)" }}>ارفع وثيقة إلى رُفَيِّق</p>
             </div>
-
-            {/* Medical document type selector */}
             <div className="px-5 mb-3">
               <p className="text-[10px] font-mono tracking-wider mb-2" style={{ color: "var(--gold)" }}>DOCUMENT TYPE · نوع الوثيقة</p>
               <div className="grid grid-cols-3 gap-2">
@@ -439,8 +543,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
                 ))}
               </div>
             </div>
-
-            {/* Source buttons */}
             <div className="flex gap-2 px-5">
               {[
                 { emoji: "📷", label: "Camera", ar: "كاميرا" },
@@ -458,8 +560,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
                 </button>
               ))}
             </div>
-
-            {/* File preview */}
             {uploadedFile && (
               <div className="mx-5 mt-3 rounded-xl p-3 flex items-center gap-3" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
                 <span className="text-xl">📄</span>
@@ -470,8 +570,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
                 <button onClick={() => setUploadedFile(null)}><X size={14} style={{ color: "var(--gray)" }} /></button>
               </div>
             )}
-
-            {/* Instruction textarea */}
             {uploadedFile && (
               <div className="mx-5 mt-2">
                 <textarea
@@ -485,8 +583,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
                 />
               </div>
             )}
-
-            {/* Send button */}
             {uploadedFile && (
               <div className="px-5 mt-3">
                 <button onClick={handleUploadSend} className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 btn-press" style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
@@ -495,7 +591,6 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
                 </button>
               </div>
             )}
-
             <button onClick={() => setShowUploadSheet(false)} className="w-full py-3 text-[13px] font-medium mt-2 mb-4 btn-press" style={{ color: "var(--gray)" }}>
               Cancel · <span className="font-arabic">إلغاء</span>
             </button>
