@@ -9,6 +9,9 @@ import { InlineFlightRow } from "@/components/FlightTicketCard";
 import TransportCard, { LayoverIndicator, type TransportSegment } from "@/components/TransportCard";
 import TicketDetailSheet, { type OverrideAnnotation, type SmartReminder, getSystemReminders } from "@/components/TicketDetailSheet";
 import AppointmentFormSheet, { type AppointmentFormData } from "@/components/AppointmentFormSheet";
+import PaywallModal from "@/components/PaywallModal";
+import { useTrial } from "@/hooks/useTrial";
+import { Sparkles, Copy as CopyIcon, Lock } from "lucide-react";
 
 const phases = [
   { key: "before", label: "Before Travel", labelAr: "قبل السفر", color: "var(--teal-deep)" },
@@ -60,16 +63,44 @@ const stayTypeOptions = [
   { icon: "🏥", en: "Hospital Stay", ar: "إقامة مستشفى" },
 ];
 
-const JourneyScreen = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => void }) => {
+const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string) => void }) => {
   const [expanded, setExpanded] = useState<number | null>(null);
   const [trips, setTrips] = useState<TripData[]>([defaultTrip]);
   const [showAddTrip, setShowAddTrip] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
-  const [transportSegments] = useState<TransportSegment[]>(defaultTransportSegments);
+  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(defaultTransportSegments);
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
+  const { isActive: trialActive } = useTrial();
 
   const activeTrip = trips.find((t) => t.status === "active") || trips[0];
+
+  const requireProForAddTrip = () => {
+    // Free tier: 1 trip. If user already has any trip, gate behind paywall unless trial is active.
+    if (trips.length >= 1 && !trialActive) {
+      setShowPaywall(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleReplicateSegment = (seg: TransportSegment) => {
+    const newDep = new Date();
+    newDep.setDate(newDep.getDate() + 30);
+    const dur = new Date(seg.arrivalDateTime).getTime() - new Date(seg.departureDateTime).getTime();
+    const newArr = new Date(newDep.getTime() + dur);
+    const copy: TransportSegment = {
+      ...seg,
+      id: `${seg.id}-copy-${Date.now()}`,
+      status: "upcoming",
+      departureDateTime: newDep.toISOString(),
+      arrivalDateTime: newArr.toISOString(),
+      bookingRef: undefined,
+    };
+    setTransportSegments((prev) => [...prev, copy]);
+    toast.success("Ticket replicated to future date · تم نسخ التذكرة لتاريخ مستقبلي", { description: `New trip: ${newDep.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` });
+  };
   const doneCount = journeySteps.filter((s) => s.status === "done").length;
   const progress = (doneCount / journeySteps.length) * 100;
 
@@ -152,13 +183,25 @@ const JourneyScreen = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => vo
 
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-        {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} />}
+        {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />}
         {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
         {activeSubTab === "appointments" && <AppointmentsTab onOpenScanner={onOpenScanner} />}
         {activeSubTab === "steps" && (
-          <StepsTab expanded={expanded} setExpanded={setExpanded} activeTrip={activeTrip} onAddTrip={() => setShowAddTrip(true)} />
+          <StepsTab
+            expanded={expanded} setExpanded={setExpanded} activeTrip={activeTrip} trips={trips}
+            onAddTrip={() => { if (requireProForAddTrip()) setShowAddTrip(true); }}
+          />
         )}
       </div>
+
+      <PaywallModal
+        open={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onUpgrade={() => onNavigate?.("pricing")}
+        onTrialStarted={() => setShowAddTrip(true)}
+        feature="Add new trip"
+        featureAr="إضافة رحلة جديدة"
+      />
 
       <AddTripSheet open={showAddTrip} onClose={() => setShowAddTrip(false)} onSubmit={handleAddTrip} />
 
