@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Copy, StickyNote, Bell, Clock, AlertTriangle, Plus, Trash2, Edit3 } from "lucide-react";
+import { X, Copy, StickyNote, Bell, Clock, AlertTriangle, Plus, Trash2, Edit3, MessageCircle, Shield } from "lucide-react";
 import { toast } from "sonner";
 import type { Medication } from "@/constants/data";
 
@@ -38,11 +38,14 @@ interface MedicationDetailSheetProps {
   onSaveNotes: (notes: MedNote[]) => void;
   reminders: number[];
   onToggleReminder: (minutes: number) => void;
+  onConsultAI?: (med: Medication) => void;
+  allergies?: string[];
 }
 
 const MedicationDetailSheet = ({
   med, onClose, onMarkTaken, isTaken,
   notes, onSaveNotes, reminders, onToggleReminder,
+  onConsultAI, allergies = [],
 }: MedicationDetailSheetProps) => {
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "reminders">("details");
   const [draftNote, setDraftNote] = useState("");
@@ -225,6 +228,24 @@ const MedicationDetailSheet = ({
                 </div>
               )}
 
+              {/* Allergies warning */}
+              {allergies.length > 0 && (
+                <div className="rounded-xl p-3" style={{ background: "rgba(217,79,79,0.08)", border: "1px solid var(--error)" }}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Shield size={12} color="var(--error)" />
+                    <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--error)" }}>YOUR ALLERGIES — CHECK BEFORE TAKING</p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {allergies.map((a) => (
+                      <span key={a} className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "var(--white)", color: "var(--error)", border: "1px solid var(--error)" }}>
+                        ⚠️ {a}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="font-arabic text-[10px] mt-2" dir="rtl" style={{ color: "var(--error)" }}>تحقق من الحساسية قبل تناول الدواء</p>
+                </div>
+              )}
+
               {/* Actions */}
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <button onClick={handleCopyInfo} className="py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
@@ -239,6 +260,17 @@ const MedicationDetailSheet = ({
                   {isTaken ? "Already Taken" : "Taken ✓"}
                 </button>
               </div>
+
+              {/* Consult AI */}
+              {onConsultAI && (
+                <button
+                  onClick={() => { onConsultAI(med); onClose(); }}
+                  className="w-full mt-1 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 btn-press"
+                  style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))", color: "white" }}
+                >
+                  <MessageCircle size={15} /> Consult RufayQ AI · <span className="font-arabic">استشر رُفَيِّق</span>
+                </button>
+              )}
             </div>
           )}
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import RufayQWordmark from "@/components/RufayQWordmark";
 import HeaderMenu, { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
+import { CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { medications, appointments } from "@/constants/data";
 import { Plus, MapPin, Video, Building2 } from "lucide-react";
@@ -43,12 +44,16 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
       },
     },
     {
+      icon: <CreditCard size={14} />, label: "Subscriptions & Payment", labelAr: "الاشتراكات والدفع",
+      onClick: () => { onNavigate("pricing"); },
+    },
+    {
       icon: <Settings size={14} />, label: "Settings", labelAr: "الإعدادات",
       onClick: () => { onNavigate("settings"); },
     },
     {
       icon: <HelpCircle size={14} />, label: "Help & Support", labelAr: "المساعدة",
-      onClick: () => { toast("Help · المساعدة", { description: "Support team available 24/7 · فريق الدعم متاح ٢٤/٧" }); },
+      onClick: () => { onNavigate("support"); },
     },
   ];
 
