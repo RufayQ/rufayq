@@ -124,7 +124,7 @@ const Index = () => {
       case "login":
         return <LoginScreen onLogin={handleLogin} />;
       case "medications":
-        return <MedicationsScreen onBack={() => setAppView("main")} />;
+        return <MedicationsScreen onBack={() => setAppView("main")} onConsultAI={(ctx) => handleNavigate("chat", ctx)} />;
       case "profile":
         return <ProfileScreen onBack={() => setAppView("main")} onLogout={handleLogout} />;
       case "settings":

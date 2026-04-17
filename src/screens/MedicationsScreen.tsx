@@ -7,13 +7,15 @@ import MedicationDetailSheet, { type MedNote } from "@/components/MedicationDeta
 
 interface MedicationsScreenProps {
   onBack: () => void;
+  onConsultAI?: (medContext: string) => void;
 }
 
-const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
+const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
   const [medNotes, setMedNotes] = useState<Record<string, MedNote[]>>({});
   const [medReminders, setMedReminders] = useState<Record<string, number[]>>({});
+  const [allergies] = useState<string[]>(["Penicillin", "Sulfa drugs", "Shellfish"]);
 
   const medKey = (m: Medication) => `${m.name}-${m.time}`;
 
@@ -82,6 +84,22 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
           {[`${medications.length} Medications`, "Next Due: 8PM", `${takenCount}/${medications.length} Taken`].map((s) => (
             <span key={s} className="font-mono text-[9px] px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>{s}</span>
           ))}
+        </div>
+      </div>
+
+      {/* Allergies banner */}
+      <div className="mx-4 mt-3 rounded-xl p-3 flex items-start gap-2.5" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.25)" }}>
+        <span className="text-base">⚠️</span>
+        <div className="flex-1">
+          <p className="text-[11px] font-bold" style={{ color: "var(--error)" }}>YOUR ALLERGIES · حساسياتك</p>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {allergies.map((a) => (
+              <span key={a} className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "var(--white)", color: "var(--error)", border: "1px solid var(--error)" }}>
+                {a}
+              </span>
+            ))}
+          </div>
+          <p className="font-arabic text-[10px] mt-1" dir="rtl" style={{ color: "var(--error)" }}>تأكد من خلو أدويتك من هذه المواد</p>
         </div>
       </div>
 
@@ -158,6 +176,11 @@ const MedicationsScreen = ({ onBack }: MedicationsScreenProps) => {
               const current = prev[key] || [];
               return { ...prev, [key]: current.includes(minutes) ? current.filter((m) => m !== minutes) : [...current, minutes] };
             });
+          }}
+          allergies={allergies}
+          onConsultAI={(med) => {
+            const ctx = `Please explain my medication: ${med.name} (${med.nameAr}). Dose: ${med.dosage}. Frequency: ${med.frequency}. Time: ${med.time}.${med.instructions ? ` Instructions: ${med.instructions}` : ""}${allergies.length ? ` My allergies: ${allergies.join(", ")}.` : ""}`;
+            onConsultAI?.(ctx);
           }}
         />
       )}
