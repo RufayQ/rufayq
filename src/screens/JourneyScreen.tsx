@@ -769,7 +769,20 @@ const StepsTab = ({
         );
       })}
 
-      <AddButton labelEn="＋ Add New Trip" labelAr="إضافة رحلة جديدة" onClick={onAddTrip} />
+      <div className="mt-2">
+        <button
+          onClick={onAddTrip}
+          className="w-full flex items-center justify-center gap-2 btn-press pulse-gold"
+          style={{ height: 56, borderRadius: 16, background: "linear-gradient(135deg, var(--gold), #B8884D)", color: "white", boxShadow: "0 6px 20px rgba(197,150,90,0.35)" }}
+        >
+          <Sparkles size={16} />
+          <span className="text-[14px] font-bold" style={{ fontFamily: "'DM Sans'" }}>＋ Add New Trip</span>
+          <span className="font-arabic text-[12px]" dir="rtl">إضافة رحلة جديدة</span>
+        </button>
+        <p className="text-center font-mono text-[9px] mt-2" style={{ color: "var(--gray)" }}>
+          Free tier: 1 trip · Pro: unlimited · <span className="font-arabic">الباقة المجانية: رحلة واحدة</span>
+        </p>
+      </div>
     </div>
   </div>
 );

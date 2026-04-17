@@ -136,7 +136,7 @@ const Index = () => {
       case "main":
         switch (activeTab) {
           case "home": return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;
-          case "journey": return <JourneyScreen onOpenScanner={openScanner} />;
+          case "journey": return <JourneyScreen onOpenScanner={openScanner} onNavigate={handleNavigate} />;
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
           case "carehub": return <CareHubScreen />;
           case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} />;
