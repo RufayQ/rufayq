@@ -296,19 +296,75 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: Transp
           <p className="font-arabic text-[8px]" dir="rtl" style={{ color: "var(--error)" }}>جميع معلومات النقل مُدخلة يدوياً. تحقق من شركة النقل مباشرة.</p>
         </div>
       </div>
-      {segments.map((seg) => (
-        <div key={seg.id}>
-          <TransportCard seg={seg} onTap={() => {
-            if (!ticketSystemReminders[seg.id]) {
-              setTicketSystemReminders((prev) => ({ ...prev, [seg.id]: getSystemReminders(seg) }));
-            }
-            setSelectedSeg(seg);
-          }} />
-          {seg.layoverAfter && (
-            <LayoverIndicator duration={seg.layoverAfter.duration} airport={seg.layoverAfter.airport} code={seg.layoverAfter.code} />
-          )}
-        </div>
-      ))}
+      {(() => {
+        const now = Date.now();
+        const annotated = segments.map((s) => {
+          const dep = new Date(s.departureDateTime).getTime();
+          const arr = new Date(s.arrivalDateTime).getTime();
+          let group: "current" | "upcoming" | "past";
+          if (now >= dep && now <= arr) group = "current";
+          else if (dep > now) group = "upcoming";
+          else group = "past";
+          return { seg: s, group };
+        });
+        const order = { current: 0, upcoming: 1, past: 2 };
+        annotated.sort((a, b) => {
+          if (order[a.group] !== order[b.group]) return order[a.group] - order[b.group];
+          return new Date(a.seg.departureDateTime).getTime() - new Date(b.seg.departureDateTime).getTime();
+        });
+        const sections: { key: string; label: string; labelAr: string; color: string; items: typeof annotated }[] = [
+          { key: "current", label: "IN PROGRESS", labelAr: "حالياً", color: "var(--success)", items: annotated.filter(a => a.group === "current") },
+          { key: "upcoming", label: "UPCOMING", labelAr: "قادم", color: "var(--gold)", items: annotated.filter(a => a.group === "upcoming") },
+          { key: "past", label: "PAST (LOCKED)", labelAr: "سابقة (مقفلة)", color: "var(--gray)", items: annotated.filter(a => a.group === "past") },
+        ];
+        return sections.map((sec) => sec.items.length === 0 ? null : (
+          <div key={sec.key} className="mb-3">
+            <div className="px-4 flex items-center gap-2 mb-1.5">
+              <div className="h-px flex-1" style={{ background: "var(--gray-light)" }} />
+              <span className="font-mono text-[9px] tracking-widest" style={{ color: sec.color }}>
+                {sec.label} · <span className="font-arabic">{sec.labelAr}</span>
+              </span>
+              <div className="h-px flex-1" style={{ background: "var(--gray-light)" }} />
+            </div>
+            {sec.items.map(({ seg, group }) => (
+              <div key={seg.id} style={{ opacity: group === "past" ? 0.85 : 1 }}>
+                <div className="relative">
+                  {group === "past" && (
+                    <div className="absolute top-2 right-6 z-10 flex items-center gap-1 px-2 py-1 rounded-full" style={{ background: "rgba(0,0,0,0.7)" }}>
+                      <Lock size={9} color="white" />
+                      <span className="font-mono text-[8px] text-white">READ-ONLY</span>
+                    </div>
+                  )}
+                  <TransportCard seg={seg} onTap={() => {
+                    if (group === "past") {
+                      toast.info("Past tickets are read-only · التذاكر السابقة للعرض فقط", { description: "Tap Replicate to copy as a future trip" });
+                      return;
+                    }
+                    if (!ticketSystemReminders[seg.id]) {
+                      setTicketSystemReminders((prev) => ({ ...prev, [seg.id]: getSystemReminders(seg) }));
+                    }
+                    setSelectedSeg(seg);
+                  }} />
+                </div>
+                {group === "past" && (
+                  <div className="mx-4 mb-3 -mt-2 flex justify-end">
+                    <button
+                      onClick={() => onReplicate(seg)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold btn-press"
+                      style={{ background: "var(--teal-light)", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}
+                    >
+                      <CopyIcon size={11} /> Replicate to future · <span className="font-arabic">إعادة لتاريخ مستقبلي</span>
+                    </button>
+                  </div>
+                )}
+                {seg.layoverAfter && (
+                  <LayoverIndicator duration={seg.layoverAfter.duration} airport={seg.layoverAfter.airport} code={seg.layoverAfter.code} />
+                )}
+              </div>
+            ))}
+          </div>
+        ));
+      })()}
       <div className="px-4 mt-2 space-y-2">
         <AddButton labelEn="＋ Add Transport" labelAr="إضافة وسيلة تنقل" onClick={onAdd} />
         {onScan && (
@@ -595,14 +651,39 @@ const StayTab = ({ onAdd, onScan }: { onAdd: () => void; onScan?: () => void }) 
 
 /* ─── STEPS TAB ─── */
 const StepsTab = ({
-  expanded, setExpanded, activeTrip, onAddTrip,
+  expanded, setExpanded, activeTrip, trips, onAddTrip,
 }: {
   expanded: number | null;
   setExpanded: (v: number | null) => void;
   activeTrip: TripData;
+  trips: TripData[];
   onAddTrip: () => void;
 }) => (
   <div>
+    {/* Trips overview — current vs past */}
+    {trips.length > 0 && (
+      <div className="px-4 pt-3">
+        <p className="font-mono text-[9px] tracking-widest mb-1.5" style={{ color: "var(--teal-deep)" }}>YOUR JOURNEYS · رحلاتك</p>
+        <div className="space-y-1.5">
+          {trips.map((t) => (
+            <div key={t.id} className="flex items-center gap-2 rounded-xl px-3 py-2" style={{
+              background: t.status === "active" ? "var(--gold-pale)" : "var(--white)",
+              border: t.status === "active" ? "1px solid var(--gold)" : "1px solid var(--gray-light)",
+            }}>
+              <span className="text-base">{t.specialtyEmoji || "🏥"}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{t.destination} · {t.specialty}</p>
+                <p className="text-[10px]" style={{ color: "var(--gray)" }}>{t.hospital} · {t.departureDate}</p>
+              </div>
+              <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full" style={{
+                background: t.status === "active" ? "var(--gold)" : "var(--off-white)",
+                color: t.status === "active" ? "white" : "var(--gray)",
+              }}>{t.status === "active" ? "CURRENT" : "UPCOMING"}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
     {/* Phase Badges */}
     <div className="flex gap-2 px-4 py-3">
       {phases.map((p) => (
