@@ -398,6 +398,25 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
             </>
           );
         })()}
+
+        {/* FEEDBACK VIEW */}
+        {viewMode === "feedback" && (
+          <>
+            <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}>
+              <div className="flex items-center gap-3">
+                <Star size={22} fill="var(--gold)" color="var(--gold)" />
+                <div className="flex-1">
+                  <p className="text-[13px] font-semibold text-white">Help us improve RufayQ</p>
+                  <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "rgba(255,255,255,0.6)" }}>ساعدنا في تطوير التطبيق</p>
+                </div>
+              </div>
+            </div>
+            <ReviewForm onSubmitted={() => setViewMode("list")} />
+            <p className="text-center text-[10px]" style={{ color: "var(--gray)" }}>
+              Approved reviews appear on rufayq.com · المراجعات المعتمدة تظهر على الموقع
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
