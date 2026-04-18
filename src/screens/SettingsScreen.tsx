@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette } from "lucide-react";
+import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy } from "lucide-react";
 import { toast } from "sonner";
 
 interface SettingsScreenProps {
@@ -183,8 +183,44 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           </div>
         </div>
 
+        {/* About & Links */}
+        <div className="mx-4 mt-5">
+          <div className="flex items-center gap-2 mb-1.5 px-1">
+            <Globe size={13} style={{ color: "var(--gold)" }} />
+            <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>ABOUT & LINKS · حول</p>
+          </div>
+          <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+            {[
+              { icon: <Globe size={15} style={{ color: "var(--teal-deep)" }} />, label: "Visit RufayQ Website", labelAr: "زيارة موقع رُفَيِّق", href: "https://rufayq.com" },
+              { icon: <CreditCard size={15} style={{ color: "var(--gold)" }} />, label: "Pricing & Plans", labelAr: "الأسعار والباقات", href: "https://rufayq.com#pricing" },
+              { icon: <LifeBuoy size={15} style={{ color: "var(--teal-mid)" }} />, label: "Help Center", labelAr: "مركز المساعدة", href: "https://rufayq.com#faq" },
+              { icon: <Mail size={15} style={{ color: "var(--success)" }} />, label: "Contact Support", labelAr: "تواصل معنا", href: "mailto:support@rufayq.com" },
+              { icon: <FileText size={15} style={{ color: "var(--gray)" }} />, label: "Privacy Policy", labelAr: "سياسة الخصوصية", href: "https://rufayq.com/privacy" },
+              { icon: <FileText size={15} style={{ color: "var(--gray)" }} />, label: "Terms of Service", labelAr: "شروط الاستخدام", href: "https://rufayq.com/terms" },
+            ].map((link, i, arr) => (
+              <a
+                key={link.label}
+                href={link.href}
+                target={link.href.startsWith("http") ? "_blank" : undefined}
+                rel="noopener noreferrer"
+                className="flex items-center justify-between py-3 px-4 btn-press"
+                style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--gray-light)" : "none" }}
+              >
+                <div className="flex items-center gap-3">
+                  {link.icon}
+                  <div>
+                    <p className="text-[13px]" style={{ color: "var(--navy)" }}>{link.label}</p>
+                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{link.labelAr}</p>
+                  </div>
+                </div>
+                <ExternalLink size={13} style={{ color: "var(--gray)" }} />
+              </a>
+            ))}
+          </div>
+        </div>
+
         <p className="text-center font-mono text-[9px] mt-4" style={{ color: "var(--gray)" }}>
-          RufayQ v1.0 · Settings
+          RufayQ v1.0 · Settings · <a href="https://rufayq.com" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-deep)" }}>rufayq.com</a>
         </p>
       </div>
     </div>
