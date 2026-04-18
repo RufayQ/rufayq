@@ -181,7 +181,10 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
                 </button>
               </div>
             ) : (
-              tickets.map(ticket => {
+              [...tickets].sort((a, b) => {
+                const order: Record<string, number> = { in_progress: 0, open: 1, resolved: 2, closed: 3 };
+                return (order[a.status] ?? 9) - (order[b.status] ?? 9);
+              }).map(ticket => {
                 const sc = statusConfig[ticket.status];
                 const Icon = sc.icon;
                 return (
