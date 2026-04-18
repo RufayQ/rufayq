@@ -689,15 +689,31 @@ const StayTab = ({ onAdd, onScan }: { onAdd: () => void; onScan?: () => void }) 
 
 /* ─── STEPS TAB ─── */
 const StepsTab = ({
-  expanded, setExpanded, activeTrip, trips, onAddTrip,
+  expanded, setExpanded, activeTrip, trips, steps, onAddTrip, onEditTrip, onEditStep, onAddStep,
 }: {
   expanded: number | null;
   setExpanded: (v: number | null) => void;
   activeTrip: TripData;
   trips: TripData[];
+  steps: JourneyStep[];
   onAddTrip: () => void;
+  onEditTrip: () => void;
+  onEditStep: (s: JourneyStep) => void;
+  onAddStep: () => void;
 }) => (
   <div>
+    {/* PROMINENT ADD-TRIP CTA at top */}
+    <div className="px-4 pt-3">
+      <button
+        onClick={onAddTrip}
+        className="w-full flex items-center justify-center gap-2 btn-press"
+        style={{ height: 48, borderRadius: 14, background: "linear-gradient(135deg, var(--gold), #B8884D)", color: "white", boxShadow: "0 6px 20px rgba(197,150,90,0.3)" }}
+      >
+        <Plus size={16} />
+        <span className="text-[13px] font-bold" style={{ fontFamily: "'DM Sans'" }}>＋ Add New Trip</span>
+        <span className="font-arabic text-[12px]" dir="rtl">إضافة رحلة جديدة</span>
+      </button>
+    </div>
     {/* Trips overview — current vs past */}
     {trips.length > 0 && (
       <div className="px-4 pt-3">
@@ -736,7 +752,7 @@ const StepsTab = ({
     {/* Timeline */}
     <div className="px-4 pb-4">
       {phases.map((phase) => {
-        const phaseSteps = journeySteps.filter((s) => s.phase === phase.key);
+        const phaseSteps = steps.filter((s) => s.phase === phase.key);
         return (
           <div key={phase.key}>
             <div className="flex items-center gap-2 my-3">
