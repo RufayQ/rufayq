@@ -69,11 +69,14 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const [expanded, setExpanded] = useState<number | null>(null);
   const [trips, setTrips] = useState<TripData[]>([defaultTrip]);
   const [showAddTrip, setShowAddTrip] = useState(false);
+  const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
   const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(defaultTransportSegments);
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
+  const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(defaultJourneySteps);
+  const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
   const { isActive: trialActive } = useTrial();
 
   const activeTrip = trips.find((t) => t.status === "active") || trips[0];
