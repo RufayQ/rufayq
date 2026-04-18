@@ -193,6 +193,13 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
           }}
         />
       )}
+
+      <AddMedicationSheet
+        open={showAddMed}
+        onClose={() => setShowAddMed(false)}
+        onSubmit={(med) => setExtraMeds(prev => [...prev, med])}
+        allergies={allergies}
+      />
     </div>
   );
 };
