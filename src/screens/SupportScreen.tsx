@@ -181,7 +181,10 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
                 </button>
               </div>
             ) : (
-              tickets.map(ticket => {
+              [...tickets].sort((a, b) => {
+                const order: Record<string, number> = { in_progress: 0, open: 1, resolved: 2, closed: 3 };
+                return (order[a.status] ?? 9) - (order[b.status] ?? 9);
+              }).map(ticket => {
                 const sc = statusConfig[ticket.status];
                 const Icon = sc.icon;
                 return (
@@ -211,16 +214,43 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
               })
             )}
 
-            {/* Contact Info */}
+            {/* Contact Channels */}
+            <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              <div className="px-4 pt-3 pb-2">
+                <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>CONTACT US · تواصل معنا</p>
+                <p className="text-[10px]" style={{ color: "var(--gray)" }}>Reach our team directly via your preferred channel</p>
+              </div>
+              {[
+                { emoji: "📧", label: "Email Support", labelAr: "البريد الإلكتروني", value: "support@rufayq.com", href: "mailto:support@rufayq.com?subject=RufayQ%20Support%20Request", color: "var(--teal-deep)" },
+                { emoji: "💬", label: "WhatsApp", labelAr: "واتساب", value: "+966 50 123 4567", href: "https://wa.me/966501234567?text=Hello%20RufayQ%20support%2C%20I%20need%20help%20with%3A", color: "var(--success)" },
+                { emoji: "📞", label: "Call us 24/7", labelAr: "اتصل بنا", value: "+966 800 123 456", href: "tel:+966800123456", color: "var(--gold)" },
+                { emoji: "🌐", label: "Visit website", labelAr: "زيارة الموقع", value: "rufayq.com", href: "https://rufayq.com", color: "var(--teal-mid)" },
+              ].map((c, i, arr) => (
+                <a key={c.label} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-4 py-3 btn-press"
+                  style={{ borderTop: i > 0 ? "1px solid var(--gray-light)" : "none" }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0" style={{ background: "var(--off-white)" }}>
+                    {c.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{c.label}</p>
+                    <p className="text-[10px] truncate" style={{ color: c.color }}>{c.value}</p>
+                  </div>
+                  <span className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{c.labelAr}</span>
+                </a>
+              ))}
+            </div>
+
+            {/* Urgent banner */}
             <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
                   <RufayQLogo size={20} variant="light" />
                 </div>
-                <div>
-                  <p className="text-[13px] font-semibold text-white">Need urgent help?</p>
-                  <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>تحتاج مساعدة عاجلة؟</p>
-                  <p className="text-[10px] mt-1" style={{ color: "var(--gold)" }}>support@rufayq.com · Available 24/7</p>
+                <div className="flex-1">
+                  <p className="text-[13px] font-semibold text-white">Need urgent medical help?</p>
+                  <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>تحتاج مساعدة طبية عاجلة؟</p>
+                  <p className="text-[10px] mt-1" style={{ color: "var(--gold)" }}>Call your local emergency number — RufayQ is not a medical service.</p>
                 </div>
               </div>
             </div>

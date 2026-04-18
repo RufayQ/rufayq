@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Copy, Share2, Download, RefreshCw } from "lucide-react
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import MedicationDetailSheet, { type MedNote } from "@/components/MedicationDetailSheet";
+import AddMedicationSheet from "@/components/AddMedicationSheet";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -16,6 +17,9 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   const [medNotes, setMedNotes] = useState<Record<string, MedNote[]>>({});
   const [medReminders, setMedReminders] = useState<Record<string, number[]>>({});
   const [allergies] = useState<string[]>(["Penicillin", "Sulfa drugs", "Shellfish"]);
+  const [extraMeds, setExtraMeds] = useState<Medication[]>([]);
+  const [showAddMed, setShowAddMed] = useState(false);
+  const allMeds = [...medications, ...extraMeds];
 
   const medKey = (m: Medication) => `${m.name}-${m.time}`;
 
@@ -31,7 +35,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
     { key: "evening", label: "Evening", time: "6:00 PM — 10:00 PM", color: "var(--warning)" },
   ];
 
-  const takenCount = medications.filter((m) => m.status === "taken").length + takenIds.size;
+  const takenCount = allMeds.filter((m) => m.status === "taken").length + takenIds.size;
 
   const handleCopyAllMeds = () => {
     const text = medications.map(m =>
@@ -78,10 +82,15 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
         <div className="flex items-center justify-between mb-3">
           <button onClick={onBack} className="btn-press"><ArrowLeft size={20} color="white" /></button>
           <p className="font-display text-lg text-white">Medications · <span className="font-arabic">الأدوية</span></p>
-          <HeaderMenu items={medsMenuItems} />
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowAddMed(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold btn-press" style={{ background: "var(--gold)", color: "white" }}>
+              <Plus size={12} /> Add
+            </button>
+            <HeaderMenu items={medsMenuItems} />
+          </div>
         </div>
         <div className="flex gap-2">
-          {[`${medications.length} Medications`, "Next Due: 8PM", `${takenCount}/${medications.length} Taken`].map((s) => (
+          {[`${allMeds.length} Medications`, "Next Due: 8PM", `${takenCount}/${allMeds.length} Taken`].map((s) => (
             <span key={s} className="font-mono text-[9px] px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>{s}</span>
           ))}
         </div>
@@ -108,7 +117,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
         <p className="font-mono text-[10px] tracking-widest mt-3 mb-2" style={{ color: "var(--gray)" }}>TODAY'S SCHEDULE</p>
 
         {periods.map((period) => {
-          const meds = medications.filter((m) => m.period === period.key);
+          const meds = allMeds.filter((m) => m.period === period.key);
           if (meds.length === 0) return null;
           return (
             <div key={period.key} className="mb-4">
@@ -184,6 +193,13 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
           }}
         />
       )}
+
+      <AddMedicationSheet
+        open={showAddMed}
+        onClose={() => setShowAddMed(false)}
+        onSubmit={(med) => setExtraMeds(prev => [...prev, med])}
+        allergies={allergies}
+      />
     </div>
   );
 };

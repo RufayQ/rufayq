@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
-import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2 } from "lucide-react";
-import { journeySteps, defaultTransportSegments, appointments, type Appointment } from "@/constants/data";
+import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard } from "lucide-react";
+import { journeySteps as defaultJourneySteps, defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
+import EditTripSheet from "@/components/EditTripSheet";
+import EditStepSheet from "@/components/EditStepSheet";
 import { InlineFlightRow } from "@/components/FlightTicketCard";
 import TransportCard, { LayoverIndicator, type TransportSegment } from "@/components/TransportCard";
 import TicketDetailSheet, { type OverrideAnnotation, type SmartReminder, getSystemReminders } from "@/components/TicketDetailSheet";
@@ -67,11 +69,14 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const [expanded, setExpanded] = useState<number | null>(null);
   const [trips, setTrips] = useState<TripData[]>([defaultTrip]);
   const [showAddTrip, setShowAddTrip] = useState(false);
+  const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
   const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(defaultTransportSegments);
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
+  const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(defaultJourneySteps);
+  const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
   const { isActive: trialActive } = useTrial();
 
   const activeTrip = trips.find((t) => t.status === "active") || trips[0];
@@ -130,10 +135,24 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     toast.success("Journey exported · تم تصدير الرحلة", { duration: 2000 });
   };
 
+  const handleAddStep = () => {
+    const id = Math.max(...journeySteps.map(s => s.id), 0) + 1;
+    const newStep: JourneyStep = {
+      id, titleEn: "New Step", titleAr: "خطوة جديدة", date: "TBD", status: "pending", phase: "before",
+    };
+    setJourneySteps(prev => [...prev, newStep]);
+    setEditingStep(newStep);
+  };
+
   const journeyMenuItems: HeaderMenuItem[] = [
+    { icon: <Edit3 size={14} />, label: "Edit Current Trip", labelAr: "تعديل الرحلة الحالية", onClick: () => setShowEditTrip(true) },
+    { icon: <Plus size={14} />, label: "Add Journey Step", labelAr: "إضافة خطوة", onClick: handleAddStep },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص", onClick: handleCopyJourney },
     { icon: <Download size={14} />, label: "Export Journey", labelAr: "تصدير الرحلة", onClick: handleExportJourney },
     { icon: <Share2 size={14} />, label: "Share Progress", labelAr: "مشاركة التقدم", onClick: handleShareJourney },
+    { icon: <CreditCard size={14} />, label: "Subscriptions", labelAr: "الاشتراكات", onClick: () => onNavigate?.("pricing") },
+    { icon: <SettingsIcon size={14} />, label: "Settings", labelAr: "الإعدادات", onClick: () => onNavigate?.("settings") },
+    { icon: <HelpCircle size={14} />, label: "Help & Support", labelAr: "المساعدة", onClick: () => onNavigate?.("support") },
   ];
 
   return (
@@ -189,7 +208,11 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         {activeSubTab === "steps" && (
           <StepsTab
             expanded={expanded} setExpanded={setExpanded} activeTrip={activeTrip} trips={trips}
+            steps={journeySteps}
             onAddTrip={() => { if (requireProForAddTrip()) setShowAddTrip(true); }}
+            onEditTrip={() => setShowEditTrip(true)}
+            onEditStep={(s) => setEditingStep(s)}
+            onAddStep={handleAddStep}
           />
         )}
       </div>
@@ -204,6 +227,21 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       />
 
       <AddTripSheet open={showAddTrip} onClose={() => setShowAddTrip(false)} onSubmit={handleAddTrip} />
+
+      <EditTripSheet
+        open={showEditTrip}
+        trip={activeTrip}
+        onClose={() => setShowEditTrip(false)}
+        onSave={(updated) => setTrips(prev => prev.map(t => t.id === updated.id ? updated : t))}
+      />
+
+      <EditStepSheet
+        open={!!editingStep}
+        step={editingStep}
+        onClose={() => setEditingStep(null)}
+        onSave={(updated) => setJourneySteps(prev => prev.map(s => s.id === updated.id ? updated : s))}
+        onDelete={(id) => setJourneySteps(prev => prev.filter(s => s.id !== id))}
+      />
 
       {/* Add Transport Sheet */}
       {showAddTransport && (
@@ -651,19 +689,40 @@ const StayTab = ({ onAdd, onScan }: { onAdd: () => void; onScan?: () => void }) 
 
 /* ─── STEPS TAB ─── */
 const StepsTab = ({
-  expanded, setExpanded, activeTrip, trips, onAddTrip,
+  expanded, setExpanded, activeTrip, trips, steps, onAddTrip, onEditTrip, onEditStep, onAddStep,
 }: {
   expanded: number | null;
   setExpanded: (v: number | null) => void;
   activeTrip: TripData;
   trips: TripData[];
+  steps: JourneyStep[];
   onAddTrip: () => void;
+  onEditTrip: () => void;
+  onEditStep: (s: JourneyStep) => void;
+  onAddStep: () => void;
 }) => (
   <div>
+    {/* PROMINENT ADD-TRIP CTA at top */}
+    <div className="px-4 pt-3">
+      <button
+        onClick={onAddTrip}
+        className="w-full flex items-center justify-center gap-2 btn-press"
+        style={{ height: 48, borderRadius: 14, background: "linear-gradient(135deg, var(--gold), #B8884D)", color: "white", boxShadow: "0 6px 20px rgba(197,150,90,0.3)" }}
+      >
+        <Plus size={16} />
+        <span className="text-[13px] font-bold" style={{ fontFamily: "'DM Sans'" }}>＋ Add New Trip</span>
+        <span className="font-arabic text-[12px]" dir="rtl">إضافة رحلة جديدة</span>
+      </button>
+    </div>
     {/* Trips overview — current vs past */}
     {trips.length > 0 && (
       <div className="px-4 pt-3">
-        <p className="font-mono text-[9px] tracking-widest mb-1.5" style={{ color: "var(--teal-deep)" }}>YOUR JOURNEYS · رحلاتك</p>
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR JOURNEYS · رحلاتك</p>
+          <button onClick={onEditTrip} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold btn-press" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
+            <Edit3 size={10} /> Edit Current Trip
+          </button>
+        </div>
         <div className="space-y-1.5">
           {trips.map((t) => (
             <div key={t.id} className="flex items-center gap-2 rounded-xl px-3 py-2" style={{
@@ -698,7 +757,7 @@ const StepsTab = ({
     {/* Timeline */}
     <div className="px-4 pb-4">
       {phases.map((phase) => {
-        const phaseSteps = journeySteps.filter((s) => s.phase === phase.key);
+        const phaseSteps = steps.filter((s) => s.phase === phase.key);
         return (
           <div key={phase.key}>
             <div className="flex items-center gap-2 my-3">
@@ -743,6 +802,9 @@ const StepsTab = ({
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{step.date}</span>
+                            <button onClick={(e) => { e.stopPropagation(); onEditStep(step); }} className="w-6 h-6 rounded-full flex items-center justify-center btn-press" style={{ background: "var(--off-white)" }}>
+                              <Edit3 size={10} style={{ color: "var(--teal-deep)" }} />
+                            </button>
                             {isExpanded ? <ChevronUp size={12} color="var(--gray)" /> : <ChevronDown size={12} color="var(--gray)" />}
                           </div>
                         </div>
