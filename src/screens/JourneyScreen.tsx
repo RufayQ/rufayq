@@ -717,7 +717,12 @@ const StepsTab = ({
     {/* Trips overview — current vs past */}
     {trips.length > 0 && (
       <div className="px-4 pt-3">
-        <p className="font-mono text-[9px] tracking-widest mb-1.5" style={{ color: "var(--teal-deep)" }}>YOUR JOURNEYS · رحلاتك</p>
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR JOURNEYS · رحلاتك</p>
+          <button onClick={onEditTrip} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold btn-press" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
+            <Edit3 size={10} /> Edit Current Trip
+          </button>
+        </div>
         <div className="space-y-1.5">
           {trips.map((t) => (
             <div key={t.id} className="flex items-center gap-2 rounded-xl px-3 py-2" style={{
@@ -797,6 +802,9 @@ const StepsTab = ({
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{step.date}</span>
+                            <button onClick={(e) => { e.stopPropagation(); onEditStep(step); }} className="w-6 h-6 rounded-full flex items-center justify-center btn-press" style={{ background: "var(--off-white)" }}>
+                              <Edit3 size={10} style={{ color: "var(--teal-deep)" }} />
+                            </button>
                             {isExpanded ? <ChevronUp size={12} color="var(--gray)" /> : <ChevronDown size={12} color="var(--gray)" />}
                           </div>
                         </div>
