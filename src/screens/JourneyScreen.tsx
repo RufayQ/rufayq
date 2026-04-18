@@ -135,10 +135,24 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     toast.success("Journey exported · تم تصدير الرحلة", { duration: 2000 });
   };
 
+  const handleAddStep = () => {
+    const id = Math.max(...journeySteps.map(s => s.id), 0) + 1;
+    const newStep: JourneyStep = {
+      id, titleEn: "New Step", titleAr: "خطوة جديدة", date: "TBD", status: "pending", phase: "before",
+    };
+    setJourneySteps(prev => [...prev, newStep]);
+    setEditingStep(newStep);
+  };
+
   const journeyMenuItems: HeaderMenuItem[] = [
+    { icon: <Edit3 size={14} />, label: "Edit Current Trip", labelAr: "تعديل الرحلة الحالية", onClick: () => setShowEditTrip(true) },
+    { icon: <Plus size={14} />, label: "Add Journey Step", labelAr: "إضافة خطوة", onClick: handleAddStep },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص", onClick: handleCopyJourney },
     { icon: <Download size={14} />, label: "Export Journey", labelAr: "تصدير الرحلة", onClick: handleExportJourney },
     { icon: <Share2 size={14} />, label: "Share Progress", labelAr: "مشاركة التقدم", onClick: handleShareJourney },
+    { icon: <CreditCard size={14} />, label: "Subscriptions", labelAr: "الاشتراكات", onClick: () => onNavigate?.("pricing") },
+    { icon: <SettingsIcon size={14} />, label: "Settings", labelAr: "الإعدادات", onClick: () => onNavigate?.("settings") },
+    { icon: <HelpCircle size={14} />, label: "Help & Support", labelAr: "المساعدة", onClick: () => onNavigate?.("support") },
   ];
 
   return (
@@ -194,7 +208,11 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         {activeSubTab === "steps" && (
           <StepsTab
             expanded={expanded} setExpanded={setExpanded} activeTrip={activeTrip} trips={trips}
+            steps={journeySteps}
             onAddTrip={() => { if (requireProForAddTrip()) setShowAddTrip(true); }}
+            onEditTrip={() => setShowEditTrip(true)}
+            onEditStep={(s) => setEditingStep(s)}
+            onAddStep={handleAddStep}
           />
         )}
       </div>
@@ -209,6 +227,21 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       />
 
       <AddTripSheet open={showAddTrip} onClose={() => setShowAddTrip(false)} onSubmit={handleAddTrip} />
+
+      <EditTripSheet
+        open={showEditTrip}
+        trip={activeTrip}
+        onClose={() => setShowEditTrip(false)}
+        onSave={(updated) => setTrips(prev => prev.map(t => t.id === updated.id ? updated : t))}
+      />
+
+      <EditStepSheet
+        open={!!editingStep}
+        step={editingStep}
+        onClose={() => setEditingStep(null)}
+        onSave={(updated) => setJourneySteps(prev => prev.map(s => s.id === updated.id ? updated : s))}
+        onDelete={(id) => setJourneySteps(prev => prev.filter(s => s.id !== id))}
+      />
 
       {/* Add Transport Sheet */}
       {showAddTransport && (
