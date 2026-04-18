@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Clock, CheckCircle, AlertCircle, MessageCircle, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, Clock, CheckCircle, AlertCircle, MessageCircle, ChevronDown, Star } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
+import ReviewForm from "@/components/ReviewForm";
 
 type TicketRow = {
   id: string;
@@ -17,7 +18,7 @@ type TicketRow = {
   updated_at: string;
 };
 
-type ViewMode = "list" | "create" | "detail";
+type ViewMode = "list" | "create" | "detail" | "feedback";
 
 const categoryOptions = [
   { value: "billing", emoji: "💳", en: "Billing", ar: "الفواتير" },
@@ -116,16 +117,21 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
           <div className="flex-1">
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "rgba(255,255,255,0.4)" }}>CUSTOMER SUPPORT</p>
             <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>
-              {viewMode === "create" ? "New Ticket" : viewMode === "detail" ? "Ticket Details" : "Help Center"}
+              {viewMode === "create" ? "New Ticket" : viewMode === "detail" ? "Ticket Details" : viewMode === "feedback" ? "Share Feedback" : "Help Center"}
             </p>
             <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>
-              {viewMode === "create" ? "تذكرة جديدة" : viewMode === "detail" ? "تفاصيل التذكرة" : "مركز المساعدة"}
+              {viewMode === "create" ? "تذكرة جديدة" : viewMode === "detail" ? "تفاصيل التذكرة" : viewMode === "feedback" ? "شارك رأيك" : "مركز المساعدة"}
             </p>
           </div>
           {viewMode === "list" && (
-            <button onClick={() => setViewMode("create")} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
-              <Plus size={12} /> New
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setViewMode("feedback")} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "rgba(255,255,255,0.1)", color: "#fff" }}>
+                <Star size={11} /> Review
+              </button>
+              <button onClick={() => setViewMode("create")} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
+                <Plus size={12} /> New
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -221,10 +227,10 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
                 <p className="text-[10px]" style={{ color: "var(--gray)" }}>Reach our team directly via your preferred channel</p>
               </div>
               {[
-                { emoji: "📧", label: "Email Support", labelAr: "البريد الإلكتروني", value: "support@rufayq.com", href: "mailto:support@rufayq.com?subject=RufayQ%20Support%20Request", color: "var(--teal-deep)" },
-                { emoji: "💬", label: "WhatsApp", labelAr: "واتساب", value: "+966 50 123 4567", href: "https://wa.me/966501234567?text=Hello%20RufayQ%20support%2C%20I%20need%20help%20with%3A", color: "var(--success)" },
-                { emoji: "📞", label: "Call us 24/7", labelAr: "اتصل بنا", value: "+966 800 123 456", href: "tel:+966800123456", color: "var(--gold)" },
-                { emoji: "🌐", label: "Visit website", labelAr: "زيارة الموقع", value: "rufayq.com", href: "https://rufayq.com", color: "var(--teal-mid)" },
+                { emoji: "📧", label: "Email Support", labelAr: "البريد الإلكتروني", value: "support@rufayq.com", sub: "Reply within 24 hours", href: "mailto:support@rufayq.com?subject=RufayQ%20Support%20Request", color: "var(--teal-deep)" },
+                { emoji: "💬", label: "WhatsApp · Fast Support", labelAr: "واتساب", value: "+966 56 959 0418", sub: "Live · 8AM–10PM AST", href: "https://wa.me/966569590418?text=Hello%20RufayQ%20support%2C%20I%20need%20help%20with%3A", color: "var(--success)" },
+                { emoji: "📞", label: "Mobile (Direct)", labelAr: "اتصل بنا", value: "+966 56 959 0418", sub: "For urgent cases", href: "tel:+966569590418", color: "var(--gold)" },
+                { emoji: "🌐", label: "Visit website", labelAr: "زيارة الموقع", value: "rufayq.com", sub: "FAQs · Privacy · Terms", href: "https://rufayq.com", color: "var(--teal-mid)" },
               ].map((c, i, arr) => (
                 <a key={c.label} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
                   className="flex items-center gap-3 px-4 py-3 btn-press"
@@ -235,11 +241,26 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{c.label}</p>
                     <p className="text-[10px] truncate" style={{ color: c.color }}>{c.value}</p>
+                    {(c as any).sub && <p className="text-[9px] truncate" style={{ color: "var(--gray)" }}>{(c as any).sub}</p>}
                   </div>
                   <span className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{c.labelAr}</span>
                 </a>
               ))}
             </div>
+
+            {/* Feedback CTA */}
+            <button onClick={() => setViewMode("feedback")}
+              className="w-full rounded-xl p-4 flex items-center gap-3 btn-press"
+              style={{ background: "var(--white)", border: "1px solid var(--gold)" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(197,150,90,0.12)" }}>
+                <Star size={18} fill="var(--gold)" color="var(--gold)" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>Share your feedback</p>
+                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>شاركنا رأيك واقتراحاتك</p>
+              </div>
+              <span className="text-[10px] font-mono" style={{ color: "var(--gold)" }}>RATE →</span>
+            </button>
 
             {/* Urgent banner */}
             <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}>
@@ -377,6 +398,25 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
             </>
           );
         })()}
+
+        {/* FEEDBACK VIEW */}
+        {viewMode === "feedback" && (
+          <>
+            <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}>
+              <div className="flex items-center gap-3">
+                <Star size={22} fill="var(--gold)" color="var(--gold)" />
+                <div className="flex-1">
+                  <p className="text-[13px] font-semibold text-white">Help us improve RufayQ</p>
+                  <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "rgba(255,255,255,0.6)" }}>ساعدنا في تطوير التطبيق</p>
+                </div>
+              </div>
+            </div>
+            <ReviewForm onSubmitted={() => setViewMode("list")} />
+            <p className="text-center text-[10px]" style={{ color: "var(--gray)" }}>
+              Approved reviews appear on rufayq.com · المراجعات المعتمدة تظهر على الموقع
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

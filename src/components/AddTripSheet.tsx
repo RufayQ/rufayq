@@ -18,6 +18,14 @@ export interface FlightInfo {
   seatNumber: string;
 }
 
+export interface Companion {
+  name: string;
+  relation: string; // Wife, Son, Daughter, Brother, Father, Mother, Other
+  idOrPassport: string;
+  dob: string;
+  seatNumber?: string;
+}
+
 export interface TripData {
   id: string;
   destination: string;
@@ -29,6 +37,7 @@ export interface TripData {
   treatingDoctor: string;
   companion: boolean;
   companionName: string;
+  companions?: Companion[];
   insuranceRef: string;
   status: "active" | "upcoming";
   outboundFlight: FlightInfo | null;
@@ -84,7 +93,14 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
   const [doctor, setDoctor] = useState("");
   const [companion, setCompanion] = useState<boolean | null>(null);
   const [companionName, setCompanionName] = useState("");
+  const [companions, setCompanions] = useState<Companion[]>([]);
   const [insuranceRef, setInsuranceRef] = useState("");
+
+  const addCompanion = () => setCompanions([...companions, { name: "", relation: "Wife", idOrPassport: "", dob: "", seatNumber: "" }]);
+  const updateCompanion = (i: number, field: keyof Companion, val: string) => {
+    const next = [...companions]; (next[i] as any)[field] = val; setCompanions(next);
+  };
+  const removeCompanion = (i: number) => setCompanions(companions.filter((_, idx) => idx !== i));
 
   // Flight fields
   const [showReturnFlight, setShowReturnFlight] = useState(false);
@@ -146,20 +162,23 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
       };
     };
 
+    const validCompanions = companions.filter((c) => c.name.trim());
     const trip: TripData = {
       id: `trip-${Date.now()}`,
       destination, hospital, specialty, specialtyEmoji,
       departureDate, returnDate,
       treatingDoctor: doctor,
-      companion: companion === true,
-      companionName, insuranceRef,
+      companion: companion === true || validCompanions.length > 0,
+      companionName: validCompanions[0]?.name || companionName,
+      companions: validCompanions.length > 0 ? validCompanions : undefined,
+      insuranceRef,
       status: "active",
       outboundFlight: buildFlight(outAirline, outFlightNum, outPNR, outFrom, outTo, outDepDate, outDepTime, outArrDate, outArrTime, outClass, outSeat),
       returnFlight: showReturnFlight ? buildFlight(retAirline, retFlightNum, retPNR, retFrom, retTo, retDepDate, retDepTime, retArrDate, retArrTime, retClass, retSeat) : null,
     };
 
     onSubmit(trip);
-    toast.success("✓ New trip added! / تمت إضافة الرحلة بنجاح");
+    toast.success(`✓ Trip added${validCompanions.length ? ` with ${validCompanions.length} companion(s)` : ""}!`);
     onClose();
   };
 
@@ -324,15 +343,33 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
             <input value={doctor} onChange={(e) => setDoctor(e.target.value)} placeholder="Dr. Full Name / د. الاسم الكامل" style={inputStyle("")} />
           </div>
 
+          {/* Legacy single-companion question removed — replaced by Companions array below */}
+
           <div>
-            <Label en="Is a companion traveling with you?" ar="هل معك مرافق؟" />
-            <PillSelect options={[{ en: "Yes", ar: "نعم" }, { en: "No", ar: "لا" }]} value={companion === true ? "Yes" : companion === false ? "No" : ""} onChange={(v) => setCompanion(v === "Yes")} />
-            {companion && (
-              <div className="mt-3">
-                <Label en="Companion Name" ar="اسم المرافق" />
-                <input value={companionName} onChange={(e) => setCompanionName(e.target.value)} style={inputStyle("")} />
+            <Label en="Companions traveling with you" ar="المرافقون معك" />
+            <p className="text-[10px] mb-2" style={{ color: "var(--gray)" }}>e.g. wife + 2 children for treatment in Turkey · أضف كل مرافق</p>
+            {companions.map((c, i) => (
+              <div key={i} className="rounded-xl p-3 mb-2 space-y-2" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+                <div className="flex items-center justify-between">
+                  <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>COMPANION {i + 1}</p>
+                  <button onClick={() => removeCompanion(i)} className="text-[10px]" style={{ color: "var(--error)" }}>Remove</button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input value={c.name} onChange={(e) => updateCompanion(i, "name", e.target.value)} placeholder="Full name" style={{ ...inputStyle(""), height: 40 }} />
+                  <select value={c.relation} onChange={(e) => updateCompanion(i, "relation", e.target.value)} style={{ ...inputStyle(""), height: 40 }}>
+                    {["Wife", "Husband", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Other"].map((r) => <option key={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input value={c.idOrPassport} onChange={(e) => updateCompanion(i, "idOrPassport", e.target.value)} placeholder="ID / Passport" style={{ ...inputStyle(""), height: 40 }} />
+                  <input type="date" value={c.dob} onChange={(e) => updateCompanion(i, "dob", e.target.value)} style={{ ...inputStyle(""), height: 40 }} />
+                </div>
+                <input value={c.seatNumber || ""} onChange={(e) => updateCompanion(i, "seatNumber", e.target.value)} placeholder="Seat (optional, e.g. 24B)" style={{ ...inputStyle(""), height: 40 }} />
               </div>
-            )}
+            ))}
+            <button onClick={addCompanion} className="w-full py-2.5 rounded-xl text-[12px] font-medium btn-press" style={{ background: "var(--white)", border: "1px dashed var(--teal-deep)", color: "var(--teal-deep)" }}>
+              + Add companion · إضافة مرافق
+            </button>
           </div>
 
           <div>
