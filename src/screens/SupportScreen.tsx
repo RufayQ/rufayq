@@ -241,11 +241,26 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{c.label}</p>
                     <p className="text-[10px] truncate" style={{ color: c.color }}>{c.value}</p>
+                    {(c as any).sub && <p className="text-[9px] truncate" style={{ color: "var(--gray)" }}>{(c as any).sub}</p>}
                   </div>
                   <span className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{c.labelAr}</span>
                 </a>
               ))}
             </div>
+
+            {/* Feedback CTA */}
+            <button onClick={() => setViewMode("feedback")}
+              className="w-full rounded-xl p-4 flex items-center gap-3 btn-press"
+              style={{ background: "var(--white)", border: "1px solid var(--gold)" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(197,150,90,0.12)" }}>
+                <Star size={18} fill="var(--gold)" color="var(--gold)" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>Share your feedback</p>
+                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>شاركنا رأيك واقتراحاتك</p>
+              </div>
+              <span className="text-[10px] font-mono" style={{ color: "var(--gold)" }}>RATE →</span>
+            </button>
 
             {/* Urgent banner */}
             <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}>
