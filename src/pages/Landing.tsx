@@ -237,9 +237,10 @@ const Landing = () => {
       {/* TESTIMONIALS */}
       <section className="py-24 px-6" style={{ background: BG_DARK }}>
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>TRUSTED BY PATIENTS</p>
-            <h2 className="font-display text-4xl md:text-5xl tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>Real stories, real journeys</h2>
+          <div className="text-center mb-14">
+            <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>TRUSTED ACROSS THE GULF & BEYOND</p>
+            <h2 className="font-display text-4xl md:text-5xl tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>Real stories from <em style={{ color: GOLD }}>real journeys</em></h2>
+            <p className="text-sm mt-3" style={{ color: TEXT_MUTED }}>From Riyadh to Cleveland, Doha to Frankfurt, Dubai to Istanbul.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
@@ -255,6 +256,18 @@ const Landing = () => {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Approved community reviews from DB */}
+          <ApprovedReviews />
+
+          {/* Submit your review */}
+          <div className="max-w-2xl mx-auto mt-16">
+            <div className="text-center mb-6">
+              <p className="font-mono text-[10px] tracking-[0.3em] mb-3" style={{ color: GOLD }}>SHARE YOUR EXPERIENCE</p>
+              <h3 className="font-display text-2xl tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>Help us improve · ساعدنا في التحسين</h3>
+            </div>
+            <ReviewForm variant="dark" />
           </div>
         </div>
       </section>
@@ -368,21 +381,25 @@ const Landing = () => {
       <section id="contact" className="py-20 px-6" style={{ background: BG_DARK, borderTop: `1px solid ${BORDER}` }}>
         <div className="max-w-4xl mx-auto text-center">
           <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>CONTACT US · تواصل معنا</p>
-          <h2 className="font-display text-4xl md:text-5xl mb-10 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
+          <h2 className="font-display text-4xl md:text-5xl mb-4 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
             We're here to <em style={{ color: GOLD }}>help</em>.
           </h2>
+          <p className="text-sm mb-10" style={{ color: TEXT_MUTED }}>
+            Reply within 24 hours · WhatsApp for urgent support · رد خلال 24 ساعة
+          </p>
           <div className="grid md:grid-cols-3 gap-4">
             {[
-              { emoji: "📧", label: "Email", value: "support@rufayq.com", href: "mailto:support@rufayq.com" },
-              { emoji: "💬", label: "WhatsApp", value: "+966 50 123 4567", href: "https://wa.me/966501234567" },
-              { emoji: "📞", label: "Call 24/7", value: "+966 800 123 456", href: "tel:+966800123456" },
+              { emoji: "📧", label: "Email", value: "support@rufayq.com", sub: "Replies within 24 hours", href: "mailto:support@rufayq.com?subject=RufayQ%20Support" },
+              { emoji: "💬", label: "WhatsApp · Fast support", value: "+966 56 959 0418", sub: "Live chat · 8AM–10PM AST", href: "https://wa.me/966569590418?text=Hello%20RufayQ%20%E2%80%94%20I%20need%20help%20with%3A" },
+              { emoji: "📞", label: "Mobile", value: "+966 56 959 0418", sub: "Direct line for urgent cases", href: "tel:+966569590418" },
             ].map((c) => (
               <a key={c.label} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
-                className="rounded-2xl p-6 transition-all hover:-translate-y-1 block"
+                className="rounded-2xl p-6 transition-all hover:-translate-y-1 block text-left"
                 style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}>
                 <div className="text-3xl mb-3">{c.emoji}</div>
                 <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: TEXT_MUTED }}>{c.label.toUpperCase()}</p>
-                <p className="text-sm font-semibold" style={{ color: GOLD }}>{c.value}</p>
+                <p className="text-sm font-semibold mb-1" style={{ color: GOLD }}>{c.value}</p>
+                <p className="text-[11px]" style={{ color: TEXT_MUTED }}>{c.sub}</p>
               </a>
             ))}
           </div>
@@ -398,10 +415,13 @@ const Landing = () => {
               <span style={{ color: TEXT }}>Rufay</span><span className="font-bold" style={{ color: GOLD }}>Q</span>
             </span>
           </div>
-          <p className="text-xs" style={{ color: TEXT_MUTED }}>© 2026 RufayQ · All rights reserved · جميع الحقوق محفوظة</p>
+          <p className="text-xs text-center" style={{ color: TEXT_MUTED }}>
+            © 2026 RufayQ · All rights reserved · جميع الحقوق محفوظة<br />
+            <span className="text-[10px]">Compliant with KSA PDPL · UAE PDPL · DHA · HIPAA · GDPR</span>
+          </p>
           <div className="flex gap-5">
-            <a href="#" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>Privacy</a>
-            <a href="#" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>Terms</a>
+            <Link to="/privacy" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>Privacy</Link>
+            <Link to="/terms" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>Terms</Link>
             <a href="#contact" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>Contact</a>
           </div>
         </div>

@@ -193,10 +193,10 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             {[
               { icon: <Globe size={15} style={{ color: "var(--teal-deep)" }} />, label: "Visit RufayQ Website", labelAr: "زيارة موقع رُفَيِّق", href: "https://rufayq.com" },
               { icon: <CreditCard size={15} style={{ color: "var(--gold)" }} />, label: "Pricing & Plans", labelAr: "الأسعار والباقات", href: "https://rufayq.com#pricing" },
-              { icon: <LifeBuoy size={15} style={{ color: "var(--teal-mid)" }} />, label: "Help Center", labelAr: "مركز المساعدة", href: "https://rufayq.com#faq" },
+              { icon: <LifeBuoy size={15} style={{ color: "var(--teal-mid)" }} />, label: "Help Center", labelAr: "مركز المساعدة", href: "/#faq" },
               { icon: <Mail size={15} style={{ color: "var(--success)" }} />, label: "Contact Support", labelAr: "تواصل معنا", href: "mailto:support@rufayq.com" },
-              { icon: <FileText size={15} style={{ color: "var(--gray)" }} />, label: "Privacy Policy", labelAr: "سياسة الخصوصية", href: "https://rufayq.com/privacy" },
-              { icon: <FileText size={15} style={{ color: "var(--gray)" }} />, label: "Terms of Service", labelAr: "شروط الاستخدام", href: "https://rufayq.com/terms" },
+              { icon: <FileText size={15} style={{ color: "var(--gray)" }} />, label: "Privacy Policy (PDPL · HIPAA · GDPR)", labelAr: "سياسة الخصوصية", href: "/privacy" },
+              { icon: <FileText size={15} style={{ color: "var(--gray)" }} />, label: "Terms of Service", labelAr: "شروط الاستخدام", href: "/terms" },
             ].map((link, i, arr) => (
               <a
                 key={link.label}
