@@ -343,16 +343,7 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
             <input value={doctor} onChange={(e) => setDoctor(e.target.value)} placeholder="Dr. Full Name / د. الاسم الكامل" style={inputStyle("")} />
           </div>
 
-          <div>
-            <Label en="Is a companion traveling with you?" ar="هل معك مرافق؟" />
-            <PillSelect options={[{ en: "Yes", ar: "نعم" }, { en: "No", ar: "لا" }]} value={companion === true ? "Yes" : companion === false ? "No" : ""} onChange={(v) => setCompanion(v === "Yes")} />
-            {companion && (
-              <div className="mt-3">
-                <Label en="Companion Name" ar="اسم المرافق" />
-                <input value={companionName} onChange={(e) => setCompanionName(e.target.value)} style={inputStyle("")} />
-              </div>
-            )}
-          </div>
+          {/* Legacy single-companion question removed — replaced by Companions array below */}
 
           <div>
             <Label en="Companions traveling with you" ar="المرافقون معك" />
