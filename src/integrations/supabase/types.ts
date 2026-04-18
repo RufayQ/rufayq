@@ -14,6 +14,147 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_reviews: {
+        Row: {
+          advice: string | null
+          approved: boolean
+          created_at: string
+          device_id: string | null
+          id: string
+          notes: string | null
+          rating: number
+          reviewer_country: string | null
+          reviewer_name: string | null
+        }
+        Insert: {
+          advice?: string | null
+          approved?: boolean
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          notes?: string | null
+          rating: number
+          reviewer_country?: string | null
+          reviewer_name?: string | null
+        }
+        Update: {
+          advice?: string | null
+          approved?: boolean
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          notes?: string | null
+          rating?: number
+          reviewer_country?: string | null
+          reviewer_name?: string | null
+        }
+        Relationships: []
+      }
+      medical_profiles: {
+        Row: {
+          allergies: string[] | null
+          blood_type: string | null
+          chronic_conditions: string[] | null
+          created_at: string
+          current_medications: string[] | null
+          device_id: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
+          id: string
+          insurance_policy_number: string | null
+          insurance_provider: string | null
+          preferred_language: string | null
+          updated_at: string
+        }
+        Insert: {
+          allergies?: string[] | null
+          blood_type?: string | null
+          chronic_conditions?: string[] | null
+          created_at?: string
+          current_medications?: string[] | null
+          device_id: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          id?: string
+          insurance_policy_number?: string | null
+          insurance_provider?: string | null
+          preferred_language?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allergies?: string[] | null
+          blood_type?: string | null
+          chronic_conditions?: string[] | null
+          created_at?: string
+          current_medications?: string[] | null
+          device_id?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          id?: string
+          insurance_policy_number?: string | null
+          insurance_provider?: string | null
+          preferred_language?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          date_of_birth: string | null
+          device_id: string
+          email: string | null
+          full_name_ar: string | null
+          full_name_en: string | null
+          gender: string | null
+          id: string
+          nationality: string | null
+          passport_number: string | null
+          phone: string | null
+          privacy_accepted_at: string | null
+          saudi_id: string | null
+          terms_accepted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_of_birth?: string | null
+          device_id: string
+          email?: string | null
+          full_name_ar?: string | null
+          full_name_en?: string | null
+          gender?: string | null
+          id?: string
+          nationality?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          privacy_accepted_at?: string | null
+          saudi_id?: string | null
+          terms_accepted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_of_birth?: string | null
+          device_id?: string
+          email?: string | null
+          full_name_ar?: string | null
+          full_name_en?: string | null
+          gender?: string | null
+          id?: string
+          nationality?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          privacy_accepted_at?: string | null
+          saudi_id?: string | null
+          terms_accepted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           category: Database["public"]["Enums"]["ticket_category"]
