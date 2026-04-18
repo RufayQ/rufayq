@@ -1,5 +1,7 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import ApprovedReviews from "@/components/ApprovedReviews";
+import ReviewForm from "@/components/ReviewForm";
 import {
   ArrowRight, Check, Plane, Pill, FileText, Sparkles, Shield, Globe,
   Heart, MessageCircle, Star, ChevronDown, Menu, X, Lock, Zap,
@@ -27,9 +29,12 @@ const Landing = () => {
   ];
 
   const testimonials = [
-    { name: "Fatimah A.", role: "Cardiac patient — Cleveland", text: "RufayQ kept my prescriptions, scans, and follow-ups in one place during my treatment in the US. The Arabic translation of every report saved me hours.", rating: 5 },
-    { name: "Ahmed K.", role: "Companion — Munich trip", text: "I was caring for my father abroad. Smart Scan turned every German document into something we could understand. Lifesaver.", rating: 5 },
-    { name: "Dr. Layla M.", role: "Family physician — Riyadh", text: "I recommend RufayQ to patients traveling for treatment. The medication tracker and AI explainer reduce confusion dramatically.", rating: 5 },
+    { name: "Abdullah Al-Shehri", role: "Spine surgery · Riyadh → Istanbul", text: "Travelled with my wife and two kids for treatment in Turkey. RufayQ kept all our flights, hospital appointments and medications in one place — bilingually. Game-changer for any Saudi family.", rating: 5 },
+    { name: "Maryam Al-Hajri", role: "Oncology patient · Doha → Frankfurt", text: "Every German report was instantly explained in Arabic. My family back in Qatar could finally understand exactly what was happening. تطبيق ممتاز.", rating: 5 },
+    { name: "Khalid Al-Mutairi", role: "Companion · Kuwait → Cleveland Clinic", text: "I was caring for my father in the US. Smart Scan turned discharge papers into something we both understood. Worth every halala.", rating: 5 },
+    { name: "Dr. Layla Al-Mansoori", role: "Family physician · Dubai", text: "I recommend RufayQ to my Emirati patients travelling abroad. The medication tracker and bilingual AI dramatically reduce confusion.", rating: 5 },
+    { name: "Sarah Johnson", role: "Cardiac patient · London → Riyadh", text: "Came to Saudi for specialist treatment. The English↔Arabic AI translation made coordinating with the hospital effortless.", rating: 5 },
+    { name: "Ahmed Al-Otaibi", role: "Orthopedic recovery · Jeddah → Munich", text: "The Care Hub recovery checklist kept me on track post-surgery in Germany. Reminders saved me from missing two doses.", rating: 5 },
   ];
 
   const faqs = [
