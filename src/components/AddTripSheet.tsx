@@ -355,6 +355,33 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
           </div>
 
           <div>
+            <Label en="Companions traveling with you" ar="المرافقون معك" />
+            <p className="text-[10px] mb-2" style={{ color: "var(--gray)" }}>e.g. wife + 2 children for treatment in Turkey · أضف كل مرافق</p>
+            {companions.map((c, i) => (
+              <div key={i} className="rounded-xl p-3 mb-2 space-y-2" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+                <div className="flex items-center justify-between">
+                  <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>COMPANION {i + 1}</p>
+                  <button onClick={() => removeCompanion(i)} className="text-[10px]" style={{ color: "var(--error)" }}>Remove</button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input value={c.name} onChange={(e) => updateCompanion(i, "name", e.target.value)} placeholder="Full name" style={{ ...inputStyle(""), height: 40 }} />
+                  <select value={c.relation} onChange={(e) => updateCompanion(i, "relation", e.target.value)} style={{ ...inputStyle(""), height: 40 }}>
+                    {["Wife", "Husband", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Other"].map((r) => <option key={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input value={c.idOrPassport} onChange={(e) => updateCompanion(i, "idOrPassport", e.target.value)} placeholder="ID / Passport" style={{ ...inputStyle(""), height: 40 }} />
+                  <input type="date" value={c.dob} onChange={(e) => updateCompanion(i, "dob", e.target.value)} style={{ ...inputStyle(""), height: 40 }} />
+                </div>
+                <input value={c.seatNumber || ""} onChange={(e) => updateCompanion(i, "seatNumber", e.target.value)} placeholder="Seat (optional, e.g. 24B)" style={{ ...inputStyle(""), height: 40 }} />
+              </div>
+            ))}
+            <button onClick={addCompanion} className="w-full py-2.5 rounded-xl text-[12px] font-medium btn-press" style={{ background: "var(--white)", border: "1px dashed var(--teal-deep)", color: "var(--teal-deep)" }}>
+              + Add companion · إضافة مرافق
+            </button>
+          </div>
+
+          <div>
             <Label en="Insurance Reference No. (optional)" ar="رقم التأمين (اختياري)" />
             <input value={insuranceRef} onChange={(e) => setInsuranceRef(e.target.value)} placeholder="e.g. BUPA-2026-XXXX" style={inputStyle("")} />
           </div>
