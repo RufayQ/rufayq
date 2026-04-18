@@ -359,6 +359,31 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* CONTACT */}
+      <section id="contact" className="py-20 px-6" style={{ background: BG_DARK, borderTop: `1px solid ${BORDER}` }}>
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>CONTACT US · تواصل معنا</p>
+          <h2 className="font-display text-4xl md:text-5xl mb-10 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
+            We're here to <em style={{ color: GOLD }}>help</em>.
+          </h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              { emoji: "📧", label: "Email", value: "support@rufayq.com", href: "mailto:support@rufayq.com" },
+              { emoji: "💬", label: "WhatsApp", value: "+966 50 123 4567", href: "https://wa.me/966501234567" },
+              { emoji: "📞", label: "Call 24/7", value: "+966 800 123 456", href: "tel:+966800123456" },
+            ].map((c) => (
+              <a key={c.label} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
+                className="rounded-2xl p-6 transition-all hover:-translate-y-1 block"
+                style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}>
+                <div className="text-3xl mb-3">{c.emoji}</div>
+                <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: TEXT_MUTED }}>{c.label.toUpperCase()}</p>
+                <p className="text-sm font-semibold" style={{ color: GOLD }}>{c.value}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* FOOTER */}
       <footer className="py-12 px-6" style={{ background: BG_DARK, borderTop: `1px solid ${BORDER}` }}>
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
@@ -370,9 +395,9 @@ const Landing = () => {
           </div>
           <p className="text-xs" style={{ color: TEXT_MUTED }}>© 2026 RufayQ · All rights reserved · جميع الحقوق محفوظة</p>
           <div className="flex gap-5">
-            {["Privacy", "Terms", "Contact"].map((l) => (
-              <a key={l} href="#" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{l}</a>
-            ))}
+            <a href="#" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>Privacy</a>
+            <a href="#" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>Terms</a>
+            <a href="#contact" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>Contact</a>
           </div>
         </div>
       </footer>
