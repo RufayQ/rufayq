@@ -18,6 +18,14 @@ export interface FlightInfo {
   seatNumber: string;
 }
 
+export interface Companion {
+  name: string;
+  relation: string; // Wife, Son, Daughter, Brother, Father, Mother, Other
+  idOrPassport: string;
+  dob: string;
+  seatNumber?: string;
+}
+
 export interface TripData {
   id: string;
   destination: string;
@@ -29,6 +37,7 @@ export interface TripData {
   treatingDoctor: string;
   companion: boolean;
   companionName: string;
+  companions?: Companion[];
   insuranceRef: string;
   status: "active" | "upcoming";
   outboundFlight: FlightInfo | null;
@@ -84,7 +93,14 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
   const [doctor, setDoctor] = useState("");
   const [companion, setCompanion] = useState<boolean | null>(null);
   const [companionName, setCompanionName] = useState("");
+  const [companions, setCompanions] = useState<Companion[]>([]);
   const [insuranceRef, setInsuranceRef] = useState("");
+
+  const addCompanion = () => setCompanions([...companions, { name: "", relation: "Wife", idOrPassport: "", dob: "", seatNumber: "" }]);
+  const updateCompanion = (i: number, field: keyof Companion, val: string) => {
+    const next = [...companions]; (next[i] as any)[field] = val; setCompanions(next);
+  };
+  const removeCompanion = (i: number) => setCompanions(companions.filter((_, idx) => idx !== i));
 
   // Flight fields
   const [showReturnFlight, setShowReturnFlight] = useState(false);
@@ -146,20 +162,23 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
       };
     };
 
+    const validCompanions = companions.filter((c) => c.name.trim());
     const trip: TripData = {
       id: `trip-${Date.now()}`,
       destination, hospital, specialty, specialtyEmoji,
       departureDate, returnDate,
       treatingDoctor: doctor,
-      companion: companion === true,
-      companionName, insuranceRef,
+      companion: companion === true || validCompanions.length > 0,
+      companionName: validCompanions[0]?.name || companionName,
+      companions: validCompanions.length > 0 ? validCompanions : undefined,
+      insuranceRef,
       status: "active",
       outboundFlight: buildFlight(outAirline, outFlightNum, outPNR, outFrom, outTo, outDepDate, outDepTime, outArrDate, outArrTime, outClass, outSeat),
       returnFlight: showReturnFlight ? buildFlight(retAirline, retFlightNum, retPNR, retFrom, retTo, retDepDate, retDepTime, retArrDate, retArrTime, retClass, retSeat) : null,
     };
 
     onSubmit(trip);
-    toast.success("✓ New trip added! / تمت إضافة الرحلة بنجاح");
+    toast.success(`✓ Trip added${validCompanions.length ? ` with ${validCompanions.length} companion(s)` : ""}!`);
     onClose();
   };
 
