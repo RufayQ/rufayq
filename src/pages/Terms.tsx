@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, FileText, AlertTriangle, Scale, UserCheck } from "lucide-react";
-import RufayQLogo from "@/components/RufayQLogo";
+import { FileText, AlertTriangle, Scale, UserCheck } from "lucide-react";
+import MarkdownPage from "@/components/MarkdownPage";
 
 const Terms = () => {
-  const BG = "#06101A", BG2 = "#0B1A28", BORDER = "rgba(197,150,90,0.12)";
-  const TEXT = "#E8ECF0", MUTED = "rgba(232,236,240,0.6)", GOLD = "#C5965A";
+  const GOLD = "#C5965A", TEXT = "#E8ECF0", MUTED = "rgba(232,236,240,0.6)";
+  const BG2 = "#0B1A28", BORDER = "rgba(197,150,90,0.12)";
 
   const sections = [
     { icon: UserCheck, title: "1. Acceptance of Terms", titleAr: "قبول الشروط",
@@ -22,7 +22,7 @@ const Terms = () => {
       </> },
     { icon: FileText, title: "3. User Responsibilities", titleAr: "مسؤوليات المستخدم",
       body: <ul className="list-disc pl-5 space-y-1">
-        <li>You are responsible for the accuracy of all data you enter (personal details, medical history, ticket information, etc.).</li>
+        <li>You are responsible for the accuracy of all data you enter.</li>
         <li>RufayQ does not connect to airline, hospital, or insurance back-end systems. Always confirm flight times, gates, appointments, and policies directly with the official source.</li>
         <li>You agree not to use the App to upload unlawful, infringing, or harmful content.</li>
         <li>You are responsible for keeping your device and account credentials secure.</li>
@@ -31,18 +31,18 @@ const Terms = () => {
       body: <ul className="list-disc pl-5 space-y-1">
         <li>Free tier supports one active trip with limited AI usage.</li>
         <li>Paid tiers and pay-as-you-go add-ons are billed as displayed on the Pricing page.</li>
-        <li>14-day free trial is available once per device. Trial usage is tracked in our backend.</li>
+        <li>14-day free trial is available once per device.</li>
         <li>Refunds within 14 days of upgrade, in line with our money-back guarantee.</li>
         <li>Local taxes (VAT) may apply per your jurisdiction.</li>
       </ul> },
     { icon: Scale, title: "5. Intellectual Property", titleAr: "الملكية الفكرية",
-      body: <p>All trademarks, logos, designs, AI prompts, and source code in RufayQ are the exclusive property of RufayQ or its licensors. You receive a limited, non-exclusive, non-transferable licence to use the App for personal, non-commercial purposes.</p> },
+      body: <p>All trademarks, logos, designs, AI prompts, and source code in RufayQ are the exclusive property of RufayQ or its licensors.</p> },
     { icon: AlertTriangle, title: "6. Limitation of Liability", titleAr: "حدود المسؤولية",
-      body: <p>To the fullest extent permitted by Saudi law and applicable jurisdictions, RufayQ shall not be liable for any indirect, incidental, special, or consequential damages — including but not limited to missed flights, missed doses, misinterpretation of medical documents, or treatment outcomes — arising from your use of the App. Total aggregate liability is capped at the amount you paid in the 12 months preceding the claim.</p> },
+      body: <p>To the fullest extent permitted by Saudi law, RufayQ shall not be liable for any indirect, incidental, special, or consequential damages — including but not limited to missed flights, missed doses, or treatment outcomes — arising from your use of the App.</p> },
     { icon: Scale, title: "7. Governing Law & Dispute Resolution", titleAr: "القانون الحاكم",
-      body: <p>These Terms are governed by the laws of the Kingdom of Saudi Arabia. Any dispute shall be settled by the competent courts of Riyadh, KSA, unless mandatory consumer-protection law in your country of residence requires otherwise.</p> },
+      body: <p>These Terms are governed by the laws of the Kingdom of Saudi Arabia. Any dispute shall be settled by the competent courts of Riyadh, KSA.</p> },
     { icon: UserCheck, title: "8. Changes to These Terms", titleAr: "تعديل الشروط",
-      body: <p>We may update these Terms from time to time. Material changes will be notified through the App at least 14 days before they take effect. Continued use after the effective date constitutes acceptance.</p> },
+      body: <p>We may update these Terms from time to time. Material changes will be notified through the App at least 14 days before they take effect.</p> },
     { icon: FileText, title: "9. Contact", titleAr: "تواصل معنا",
       body: <p>
         Legal · <a href="mailto:legal@rufayq.com" style={{ color: GOLD }}>legal@rufayq.com</a><br />
@@ -51,47 +51,33 @@ const Terms = () => {
       </p> },
   ];
 
-  return (
-    <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }}>
-      <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.85)", borderBottom: `1px solid ${BORDER}` }}>
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <ArrowLeft size={16} color={TEXT} />
-            <RufayQLogo size={28} variant="light" />
-            <span className="font-display text-lg"><span style={{ color: TEXT }}>Rufay</span><span className="font-bold" style={{ color: GOLD }}>Q</span></span>
-          </Link>
-          <Link to="/privacy" className="text-xs" style={{ color: MUTED }}>← Privacy</Link>
-        </div>
-      </nav>
-
-      <main className="max-w-4xl mx-auto px-6 py-16">
-        <p className="font-mono text-[10px] tracking-[0.3em] mb-3" style={{ color: GOLD }}>LEGAL · قانوني</p>
-        <h1 className="font-display text-4xl md:text-5xl mb-3 tracking-tight" style={{ fontWeight: 300 }}>Terms of Service</h1>
-        <p className="font-arabic text-lg mb-2" dir="rtl" style={{ color: GOLD }}>شروط الاستخدام</p>
-        <p className="text-sm mb-12" style={{ color: MUTED }}>Effective date: 1 January 2026 · Last updated: 18 April 2026</p>
-
-        <div className="space-y-8">
-          {sections.map((s, i) => (
-            <section key={i} className="rounded-2xl p-7" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${GOLD}20`, border: `1px solid ${GOLD}40` }}>
-                  <s.icon size={18} color={GOLD} />
-                </div>
-                <div>
-                  <h2 className="font-display text-xl tracking-tight" style={{ color: TEXT }}>{s.title}</h2>
-                  <p className="font-arabic text-xs" dir="rtl" style={{ color: MUTED }}>{s.titleAr}</p>
-                </div>
-              </div>
-              <div className="text-sm leading-relaxed" style={{ color: MUTED }}>{s.body}</div>
-            </section>
-          ))}
-        </div>
-
-        <p className="text-center text-xs mt-12" style={{ color: MUTED }}>
-          © 2026 RufayQ · <Link to="/" style={{ color: GOLD }}>Back to home</Link>
-        </p>
-      </main>
+  const fallback = (
+    <div className="space-y-8">
+      {sections.map((s, i) => (
+        <section key={i} className="rounded-2xl p-7" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${GOLD}20`, border: `1px solid ${GOLD}40` }}>
+              <s.icon size={18} color={GOLD} />
+            </div>
+            <div>
+              <h2 className="font-display text-xl tracking-tight" style={{ color: TEXT }}>{s.title}</h2>
+              <p className="font-arabic text-xs" dir="rtl" style={{ color: MUTED }}>{s.titleAr}</p>
+            </div>
+          </div>
+          <div className="text-sm leading-relaxed" style={{ color: MUTED }}>{s.body}</div>
+        </section>
+      ))}
     </div>
+  );
+
+  return (
+    <MarkdownPage
+      slug="terms"
+      defaultTitle="Terms of Service"
+      defaultTitleAr="شروط الاستخدام"
+      fallback={fallback}
+      otherLink={{ to: "/privacy", label: "← Privacy" }}
+    />
   );
 };
 
