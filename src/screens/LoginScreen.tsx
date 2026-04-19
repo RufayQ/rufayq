@@ -43,29 +43,68 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     }, 1000);
   };
 
-  const handleSendOtp = (channel: OtpChannel) => {
+  // Resolve the verification recipient based on channel.
+  // For WhatsApp/SMS: prefer reg.phone (signup) → fallback to phone (login). Force E.164 with +966.
+  const resolveRecipient = (channel: OtpChannel): string => {
+    if (channel === "email") return reg.email.trim();
+    const raw = (reg.phone || phone || "").trim().replace(/\s+/g, "");
+    if (!raw) return "";
+    if (raw.startsWith("+")) return raw;
+    // strip leading 0 then prefix +966
+    return `+966${raw.replace(/^0+/, "")}`;
+  };
+
+  const handleSendOtp = async (channel: OtpChannel) => {
+    const to = resolveRecipient(channel);
+    if (!to) {
+      toast.error(channel === "email" ? "Enter your email first" : "Enter your phone number first");
+      return;
+    }
     setOtpChannel(channel);
     setView("otp");
     setOtp(["", "", "", "", "", ""]);
-    startCountdown();
-    if (channel === "whatsapp") {
-      toast.success(`OTP would be sent via WhatsApp to +966 ${phone || "5XXXXXXXX"}`, {
-        description: "Demo mode — enter any 6 digits to continue. Production needs Twilio Verify.",
-      });
-    } else {
-      toast.success(`OTP would be sent to ${reg.email || "your email"}`, {
-        description: "Demo mode — enter any 6 digits to continue.",
-      });
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke("send-otp", {
+      body: { channel: channel === "whatsapp" ? "whatsapp" : channel, to },
+    });
+    setSubmitting(false);
+    if (error || (data && data.error)) {
+      const msg = (data && data.error) || error?.message || "Failed to send code";
+      toast.error("Couldn't send code · لم نتمكن من إرسال الرمز", { description: msg });
+      return;
     }
+    startCountdown();
+    if (channel === "whatsapp") toast.success(`WhatsApp code sent to ${to}`);
+    else if (channel === "email") toast.success(`Email code sent to ${to}`);
+    else toast.success(`SMS code sent to ${to}`);
   };
 
-  const handleOtp = (index: number, value: string) => {
+  const handleOtp = async (index: number, value: string) => {
     if (value.length > 1) return;
     const next = [...otp]; next[index] = value; setOtp(next);
     if (value && index < 5) document.getElementById(`otp-${index + 1}`)?.focus();
     if (next.every((d) => d !== "")) {
+      const code = next.join("");
+      const to = resolveRecipient(otpChannel);
+      setSubmitting(true);
+      const { data, error } = await supabase.functions.invoke("verify-otp", {
+        body: { to, code },
+      });
+      setSubmitting(false);
+      if (error) {
+        toast.error("Verification failed", { description: error.message });
+        setOtp(["", "", "", "", "", ""]);
+        return;
+      }
+      if (!data?.approved) {
+        toast.error("Incorrect or expired code · رمز غير صحيح", {
+          description: data?.error || "Request a new code and try again",
+        });
+        setOtp(["", "", "", "", "", ""]);
+        return;
+      }
       toast.success("Verified · تم التحقق");
-      setTimeout(onLogin, 600);
+      setTimeout(onLogin, 500);
     }
   };
 
@@ -215,7 +254,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <h2 className="font-display text-2xl" style={{ color: "var(--navy)" }}>Enter verification code</h2>
           <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>أدخل رمز التحقق</p>
           <p className="text-[10px] mt-3 italic" style={{ color: "var(--gray)" }}>
-            Demo: enter any 6 digits to continue
+            Real Twilio Verify code · enter the 6 digits you received
           </p>
         </div>
         <div className="flex justify-center gap-2 mb-6">
