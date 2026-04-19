@@ -7,10 +7,22 @@ interface Profile {
   id: string; device_id: string; full_name_en: string | null; phone: string | null;
   email: string | null; nationality: string | null; created_at: string;
   deleted_at?: string | null; deleted_reason?: string | null;
+  provider_type?: string | null; organization_id?: string | null;
 }
 interface UserStatus {
   user_id: string; status: "active" | "on_hold" | "suspended"; reason: string | null;
 }
+interface Org { id: string; name: string; org_type: string }
+
+const PROVIDER_TYPES = ["patient","hospital","physician","vendor","insurance","internal"];
+const TYPE_BADGE: Record<string, string> = {
+  patient: "bg-rose-500/15 text-rose-300",
+  hospital: "bg-blue-500/15 text-blue-300",
+  physician: "bg-emerald-500/15 text-emerald-300",
+  vendor: "bg-amber-500/15 text-amber-300",
+  insurance: "bg-violet-500/15 text-violet-300",
+  internal: "bg-slate-500/15 text-slate-300",
+};
 
 const AdminUsers = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -21,14 +33,20 @@ const AdminUsers = () => {
   const [editing, setEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Profile>>({});
 
+  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterOrg, setFilterOrg] = useState<string>("all");
+
   const load = async () => {
     setLoading(true);
-    const [{ data: p, error: pErr }, { data: s }] = await Promise.all([
+    const [{ data: p, error: pErr }, { data: s }, { data: o }] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("user_status").select("*"),
+      supabase.from("organizations").select("id,name,org_type").order("name"),
     ]);
     if (pErr) toast.error(pErr.message);
     setProfiles((p || []) as Profile[]);
+    setOrgs((o || []) as Org[]);
     const map: Record<string, UserStatus> = {};
     (s || []).forEach((x: any) => { map[x.user_id] = x; });
     setStatuses(map);
