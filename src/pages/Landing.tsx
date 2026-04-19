@@ -86,6 +86,14 @@ const Landing = () => {
                 />
               </a>
             ))}
+            <Link
+              to="/privacy"
+              className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group"
+              style={{ color: TEXT_MUTED }}
+            >
+              Privacy
+              <span aria-hidden className="absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" style={{ background: GOLD }} />
+            </Link>
             <button onClick={goToApp} className="px-5 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg" style={{ background: GOLD, color: BG_DARK }}>
               Open app →
             </button>
@@ -101,6 +109,7 @@ const Landing = () => {
             {[["Features", "#features"], ["How it works", "#how"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, h]) => (
               <a key={h} href={h} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>{l}</a>
             ))}
+            <Link to="/privacy" onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>Privacy</Link>
             <button onClick={goToApp} className="w-full py-3 rounded-full text-sm font-semibold" style={{ background: GOLD, color: BG_DARK }}>
               Open app →
             </button>

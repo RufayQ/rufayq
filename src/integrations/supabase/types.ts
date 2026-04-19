@@ -101,6 +101,27 @@ export type Database = {
         }
         Relationships: []
       }
+      otp_send_log: {
+        Row: {
+          channel: string
+          id: string
+          recipient: string
+          sent_at: string
+        }
+        Insert: {
+          channel: string
+          id?: string
+          recipient: string
+          sent_at?: string
+        }
+        Update: {
+          channel?: string
+          id?: string
+          recipient?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -200,6 +221,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_status: {
+        Row: {
+          created_at: string
+          reason: string | null
+          status: Database["public"]["Enums"]["user_status_enum"]
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          reason?: string | null
+          status?: Database["public"]["Enums"]["user_status_enum"]
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          reason?: string | null
+          status?: Database["public"]["Enums"]["user_status_enum"]
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_trials: {
         Row: {
           created_at: string
@@ -232,12 +301,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       ticket_category: "billing" | "technical" | "medical" | "general"
       ticket_priority: "low" | "medium" | "high" | "urgent"
       ticket_status: "open" | "in_progress" | "resolved" | "closed"
+      user_status_enum: "active" | "on_hold" | "suspended"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -365,9 +442,11 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       ticket_category: ["billing", "technical", "medical", "general"],
       ticket_priority: ["low", "medium", "high", "urgent"],
       ticket_status: ["open", "in_progress", "resolved", "closed"],
+      user_status_enum: ["active", "on_hold", "suspended"],
     },
   },
 } as const
