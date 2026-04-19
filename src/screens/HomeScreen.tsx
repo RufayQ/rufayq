@@ -1,6 +1,7 @@
 import { useState } from "react";
 import RufayQWordmark from "@/components/RufayQWordmark";
 import HeaderMenu, { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
+import NotificationBell from "@/components/NotificationBell";
 import { CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { medications, appointments } from "@/constants/data";
@@ -68,6 +69,7 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
           <div className="flex items-center justify-between mb-3">
             <RufayQWordmark size="sm" variant="light" />
             <div className="flex items-center gap-2">
+              <NotificationBell color="#fff" />
               <HeaderMenu items={homeMenuItems} />
               <button onClick={onProfile} className="w-9 h-9 rounded-full flex items-center justify-center font-arabic text-sm font-bold btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
                 م

@@ -233,6 +233,56 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_notifications: {
+        Row: {
+          body: string | null
+          body_ar: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          kind: string
+          link: string | null
+          organization_id: string | null
+          patient_device_id: string
+          title: string
+          title_ar: string | null
+        }
+        Insert: {
+          body?: string | null
+          body_ar?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          kind?: string
+          link?: string | null
+          organization_id?: string | null
+          patient_device_id: string
+          title: string
+          title_ar?: string | null
+        }
+        Update: {
+          body?: string | null
+          body_ar?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          kind?: string
+          link?: string | null
+          organization_id?: string | null
+          patient_device_id?: string
+          title?: string
+          title_ar?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -377,6 +427,235 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "provider_applications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_appointments: {
+        Row: {
+          author_id: string | null
+          created_at: string
+          id: string
+          location: string | null
+          notes: string | null
+          organization_id: string
+          patient_device_id: string
+          scheduled_at: string
+          status: string
+          title: string
+        }
+        Insert: {
+          author_id?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          organization_id: string
+          patient_device_id: string
+          scheduled_at: string
+          status?: string
+          title: string
+        }
+        Update: {
+          author_id?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          organization_id?: string
+          patient_device_id?: string
+          scheduled_at?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_appointments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_instructions: {
+        Row: {
+          author_id: string | null
+          body: string
+          body_ar: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          patient_device_id: string
+          priority: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          body_ar?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          patient_device_id: string
+          priority?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          body_ar?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          patient_device_id?: string
+          priority?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_instructions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_medication_updates: {
+        Row: {
+          action: string
+          author_id: string | null
+          created_at: string
+          dose: string | null
+          frequency: string | null
+          id: string
+          med_name: string
+          notes: string | null
+          organization_id: string
+          patient_device_id: string
+        }
+        Insert: {
+          action?: string
+          author_id?: string | null
+          created_at?: string
+          dose?: string | null
+          frequency?: string | null
+          id?: string
+          med_name: string
+          notes?: string | null
+          organization_id: string
+          patient_device_id: string
+        }
+        Update: {
+          action?: string
+          author_id?: string | null
+          created_at?: string
+          dose?: string | null
+          frequency?: string | null
+          id?: string
+          med_name?: string
+          notes?: string | null
+          organization_id?: string
+          patient_device_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_medication_updates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_members: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          member_role: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          member_role?: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          member_role?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_patients: {
+        Row: {
+          assigned_provider_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          patient_device_id: string
+          patient_email: string | null
+          patient_name: string | null
+          patient_phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_provider_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          patient_device_id: string
+          patient_email?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_provider_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          patient_device_id?: string
+          patient_email?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_patients_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -582,6 +861,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_org_member: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       log_audit_event: {
         Args: {
           _action: string
@@ -593,6 +876,7 @@ export type Database = {
         }
         Returns: string
       }
+      user_org_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

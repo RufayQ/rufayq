@@ -7,6 +7,7 @@ import {
   Heart, MessageCircle, Star, ChevronDown, Menu, X, Lock, Zap,
 } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -106,6 +107,7 @@ const Landing = () => {
                 </div>
               </div>
             </div>
+            <LanguageSwitcher />
             <button onClick={goToApp} className="px-5 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg" style={{ background: GOLD, color: BG_DARK }}>
               Open app →
             </button>

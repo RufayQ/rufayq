@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 interface StatusBarProps {
   dark?: boolean;
+  showLanguage?: boolean;
 }
 
-const StatusBar = ({ dark }: StatusBarProps) => {
+const StatusBar = ({ dark, showLanguage }: StatusBarProps) => {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -18,7 +20,17 @@ const StatusBar = ({ dark }: StatusBarProps) => {
   return (
     <div className="flex items-center justify-between px-5 py-2" style={{ height: 44, color }}>
       <span className="font-mono text-[13px] font-bold">{formatted}</span>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
+        {showLanguage && (
+          <LanguageSwitcher
+            compact
+            bg={dark ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.15)"}
+            border={dark ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.2)"}
+            active={dark ? "var(--navy)" : "#fff"}
+            inactive={dark ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.7)"}
+            activeText={dark ? "#fff" : "var(--navy)"}
+          />
+        )}
         {/* Signal */}
         <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor">
           <rect x="0" y="8" width="3" height="4" rx="0.5" />
