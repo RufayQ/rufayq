@@ -21,6 +21,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otpError, setOtpError] = useState(false);
   const [otpChannel, setOtpChannel] = useState<OtpChannel>("whatsapp");
   const [countdown, setCountdown] = useState(45);
   const [submitting, setSubmitting] = useState(false);
@@ -90,6 +91,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     if (error) {
       toast.error("Verification failed", { description: error.message });
       setOtp(["", "", "", "", "", ""]);
+      setOtpError(true);
+      setTimeout(() => setOtpError(false), 500);
       return;
     }
     if (!data?.approved) {
@@ -97,6 +100,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         description: data?.error || "Request a new code and try again",
       });
       setOtp(["", "", "", "", "", ""]);
+      setOtpError(true);
+      setTimeout(() => setOtpError(false), 500);
       return;
     }
     if (data.signInEmail && data.password) {
