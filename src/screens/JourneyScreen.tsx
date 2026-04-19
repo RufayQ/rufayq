@@ -146,7 +146,10 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
 
   const journeyMenuItems: HeaderMenuItem[] = [
     { icon: <Edit3 size={14} />, label: "Edit Current Trip", labelAr: "تعديل الرحلة الحالية", onClick: () => setShowEditTrip(true) },
+    { icon: <Plus size={14} />, label: "Add New Trip", labelAr: "إضافة رحلة جديدة", onClick: () => { if (requireProForAddTrip()) setShowAddTrip(true); } },
     { icon: <Plus size={14} />, label: "Add Journey Step", labelAr: "إضافة خطوة", onClick: handleAddStep },
+    { icon: <Sparkles size={14} />, label: "Scan New Ticket", labelAr: "مسح تذكرة جديدة", onClick: () => onOpenScanner?.("flight") },
+    { icon: <Plus size={14} />, label: "Add Companion Ticket", labelAr: "إضافة تذكرة مرافق", onClick: () => { setShowEditTrip(true); toast.info("Add companions in 'Edit Current Trip' · المرافقون داخل تعديل الرحلة"); } },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص", onClick: handleCopyJourney },
     { icon: <Download size={14} />, label: "Export Journey", labelAr: "تصدير الرحلة", onClick: handleExportJourney },
     { icon: <Share2 size={14} />, label: "Share Progress", labelAr: "مشاركة التقدم", onClick: handleShareJourney },

@@ -35,6 +35,16 @@ export interface Medication {
   instructionsAr?: string;
   redFlags?: string;
   redFlagsAr?: string;
+  // Extended drug safety info
+  precautions?: string[];        // e.g. ["Avoid alcohol", "Do not drive"]
+  precautionsAr?: string[];
+  sideEffects?: string[];         // e.g. ["Nausea", "Drowsiness"]
+  sideEffectsAr?: string[];
+  contraindications?: string[];   // e.g. ["Pregnancy", "Severe kidney disease"]
+  contraindicationsAr?: string[];
+  interactions?: string[];        // Drug-drug interactions
+  interactionsAr?: string[];
+  imageUrl?: string;              // base64 data-URL or remote URL
 }
 
 export const medications: Medication[] = [
