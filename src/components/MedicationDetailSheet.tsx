@@ -445,4 +445,27 @@ const MedicationDetailSheet = ({
   );
 };
 
+const toneStyles: Record<string, { bg: string; border: string; color: string }> = {
+  warn: { bg: "#FFFBEF", border: "rgba(197,150,90,0.3)", color: "var(--warning)" },
+  info: { bg: "var(--off-white)", border: "var(--gray-light)", color: "var(--teal-deep)" },
+  error: { bg: "rgba(217,79,79,0.05)", border: "var(--error)", color: "var(--error)" },
+};
+
+const SafetyBlock = ({ title, icon, tone, items, arItems }: { title: string; icon: string; tone: "warn" | "info" | "error"; items: string[]; arItems?: string[] }) => {
+  const t = toneStyles[tone];
+  return (
+    <div className="rounded-xl p-3" style={{ background: t.bg, border: `1px solid ${t.border}` }}>
+      <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: t.color }}>{icon} {title}</p>
+      <ul className="space-y-1">
+        {items.map((it, i) => (
+          <li key={i} className="text-[12px] flex gap-1.5" style={{ color: "var(--navy)" }}>
+            <span style={{ color: t.color }}>•</span>
+            <span>{it}{arItems?.[i] ? <span className="font-arabic block text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>{arItems[i]}</span> : null}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 export default MedicationDetailSheet;
