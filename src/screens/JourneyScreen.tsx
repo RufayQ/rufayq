@@ -77,7 +77,35 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const [showAddStay, setShowAddStay] = useState(false);
   const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(defaultJourneySteps);
   const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
+  const [flashStepId, setFlashStepId] = useState<number | null>(null);
+  const [flashTripId, setFlashTripId] = useState<string | null>(null);
+  const [dragStepId, setDragStepId] = useState<number | null>(null);
   const { isActive: trialActive } = useTrial();
+
+  const flashStep = (id: number) => {
+    setFlashStepId(id);
+    setTimeout(() => setFlashStepId(null), 1100);
+  };
+  const flashTrip = (id: string) => {
+    setFlashTripId(id);
+    setTimeout(() => setFlashTripId(null), 1100);
+  };
+
+  // Reorder steps within the same phase via HTML5 drag-drop
+  const handleReorderStep = (sourceId: number, targetId: number) => {
+    if (sourceId === targetId) return;
+    setJourneySteps((prev) => {
+      const src = prev.find((s) => s.id === sourceId);
+      const tgt = prev.find((s) => s.id === targetId);
+      if (!src || !tgt || src.phase !== tgt.phase) return prev;
+      const without = prev.filter((s) => s.id !== sourceId);
+      const tgtIdx = without.findIndex((s) => s.id === targetId);
+      const next = [...without.slice(0, tgtIdx), src, ...without.slice(tgtIdx)];
+      return next;
+    });
+    flashStep(sourceId);
+    toast.success("Step reordered · تم إعادة الترتيب", { duration: 1500 });
+  };
 
   const activeTrip = trips.find((t) => t.status === "active") || trips[0];
 
