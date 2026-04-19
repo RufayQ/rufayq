@@ -908,7 +908,22 @@ const StepsTab = ({
 
                 return (
                   <div key={step.id}>
-                    <div className="relative mb-2.5">
+                    <div
+                      className={`relative mb-2.5 ${flashStepId === step.id ? "animate-flash-gold rounded-xl" : ""}`}
+                      draggable
+                      onDragStart={() => setDragStepId(step.id)}
+                      onDragEnd={() => setDragStepId(null)}
+                      onDragOver={(e) => { if (dragStepId != null && dragStepId !== step.id) e.preventDefault(); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragStepId != null) onReorderStep(dragStepId, step.id);
+                        setDragStepId(null);
+                      }}
+                      style={{
+                        opacity: dragStepId === step.id ? 0.4 : 1,
+                        transition: "opacity 0.15s",
+                      }}
+                    >
                       {idx < phaseSteps.length - 1 && (
                         <div className="absolute left-[-17px] top-6 bottom-0" style={{ width: 2, background: lineColor }} />
                       )}
@@ -920,14 +935,18 @@ const StepsTab = ({
                           background: isActive ? "var(--gold-pale)" : isPending ? "#F3F5F7" : "var(--white)",
                           border: isActive ? "1px solid var(--gold)" : "1px solid var(--gray-light)",
                           boxShadow: isActive ? "0 3px 14px rgba(197,150,90,0.16)" : "none",
+                          cursor: dragStepId === step.id ? "grabbing" : "grab",
                         }}
                       >
                         <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-[13px] font-semibold" style={{ color: isPending ? "var(--gray)" : "var(--navy)" }}>{step.titleEn}</p>
-                            <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>{step.titleAr}</p>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px] select-none" style={{ color: "var(--gray-light)" }} aria-hidden>⋮⋮</span>
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold truncate" style={{ color: isPending ? "var(--gray)" : "var(--navy)" }}>{step.titleEn}</p>
+                              <p className="font-arabic text-[10px] mt-0.5 truncate" dir="rtl" style={{ color: "var(--gray)" }}>{step.titleAr}</p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{step.date}</span>
                             <button onClick={(e) => { e.stopPropagation(); onEditStep(step); }} className="w-6 h-6 rounded-full flex items-center justify-center btn-press" style={{ background: "var(--off-white)" }}>
                               <Edit3 size={10} style={{ color: "var(--teal-deep)" }} />
