@@ -3,25 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RufayQ — Bilingual AI Medical Companion for Patients Travelling for Treatment</title>
-    <meta name="description" content="RufayQ is the bilingual (EN/AR) AI medical companion for Gulf and international patients travelling abroad for treatment. Track flights, medications, appointments and records in one app." />
+
+    <!-- SEO: Title 53 chars (well under 580px / 60-char target) -->
+    <title>RufayQ — Bilingual AI Medical Travel Companion</title>
+    <!-- SEO: Meta description 152 chars (under 160 / ~920px) -->
+    <meta name="description" content="RufayQ is the bilingual EN/AR AI medical companion for patients travelling abroad. Track flights, medications, appointments and records — explained instantly." />
     <meta name="author" content="RufayQ" />
-    <meta name="keywords" content="medical tourism app, Saudi medical travel, Gulf medical companion, bilingual medical AI, treatment abroad, Arabic English medical translator, RufayQ, medical journey tracker, healthcare companion app" />
+    <meta name="keywords" content="medical tourism app, Saudi medical travel, Gulf medical companion, bilingual medical AI, treatment abroad, Arabic English medical translator, RufayQ, medical journey tracker" />
     <meta name="theme-color" content="#06101A" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta name="googlebot" content="index, follow" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="RufayQ" />
     <link rel="canonical" href="https://rufayq.com/" />
+    <link rel="alternate" hreflang="en" href="https://rufayq.com/" />
+    <link rel="alternate" hreflang="ar" href="https://rufayq.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://rufayq.com/" />
 
+    <!-- Performance: preconnect + non-blocking font load (display=swap) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=DM+Sans:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=DM+Sans:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=DM+Sans:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=DM+Sans:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" /></noscript>
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RufayQ" />
-    <meta property="og:title" content="RufayQ — Bilingual AI Medical Companion" />
-    <meta property="og:description" content="Built for Gulf patients and travellers worldwide seeking treatment abroad. Bilingual EN/AR. Tracks flights, medications, records and explains every report." />
+    <meta property="og:title" content="RufayQ — Bilingual AI Medical Travel Companion" />
+    <meta property="og:description" content="Bilingual EN/AR AI companion for medical travellers. Tracks flights, medications, appointments and explains every report." />
     <meta property="og:url" content="https://rufayq.com/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:locale:alternate" content="ar_SA" />
@@ -33,15 +44,16 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@RufayQ" />
-    <meta name="twitter:title" content="RufayQ — Bilingual AI Medical Companion" />
-    <meta name="twitter:description" content="Bilingual (EN/AR) AI companion for medical travellers from the Gulf and worldwide." />
+    <meta name="twitter:title" content="RufayQ — Bilingual AI Medical Travel Companion" />
+    <meta name="twitter:description" content="Bilingual EN/AR AI companion for medical travellers from the Gulf and worldwide." />
     <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/87f0520a-8d74-4687-b816-4d40f389e21e/id-preview-0291f6a0--aacabea3-4cbd-4aa0-9a0a-eaba72cdef9b.lovable.app-1776391099788.png" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="alternate icon" href="/favicon.ico" />
+    <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="mask-icon" href="/favicon.svg" color="#C5965A" />
 
-    <!-- JSON-LD: Organization + Mobile App -->
+    <!-- JSON-LD: Organization + WebSite + MobileApplication -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -75,16 +87,8 @@
           "name": "RufayQ",
           "operatingSystem": "iOS, Android, Web",
           "applicationCategory": "HealthApplication",
-          "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD"
-          },
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "ratingCount": "127"
-          }
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "127" }
         }
       ]
     }
@@ -94,7 +98,7 @@
       "@context": "https://schema.org",
       "@type": "FAQPage",
       "mainEntity": [
-        {"@type":"Question","name":"What is RufayQ?","acceptedAnswer":{"@type":"Answer","text":"RufayQ is a bilingual (English/Arabic) AI medical companion for Gulf and international patients travelling abroad for treatment. It tracks flights, medications, appointments, and medical records."}},
+        {"@type":"Question","name":"What is RufayQ?","acceptedAnswer":{"@type":"Answer","text":"RufayQ is a bilingual English/Arabic AI medical companion for Gulf and international patients travelling abroad for treatment. It tracks flights, medications, appointments, and medical records."}},
         {"@type":"Question","name":"Is RufayQ free?","acceptedAnswer":{"@type":"Answer","text":"RufayQ offers a free trial and paid subscription tiers (Basic, Pro, Enterprise) for individuals, hospitals, and insurers."}},
         {"@type":"Question","name":"Which languages does RufayQ support?","acceptedAnswer":{"@type":"Answer","text":"Arabic and English are fully supported across the entire app, including AI responses, document scans, and exports."}},
         {"@type":"Question","name":"Can hospitals and physicians use RufayQ?","acceptedAnswer":{"@type":"Answer","text":"Yes. Approved hospitals, clinics, physicians, vendors, and insurance companies can apply at /providers and access a dedicated provider portal to follow up with their patients."}}
