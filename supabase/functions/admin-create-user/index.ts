@@ -22,8 +22,10 @@ Deno.serve(async (req) => {
     if (!isAdmin) return j({ error: "Forbidden" }, 403);
 
     const body = await req.json();
-    const { email, password, full_name, phone, role, organization_id, org_type } = body || {};
+    const { email, password, full_name, phone, role, organization_id, org_type, provider_type } = body || {};
     if (!email || !password) return j({ error: "Email and password are required" }, 400);
+    const validProviderTypes = ["patient","hospital","physician","vendor","insurance","internal"];
+    const ptype = validProviderTypes.includes(provider_type) ? provider_type : (role === "admin" || role === "moderator" ? "internal" : "patient");
 
     // 1. Create auth user
     const { data: created, error: cErr } = await admin.auth.admin.createUser({
@@ -44,6 +46,7 @@ Deno.serve(async (req) => {
       full_name_en: full_name || null,
       email, phone: phone || null,
       organization_id: organization_id || null,
+      provider_type: ptype,
     });
 
     // 4. Audit log
@@ -51,7 +54,7 @@ Deno.serve(async (req) => {
       _action: "staff_user_created",
       _target_type: "user",
       _target_id: newUserId,
-      _details: { email, role, organization_id, org_type },
+      _details: { email, role, organization_id, org_type, provider_type: ptype },
       _actor_id: user.id,
       _actor_email: user.email,
     });
