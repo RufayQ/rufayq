@@ -23,7 +23,10 @@ const AdminReviews = () => {
 
   const setApproved = async (id: string, approved: boolean) => {
     const { error } = await supabase.from("app_reviews").update({ approved }).eq("id", id);
-    if (error) toast.error(error.message); else { toast.success(approved ? "Approved" : "Unapproved"); load(); }
+    if (error) toast.error(error.message); else {
+      await supabase.rpc("log_audit_event", { _action: "review_moderated", _target_type: "review", _target_id: id, _details: { approved } });
+      toast.success(approved ? "Approved" : "Unapproved"); load();
+    }
   };
   const remove = async (id: string) => {
     if (!confirm("Delete this review?")) return;

@@ -47,9 +47,11 @@ const AdminUsers = () => {
 
   const setStatus = async (user_id: string, status: UserStatus["status"]) => {
     const reason = status !== "active" ? prompt(`Reason for ${status}?`) || null : null;
-    // Upsert because some profile rows may not have a status row yet (device-only profiles)
     const { error } = await supabase.from("user_status").upsert({ user_id, status, reason }, { onConflict: "user_id" });
-    if (error) toast.error(error.message); else { toast.success(`Set to ${status}`); load(); }
+    if (error) toast.error(error.message); else {
+      await supabase.rpc("log_audit_event", { _action: "user_status_changed", _target_type: "user", _target_id: user_id, _details: { status, reason } });
+      toast.success(`Set to ${status}`); load();
+    }
   };
 
   const softDelete = async (id: string) => {
@@ -59,7 +61,10 @@ const AdminUsers = () => {
       .from("profiles")
       .update({ deleted_at: new Date().toISOString(), deleted_reason: reason })
       .eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("User soft-deleted"); load(); }
+    if (error) toast.error(error.message); else {
+      await supabase.rpc("log_audit_event", { _action: "user_soft_deleted", _target_type: "profile", _target_id: id, _details: { reason } });
+      toast.success("User soft-deleted"); load();
+    }
   };
 
   const restore = async (id: string) => {
@@ -67,7 +72,10 @@ const AdminUsers = () => {
       .from("profiles")
       .update({ deleted_at: null, deleted_reason: null })
       .eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Restored"); load(); }
+    if (error) toast.error(error.message); else {
+      await supabase.rpc("log_audit_event", { _action: "user_restored", _target_type: "profile", _target_id: id });
+      toast.success("Restored"); load();
+    }
   };
 
   const startEdit = (p: Profile) => {
@@ -81,7 +89,10 @@ const AdminUsers = () => {
       phone: editForm.phone || null,
       nationality: editForm.nationality || null,
     }).eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Saved"); setEditing(null); load(); }
+    if (error) toast.error(error.message); else {
+      await supabase.rpc("log_audit_event", { _action: "profile_updated", _target_type: "profile", _target_id: id, _details: editForm });
+      toast.success("Saved"); setEditing(null); load();
+    }
   };
 
   const filtered = profiles.filter((p) => {
