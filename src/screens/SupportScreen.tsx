@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Plus, Clock, CheckCircle, AlertCircle, MessageCircle, ChevronDown, Star } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import ReviewForm from "@/components/ReviewForm";
+import { getDeviceId } from "@/hooks/useDeviceId";
 
 type TicketRow = {
   id: string;
@@ -81,6 +82,7 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
       description: description.trim(),
       category: category as any,
       priority: priority as any,
+      device_id: getDeviceId(),
     });
     if (error) {
       toast.error("Failed to create ticket");

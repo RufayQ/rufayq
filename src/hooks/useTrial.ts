@@ -1,16 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-const DEVICE_KEY = "rufayq_device_id";
-
-function getDeviceId(): string {
-  let id = localStorage.getItem(DEVICE_KEY);
-  if (!id) {
-    id = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    localStorage.setItem(DEVICE_KEY, id);
-  }
-  return id;
-}
+import { getDeviceId } from "@/hooks/useDeviceId";
 
 export interface TrialStatus {
   loading: boolean;
