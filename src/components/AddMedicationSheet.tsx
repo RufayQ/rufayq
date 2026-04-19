@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Pill } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, Pill, Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Medication } from "@/constants/data";
 
