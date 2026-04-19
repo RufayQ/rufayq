@@ -1,7 +1,11 @@
 // Twilio Verify - send OTP via WhatsApp or Email channel
 // Uses the Lovable Twilio connector gateway. Public endpoint (no JWT required) so unauthenticated
 // users can request a verification code during signup/sign-in.
-import { corsHeaders } from "@supabase/supabase-js/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 const GATEWAY_BASE = "https://connector-gateway.lovable.dev/twilio";
 
