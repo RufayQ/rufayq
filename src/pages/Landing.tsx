@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import ApprovedReviews from "@/components/ApprovedReviews";
-import ReviewForm from "@/components/ReviewForm";
+import { lazy, useState } from "react";
+import LazyOnView from "@/components/LazyOnView";
 import {
   ArrowRight, Check, Plane, Pill, FileText, Sparkles, Shield, Globe,
   Heart, MessageCircle, Star, ChevronDown, Menu, X, Lock, Zap,
@@ -9,6 +8,10 @@ import {
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage, BiText } from "@/contexts/LanguageContext";
+
+// Lazy-load below-the-fold components — they only render when the user scrolls near them.
+const ApprovedReviews = lazy(() => import("@/components/ApprovedReviews"));
+const ReviewForm = lazy(() => import("@/components/ReviewForm"));
 
 /**
  * Bilingual helper: render EN, AR, or both based on language mode.
@@ -369,7 +372,9 @@ const Landing = () => {
             ))}
           </div>
 
-          <ApprovedReviews />
+          <LazyOnView minHeight={320} rootMargin="400px">
+            <ApprovedReviews />
+          </LazyOnView>
 
           <div className="max-w-2xl mx-auto mt-16">
             <div className="text-center mb-6">
@@ -380,7 +385,9 @@ const Landing = () => {
                 <Bi en="Help us improve" ar="ساعدنا في التحسين" />
               </h3>
             </div>
-            <ReviewForm variant="dark" />
+            <LazyOnView minHeight={280} rootMargin="400px">
+              <ReviewForm variant="dark" />
+            </LazyOnView>
           </div>
         </div>
       </section>
