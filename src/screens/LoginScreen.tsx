@@ -1,7 +1,8 @@
 import { useState } from "react";
 import RufayQLogo from "@/components/RufayQLogo";
 import RufayQWordmark from "@/components/RufayQWordmark";
-import { Eye, EyeOff, Check, ArrowLeft, Shield, MessageCircle, Mail, UserCircle2 } from "lucide-react";
+import OtpInput from "@/components/OtpInput";
+import { Eye, EyeOff, Check, ArrowLeft, Shield, MessageCircle, Mail, UserCircle2, Loader2, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
