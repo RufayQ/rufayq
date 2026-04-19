@@ -840,15 +840,27 @@ const StepsTab = ({
         </div>
         <div className="space-y-1.5">
           {trips.map((t) => (
-            <div key={t.id} className="flex items-center gap-2 rounded-xl px-3 py-2" style={{
-              background: t.status === "active" ? "var(--gold-pale)" : "var(--white)",
-              border: t.status === "active" ? "1px solid var(--gold)" : "1px solid var(--gray-light)",
-            }}>
+            <div
+              key={t.id}
+              className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-shadow ${flashTripId === t.id ? "animate-flash-gold" : ""}`}
+              style={{
+                background: t.status === "active" ? "var(--gold-pale)" : "var(--white)",
+                border: t.status === "active" ? "1px solid var(--gold)" : "1px solid var(--gray-light)",
+              }}
+            >
               <span className="text-base">{t.specialtyEmoji || "🏥"}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{t.destination} · {t.specialty}</p>
                 <p className="text-[10px]" style={{ color: "var(--gray)" }}>{t.hospital} · {t.departureDate}</p>
               </div>
+              <button
+                onClick={onEditTrip}
+                className="w-7 h-7 rounded-full flex items-center justify-center btn-press shrink-0"
+                style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+                aria-label="Edit trip"
+              >
+                <Edit3 size={11} style={{ color: "var(--teal-deep)" }} />
+              </button>
               <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full" style={{
                 background: t.status === "active" ? "var(--gold)" : "var(--off-white)",
                 color: t.status === "active" ? "white" : "var(--gray)",
