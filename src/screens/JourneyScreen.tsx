@@ -263,14 +263,14 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         open={showEditTrip}
         trip={activeTrip}
         onClose={() => setShowEditTrip(false)}
-        onSave={(updated) => setTrips(prev => prev.map(t => t.id === updated.id ? updated : t))}
+        onSave={(updated) => { setTrips(prev => prev.map(t => t.id === updated.id ? updated : t)); flashTrip(updated.id); }}
       />
 
       <EditStepSheet
         open={!!editingStep}
         step={editingStep}
         onClose={() => setEditingStep(null)}
-        onSave={(updated) => setJourneySteps(prev => prev.map(s => s.id === updated.id ? updated : s))}
+        onSave={(updated) => { setJourneySteps(prev => prev.map(s => s.id === updated.id ? updated : s)); flashStep(updated.id); }}
         onDelete={(id) => setJourneySteps(prev => prev.filter(s => s.id !== id))}
       />
 
