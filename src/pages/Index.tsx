@@ -1,5 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/hooks/useTheme";
 import StatusBar from "@/components/StatusBar";
 import BottomNav from "@/components/BottomNav";
@@ -34,6 +36,18 @@ const toastMessages: Record<string, { en: string; ar: string }> = {
 
 const Index = () => {
   const { refresh: refreshTheme } = useTheme();
+  const navigate = useNavigate();
+
+  // Staff auto-redirect: if a signed-in staff member lands on the patient app, push them to /admin
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id);
+      const isStaff = (data || []).some((r: any) => r.role === "admin" || r.role === "moderator");
+      if (isStaff) navigate("/admin", { replace: true });
+    })();
+  }, [navigate]);
 
   const [appView, setAppView] = useState<AppView>(() => {
     const seen = localStorage.getItem("rufayq_onboarded");
