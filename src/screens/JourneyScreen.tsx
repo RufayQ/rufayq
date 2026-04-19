@@ -797,13 +797,20 @@ const StayTab = ({ onAdd, onScan }: { onAdd: () => void; onScan?: () => void }) 
 
 /* ─── STEPS TAB ─── */
 const StepsTab = ({
-  expanded, setExpanded, activeTrip, trips, steps, onAddTrip, onEditTrip, onEditStep, onAddStep,
+  expanded, setExpanded, activeTrip, trips, steps,
+  flashStepId, flashTripId, dragStepId, setDragStepId, onReorderStep,
+  onAddTrip, onEditTrip, onEditStep, onAddStep,
 }: {
   expanded: number | null;
   setExpanded: (v: number | null) => void;
   activeTrip: TripData;
   trips: TripData[];
   steps: JourneyStep[];
+  flashStepId: number | null;
+  flashTripId: string | null;
+  dragStepId: number | null;
+  setDragStepId: (id: number | null) => void;
+  onReorderStep: (sourceId: number, targetId: number) => void;
   onAddTrip: () => void;
   onEditTrip: () => void;
   onEditStep: (s: JourneyStep) => void;
