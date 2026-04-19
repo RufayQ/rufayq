@@ -103,6 +103,16 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         setOtp(["", "", "", "", "", ""]);
         return;
       }
+      // Sign in with the temp credentials returned by verify-otp → real Supabase session.
+      if (data.signInEmail && data.password) {
+        const { error: sErr } = await supabase.auth.signInWithPassword({
+          email: data.signInEmail, password: data.password,
+        });
+        if (sErr) {
+          toast.error("Sign-in failed", { description: sErr.message });
+          return;
+        }
+      }
       toast.success("Verified · تم التحقق");
       setTimeout(onLogin, 500);
     }

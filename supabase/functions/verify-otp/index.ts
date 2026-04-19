@@ -107,38 +107,26 @@ Deno.serve(async (req) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 4. Generate a magic-link to extract a session for the client.
-    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-      type: "magiclink",
-      email: usingEmail ? identity : `${identity.replace(/[^\d]/g, "")}@phone.rufayq.local`,
-    });
-
-    // Phone-only users won't have an email — fall back to setting email here so we can issue session.
-    // Simpler robust path: use signInWithOtp shape isn't admin. Best path: return a verified flag + user id,
-    // and the client uses signInWithPassword with a deterministic device-bound password. Simplest now:
-    // issue a one-time exchange by setting a fresh password and returning credentials.
-    if (linkErr || !linkData) {
-      // Fallback: assign a temporary random password and return it. Client signs in immediately, then we rotate.
-      const tempPassword = crypto.randomUUID() + "Aa1!";
-      await admin.auth.admin.updateUserById(userId, { password: tempPassword });
-      return new Response(JSON.stringify({
-        approved: true,
-        userId,
-        signInMethod: "password",
-        identity,
-        usingEmail,
-        password: tempPassword,
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // 4. Issue a one-time temp password the client uses to sign in immediately.
+    //    The session it creates is the user's real Supabase Auth session.
+    //    Password is rotated each verify call so it can't be re-used.
+    const tempPassword = crypto.randomUUID() + "Aa1!";
+    const updatePayload: Record<string, unknown> = { password: tempPassword };
+    // Ensure user has an email we can sign in with (Supabase password sign-in needs email).
+    if (!usingEmail) {
+      updatePayload.email = `${identity.replace(/[^\d]/g, "")}@phone.rufayq.local`;
+      updatePayload.email_confirm = true;
     }
+    await admin.auth.admin.updateUserById(userId, updatePayload);
 
     return new Response(JSON.stringify({
       approved: true,
       userId,
-      signInMethod: "magiclink",
-      actionLink: linkData.properties?.action_link,
-      hashedToken: linkData.properties?.hashed_token,
+      signInMethod: "password",
       identity,
       usingEmail,
+      signInEmail: usingEmail ? identity : `${identity.replace(/[^\d]/g, "")}@phone.rufayq.local`,
+      password: tempPassword,
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err) {
