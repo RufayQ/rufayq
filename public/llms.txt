@@ -1,0 +1,44 @@
+# RufayQ
+
+> RufayQ (رُفَيِّق) is a bilingual English/Arabic AI medical companion for patients travelling abroad for treatment. It organises flights, hotels, hospital appointments, medications and medical records — and explains every document instantly in both languages.
+
+RufayQ serves Saudi Arabia and the wider Gulf region (UAE, Qatar, Kuwait, Bahrain, Oman) plus international medical travellers. The app maps the full treatment journey: pre-travel preparation, in-destination care coordination, and post-discharge recovery.
+
+## Core capabilities
+
+- **Smart Journey** — Tickets, flights, hotels, appointments auto-extracted from scans
+- **Medication Tracker** — Bilingual schedule with reminders, dosage history, missed-dose tracking
+- **Records Vault** — Encrypted storage for prescriptions, labs, imaging, discharge summaries
+- **RufayQ AI Companion** — Bilingual EN/AR Q&A on any uploaded medical document
+- **Smart Scan** — AI extraction of dosages, dates, key fields from prescriptions and reports
+- **Care Hub** — Recovery checklists, vitals, exercises, patient education
+- **Provider Portal** — Approved hospitals, clinics, physicians, vendors and insurers can follow up with their patients
+
+## Compliance
+
+KSA PDPL · NCA ECC-1 · UAE PDPL · DHA · HIPAA-aligned · GDPR Articles 6 & 9. End-to-end TLS 1.3 in transit, AES-256 at rest. Hosted on ISO 27001 / SOC 2 Type II infrastructure.
+
+## Important disclaimer
+
+RufayQ is **not** a licensed medical practitioner, hospital, pharmacy, or emergency service. All AI output is informational support only. Patients must always verify with their treating physician before acting on any information from the app.
+
+## Pages
+
+- [Home](https://rufayq.com/): Product overview, features, pricing, testimonials
+- [For Providers](https://rufayq.com/providers): Hospital, clinic, vendor and insurer onboarding
+- [Provider Portal Login](https://rufayq.com/provider/login): Secure provider sign-in
+- [Privacy Policy](https://rufayq.com/privacy): Data protection, PDPL/GDPR/HIPAA compliance
+- [Terms of Service](https://rufayq.com/terms): Acceptance, responsibilities, governing law
+- [Security & Compliance](https://rufayq.com/security): Encryption, regulatory alignment
+
+## Contact
+
+- General support: support@rufayq.com
+- Data protection officer: dpo@rufayq.com
+- Legal: legal@rufayq.com
+- WhatsApp: +966 56 959 0418
+- LinkedIn: https://www.linkedin.com/company/rufayq
+
+## Languages
+
+Arabic (ar) and English (en) are fully supported across the entire product, including AI responses, scanned-document interpretation, and exports.
