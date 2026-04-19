@@ -253,10 +253,15 @@ export const defaultTransportSegments: TransportSegment[] = [
   {
     id: "t1", type: "flight", status: "completed",
     fromCode: "RUH", fromCity: "Riyadh", fromFull: "King Khalid Intl",
-    toCode: "BER", toCity: "Berlin", toFull: "Brandenburg Intl",
+    toCode: "IST", toCity: "Istanbul", toFull: "Istanbul Airport",
     departureDateTime: "2026-04-05T08:30", arrivalDateTime: "2026-04-05T14:00",
-    duration: "~5h 30m", airline: "Saudia", flightNumber: "SV 301",
-    bookingRef: "AB1234", seatClass: "Business", seatNumber: "24A",
+    duration: "~5h 30m", airline: "Turkish Airlines", flightNumber: "TK 145",
+    bookingRef: "TK7K2P", seatClass: "Economy", seatNumber: "24A",
+    companions: [
+      { name: "Sara Al-Rashidi", relation: "Wife", seatNumber: "24B" },
+      { name: "Omar Al-Rashidi", relation: "Son (12)", seatNumber: "24C" },
+      { name: "Layla Al-Rashidi", relation: "Daughter (9)", seatNumber: "24D" },
+    ],
   },
   {
     id: "t2", type: "taxi", status: "completed",

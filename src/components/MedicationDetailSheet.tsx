@@ -47,12 +47,14 @@ const MedicationDetailSheet = ({
   notes, onSaveNotes, reminders, onToggleReminder,
   onConsultAI, allergies = [],
 }: MedicationDetailSheetProps) => {
-  const [activeTab, setActiveTab] = useState<"details" | "notes" | "reminders">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "safety" | "notes" | "reminders">("details");
   const [draftNote, setDraftNote] = useState("");
   const [noteSource, setNoteSource] = useState<"user" | "doctor">("user");
 
+  const hasSafety = !!(med.precautions?.length || med.sideEffects?.length || med.contraindications?.length || med.interactions?.length);
   const tabs = [
     { key: "details" as const, label: "Details", icon: "💊" },
+    { key: "safety" as const, label: "Safety", icon: "🛡️" },
     { key: "notes" as const, label: "Notes", icon: "📝" },
     { key: "reminders" as const, label: "Reminders", icon: "⏰" },
   ];
@@ -153,6 +155,12 @@ const MedicationDetailSheet = ({
           {/* ─── DETAILS TAB ─── */}
           {activeTab === "details" && (
             <div className="space-y-3 pt-2">
+              {/* Pill image */}
+              {med.imageUrl && (
+                <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--gray-light)" }}>
+                  <img src={med.imageUrl} alt={med.name} className="w-full h-40 object-cover" />
+                </div>
+              )}
               {/* Dosage info grid */}
               <div className="rounded-2xl p-4" style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.12)" }}>
                 <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--teal-deep)" }}>DOSAGE INFORMATION</p>
@@ -270,6 +278,38 @@ const MedicationDetailSheet = ({
                 >
                   <MessageCircle size={15} /> Consult RufayQ AI · <span className="font-arabic">استشر رُفَيِّق</span>
                 </button>
+              )}
+            </div>
+          )}
+
+          {/* ─── SAFETY TAB ─── */}
+          {activeTab === "safety" && (
+            <div className="space-y-3 pt-2">
+              {!hasSafety && (
+                <div className="text-center py-8">
+                  <span className="text-3xl">🛡️</span>
+                  <p className="text-xs mt-2" style={{ color: "var(--gray)" }}>No safety info added yet · لم تُضف معلومات السلامة</p>
+                  <p className="text-[11px] mt-1" style={{ color: "var(--gray)" }}>Edit this medication to add precautions, side effects, contraindications and drug interactions.</p>
+                </div>
+              )}
+
+              {med.precautions && med.precautions.length > 0 && (
+                <SafetyBlock title="PRECAUTIONS · احتياطات" icon="⚠️" tone="warn" items={med.precautions} arItems={med.precautionsAr} />
+              )}
+              {med.sideEffects && med.sideEffects.length > 0 && (
+                <SafetyBlock title="SIDE EFFECTS · آثار جانبية" icon="💢" tone="info" items={med.sideEffects} arItems={med.sideEffectsAr} />
+              )}
+              {med.contraindications && med.contraindications.length > 0 && (
+                <SafetyBlock title="CONTRAINDICATIONS · موانع الاستعمال" icon="🚫" tone="error" items={med.contraindications} arItems={med.contraindicationsAr} />
+              )}
+              {med.interactions && med.interactions.length > 0 && (
+                <SafetyBlock title="DRUG INTERACTIONS · تداخلات دوائية" icon="⚡" tone="error" items={med.interactions} arItems={med.interactionsAr} />
+              )}
+
+              {hasSafety && (
+                <p className="text-[10px] text-center pt-2" style={{ color: "var(--gray)" }}>
+                  Information shown is user-entered. Always verify with your treating physician.
+                </p>
               )}
             </div>
           )}
@@ -401,6 +441,29 @@ const MedicationDetailSheet = ({
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+const toneStyles: Record<string, { bg: string; border: string; color: string }> = {
+  warn: { bg: "#FFFBEF", border: "rgba(197,150,90,0.3)", color: "var(--warning)" },
+  info: { bg: "var(--off-white)", border: "var(--gray-light)", color: "var(--teal-deep)" },
+  error: { bg: "rgba(217,79,79,0.05)", border: "var(--error)", color: "var(--error)" },
+};
+
+const SafetyBlock = ({ title, icon, tone, items, arItems }: { title: string; icon: string; tone: "warn" | "info" | "error"; items: string[]; arItems?: string[] }) => {
+  const t = toneStyles[tone];
+  return (
+    <div className="rounded-xl p-3" style={{ background: t.bg, border: `1px solid ${t.border}` }}>
+      <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: t.color }}>{icon} {title}</p>
+      <ul className="space-y-1">
+        {items.map((it, i) => (
+          <li key={i} className="text-[12px] flex gap-1.5" style={{ color: "var(--navy)" }}>
+            <span style={{ color: t.color }}>•</span>
+            <span>{it}{arItems?.[i] ? <span className="font-arabic block text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>{arItems[i]}</span> : null}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };

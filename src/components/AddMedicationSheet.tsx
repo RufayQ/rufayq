@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Pill } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, Pill, Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Medication } from "@/constants/data";
 
@@ -25,6 +25,23 @@ const AddMedicationSheet = ({ open, onClose, onSubmit, allergies = [] }: AddMedi
   const [frequency, setFrequency] = useState("Once daily");
   const [period, setPeriod] = useState<Medication["period"]>("morning");
   const [instructions, setInstructions] = useState("");
+  const [precautions, setPrecautions] = useState("");
+  const [sideEffects, setSideEffects] = useState("");
+  const [contraindications, setContraindications] = useState("");
+  const [interactions, setInteractions] = useState("");
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleImage = (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image too large (max 2MB) · الصورة كبيرة جداً");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setImageUrl(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+  const splitLines = (s: string) => s.split(/[\n,]+/).map(x => x.trim()).filter(Boolean);
 
   if (!open) return null;
 
@@ -33,6 +50,7 @@ const AddMedicationSheet = ({ open, onClose, onSubmit, allergies = [] }: AddMedi
   const reset = () => {
     setName(""); setNameAr(""); setDosage(""); setTime("08:00");
     setFrequency("Once daily"); setPeriod("morning"); setInstructions("");
+    setPrecautions(""); setSideEffects(""); setContraindications(""); setInteractions(""); setImageUrl("");
   };
 
   const handleSubmit = () => {
@@ -60,6 +78,11 @@ const AddMedicationSheet = ({ open, onClose, onSubmit, allergies = [] }: AddMedi
       period,
       instructions: instructions.trim() || undefined,
       instructionsAr: instructions.trim() || undefined,
+      precautions: splitLines(precautions).length ? splitLines(precautions) : undefined,
+      sideEffects: splitLines(sideEffects).length ? splitLines(sideEffects) : undefined,
+      contraindications: splitLines(contraindications).length ? splitLines(contraindications) : undefined,
+      interactions: splitLines(interactions).length ? splitLines(interactions) : undefined,
+      imageUrl: imageUrl || undefined,
     };
     onSubmit(newMed);
     toast.success("Medication added · تم إضافة الدواء");
@@ -179,6 +202,69 @@ const AddMedicationSheet = ({ open, onClose, onSubmit, allergies = [] }: AddMedi
               className="w-full mt-1 px-3 py-2.5 rounded-xl text-[13px] outline-none resize-none"
               style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
             />
+          </div>
+
+          {/* Image upload */}
+          <div>
+            <label className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>PILL IMAGE · صورة الدواء</label>
+            {imageUrl ? (
+              <div className="mt-1 relative rounded-xl overflow-hidden" style={{ border: "1px solid var(--gray-light)" }}>
+                <img src={imageUrl} alt="Medication" className="w-full h-32 object-cover" />
+                <button onClick={() => setImageUrl("")} className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center btn-press" style={{ background: "rgba(0,0,0,0.6)" }}>
+                  <Trash2 size={12} color="white" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="w-full mt-1 py-3 rounded-xl flex items-center justify-center gap-2 btn-press"
+                style={{ background: "var(--off-white)", border: "1px dashed var(--gray-light)", color: "var(--gray)", fontSize: 12 }}
+              >
+                <Upload size={14} /> Upload pill photo
+              </button>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImage(f); }} />
+          </div>
+
+          {/* Precautions */}
+          <div>
+            <label className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>PRECAUTIONS · احتياطات</label>
+            <textarea value={precautions} onChange={e => setPrecautions(e.target.value)}
+              placeholder="One per line — e.g. Avoid alcohol&#10;Do not drive for 4h"
+              rows={2}
+              className="w-full mt-1 px-3 py-2.5 rounded-xl text-[13px] outline-none resize-none"
+              style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+          </div>
+
+          {/* Side effects */}
+          <div>
+            <label className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>SIDE EFFECTS · آثار جانبية</label>
+            <textarea value={sideEffects} onChange={e => setSideEffects(e.target.value)}
+              placeholder="One per line — e.g. Nausea&#10;Drowsiness&#10;Dry mouth"
+              rows={2}
+              className="w-full mt-1 px-3 py-2.5 rounded-xl text-[13px] outline-none resize-none"
+              style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+          </div>
+
+          {/* Contraindications */}
+          <div>
+            <label className="font-mono text-[9px] tracking-widest" style={{ color: "var(--error)" }}>CONTRAINDICATIONS · موانع الاستعمال</label>
+            <textarea value={contraindications} onChange={e => setContraindications(e.target.value)}
+              placeholder="One per line — e.g. Pregnancy&#10;Severe kidney disease"
+              rows={2}
+              className="w-full mt-1 px-3 py-2.5 rounded-xl text-[13px] outline-none resize-none"
+              style={{ background: "rgba(217,79,79,0.04)", border: "1px solid rgba(217,79,79,0.25)", color: "var(--navy)" }} />
+          </div>
+
+          {/* Drug interactions */}
+          <div>
+            <label className="font-mono text-[9px] tracking-widest" style={{ color: "var(--error)" }}>DRUG INTERACTIONS · تداخلات دوائية</label>
+            <textarea value={interactions} onChange={e => setInteractions(e.target.value)}
+              placeholder="One per line — e.g. Warfarin (bleeding risk)&#10;NSAIDs (ulcer risk)"
+              rows={2}
+              className="w-full mt-1 px-3 py-2.5 rounded-xl text-[13px] outline-none resize-none"
+              style={{ background: "rgba(217,79,79,0.04)", border: "1px solid rgba(217,79,79,0.25)", color: "var(--navy)" }} />
           </div>
 
           {allergies.length > 0 && (

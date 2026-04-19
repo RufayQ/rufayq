@@ -318,6 +318,12 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: Transp
   const [ticketSystemReminders, setTicketSystemReminders] = useState<Record<string, SmartReminder[]>>({});
   const [ticketMutedAlerts, setTicketMutedAlerts] = useState<Record<string, boolean>>({});
 
+  // Filter UI state
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [familyOnly, setFamilyOnly] = useState(false);
+
   const handleToggleAlarm = (segId: string, minutes: number) => {
     setTicketAlarms((prev) => {
       const current = prev[segId] || [];
@@ -325,6 +331,22 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: Transp
     });
   };
 
+  // Apply search/date/family filters before grouping
+  const filteredSegments = segments.filter((s) => {
+    if (familyOnly && !(s.companions && s.companions.length > 0)) return false;
+    if (dateFrom && new Date(s.departureDateTime) < new Date(dateFrom)) return false;
+    if (dateTo && new Date(s.departureDateTime) > new Date(`${dateTo}T23:59:59`)) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const hay = [
+        s.airline, s.flightNumber, s.trainNumber, s.busNumber,
+        s.fromCity, s.toCity, s.fromCode, s.toCode, s.bookingRef,
+      ].filter(Boolean).join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const familyCount = segments.filter(s => (s.companions?.length || 0) > 0).length;
 
   return (
     <div className="pt-2">
@@ -336,10 +358,60 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: Transp
           <p className="text-[8px] leading-relaxed" style={{ color: "var(--error)" }}>⚠️ All flight/transport info is user-entered. RufayQ does not connect to airline systems. Verify with your carrier.</p>
           <p className="font-arabic text-[8px]" dir="rtl" style={{ color: "var(--error)" }}>جميع معلومات النقل مُدخلة يدوياً. تحقق من شركة النقل مباشرة.</p>
         </div>
+
+        {/* Search + filter controls */}
+        <div className="mt-3 space-y-2">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search airline, flight #, city, PNR…"
+            className="w-full px-3 py-2 rounded-lg text-[12px] outline-none"
+            style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+          />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <p className="font-mono text-[8px] tracking-wider mb-0.5" style={{ color: "var(--gray)" }}>FROM</p>
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+                className="w-full px-2 py-1.5 rounded-lg text-[11px] outline-none"
+                style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+            </div>
+            <div className="flex-1">
+              <p className="font-mono text-[8px] tracking-wider mb-0.5" style={{ color: "var(--gray)" }}>TO</p>
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+                className="w-full px-2 py-1.5 rounded-lg text-[11px] outline-none"
+                style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <button
+              onClick={() => setFamilyOnly(v => !v)}
+              className="text-[10px] font-bold px-2.5 py-1 rounded-full btn-press transition-all"
+              style={{
+                background: familyOnly ? "var(--gold)" : "var(--white)",
+                color: familyOnly ? "white" : "var(--navy)",
+                border: `1px solid ${familyOnly ? "var(--gold)" : "var(--gray-light)"}`,
+              }}
+            >
+              👨‍👩‍👧‍👦 Family / Companion {familyCount > 0 ? `· ${familyCount}` : ""}
+            </button>
+            {(search || dateFrom || dateTo || familyOnly) && (
+              <button
+                onClick={() => { setSearch(""); setDateFrom(""); setDateTo(""); setFamilyOnly(false); }}
+                className="text-[10px] px-2 py-1 rounded-full btn-press"
+                style={{ color: "var(--teal-deep)" }}
+              >
+                ✕ Clear
+              </button>
+            )}
+            <span className="ml-auto font-mono text-[9px]" style={{ color: "var(--gray)" }}>
+              {filteredSegments.length} / {segments.length}
+            </span>
+          </div>
+        </div>
       </div>
       {(() => {
         const now = Date.now();
-        const annotated = segments.map((s) => {
+        const annotated = filteredSegments.map((s) => {
           const dep = new Date(s.departureDateTime).getTime();
           const arr = new Date(s.arrivalDateTime).getTime();
           let group: "current" | "upcoming" | "past";

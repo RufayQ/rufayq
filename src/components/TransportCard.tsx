@@ -52,6 +52,8 @@ export interface TransportSegment {
   hospitalPhone?: string;
   // Layover
   layoverAfter?: { duration: string; airport: string; code: string };
+  // Companions (family/care companion travelling on same ticket reference)
+  companions?: { name: string; relation: string; seatNumber?: string }[];
 }
 
 const statusColors: Record<string, string> = {
@@ -266,6 +268,11 @@ const TransportCard = ({ seg, onTap }: { seg: TransportSegment; onTap?: () => vo
             {cfg.icon} {cfg.label}
           </span>
           <div className="flex items-center gap-2">
+            {(seg.companions?.length || 0) > 0 && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(197,150,90,0.25)", color: "#FFE6B8", border: "1px solid rgba(197,150,90,0.5)" }}>
+                👨‍👩‍👧‍👦 FAMILY · {seg.companions!.length}
+              </span>
+            )}
             {seg.airline && <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans'" }}>{seg.airline}</span>}
             {seg.trainOperator && <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.6)" }}>{seg.trainOperator}</span>}
             {seg.busOperator && <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.6)" }}>{seg.busOperator}</span>}
