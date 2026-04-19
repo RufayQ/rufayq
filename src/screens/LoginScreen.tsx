@@ -252,68 +252,108 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     );
   }
 
-  // ============ OTP VIEW ============
+  // ============ OTP VIEW (redesigned) ============
   if (view === "otp") {
-    const channelIcon = otpChannel === "whatsapp" ? <MessageCircle size={14} color="#25D366" /> : <Mail size={14} color="var(--teal-deep)" />;
-    const channelLabel = otpChannel === "whatsapp"
-      ? `WhatsApp · +966 ${phone || reg.phone || "5XXXXXXXX"}`
-      : `Email · ${reg.email || "your email"}`;
+    const recipient = resolveRecipient(otpChannel) || "your contact";
+    const masked = otpChannel === "email"
+      ? recipient.replace(/(.{2}).+(@.+)/, "$1•••$2")
+      : recipient.replace(/(\+\d{3})\d+(\d{3})/, "$1•••$2");
+    const channelMeta = otpChannel === "whatsapp"
+      ? { Icon: MessageCircle, label: "WhatsApp", color: "#25D366" }
+      : { Icon: Mail, label: "Email", color: "var(--teal-deep)" };
+    const ChannelIcon = channelMeta.Icon;
+    const canResend = countdown === 0 && !submitting;
+
     return (
-      <div className="flex flex-col h-full px-6 pt-10" style={{ background: "var(--off-white)" }}>
-        <button onClick={() => setView(reg.acceptTerms ? "medical" : "login")} className="flex items-center gap-1 text-xs mb-3 self-start" style={{ color: "var(--teal-deep)" }}>
+      <div className="flex flex-col h-full overflow-y-auto px-6 pt-10 pb-8" style={{ background: "var(--off-white)" }}>
+        <button
+          onClick={() => setView(reg.acceptTerms ? "medical" : "login")}
+          className="flex items-center gap-1 text-xs mb-4 self-start"
+          style={{ color: "var(--teal-deep)" }}
+        >
           <ArrowLeft size={14} /> Back · رجوع
         </button>
+
+        {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full mb-3" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            {channelIcon}
-            <span className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>{channelLabel}</span>
+          <div
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-4"
+            style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+          >
+            <ChannelIcon size={14} color={channelMeta.color} />
+            <span className="text-[11px] font-semibold tracking-wide" style={{ color: "var(--navy)" }}>
+              {channelMeta.label} · {masked}
+            </span>
           </div>
-          <h2 className="font-display text-2xl" style={{ color: "var(--navy)" }}>Enter verification code</h2>
+          <h2 className="font-display text-2xl" style={{ color: "var(--navy)" }}>Enter your code</h2>
           <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>أدخل رمز التحقق</p>
-          <p className="text-[10px] mt-3 italic" style={{ color: "var(--gray)" }}>
-            Real Twilio Verify code · enter the 6 digits you received
+          <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
+            We sent a 6-digit code. It expires in 10 minutes.
           </p>
         </div>
-        <div className="flex justify-center gap-2 mb-6">
-          {otp.map((d, i) => (
-            <input key={i} id={`otp-${i}`} value={d} onChange={(e) => handleOtp(i, e.target.value)} maxLength={1}
-              inputMode="numeric"
-              className="w-11 h-12 text-center text-lg font-semibold rounded-lg outline-none transition-all"
-              style={{ border: `1.5px solid ${d ? "var(--teal-deep)" : "var(--gray-light)"}`, background: "var(--white)", color: "var(--navy)" }}
-            />
-          ))}
-        </div>
-        <p className="text-center text-xs" style={{ color: countdown > 0 ? "var(--gray)" : "var(--teal-mid)" }}>
-          {countdown > 0
-            ? `Resend in 0:${countdown.toString().padStart(2, "0")}`
-            : (
-              <button onClick={() => handleSendOtp(otpChannel)} className="font-semibold underline">
-                Resend code · إعادة إرسال الرمز
-              </button>
-            )}
-        </p>
 
-        {/* Switch channel */}
+        {/* OTP slots — auto-advance, paste, backspace nav */}
+        <OtpInput
+          value={otp}
+          onChange={setOtp}
+          onComplete={submitOtp}
+          disabled={submitting}
+        />
+
+        {/* Submitting indicator */}
+        {submitting && (
+          <p className="flex items-center justify-center gap-2 text-xs mt-4" style={{ color: "var(--teal-deep)" }}>
+            <Loader2 size={12} className="animate-spin" /> Verifying…
+          </p>
+        )}
+
+        {/* Resend block */}
         <div className="mt-6 text-center">
-          <p className="text-[10px] mb-2" style={{ color: "var(--gray)" }}>Try another method · جرب طريقة أخرى</p>
+          {countdown > 0 ? (
+            <p className="text-xs" style={{ color: "var(--gray)" }}>
+              Didn't get it? Resend in <span className="font-mono font-semibold" style={{ color: "var(--navy)" }}>0:{countdown.toString().padStart(2, "0")}</span>
+            </p>
+          ) : (
+            <button
+              onClick={() => handleSendOtp(otpChannel)}
+              disabled={!canResend}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold underline disabled:opacity-50"
+              style={{ color: "var(--teal-deep)" }}
+            >
+              <RefreshCw size={12} /> Resend code · إعادة إرسال
+            </button>
+          )}
+        </div>
+
+        {/* Channel switcher */}
+        <div className="mt-7 pt-5" style={{ borderTop: "1px dashed var(--gray-light)" }}>
+          <p className="text-[10px] text-center mb-2.5 uppercase tracking-widest" style={{ color: "var(--gray)" }}>
+            Try another method · جرب طريقة أخرى
+          </p>
           <div className="flex gap-2">
             <button
               onClick={() => handleSendOtp("whatsapp")}
-              disabled={otpChannel === "whatsapp"}
-              className="flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 btn-press disabled:opacity-40"
+              disabled={otpChannel === "whatsapp" || submitting}
+              className="flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 btn-press disabled:opacity-40"
               style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
             >
-              <MessageCircle size={12} color="#25D366" /> WhatsApp
+              <MessageCircle size={13} color="#25D366" /> WhatsApp
             </button>
             <button
               onClick={() => handleSendOtp("email")}
-              disabled={otpChannel === "email"}
-              className="flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 btn-press disabled:opacity-40"
+              disabled={otpChannel === "email" || submitting}
+              className="flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 btn-press disabled:opacity-40"
               style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
             >
-              <Mail size={12} color="var(--teal-deep)" /> Email
+              <Mail size={13} color="var(--teal-deep)" /> Email
             </button>
           </div>
+          <p className="text-[10px] text-center mt-3" style={{ color: "var(--gray)" }}>
+            Still nothing? Tip: check spam, or contact{" "}
+            <a href="mailto:customersupport@rufayq.com" className="font-semibold underline" style={{ color: "var(--teal-deep)" }}>
+              customersupport@rufayq.com
+            </a>{" "}for a manual code.
+          </p>
         </div>
       </div>
     );
