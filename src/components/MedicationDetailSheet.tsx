@@ -47,12 +47,14 @@ const MedicationDetailSheet = ({
   notes, onSaveNotes, reminders, onToggleReminder,
   onConsultAI, allergies = [],
 }: MedicationDetailSheetProps) => {
-  const [activeTab, setActiveTab] = useState<"details" | "notes" | "reminders">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "safety" | "notes" | "reminders">("details");
   const [draftNote, setDraftNote] = useState("");
   const [noteSource, setNoteSource] = useState<"user" | "doctor">("user");
 
+  const hasSafety = !!(med.precautions?.length || med.sideEffects?.length || med.contraindications?.length || med.interactions?.length);
   const tabs = [
     { key: "details" as const, label: "Details", icon: "💊" },
+    { key: "safety" as const, label: "Safety", icon: "🛡️" },
     { key: "notes" as const, label: "Notes", icon: "📝" },
     { key: "reminders" as const, label: "Reminders", icon: "⏰" },
   ];
