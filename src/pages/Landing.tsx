@@ -25,7 +25,7 @@ const Landing = () => {
   const trustPoints = [
     { icon: Lock, label: "End-to-end encrypted" },
     { icon: Globe, label: "Bilingual EN / AR" },
-    { icon: Heart, label: "Built for Saudi patients" },
+    { icon: Heart, label: "For Gulf & global patients" },
   ];
 
   const testimonials = [
@@ -71,12 +71,22 @@ const Landing = () => {
           </button>
 
           <div className="hidden md:flex items-center gap-8">
-            {[["Features", "#features"], ["How", "#how"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, h]) => (
-              <a key={h} href={h} className="text-[13px] font-medium transition-colors hover:opacity-100" style={{ color: TEXT_MUTED }}>
+            {[["Features", "#features"], ["How", "#how"], ["Pricing", "#pricing"], ["FAQ", "#faq"], ["Contact", "#contact"]].map(([l, h]) => (
+              <a
+                key={h}
+                href={h}
+                className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group"
+                style={{ color: TEXT_MUTED }}
+              >
                 {l}
+                <span
+                  aria-hidden
+                  className="absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full"
+                  style={{ background: GOLD }}
+                />
               </a>
             ))}
-            <button onClick={goToApp} className="px-5 py-2 rounded-full text-[13px] font-semibold transition-all hover:scale-105" style={{ background: GOLD, color: BG_DARK }}>
+            <button onClick={goToApp} className="px-5 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg" style={{ background: GOLD, color: BG_DARK }}>
               Open app →
             </button>
           </div>
@@ -116,10 +126,10 @@ const Landing = () => {
               <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>understood</span>.
             </h1>
             <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED }}>
-              The bilingual AI companion built for Saudi patients traveling abroad for treatment. Track tickets, medications & appointments — and ask anything about your records.
+              The bilingual AI companion for Gulf patients and travellers worldwide seeking treatment away from home. Track tickets, medications &amp; appointments — and ask anything about your records.
             </p>
             <p className="font-arabic text-sm mb-9" dir="rtl" style={{ color: "rgba(232,236,240,0.4)" }}>
-              رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج.
+              رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج — لمرضى الخليج والعالم.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -369,7 +379,7 @@ const Landing = () => {
             Travel for treatment with <em style={{ color: GOLD }}>confidence</em>.
           </h2>
           <p className="text-base mb-9" style={{ color: TEXT_MUTED }}>
-            Join thousands of Saudi patients using RufayQ to make their medical journey simpler, safer, and clearer.
+            Join thousands of patients across the Gulf and the world using RufayQ to make their medical journey simpler, safer, and clearer.
           </p>
           <button onClick={goToApp} className="px-9 py-4 rounded-full font-semibold text-sm inline-flex items-center gap-2 btn-press transition-all hover:scale-105" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 15px 50px ${GOLD}40` }}>
             Open RufayQ <ArrowRight size={15} />
