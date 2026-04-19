@@ -50,6 +50,7 @@ const AddMedicationSheet = ({ open, onClose, onSubmit, allergies = [] }: AddMedi
   const reset = () => {
     setName(""); setNameAr(""); setDosage(""); setTime("08:00");
     setFrequency("Once daily"); setPeriod("morning"); setInstructions("");
+    setPrecautions(""); setSideEffects(""); setContraindications(""); setInteractions(""); setImageUrl("");
   };
 
   const handleSubmit = () => {
@@ -77,6 +78,11 @@ const AddMedicationSheet = ({ open, onClose, onSubmit, allergies = [] }: AddMedi
       period,
       instructions: instructions.trim() || undefined,
       instructionsAr: instructions.trim() || undefined,
+      precautions: splitLines(precautions).length ? splitLines(precautions) : undefined,
+      sideEffects: splitLines(sideEffects).length ? splitLines(sideEffects) : undefined,
+      contraindications: splitLines(contraindications).length ? splitLines(contraindications) : undefined,
+      interactions: splitLines(interactions).length ? splitLines(interactions) : undefined,
+      imageUrl: imageUrl || undefined,
     };
     onSubmit(newMed);
     toast.success("Medication added · تم إضافة الدواء");
