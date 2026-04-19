@@ -52,6 +52,8 @@ export interface TransportSegment {
   hospitalPhone?: string;
   // Layover
   layoverAfter?: { duration: string; airport: string; code: string };
+  // Companions (family/care companion travelling on same ticket reference)
+  companions?: { name: string; relation: string; seatNumber?: string }[];
 }
 
 const statusColors: Record<string, string> = {
