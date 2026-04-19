@@ -240,6 +240,11 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
           <StepsTab
             expanded={expanded} setExpanded={setExpanded} activeTrip={activeTrip} trips={trips}
             steps={journeySteps}
+            flashStepId={flashStepId}
+            flashTripId={flashTripId}
+            dragStepId={dragStepId}
+            setDragStepId={setDragStepId}
+            onReorderStep={handleReorderStep}
             onAddTrip={() => { if (requireProForAddTrip()) setShowAddTrip(true); }}
             onEditTrip={() => setShowEditTrip(true)}
             onEditStep={(s) => setEditingStep(s)}
