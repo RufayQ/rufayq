@@ -6,9 +6,18 @@ import { UserPlus, Copy } from "lucide-react";
 interface Org { id: string; name: string; org_type: string }
 
 const ROLES = [
-  { value: "user", label: "Patient / End User" },
-  { value: "moderator", label: "Customer Service Agent" },
-  { value: "admin", label: "Admin" },
+  { value: "user", label: "External user (patient/provider/vendor)" },
+  { value: "moderator", label: "Customer Service Agent (internal)" },
+  { value: "admin", label: "Admin (internal)" },
+];
+
+const PROVIDER_TYPES = [
+  { value: "patient",   label: "Patient / End user" },
+  { value: "hospital",  label: "Hospital" },
+  { value: "physician", label: "Physician" },
+  { value: "vendor",    label: "Vendor" },
+  { value: "insurance", label: "Insurance company" },
+  { value: "internal",  label: "Internal staff" },
 ];
 
 const AdminCreateUser = () => {
@@ -16,7 +25,7 @@ const AdminCreateUser = () => {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     email: "", password: "", full_name: "", phone: "",
-    role: "user", organization_id: "",
+    role: "user", organization_id: "", provider_type: "patient",
   });
   const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
 
@@ -42,13 +51,14 @@ const AdminCreateUser = () => {
         phone: form.phone || null,
         role: form.role,
         organization_id: form.organization_id || null,
+        provider_type: form.provider_type,
       },
     });
     setBusy(false);
     if (error || (data as any)?.error) { toast.error((data as any)?.error || error?.message || "Failed"); return; }
     toast.success("User created");
     setCreated({ email: form.email, password: form.password });
-    setForm({ email: "", password: "", full_name: "", phone: "", role: "user", organization_id: "" });
+    setForm({ email: "", password: "", full_name: "", phone: "", role: "user", organization_id: "", provider_type: "patient" });
   };
 
   return (
@@ -78,18 +88,23 @@ const AdminCreateUser = () => {
             </div>
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Role">
+            <Field label="User type">
+              <select value={form.provider_type} onChange={(e) => setForm({ ...form, provider_type: e.target.value })} className="input">
+                {PROVIDER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Auth role">
               <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="input">
                 {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </Field>
-            <Field label="Organization (optional)">
-              <select value={form.organization_id} onChange={(e) => setForm({ ...form, organization_id: e.target.value })} className="input">
-                <option value="">— None (individual) —</option>
-                {orgs.map(o => <option key={o.id} value={o.id}>{o.name} ({o.org_type})</option>)}
-              </select>
-            </Field>
           </div>
+          <Field label="Organization (optional)">
+            <select value={form.organization_id} onChange={(e) => setForm({ ...form, organization_id: e.target.value })} className="input">
+              <option value="">— None (individual) —</option>
+              {orgs.map(o => <option key={o.id} value={o.id}>{o.name} ({o.org_type})</option>)}
+            </select>
+          </Field>
 
           <button onClick={submit} disabled={busy}
             className="w-full py-2.5 rounded-lg bg-amber-500 text-slate-950 text-sm font-semibold disabled:opacity-50">

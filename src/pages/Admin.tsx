@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Star, MessageSquare, Users, LogOut, CreditCard, FileText, Building2, UserPlus, Activity } from "lucide-react";
+import { Shield, Star, MessageSquare, Users, LogOut, CreditCard, FileText, Building2, UserPlus, Activity, LayoutDashboard } from "lucide-react";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 import AdminReviews from "@/components/admin/AdminReviews";
@@ -10,10 +10,12 @@ import AdminPages from "@/components/admin/AdminPages";
 import AdminOrganizations from "@/components/admin/AdminOrganizations";
 import AdminCreateUser from "@/components/admin/AdminCreateUser";
 import AdminAuditLog from "@/components/admin/AdminAuditLog";
+import AdminDashboard from "@/components/admin/AdminDashboard";
 
-type Tab = "users" | "create" | "orgs" | "subs" | "reviews" | "tickets" | "pages" | "audit";
+type Tab = "dashboard" | "users" | "create" | "orgs" | "subs" | "reviews" | "tickets" | "pages" | "audit";
 
 const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boolean }[] = [
+  { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { key: "users", label: "Users", Icon: Users },
   { key: "create", label: "Create User", Icon: UserPlus, adminOnly: true },
   { key: "orgs", label: "Organizations", Icon: Building2 },
@@ -28,7 +30,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
   const [role, setRole] = useState<"admin" | "moderator" | null>(null);
-  const [tab, setTab] = useState<Tab>("users");
+  const [tab, setTab] = useState<Tab>("dashboard");
 
   useEffect(() => {
     (async () => {
@@ -94,6 +96,7 @@ const Admin = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        {tab === "dashboard" && <AdminDashboard />}
         {tab === "users" && <AdminUsers />}
         {tab === "create" && role === "admin" && <AdminCreateUser />}
         {tab === "orgs" && <AdminOrganizations />}

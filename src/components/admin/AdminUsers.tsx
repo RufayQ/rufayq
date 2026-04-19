@@ -7,10 +7,22 @@ interface Profile {
   id: string; device_id: string; full_name_en: string | null; phone: string | null;
   email: string | null; nationality: string | null; created_at: string;
   deleted_at?: string | null; deleted_reason?: string | null;
+  provider_type?: string | null; organization_id?: string | null;
 }
 interface UserStatus {
   user_id: string; status: "active" | "on_hold" | "suspended"; reason: string | null;
 }
+interface Org { id: string; name: string; org_type: string }
+
+const PROVIDER_TYPES = ["patient","hospital","physician","vendor","insurance","internal"];
+const TYPE_BADGE: Record<string, string> = {
+  patient: "bg-rose-500/15 text-rose-300",
+  hospital: "bg-blue-500/15 text-blue-300",
+  physician: "bg-emerald-500/15 text-emerald-300",
+  vendor: "bg-amber-500/15 text-amber-300",
+  insurance: "bg-violet-500/15 text-violet-300",
+  internal: "bg-slate-500/15 text-slate-300",
+};
 
 const AdminUsers = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -21,14 +33,20 @@ const AdminUsers = () => {
   const [editing, setEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Profile>>({});
 
+  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterOrg, setFilterOrg] = useState<string>("all");
+
   const load = async () => {
     setLoading(true);
-    const [{ data: p, error: pErr }, { data: s }] = await Promise.all([
+    const [{ data: p, error: pErr }, { data: s }, { data: o }] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("user_status").select("*"),
+      supabase.from("organizations").select("id,name,org_type").order("name"),
     ]);
     if (pErr) toast.error(pErr.message);
     setProfiles((p || []) as Profile[]);
+    setOrgs((o || []) as Org[]);
     const map: Record<string, UserStatus> = {};
     (s || []).forEach((x: any) => { map[x.user_id] = x; });
     setStatuses(map);
@@ -95,7 +113,15 @@ const AdminUsers = () => {
     }
   };
 
+  const orgsById: Record<string, Org> = {};
+  orgs.forEach(o => { orgsById[o.id] = o; });
+
   const filtered = profiles.filter((p) => {
+    if (filterType !== "all" && (p.provider_type || "patient") !== filterType) return false;
+    if (filterOrg !== "all") {
+      if (filterOrg === "none" && p.organization_id) return false;
+      if (filterOrg !== "none" && p.organization_id !== filterOrg) return false;
+    }
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -108,12 +134,23 @@ const AdminUsers = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, email, phone, device…"
             className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-200" />
         </div>
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
+          className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+          <option value="all">All types</option>
+          {PROVIDER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select value={filterOrg} onChange={(e) => setFilterOrg(e.target.value)}
+          className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+          <option value="all">All organizations</option>
+          <option value="none">— No organization —</option>
+          {orgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+        </select>
         <p className="text-xs text-slate-500 ml-auto">{filtered.length} of {profiles.length}</p>
       </div>
 
@@ -144,6 +181,7 @@ const AdminUsers = () => {
                   <>
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                       <h3 className="font-semibold text-sm text-slate-100">{p.full_name_en || "—"}</h3>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${TYPE_BADGE[p.provider_type || "patient"]}`}>{p.provider_type || "patient"}</span>
                       {status && <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                         status === "active" ? "bg-emerald-500/15 text-emerald-300"
                         : status === "on_hold" ? "bg-amber-500/15 text-amber-300"
@@ -154,6 +192,9 @@ const AdminUsers = () => {
                     <p className="text-xs text-slate-400">
                       {p.phone || "no phone"} · {p.email || "no email"} · {p.nationality || "—"}
                     </p>
+                    {p.organization_id && orgsById[p.organization_id] && (
+                      <p className="text-[11px] text-teal-300 mt-0.5">🏢 {orgsById[p.organization_id].name}</p>
+                    )}
                     <p className="text-[10px] text-slate-600 font-mono mt-0.5">{p.device_id.slice(0, 16)}… · joined {new Date(p.created_at).toLocaleDateString()}</p>
                   </>
                 )}

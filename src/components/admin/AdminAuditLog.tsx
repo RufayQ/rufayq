@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Activity, Search, RefreshCw } from "lucide-react";
+import { Activity, Search, RefreshCw, Download } from "lucide-react";
 
 interface Entry {
   id: string; created_at: string;
@@ -52,6 +52,25 @@ const AdminAuditLog = () => {
       || JSON.stringify(e.details || {}).toLowerCase().includes(q);
   });
 
+  const exportCsv = () => {
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : typeof v === "string" ? v : JSON.stringify(v);
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+    const cols = ["created_at","actor_email","actor_role","action","target_type","target_id","details","ip_address"];
+    const rows = [cols.join(",")].concat(
+      filtered.map(e => cols.map(c => esc((e as any)[c])).join(","))
+    );
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `audit-log-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filtered.length} rows`);
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -66,6 +85,8 @@ const AdminAuditLog = () => {
           {actions.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
         <button onClick={load} className="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs flex items-center gap-1.5"><RefreshCw size={12}/>Refresh</button>
+        <button onClick={exportCsv} disabled={!filtered.length}
+          className="px-3 py-2 rounded-lg bg-emerald-500/15 text-emerald-300 text-xs flex items-center gap-1.5 disabled:opacity-30"><Download size={12}/>CSV</button>
         <p className="text-xs text-slate-500 ml-auto">{filtered.length} of {entries.length}</p>
       </div>
 
