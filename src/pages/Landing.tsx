@@ -87,13 +87,25 @@ const Landing = () => {
               </a>
             ))}
             <Link
-              to="/privacy"
+              to="/providers"
               className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group"
               style={{ color: TEXT_MUTED }}
             >
-              Privacy
+              For Providers
               <span aria-hidden className="absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" style={{ background: GOLD }} />
             </Link>
+            <div className="relative group">
+              <button className="text-[13px] font-medium flex items-center gap-1 transition-all duration-200 hover:text-white" style={{ color: TEXT_MUTED }}>
+                Privacy <ChevronDown size={12} />
+              </button>
+              <div className="absolute right-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="rounded-xl py-2 min-w-[220px]" style={{ background: BG_DARK_2, border: `1px solid ${BORDER}`, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
+                  <Link to="/privacy" className="block px-4 py-2 text-[13px] hover:bg-white/5" style={{ color: TEXT }}>Privacy Policy</Link>
+                  <Link to="/terms" className="block px-4 py-2 text-[13px] hover:bg-white/5" style={{ color: TEXT }}>Terms of Service</Link>
+                  <Link to="/security" className="block px-4 py-2 text-[13px] hover:bg-white/5" style={{ color: TEXT }}>Security &amp; Compliance</Link>
+                </div>
+              </div>
+            </div>
             <button onClick={goToApp} className="px-5 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg" style={{ background: GOLD, color: BG_DARK }}>
               Open app →
             </button>
@@ -109,8 +121,12 @@ const Landing = () => {
             {[["Features", "#features"], ["How it works", "#how"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, h]) => (
               <a key={h} href={h} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>{l}</a>
             ))}
-            <Link to="/privacy" onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>Privacy</Link>
-            <button onClick={goToApp} className="w-full py-3 rounded-full text-sm font-semibold" style={{ background: GOLD, color: BG_DARK }}>
+            <Link to="/providers" onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>For Providers</Link>
+            <p className="pt-2 pb-1 text-[10px] uppercase tracking-wider" style={{ color: GOLD }}>Privacy</p>
+            <Link to="/privacy" onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>Privacy Policy</Link>
+            <Link to="/terms" onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>Terms of Service</Link>
+            <Link to="/security" onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>Security &amp; Compliance</Link>
+            <button onClick={goToApp} className="w-full py-3 rounded-full text-sm font-semibold mt-2" style={{ background: GOLD, color: BG_DARK }}>
               Open app →
             </button>
           </div>

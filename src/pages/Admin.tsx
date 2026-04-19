@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Star, MessageSquare, Users, LogOut, CreditCard, FileText, Building2, UserPlus, Activity, LayoutDashboard } from "lucide-react";
+import { Shield, Star, MessageSquare, Users, LogOut, CreditCard, FileText, Building2, UserPlus, Activity, LayoutDashboard, Briefcase } from "lucide-react";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 import AdminReviews from "@/components/admin/AdminReviews";
@@ -11,14 +11,16 @@ import AdminOrganizations from "@/components/admin/AdminOrganizations";
 import AdminCreateUser from "@/components/admin/AdminCreateUser";
 import AdminAuditLog from "@/components/admin/AdminAuditLog";
 import AdminDashboard from "@/components/admin/AdminDashboard";
+import AdminProviderApplications from "@/components/admin/AdminProviderApplications";
 
-type Tab = "dashboard" | "users" | "create" | "orgs" | "subs" | "reviews" | "tickets" | "pages" | "audit";
+type Tab = "dashboard" | "users" | "create" | "orgs" | "applications" | "subs" | "reviews" | "tickets" | "pages" | "audit";
 
 const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boolean }[] = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { key: "users", label: "Users", Icon: Users },
   { key: "create", label: "Create User", Icon: UserPlus, adminOnly: true },
   { key: "orgs", label: "Organizations", Icon: Building2 },
+  { key: "applications", label: "Applications", Icon: Briefcase },
   { key: "subs", label: "Subscriptions", Icon: CreditCard, adminOnly: true },
   { key: "reviews", label: "Reviews", Icon: Star },
   { key: "tickets", label: "Tickets", Icon: MessageSquare },
@@ -100,6 +102,7 @@ const Admin = () => {
         {tab === "users" && <AdminUsers />}
         {tab === "create" && role === "admin" && <AdminCreateUser />}
         {tab === "orgs" && <AdminOrganizations />}
+        {tab === "applications" && <AdminProviderApplications />}
         {tab === "subs" && role === "admin" && <AdminSubscriptions />}
         {tab === "reviews" && <AdminReviews />}
         {tab === "tickets" && <AdminTickets />}

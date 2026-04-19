@@ -307,9 +307,87 @@ export type Database = {
           },
         ]
       }
+      provider_applications: {
+        Row: {
+          admin_feedback: string | null
+          agreement_url: string | null
+          contact_email: string
+          contact_person_name: string
+          contact_person_role: string | null
+          contact_phone: string | null
+          country: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          org_name: string
+          org_name_ar: string | null
+          org_type: Database["public"]["Enums"]["org_type"]
+          organization_id: string | null
+          registration_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          admin_feedback?: string | null
+          agreement_url?: string | null
+          contact_email: string
+          contact_person_name: string
+          contact_person_role?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          org_name: string
+          org_name_ar?: string | null
+          org_type?: Database["public"]["Enums"]["org_type"]
+          organization_id?: string | null
+          registration_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          admin_feedback?: string | null
+          agreement_url?: string | null
+          contact_email?: string
+          contact_person_name?: string
+          contact_person_role?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          org_name?: string
+          org_name_ar?: string | null
+          org_type?: Database["public"]["Enums"]["org_type"]
+          organization_id?: string | null
+          registration_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_applications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_pages: {
         Row: {
           body_md: string
+          body_md_ar: string
           slug: string
           title: string
           updated_at: string
@@ -317,6 +395,7 @@ export type Database = {
         }
         Insert: {
           body_md?: string
+          body_md_ar?: string
           slug: string
           title: string
           updated_at?: string
@@ -324,6 +403,7 @@ export type Database = {
         }
         Update: {
           body_md?: string
+          body_md_ar?: string
           slug?: string
           title?: string
           updated_at?: string
