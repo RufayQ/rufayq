@@ -30,12 +30,18 @@ const AdminSubscriptions = () => {
       extension_reason: reason,
       extended_at: new Date().toISOString(),
     }).eq("id", t.id);
-    if (error) toast.error(error.message); else { toast.success(`Extended +${days}d`); load(); }
+    if (error) toast.error(error.message); else {
+      await supabase.rpc("log_audit_event", { _action: "trial_extended", _target_type: "trial", _target_id: t.id, _details: { days, reason, new_end: newEnd.toISOString() } });
+      toast.success(`Extended +${days}d`); load();
+    }
   };
 
   const setPlan = async (t: Trial, plan: string) => {
     const { error } = await supabase.from("user_trials").update({ plan }).eq("id", t.id);
-    if (error) toast.error(error.message); else { toast.success(`Plan set to ${plan}`); load(); }
+    if (error) toast.error(error.message); else {
+      await supabase.rpc("log_audit_event", { _action: "trial_plan_changed", _target_type: "trial", _target_id: t.id, _details: { plan } });
+      toast.success(`Plan set to ${plan}`); load();
+    }
   };
 
   if (loading) return <p className="text-slate-400 text-sm">Loading…</p>;

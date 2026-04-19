@@ -36,7 +36,10 @@ const AdminPages = () => {
       title: draft.title, body_md: draft.body_md,
     }).eq("slug", active);
     setSaving(false);
-    if (error) toast.error(error.message); else { toast.success("Page saved · live now"); load(); }
+    if (error) toast.error(error.message); else {
+      await supabase.rpc("log_audit_event", { _action: "page_updated", _target_type: "site_page", _target_id: active, _details: { title: draft.title } });
+      toast.success("Page saved · live now"); load();
+    }
   };
 
   const current = pages.find((x) => x.slug === active);
