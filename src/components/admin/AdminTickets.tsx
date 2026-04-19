@@ -22,7 +22,10 @@ const AdminTickets = () => {
 
   const update = async (id: string, status: string) => {
     const { error } = await supabase.from("support_tickets").update({ status: status as never }).eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Updated"); load(); }
+    if (error) toast.error(error.message); else {
+      await supabase.rpc("log_audit_event", { _action: "ticket_updated", _target_type: "ticket", _target_id: id, _details: { status } });
+      toast.success("Updated"); load();
+    }
   };
 
   if (loading) return <p className="text-slate-400 text-sm">Loading…</p>;
