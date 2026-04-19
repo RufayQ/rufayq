@@ -176,10 +176,10 @@ const Landing = () => {
       </nav>
 
       {/* HERO */}
-      <section className="relative overflow-hidden" style={{ background: BG_DARK }}>
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-30 blur-[120px]" style={{ background: `radial-gradient(circle, ${TEAL} 0%, transparent 70%)` }} />
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full opacity-25 blur-[100px]" style={{ background: `radial-gradient(circle, ${GOLD} 0%, transparent 70%)` }} />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+      <section className="lcp-hero relative overflow-hidden" style={{ background: BG_DARK }}>
+        <div className="lcp-blur absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-30 blur-[120px] hidden md:block" style={{ background: `radial-gradient(circle, ${TEAL} 0%, transparent 70%)` }} />
+        <div className="lcp-blur absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full opacity-25 blur-[100px] hidden md:block" style={{ background: `radial-gradient(circle, ${GOLD} 0%, transparent 70%)` }} />
+        <div className="absolute inset-0 opacity-[0.03] hidden md:block" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
         <div className="relative max-w-6xl mx-auto px-6 py-20 md:py-32 grid md:grid-cols-2 gap-12 items-center">
           <div>
