@@ -263,7 +263,7 @@ const Landing = () => {
       </section>
 
       {/* FEATURES */}
-      <section id="features" className="py-24 px-6 relative" style={{ background: BG_DARK }}>
+      <section id="features" className="lazy-section py-24 px-6 relative" style={{ background: BG_DARK }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -301,7 +301,7 @@ const Landing = () => {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" className="py-24 px-6 relative" style={{ background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
+      <section id="how" className="lazy-section py-24 px-6 relative" style={{ background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -335,7 +335,7 @@ const Landing = () => {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="py-24 px-6" style={{ background: BG_DARK }}>
+      <section className="lazy-section py-24 px-6" style={{ background: BG_DARK }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
