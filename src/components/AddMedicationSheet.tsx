@@ -25,6 +25,23 @@ const AddMedicationSheet = ({ open, onClose, onSubmit, allergies = [] }: AddMedi
   const [frequency, setFrequency] = useState("Once daily");
   const [period, setPeriod] = useState<Medication["period"]>("morning");
   const [instructions, setInstructions] = useState("");
+  const [precautions, setPrecautions] = useState("");
+  const [sideEffects, setSideEffects] = useState("");
+  const [contraindications, setContraindications] = useState("");
+  const [interactions, setInteractions] = useState("");
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleImage = (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image too large (max 2MB) · الصورة كبيرة جداً");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setImageUrl(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+  const splitLines = (s: string) => s.split(/[\n,]+/).map(x => x.trim()).filter(Boolean);
 
   if (!open) return null;
 
