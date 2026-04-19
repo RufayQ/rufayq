@@ -104,11 +104,14 @@ const openAirline = (airline: string, bookingRef: string) => {
 interface FlightCardProps {
   flight: FlightInfo;
   type: "outbound" | "return";
+  companions?: { name: string; relation: string; seatNumber?: string }[];
 }
 
-const FlightTicketCard = ({ flight, type }: FlightCardProps) => {
+const FlightTicketCard = ({ flight, type, companions }: FlightCardProps) => {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [expandCompanions, setExpandCompanions] = useState(false);
   const label = airlineButtonLabels[flight.airline] || { en: "Manage Booking", ar: "إدارة الحجز" };
+  const hasCompanions = (companions?.length || 0) > 0;
 
   return (
     <>
@@ -117,7 +120,14 @@ const FlightTicketCard = ({ flight, type }: FlightCardProps) => {
         <div className="px-5 pt-4">
           <div className="flex items-center justify-between mb-3">
             <span className="font-mono text-[9px] tracking-widest" style={{ color: "#E0F4F5", opacity: 0.7 }}>✈️ {type === "outbound" ? "OUTBOUND FLIGHT" : "RETURN FLIGHT"}</span>
-            <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans'" }}>{flight.airline}</span>
+            <div className="flex items-center gap-1.5">
+              {hasCompanions && (
+                <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--gold)", color: "white" }}>
+                  👨‍👩‍👧‍👦 FAMILY · {companions!.length}
+                </span>
+              )}
+              <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans'" }}>{flight.airline}</span>
+            </div>
           </div>
 
           {/* Route */}
@@ -173,6 +183,37 @@ const FlightTicketCard = ({ flight, type }: FlightCardProps) => {
               </div>
             ))}
           </div>
+
+          {/* Companions sub-list */}
+          {hasCompanions && (
+            <div className="mt-2 pt-2.5" style={{ borderTop: "1px dashed rgba(255,255,255,0.18)" }}>
+              <button onClick={() => setExpandCompanions(!expandCompanions)} className="w-full flex items-center justify-between btn-press">
+                <span className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+                  👥 COMPANIONS · {companions!.length} · المرافقون
+                </span>
+                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.6)" }}>{expandCompanions ? "Hide ▲" : "Show ▼"}</span>
+              </button>
+              {expandCompanions && (
+                <div className="mt-2 space-y-1.5">
+                  {companions!.map((c, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-lg px-2.5 py-1.5" style={{ background: "rgba(255,255,255,0.08)" }}>
+                      <div>
+                        <p className="text-[11px] font-semibold text-white">{c.name}</p>
+                        <p className="text-[9px]" style={{ color: "rgba(255,255,255,0.55)" }}>{c.relation}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono text-[8px]" style={{ color: "rgba(255,255,255,0.45)" }}>SEAT</p>
+                        <p className="font-mono text-[11px] font-bold text-white">{c.seatNumber || "—"}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-[8px] text-center mt-1" style={{ color: "rgba(255,255,255,0.5)" }}>
+                    Each companion shares the same gate, boarding pass &amp; baggage rules unless noted
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-2.5" style={{ borderTop: "1px dashed rgba(255,255,255,0.15)" }}>
             <p className="font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.5)" }}>Ref: {flight.bookingRef}</p>
