@@ -50,6 +50,36 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_otp_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          recipient: string
+          used_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          recipient: string
+          used_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          recipient?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       medical_profiles: {
         Row: {
           allergies: string[] | null
@@ -126,6 +156,8 @@ export type Database = {
         Row: {
           created_at: string
           date_of_birth: string | null
+          deleted_at: string | null
+          deleted_reason: string | null
           device_id: string
           email: string | null
           full_name_ar: string | null
@@ -143,6 +175,8 @@ export type Database = {
         Insert: {
           created_at?: string
           date_of_birth?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
           device_id: string
           email?: string | null
           full_name_ar?: string | null
@@ -160,6 +194,8 @@ export type Database = {
         Update: {
           created_at?: string
           date_of_birth?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
           device_id?: string
           email?: string | null
           full_name_ar?: string | null
@@ -173,6 +209,30 @@ export type Database = {
           saudi_id?: string | null
           terms_accepted_at?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      site_pages: {
+        Row: {
+          body_md: string
+          slug: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body_md?: string
+          slug: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body_md?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -273,6 +333,9 @@ export type Database = {
         Row: {
           created_at: string
           device_id: string
+          extended_at: string | null
+          extended_by: string | null
+          extension_reason: string | null
           id: string
           plan: string
           trial_ends_at: string
@@ -281,6 +344,9 @@ export type Database = {
         Insert: {
           created_at?: string
           device_id: string
+          extended_at?: string | null
+          extended_by?: string | null
+          extension_reason?: string | null
           id?: string
           plan?: string
           trial_ends_at?: string
@@ -289,6 +355,9 @@ export type Database = {
         Update: {
           created_at?: string
           device_id?: string
+          extended_at?: string | null
+          extended_by?: string | null
+          extension_reason?: string | null
           id?: string
           plan?: string
           trial_ends_at?: string
@@ -301,6 +370,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_generate_manual_otp: {
+        Args: { _recipient: string }
+        Returns: {
+          code: string
+          expires_at: string
+        }[]
+      }
+      consume_manual_otp: {
+        Args: { _code: string; _recipient: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
