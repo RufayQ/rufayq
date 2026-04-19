@@ -7,13 +7,15 @@ interface OtpInputProps {
   length?: number;
   disabled?: boolean;
   autoFocus?: boolean;
+  /** When true, slots shake + flash red. Parent should toggle off after ~500ms. */
+  error?: boolean;
 }
 
 /**
  * Polished OTP input with auto-advance, backspace navigation,
  * paste-to-fill, numeric-only enforcement, and onComplete trigger.
  */
-const OtpInput = ({ value, onChange, onComplete, length = 6, disabled, autoFocus = true }: OtpInputProps) => {
+const OtpInput = ({ value, onChange, onComplete, length = 6, disabled, autoFocus = true, error = false }: OtpInputProps) => {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
@@ -66,30 +68,43 @@ const OtpInput = ({ value, onChange, onComplete, length = 6, disabled, autoFocus
   };
 
   return (
-    <div className="flex justify-center gap-2" dir="ltr">
-      {Array.from({ length }).map((_, i) => (
-        <input
-          key={i}
-          ref={(el) => (refs.current[i] = el)}
-          value={value[i] || ""}
-          onChange={(e) => handleChange(i, e.target.value)}
-          onKeyDown={(e) => handleKey(i, e)}
-          onPaste={handlePaste}
-          onFocus={(e) => e.target.select()}
-          disabled={disabled}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={1}
-          className="w-11 h-13 text-center text-xl font-semibold rounded-xl outline-none transition-all"
-          style={{
-            border: `1.5px solid ${value[i] ? "var(--teal-deep)" : "var(--gray-light)"}`,
-            background: disabled ? "var(--gray-light)" : "var(--white)",
-            color: "var(--navy)",
-            boxShadow: value[i] ? "0 0 0 3px rgba(0,128,128,0.08)" : undefined,
-            height: 52,
-          }}
-        />
-      ))}
+    <div className={`flex justify-center gap-2 ${error ? "animate-shake" : ""}`} dir="ltr">
+      {Array.from({ length }).map((_, i) => {
+        const filled = !!value[i];
+        const borderColor = error
+          ? "var(--error)"
+          : filled
+            ? "var(--teal-deep)"
+            : "var(--gray-light)";
+        const ringColor = error
+          ? "0 0 0 3px rgba(217,79,79,0.18)"
+          : filled
+            ? "0 0 0 3px rgba(0,128,128,0.12)"
+            : undefined;
+        return (
+          <input
+            key={i}
+            ref={(el) => (refs.current[i] = el)}
+            value={value[i] || ""}
+            onChange={(e) => handleChange(i, e.target.value)}
+            onKeyDown={(e) => handleKey(i, e)}
+            onPaste={handlePaste}
+            onFocus={(e) => e.target.select()}
+            disabled={disabled}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={1}
+            className="w-11 text-center text-xl font-semibold rounded-xl outline-none transition-all"
+            style={{
+              border: `1.5px solid ${borderColor}`,
+              background: disabled ? "var(--gray-light)" : "var(--white)",
+              color: error ? "var(--error)" : "var(--navy)",
+              boxShadow: ringColor,
+              height: 52,
+            }}
+          />
+        );
+      })}
     </div>
   );
 };

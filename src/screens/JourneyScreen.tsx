@@ -77,7 +77,35 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const [showAddStay, setShowAddStay] = useState(false);
   const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(defaultJourneySteps);
   const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
+  const [flashStepId, setFlashStepId] = useState<number | null>(null);
+  const [flashTripId, setFlashTripId] = useState<string | null>(null);
+  const [dragStepId, setDragStepId] = useState<number | null>(null);
   const { isActive: trialActive } = useTrial();
+
+  const flashStep = (id: number) => {
+    setFlashStepId(id);
+    setTimeout(() => setFlashStepId(null), 1100);
+  };
+  const flashTrip = (id: string) => {
+    setFlashTripId(id);
+    setTimeout(() => setFlashTripId(null), 1100);
+  };
+
+  // Reorder steps within the same phase via HTML5 drag-drop
+  const handleReorderStep = (sourceId: number, targetId: number) => {
+    if (sourceId === targetId) return;
+    setJourneySteps((prev) => {
+      const src = prev.find((s) => s.id === sourceId);
+      const tgt = prev.find((s) => s.id === targetId);
+      if (!src || !tgt || src.phase !== tgt.phase) return prev;
+      const without = prev.filter((s) => s.id !== sourceId);
+      const tgtIdx = without.findIndex((s) => s.id === targetId);
+      const next = [...without.slice(0, tgtIdx), src, ...without.slice(tgtIdx)];
+      return next;
+    });
+    flashStep(sourceId);
+    toast.success("Step reordered · تم إعادة الترتيب", { duration: 1500 });
+  };
 
   const activeTrip = trips.find((t) => t.status === "active") || trips[0];
 
@@ -212,6 +240,11 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
           <StepsTab
             expanded={expanded} setExpanded={setExpanded} activeTrip={activeTrip} trips={trips}
             steps={journeySteps}
+            flashStepId={flashStepId}
+            flashTripId={flashTripId}
+            dragStepId={dragStepId}
+            setDragStepId={setDragStepId}
+            onReorderStep={handleReorderStep}
             onAddTrip={() => { if (requireProForAddTrip()) setShowAddTrip(true); }}
             onEditTrip={() => setShowEditTrip(true)}
             onEditStep={(s) => setEditingStep(s)}
@@ -235,14 +268,14 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         open={showEditTrip}
         trip={activeTrip}
         onClose={() => setShowEditTrip(false)}
-        onSave={(updated) => setTrips(prev => prev.map(t => t.id === updated.id ? updated : t))}
+        onSave={(updated) => { setTrips(prev => prev.map(t => t.id === updated.id ? updated : t)); flashTrip(updated.id); }}
       />
 
       <EditStepSheet
         open={!!editingStep}
         step={editingStep}
         onClose={() => setEditingStep(null)}
-        onSave={(updated) => setJourneySteps(prev => prev.map(s => s.id === updated.id ? updated : s))}
+        onSave={(updated) => { setJourneySteps(prev => prev.map(s => s.id === updated.id ? updated : s)); flashStep(updated.id); }}
         onDelete={(id) => setJourneySteps(prev => prev.filter(s => s.id !== id))}
       />
 
@@ -764,13 +797,20 @@ const StayTab = ({ onAdd, onScan }: { onAdd: () => void; onScan?: () => void }) 
 
 /* ─── STEPS TAB ─── */
 const StepsTab = ({
-  expanded, setExpanded, activeTrip, trips, steps, onAddTrip, onEditTrip, onEditStep, onAddStep,
+  expanded, setExpanded, activeTrip, trips, steps,
+  flashStepId, flashTripId, dragStepId, setDragStepId, onReorderStep,
+  onAddTrip, onEditTrip, onEditStep, onAddStep,
 }: {
   expanded: number | null;
   setExpanded: (v: number | null) => void;
   activeTrip: TripData;
   trips: TripData[];
   steps: JourneyStep[];
+  flashStepId: number | null;
+  flashTripId: string | null;
+  dragStepId: number | null;
+  setDragStepId: (id: number | null) => void;
+  onReorderStep: (sourceId: number, targetId: number) => void;
   onAddTrip: () => void;
   onEditTrip: () => void;
   onEditStep: (s: JourneyStep) => void;
@@ -800,15 +840,27 @@ const StepsTab = ({
         </div>
         <div className="space-y-1.5">
           {trips.map((t) => (
-            <div key={t.id} className="flex items-center gap-2 rounded-xl px-3 py-2" style={{
-              background: t.status === "active" ? "var(--gold-pale)" : "var(--white)",
-              border: t.status === "active" ? "1px solid var(--gold)" : "1px solid var(--gray-light)",
-            }}>
+            <div
+              key={t.id}
+              className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-shadow ${flashTripId === t.id ? "animate-flash-gold" : ""}`}
+              style={{
+                background: t.status === "active" ? "var(--gold-pale)" : "var(--white)",
+                border: t.status === "active" ? "1px solid var(--gold)" : "1px solid var(--gray-light)",
+              }}
+            >
               <span className="text-base">{t.specialtyEmoji || "🏥"}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{t.destination} · {t.specialty}</p>
                 <p className="text-[10px]" style={{ color: "var(--gray)" }}>{t.hospital} · {t.departureDate}</p>
               </div>
+              <button
+                onClick={onEditTrip}
+                className="w-7 h-7 rounded-full flex items-center justify-center btn-press shrink-0"
+                style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+                aria-label="Edit trip"
+              >
+                <Edit3 size={11} style={{ color: "var(--teal-deep)" }} />
+              </button>
               <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full" style={{
                 background: t.status === "active" ? "var(--gold)" : "var(--off-white)",
                 color: t.status === "active" ? "white" : "var(--gray)",
@@ -856,7 +908,22 @@ const StepsTab = ({
 
                 return (
                   <div key={step.id}>
-                    <div className="relative mb-2.5">
+                    <div
+                      className={`relative mb-2.5 ${flashStepId === step.id ? "animate-flash-gold rounded-xl" : ""}`}
+                      draggable
+                      onDragStart={() => setDragStepId(step.id)}
+                      onDragEnd={() => setDragStepId(null)}
+                      onDragOver={(e) => { if (dragStepId != null && dragStepId !== step.id) e.preventDefault(); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragStepId != null) onReorderStep(dragStepId, step.id);
+                        setDragStepId(null);
+                      }}
+                      style={{
+                        opacity: dragStepId === step.id ? 0.4 : 1,
+                        transition: "opacity 0.15s",
+                      }}
+                    >
                       {idx < phaseSteps.length - 1 && (
                         <div className="absolute left-[-17px] top-6 bottom-0" style={{ width: 2, background: lineColor }} />
                       )}
@@ -868,14 +935,18 @@ const StepsTab = ({
                           background: isActive ? "var(--gold-pale)" : isPending ? "#F3F5F7" : "var(--white)",
                           border: isActive ? "1px solid var(--gold)" : "1px solid var(--gray-light)",
                           boxShadow: isActive ? "0 3px 14px rgba(197,150,90,0.16)" : "none",
+                          cursor: dragStepId === step.id ? "grabbing" : "grab",
                         }}
                       >
                         <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-[13px] font-semibold" style={{ color: isPending ? "var(--gray)" : "var(--navy)" }}>{step.titleEn}</p>
-                            <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>{step.titleAr}</p>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px] select-none" style={{ color: "var(--gray-light)" }} aria-hidden>⋮⋮</span>
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold truncate" style={{ color: isPending ? "var(--gray)" : "var(--navy)" }}>{step.titleEn}</p>
+                              <p className="font-arabic text-[10px] mt-0.5 truncate" dir="rtl" style={{ color: "var(--gray)" }}>{step.titleAr}</p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{step.date}</span>
                             <button onClick={(e) => { e.stopPropagation(); onEditStep(step); }} className="w-6 h-6 rounded-full flex items-center justify-center btn-press" style={{ background: "var(--off-white)" }}>
                               <Edit3 size={10} style={{ color: "var(--teal-deep)" }} />

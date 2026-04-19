@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Edit3, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { JourneyStep } from "@/constants/data";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface EditStepSheetProps {
   open: boolean;
@@ -15,6 +16,7 @@ const statusOptions: JourneyStep["status"][] = ["pending", "active", "done"];
 const phaseOptions: JourneyStep["phase"][] = ["before", "during", "after"];
 
 const EditStepSheet = ({ open, step, onClose, onSave, onDelete }: EditStepSheetProps) => {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [titleEn, setTitleEn] = useState("");
   const [titleAr, setTitleAr] = useState("");
   const [date, setDate] = useState("");
@@ -63,6 +65,7 @@ const EditStepSheet = ({ open, step, onClose, onSave, onDelete }: EditStepSheetP
   };
 
   return (
+    <>
     <div className="absolute inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
       <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.5)" }} />
       <div
@@ -151,7 +154,7 @@ const EditStepSheet = ({ open, step, onClose, onSave, onDelete }: EditStepSheetP
 
         <div className="px-5 py-3 shrink-0 flex gap-2" style={{ borderTop: "1px solid var(--gray-light)" }}>
           {onDelete && (
-            <button onClick={handleDelete}
+            <button onClick={() => setConfirmDelete(true)}
               className="w-12 h-12 rounded-xl flex items-center justify-center btn-press shrink-0"
               style={{ background: "rgba(217,79,79,0.1)", border: "1px solid var(--error)" }}>
               <Trash2 size={16} style={{ color: "var(--error)" }} />
@@ -165,6 +168,19 @@ const EditStepSheet = ({ open, step, onClose, onSave, onDelete }: EditStepSheetP
         </div>
       </div>
     </div>
+    <ConfirmDialog
+      open={confirmDelete}
+      onClose={() => setConfirmDelete(false)}
+      onConfirm={handleDelete}
+      destructive
+      title="Delete this step?"
+      titleAr="حذف هذه الخطوة؟"
+      description={`"${titleEn || step.titleEn}" will be removed from your journey. This can't be undone.`}
+      descriptionAr="سيتم حذف هذه الخطوة من رحلتك. لا يمكن التراجع."
+      confirmLabel="Delete"
+      confirmLabelAr="حذف"
+    />
+    </>
   );
 };
 
