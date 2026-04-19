@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import MedicationDetailSheet, { type MedNote } from "@/components/MedicationDetailSheet";
 import AddMedicationSheet from "@/components/AddMedicationSheet";
+import ProviderFeedCard from "@/components/ProviderFeedCard";
+import { useProviderFeed } from "@/hooks/useProviderFeed";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -19,7 +21,11 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   const [allergies] = useState<string[]>(["Penicillin", "Sulfa drugs", "Shellfish"]);
   const [extraMeds, setExtraMeds] = useState<Medication[]>([]);
   const [showAddMed, setShowAddMed] = useState(false);
+  const { medUpdates } = useProviderFeed();
   const allMeds = [...medications, ...extraMeds];
+
+  const actionLabel = (a: string) => a === "add" ? "PRESCRIBED" : a === "stop" ? "STOPPED" : "UPDATED";
+  const actionColor = (a: string) => a === "stop" ? "rgba(217,79,79,0.15)" : a === "add" ? "rgba(61,170,110,0.15)" : "rgba(224,160,48,0.15)";
 
   const medKey = (m: Medication) => `${m.name}-${m.time}`;
 
@@ -114,6 +120,24 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
 
       {/* Schedule */}
       <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ background: "var(--off-white)" }}>
+        {medUpdates.length > 0 && (
+          <div className="mt-3">
+            <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+              FROM YOUR CARE TEAM · <span className="font-arabic">من فريق الرعاية</span>
+            </p>
+            {medUpdates.slice(0, 5).map(m => (
+              <ProviderFeedCard
+                key={m.id}
+                orgName={m.org_name}
+                title={m.med_name}
+                body={[m.dose, m.frequency, m.notes].filter(Boolean).join(" · ")}
+                createdAt={m.created_at}
+                badge={actionLabel(m.action)}
+                badgeColor={actionColor(m.action)}
+              />
+            ))}
+          </div>
+        )}
         <p className="font-mono text-[10px] tracking-widest mt-3 mb-2" style={{ color: "var(--gray)" }}>TODAY'S SCHEDULE</p>
 
         {periods.map((period) => {

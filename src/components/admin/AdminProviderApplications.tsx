@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Building2, FileText, Check, X, MessageSquare, ExternalLink, Loader2 } from "lucide-react";
+import { Building2, FileText, Check, X, MessageSquare, ExternalLink, Loader2, Zap, Copy } from "lucide-react";
 
 interface ProviderApp {
   id: string;
@@ -39,6 +39,7 @@ const AdminProviderApplications = () => {
   const [active, setActive] = useState<ProviderApp | null>(null);
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(false);
+  const [credentials, setCredentials] = useState<{ email: string; password: string; emailSent: boolean } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -102,6 +103,23 @@ const AdminProviderApplications = () => {
     toast.success(`Application ${status}`);
     setActive(null);
     setBusy(false);
+    load();
+  };
+
+  const oneClickApprove = async () => {
+    if (!active) return;
+    setBusy(true);
+    const { data, error } = await supabase.functions.invoke("approve-provider", {
+      body: { application_id: active.id, admin_feedback: feedback.trim() || null },
+    });
+    setBusy(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || "Failed to onboard provider");
+      return;
+    }
+    const d = data as any;
+    setCredentials({ email: active.contact_email, password: d.temp_password, emailSent: !!d.email_sent });
+    toast.success(d.user_existed ? "Org linked, password reset" : "Provider onboarded");
     load();
   };
 
@@ -199,9 +217,13 @@ const AdminProviderApplications = () => {
               </div>
 
               <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800">
+                <button disabled={busy} onClick={oneClickApprove}
+                  className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 text-xs font-bold flex items-center gap-1.5 disabled:opacity-50">
+                  {busy ? <Loader2 size={12} className="animate-spin"/> : <Zap size={12}/>} Approve & onboard provider
+                </button>
                 <button disabled={busy} onClick={() => update("approved")}
-                  className="px-4 py-2 rounded-lg bg-emerald-500 text-slate-950 text-xs font-bold flex items-center gap-1.5 disabled:opacity-50">
-                  {busy ? <Loader2 size={12} className="animate-spin"/> : <Check size={12}/>} Approve & create org
+                  className="px-4 py-2 rounded-lg bg-emerald-500/15 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50">
+                  <Check size={12}/> Approve only (no auth user)
                 </button>
                 <button disabled={busy} onClick={() => update("needs_info")}
                   className="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 text-xs font-semibold disabled:opacity-50">
@@ -215,6 +237,31 @@ const AdminProviderApplications = () => {
                   <span className="ml-auto text-[10px] text-emerald-400 self-center">✓ linked org {active.organization_id.slice(0,8)}</span>
                 )}
               </div>
+
+              {credentials && (
+                <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-amber-300 uppercase tracking-wider">Provider credentials</p>
+                    <button onClick={() => setCredentials(null)} className="text-slate-500 hover:text-white"><X size={14}/></button>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    {credentials.emailSent ? "✓ Approval email sent to provider with these credentials." : "⚠ Email infrastructure not configured — share credentials manually."}
+                  </p>
+                  <div className="rounded bg-slate-950/60 border border-slate-800 p-3 font-mono text-xs space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-slate-400">Email:</span>
+                      <span className="text-slate-100">{credentials.email}</span>
+                      <button onClick={() => { navigator.clipboard.writeText(credentials.email); toast.success("Copied"); }} className="text-amber-400 hover:text-amber-300"><Copy size={11}/></button>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-slate-400">Password:</span>
+                      <span className="text-slate-100">{credentials.password}</span>
+                      <button onClick={() => { navigator.clipboard.writeText(credentials.password); toast.success("Copied"); }} className="text-amber-400 hover:text-amber-300"><Copy size={11}/></button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Provider should change their password after first sign-in at /provider/login.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

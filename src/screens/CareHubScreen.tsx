@@ -3,6 +3,8 @@ import { ChevronDown, Star, Pin, Copy, Share2, Download, RefreshCw } from "lucid
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
+import ProviderFeedCard from "@/components/ProviderFeedCard";
+import { useProviderFeed } from "@/hooks/useProviderFeed";
 
 type SubTab = "careplan" | "videos" | "education" | "faqs" | "nutrition" | "exercises";
 
@@ -101,6 +103,7 @@ const CareHubScreen = () => {
 
 /* ─── CARE PLAN ─── */
 const CarePlanTab = () => {
+  const { instructions } = useProviderFeed();
   const [tasks, setTasks] = useState([
     { en: "Morning meds 8AM", ar: "أدوية الصباح ٨ ص", done: false },
     { en: "Elevate leg 30 min", ar: "رفع الرجل ٣٠ دقيقة", done: true },
@@ -125,6 +128,28 @@ const CarePlanTab = () => {
 
   return (
     <div className="px-4 py-4 space-y-4">
+      {/* Provider Instructions Feed */}
+      {instructions.length > 0 && (
+        <div>
+          <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+            FROM YOUR CARE TEAM · <span className="font-arabic">من فريق الرعاية</span>
+          </p>
+          {instructions.slice(0, 5).map(i => (
+            <ProviderFeedCard
+              key={i.id}
+              orgName={i.org_name}
+              title={i.title}
+              body={i.body}
+              bodyAr={i.body_ar}
+              createdAt={i.created_at}
+              priority={i.priority}
+              badge={i.priority === "high" || i.priority === "urgent" ? i.priority.toUpperCase() : undefined}
+              badgeColor={i.priority === "high" || i.priority === "urgent" ? "rgba(217,79,79,0.15)" : undefined}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Daily Tasks */}
       <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between mb-3">
