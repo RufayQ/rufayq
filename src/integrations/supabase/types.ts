@@ -250,6 +250,7 @@ export type Database = {
           passport_number: string | null
           phone: string | null
           privacy_accepted_at: string | null
+          provider_type: Database["public"]["Enums"]["provider_type"]
           saudi_id: string | null
           terms_accepted_at: string | null
           updated_at: string
@@ -270,6 +271,7 @@ export type Database = {
           passport_number?: string | null
           phone?: string | null
           privacy_accepted_at?: string | null
+          provider_type?: Database["public"]["Enums"]["provider_type"]
           saudi_id?: string | null
           terms_accepted_at?: string | null
           updated_at?: string
@@ -290,6 +292,7 @@ export type Database = {
           passport_number?: string | null
           phone?: string | null
           privacy_accepted_at?: string | null
+          provider_type?: Database["public"]["Enums"]["provider_type"]
           saudi_id?: string | null
           terms_accepted_at?: string | null
           updated_at?: string
@@ -476,6 +479,15 @@ export type Database = {
           expires_at: string
         }[]
       }
+      admin_user_kpis: {
+        Args: never
+        Returns: {
+          new_30d: number
+          new_7d: number
+          provider_type: string
+          total: number
+        }[]
+      }
       consume_manual_otp: {
         Args: { _code: string; _recipient: string }
         Returns: boolean
@@ -508,6 +520,13 @@ export type Database = {
         | "patient_org"
         | "clinic"
         | "other"
+      provider_type:
+        | "patient"
+        | "hospital"
+        | "physician"
+        | "vendor"
+        | "insurance"
+        | "internal"
       ticket_category: "billing" | "technical" | "medical" | "general"
       ticket_priority: "low" | "medium" | "high" | "urgent"
       ticket_status: "open" | "in_progress" | "resolved" | "closed"
@@ -647,6 +666,14 @@ export const Constants = {
         "patient_org",
         "clinic",
         "other",
+      ],
+      provider_type: [
+        "patient",
+        "hospital",
+        "physician",
+        "vendor",
+        "insurance",
+        "internal",
       ],
       ticket_category: ["billing", "technical", "medical", "general"],
       ticket_priority: ["low", "medium", "high", "urgent"],
