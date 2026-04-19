@@ -113,7 +113,15 @@ const AdminUsers = () => {
     }
   };
 
+  const orgsById: Record<string, Org> = {};
+  orgs.forEach(o => { orgsById[o.id] = o; });
+
   const filtered = profiles.filter((p) => {
+    if (filterType !== "all" && (p.provider_type || "patient") !== filterType) return false;
+    if (filterOrg !== "all") {
+      if (filterOrg === "none" && p.organization_id) return false;
+      if (filterOrg !== "none" && p.organization_id !== filterOrg) return false;
+    }
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -126,12 +134,23 @@ const AdminUsers = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, email, phone, device…"
             className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-200" />
         </div>
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
+          className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+          <option value="all">All types</option>
+          {PROVIDER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select value={filterOrg} onChange={(e) => setFilterOrg(e.target.value)}
+          className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+          <option value="all">All organizations</option>
+          <option value="none">— No organization —</option>
+          {orgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+        </select>
         <p className="text-xs text-slate-500 ml-auto">{filtered.length} of {profiles.length}</p>
       </div>
 
