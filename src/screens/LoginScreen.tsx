@@ -1,24 +1,26 @@
 import { useState } from "react";
 import RufayQLogo from "@/components/RufayQLogo";
 import RufayQWordmark from "@/components/RufayQWordmark";
-import { Eye, EyeOff, Check, ArrowLeft, Shield } from "lucide-react";
+import { Eye, EyeOff, Check, ArrowLeft, Shield, MessageCircle, Mail, UserCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 
-type AuthView = "login" | "register" | "medical" | "otp";
+type AuthView = "welcome" | "login" | "register" | "medical" | "otp";
+type OtpChannel = "whatsapp" | "email";
 
 interface LoginScreenProps {
   onLogin: () => void;
 }
 
 const LoginScreen = ({ onLogin }: LoginScreenProps) => {
-  const [view, setView] = useState<AuthView>("login");
+  const [view, setView] = useState<AuthView>("welcome");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otpChannel, setOtpChannel] = useState<OtpChannel>("whatsapp");
   const [countdown, setCountdown] = useState(45);
   const [submitting, setSubmitting] = useState(false);
 
@@ -34,18 +36,44 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     insurer: "", policy: "",
   });
 
-  const handleLogin = () => {
-    setView("otp");
+  const startCountdown = () => {
+    setCountdown(45);
     const timer = setInterval(() => {
       setCountdown((c) => { if (c <= 1) { clearInterval(timer); return 0; } return c - 1; });
     }, 1000);
+  };
+
+  const handleSendOtp = (channel: OtpChannel) => {
+    setOtpChannel(channel);
+    setView("otp");
+    setOtp(["", "", "", "", "", ""]);
+    startCountdown();
+    if (channel === "whatsapp") {
+      toast.success(`OTP would be sent via WhatsApp to +966 ${phone || "5XXXXXXXX"}`, {
+        description: "Demo mode — enter any 6 digits to continue. Production needs Twilio Verify.",
+      });
+    } else {
+      toast.success(`OTP would be sent to ${reg.email || "your email"}`, {
+        description: "Demo mode — enter any 6 digits to continue.",
+      });
+    }
   };
 
   const handleOtp = (index: number, value: string) => {
     if (value.length > 1) return;
     const next = [...otp]; next[index] = value; setOtp(next);
     if (value && index < 5) document.getElementById(`otp-${index + 1}`)?.focus();
-    if (next.every((d) => d !== "")) setTimeout(onLogin, 500);
+    if (next.every((d) => d !== "")) {
+      toast.success("Verified · تم التحقق");
+      setTimeout(onLogin, 600);
+    }
+  };
+
+  const handleGuestContinue = () => {
+    toast.info("Continuing as guest · المتابعة كزائر", {
+      description: "Some features need a registered account",
+    });
+    onLogin();
   };
 
   const validateRegister = () => {
@@ -97,30 +125,140 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
     setSubmitting(false);
     if (mErr) { toast.error("Medical info failed: " + mErr.message); return; }
-    toast.success("Account created · تم إنشاء الحساب", { description: "Welcome to RufayQ" });
-    onLogin();
+    toast.success("Account created · تم إنشاء الحساب", { description: "Verify your contact next" });
+    // Move to OTP verification step
+    handleSendOtp(reg.email ? "email" : "whatsapp");
   };
+
+  // ============ WELCOME / GATE VIEW ============
+  if (view === "welcome") {
+    return (
+      <div className="flex flex-col h-full overflow-y-auto px-6 pt-12 pb-6" style={{ background: "var(--off-white)" }}>
+        <div className="flex flex-col items-center mb-8">
+          <RufayQLogo size={72} variant="dark" />
+          <div className="mt-3"><RufayQWordmark size="md" variant="dark" /></div>
+          <h2 className="font-display text-2xl mt-5 text-center" style={{ color: "var(--navy)" }}>Welcome to RufayQ</h2>
+          <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>أهلاً بك في رُفَيِّق</p>
+          <p className="text-xs mt-2 text-center" style={{ color: "var(--gray)" }}>
+            Your AI medical companion across the Gulf and beyond
+          </p>
+        </div>
+
+        {/* Primary: register */}
+        <button
+          onClick={() => setView("register")}
+          className="w-full py-4 rounded-2xl font-bold text-white btn-press flex flex-col items-center"
+          style={{ background: "var(--gold)", boxShadow: "0 8px 24px rgba(197,150,90,0.3)" }}
+        >
+          <span className="text-[15px]">Create your account</span>
+          <span className="font-arabic text-[12px] mt-0.5" dir="rtl">أنشئ حسابك · مع تحقق برسالة</span>
+        </button>
+
+        {/* Secondary: existing login */}
+        <button
+          onClick={() => setView("login")}
+          className="w-full mt-3 py-3.5 rounded-2xl font-semibold btn-press"
+          style={{ background: "var(--white)", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}
+        >
+          Sign in with existing account · <span className="font-arabic">تسجيل الدخول</span>
+        </button>
+
+        {/* Divider */}
+        <div className="flex items-center my-5">
+          <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
+          <span className="px-3 text-[10px] tracking-widest font-mono" style={{ color: "var(--gray)" }}>OR · أو</span>
+          <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
+        </div>
+
+        {/* Guest pathway */}
+        <button
+          onClick={handleGuestContinue}
+          className="w-full py-3.5 rounded-2xl btn-press flex items-center justify-center gap-2"
+          style={{ background: "transparent", color: "var(--gray)", border: "1px dashed var(--gray-light)" }}
+        >
+          <UserCircle2 size={16} />
+          <span className="text-[13px] font-medium">Continue as guest · <span className="font-arabic">متابعة كزائر</span></span>
+        </button>
+        <p className="text-[10px] text-center mt-2" style={{ color: "var(--gray)" }}>
+          Explore the app first. You can register anytime to save your data securely.
+        </p>
+
+        <div className="mt-auto pt-6 text-center">
+          <p className="text-[10px]" style={{ color: "var(--gray)" }}>
+            By continuing you accept our{" "}
+            <Link to="/terms" target="_blank" className="font-semibold" style={{ color: "var(--teal-deep)" }}>Terms</Link>
+            {" "}&amp;{" "}
+            <Link to="/privacy" target="_blank" className="font-semibold" style={{ color: "var(--teal-deep)" }}>Privacy</Link>
+          </p>
+          <p className="text-[9px] mt-1" style={{ color: "var(--gray)" }}>PDPL · DHA · HIPAA · GDPR compliant</p>
+        </div>
+      </div>
+    );
+  }
 
   // ============ OTP VIEW ============
   if (view === "otp") {
+    const channelIcon = otpChannel === "whatsapp" ? <MessageCircle size={14} color="#25D366" /> : <Mail size={14} color="var(--teal-deep)" />;
+    const channelLabel = otpChannel === "whatsapp"
+      ? `WhatsApp · +966 ${phone || reg.phone || "5XXXXXXXX"}`
+      : `Email · ${reg.email || "your email"}`;
     return (
-      <div className="flex flex-col h-full px-6 pt-12" style={{ background: "var(--off-white)" }}>
-        <div className="text-center mb-8">
+      <div className="flex flex-col h-full px-6 pt-10" style={{ background: "var(--off-white)" }}>
+        <button onClick={() => setView(reg.acceptTerms ? "medical" : "login")} className="flex items-center gap-1 text-xs mb-3 self-start" style={{ color: "var(--teal-deep)" }}>
+          <ArrowLeft size={14} /> Back · رجوع
+        </button>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full mb-3" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+            {channelIcon}
+            <span className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>{channelLabel}</span>
+          </div>
           <h2 className="font-display text-2xl" style={{ color: "var(--navy)" }}>Enter verification code</h2>
           <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>أدخل رمز التحقق</p>
-          <p className="text-xs mt-3" style={{ color: "var(--gray)" }}>Sent to +966 {phone || "5X XXX XXXX"}</p>
+          <p className="text-[10px] mt-3 italic" style={{ color: "var(--gray)" }}>
+            Demo: enter any 6 digits to continue
+          </p>
         </div>
         <div className="flex justify-center gap-2 mb-6">
           {otp.map((d, i) => (
             <input key={i} id={`otp-${i}`} value={d} onChange={(e) => handleOtp(i, e.target.value)} maxLength={1}
-              className="w-11 h-11 text-center text-lg font-semibold rounded-lg outline-none transition-all"
-              style={{ border: `1px solid ${d ? "var(--teal-deep)" : "var(--gray-light)"}`, background: "var(--white)", color: "var(--navy)" }}
+              inputMode="numeric"
+              className="w-11 h-12 text-center text-lg font-semibold rounded-lg outline-none transition-all"
+              style={{ border: `1.5px solid ${d ? "var(--teal-deep)" : "var(--gray-light)"}`, background: "var(--white)", color: "var(--navy)" }}
             />
           ))}
         </div>
         <p className="text-center text-xs" style={{ color: countdown > 0 ? "var(--gray)" : "var(--teal-mid)" }}>
-          {countdown > 0 ? `Resend in 0:${countdown.toString().padStart(2, "0")}` : "Resend code · إعادة إرسال الرمز"}
+          {countdown > 0
+            ? `Resend in 0:${countdown.toString().padStart(2, "0")}`
+            : (
+              <button onClick={() => handleSendOtp(otpChannel)} className="font-semibold underline">
+                Resend code · إعادة إرسال الرمز
+              </button>
+            )}
         </p>
+
+        {/* Switch channel */}
+        <div className="mt-6 text-center">
+          <p className="text-[10px] mb-2" style={{ color: "var(--gray)" }}>Try another method · جرب طريقة أخرى</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleSendOtp("whatsapp")}
+              disabled={otpChannel === "whatsapp"}
+              className="flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 btn-press disabled:opacity-40"
+              style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+            >
+              <MessageCircle size={12} color="#25D366" /> WhatsApp
+            </button>
+            <button
+              onClick={() => handleSendOtp("email")}
+              disabled={otpChannel === "email"}
+              className="flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 btn-press disabled:opacity-40"
+              style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+            >
+              <Mail size={12} color="var(--teal-deep)" /> Email
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -196,11 +334,11 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         <div className="flex items-center gap-2 mt-3 px-1 text-[10px]" style={{ color: "var(--gray)" }}>
           <Shield size={12} style={{ color: "var(--success)" }} />
-          <span>Encrypted at rest · PDPL & HIPAA compliant</span>
+          <span>Encrypted at rest · PDPL · DHA · HIPAA · GDPR compliant</span>
         </div>
 
         <div className="flex gap-2 mt-4">
-          <button onClick={onLogin} className="flex-1 py-3 rounded-xl text-sm btn-press"
+          <button onClick={() => handleSendOtp(reg.email ? "email" : "whatsapp")} className="flex-1 py-3 rounded-xl text-sm btn-press"
             style={{ border: "1px solid var(--gray-light)", color: "var(--gray)" }}>
             Skip for now
           </button>
@@ -218,6 +356,9 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   if (view === "register") {
     return (
       <div className="flex flex-col h-full overflow-y-auto px-6 pt-6 pb-6" style={{ background: "var(--off-white)" }}>
+        <button onClick={() => setView("welcome")} className="flex items-center gap-1 text-xs mb-2 self-start" style={{ color: "var(--teal-deep)" }}>
+          <ArrowLeft size={14} /> Back · رجوع
+        </button>
         <div className="text-center mb-4">
           <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>STEP 1 OF 2</p>
           <h2 className="font-display text-2xl mt-1" style={{ color: "var(--navy)" }}>Create your account</h2>
@@ -227,11 +368,11 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           {[
             { label: "Full Name *", labelAr: "الاسم الكامل", placeholder: "Mohammed Al-Rashidi", key: "name" },
             { label: "الاسم بالعربي", labelAr: "", placeholder: "محمد الراشدي", key: "nameAr", rtl: true },
-            { label: "Saudi ID / Passport *", labelAr: "الهوية / الجواز", placeholder: "1234567890", key: "id" },
+            { label: "ID / Passport *", labelAr: "الهوية / الجواز", placeholder: "1234567890", key: "id" },
             { label: "Date of Birth *", labelAr: "تاريخ الميلاد", placeholder: "1990-01-15", key: "dob", type: "date" },
-            { label: "Mobile Number", labelAr: "رقم الجوال", placeholder: "+966 5X XXX XXXX", key: "phone" },
-            { label: "Email (optional)", labelAr: "البريد الإلكتروني", placeholder: "email@example.com", key: "email", type: "email" },
-            { label: "Nationality", labelAr: "الجنسية", placeholder: "Saudi Arabia", key: "nationality" },
+            { label: "Mobile Number", labelAr: "رقم الجوال", placeholder: "+966 / +971 / +974 / +965 …", key: "phone" },
+            { label: "Email", labelAr: "البريد الإلكتروني", placeholder: "email@example.com", key: "email", type: "email" },
+            { label: "Nationality", labelAr: "الجنسية", placeholder: "Saudi Arabia / UAE / Qatar / …", key: "nationality" },
           ].map((f) => (
             <div key={f.key}>
               <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
@@ -267,7 +408,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <div className="pt-2 space-y-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
             {[
               { k: "acceptTerms", text: "I agree to the", linkText: "Terms of Service", linkHref: "/terms", textAr: "أوافق على شروط الاستخدام" },
-              { k: "acceptPrivacy", text: "I agree to the", linkText: "Privacy Policy (PDPL · HIPAA · GDPR)", linkHref: "/privacy", textAr: "أوافق على سياسة الخصوصية" },
+              { k: "acceptPrivacy", text: "I agree to the", linkText: "Privacy Policy (PDPL · DHA · HIPAA · GDPR)", linkHref: "/privacy", textAr: "أوافق على سياسة الخصوصية" },
             ].map((c) => (
               <label key={c.k} className="flex items-start gap-2.5 cursor-pointer">
                 <button type="button" onClick={() => setReg({ ...reg, [c.k]: !(reg as any)[c.k] })}
@@ -307,18 +448,20 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   // ============ LOGIN VIEW ============
   return (
     <div className="flex flex-col h-full overflow-y-auto px-6 pt-10 pb-6" style={{ background: "var(--off-white)" }}>
-      <div className="flex flex-col items-center mb-8">
-        <RufayQLogo size={60} variant="dark" />
+      <button onClick={() => setView("welcome")} className="flex items-center gap-1 text-xs mb-3 self-start" style={{ color: "var(--teal-deep)" }}>
+        <ArrowLeft size={14} /> Back · رجوع
+      </button>
+      <div className="flex flex-col items-center mb-6">
+        <RufayQLogo size={56} variant="dark" />
         <div className="mt-2"><RufayQWordmark size="md" variant="dark" /></div>
-        <h2 className="font-display text-2xl mt-4" style={{ color: "var(--navy)" }}>Welcome back</h2>
+        <h2 className="font-display text-2xl mt-3" style={{ color: "var(--navy)" }}>Welcome back</h2>
         <p className="font-arabic text-base" dir="rtl" style={{ color: "var(--gray)" }}>مرحباً بعودتك</p>
-        <p className="text-xs mt-1" style={{ color: "var(--gray)" }}>Sign in to your RufayQ companion · سجّل دخولك إلى رُفَيِّق</p>
       </div>
 
       <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--white)" }}>
         <div>
           <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
-            Saudi Mobile Number <span className="font-arabic" style={{ color: "var(--gray)" }}>· رقم الجوال السعودي</span>
+            Mobile Number <span className="font-arabic" style={{ color: "var(--gray)" }}>· رقم الجوال</span>
           </label>
           <div className="flex items-center mt-1 rounded-xl overflow-hidden" style={{ border: "1px solid var(--gray-light)", height: 52 }}>
             <span className="pl-3 pr-2 text-sm" style={{ color: "var(--gray)" }}>🇸🇦 +966</span>
@@ -331,7 +474,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
             <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
               Password <span className="font-arabic" style={{ color: "var(--gray)" }}>· كلمة المرور</span>
             </label>
-            <button className="text-[10px]" style={{ color: "var(--teal-mid)" }}>Forgot?</button>
+            <button onClick={() => toast.info("Password reset by OTP coming soon · قريباً")} className="text-[10px]" style={{ color: "var(--teal-mid)" }}>Forgot?</button>
           </div>
           <div className="flex items-center mt-1 rounded-xl overflow-hidden" style={{ border: "1px solid var(--gray-light)", height: 52 }}>
             <input type={showPass ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
@@ -343,10 +486,20 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         </div>
       </div>
 
-      <button onClick={handleLogin} className="w-full mt-4 py-3.5 rounded-xl font-semibold text-white btn-press"
-        style={{ background: "var(--teal-deep)", height: 52 }}>
-        Sign In · تسجيل الدخول
-      </button>
+      {/* Two OTP options */}
+      <div className="grid grid-cols-2 gap-2 mt-4">
+        <button onClick={() => handleSendOtp("whatsapp")} className="py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-1.5"
+          style={{ background: "#25D366", height: 52 }}>
+          <MessageCircle size={15} /> WhatsApp OTP
+        </button>
+        <button onClick={() => handleSendOtp("email")} className="py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-1.5"
+          style={{ background: "var(--teal-deep)", height: 52 }}>
+          <Mail size={15} /> Email OTP
+        </button>
+      </div>
+      <p className="text-center text-[10px] mt-2" style={{ color: "var(--gray)" }}>
+        We'll send a 6-digit code · سنرسل رمزاً مكوناً من 6 أرقام
+      </p>
 
       <div className="flex items-center my-4">
         <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
@@ -354,15 +507,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        {[{ icon: "🍎", label: "Apple" }, { icon: "🔵", label: "Google" }].map((s) => (
-          <button key={s.label} onClick={onLogin}
-            className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm btn-press"
-            style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
-            <span>{s.icon}</span> {s.label}
-          </button>
-        ))}
-      </div>
+      <button onClick={handleGuestContinue}
+        className="w-full py-3 rounded-xl btn-press flex items-center justify-center gap-2"
+        style={{ background: "transparent", color: "var(--gray)", border: "1px dashed var(--gray-light)" }}>
+        <UserCircle2 size={14} />
+        <span className="text-[12px]">Continue as guest · <span className="font-arabic">متابعة كزائر</span></span>
+      </button>
 
       <p className="text-center text-xs mt-5" style={{ color: "var(--gray)" }}>
         Don't have an account?{" "}
