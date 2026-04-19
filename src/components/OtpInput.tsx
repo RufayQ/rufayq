@@ -7,6 +7,8 @@ interface OtpInputProps {
   length?: number;
   disabled?: boolean;
   autoFocus?: boolean;
+  /** When true, slots shake + flash red. Parent should toggle off after ~500ms. */
+  error?: boolean;
 }
 
 /**
