@@ -52,7 +52,8 @@ const ReviewForm = forwardRef<HTMLDivElement, Props>(({ variant = "light", onSub
         <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: GOLD }}>YOUR RATING · تقييمك</p>
         <div className="flex gap-1.5">
           {[1, 2, 3, 4, 5].map((n) => (
-            <button key={n} onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)} onClick={() => setRating(n)}
+            <button key={n} type="button" aria-label={`Rate ${n} star${n > 1 ? "s" : ""}`}
+              onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)} onClick={() => setRating(n)}
               className="transition-transform hover:scale-110">
               <Star size={28} fill={(hover || rating) >= n ? GOLD : "transparent"} color={GOLD} strokeWidth={1.5} />
             </button>
