@@ -1,13 +1,12 @@
-// Twilio Verify - send OTP via WhatsApp or Email channel
-// Uses the Lovable Twilio connector gateway. Public endpoint (no JWT required) so unauthenticated
-// users can request a verification code during signup/sign-in.
+// Twilio Verify - send OTP via WhatsApp / SMS / Email channel
+// Calls Twilio Verify v2 directly (gateway doesn't support /v2 paths).
+// Public endpoint (no JWT) so unauthenticated users can request a code during signup/sign-in.
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
-const GATEWAY_BASE = "https://connector-gateway.lovable.dev/twilio";
 
 interface SendOtpBody {
   channel: "whatsapp" | "sms" | "email";
@@ -21,12 +20,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
+    const ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
+    const AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
     const VERIFY_SID = Deno.env.get("TWILIO_VERIFY_SERVICE_SID");
 
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-    if (!TWILIO_API_KEY) throw new Error("TWILIO_API_KEY not configured (Twilio connector not linked?)");
+    if (!ACCOUNT_SID) throw new Error("TWILIO_ACCOUNT_SID not configured");
+    if (!AUTH_TOKEN) throw new Error("TWILIO_AUTH_TOKEN not configured");
     if (!VERIFY_SID) throw new Error("TWILIO_VERIFY_SERVICE_SID not configured");
 
     const body = (await req.json()) as SendOtpBody;
@@ -36,7 +35,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Validate "to" against channel
     if (body.channel === "email") {
       if (!isEmail(body.to)) {
         return new Response(JSON.stringify({ error: "Invalid email address" }), {
@@ -51,22 +49,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Twilio Verify v2: POST /v2/Services/{ServiceSid}/Verifications
-    // Note: Verify uses the v2 prefix, not the legacy /2010-04-01/Accounts gateway path.
-    // The gateway always prepends /2010-04-01/Accounts/{AccountSid}, which is wrong for Verify.
-    // We therefore use the explicit /v2 path via a sibling route on the gateway.
-    const url = `${GATEWAY_BASE}/v2/Services/${VERIFY_SID}/Verifications`;
-
-    const params = new URLSearchParams({
-      To: body.to,
-      Channel: body.channel,
-    });
+    // Twilio Verify v2 — direct call, Basic Auth with Account SID + Auth Token
+    const url = `https://verify.twilio.com/v2/Services/${VERIFY_SID}/Verifications`;
+    const params = new URLSearchParams({ To: body.to, Channel: body.channel });
+    const basic = btoa(`${ACCOUNT_SID}:${AUTH_TOKEN}`);
 
     const resp = await fetch(url, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": TWILIO_API_KEY,
+        "Authorization": `Basic ${basic}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: params,
@@ -74,11 +65,11 @@ Deno.serve(async (req) => {
 
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) {
-      console.error("[send-otp] Twilio error", resp.status, data);
+      console.error("[send-otp] Twilio error", resp.status, JSON.stringify(data));
       return new Response(JSON.stringify({
-        error: "Twilio Verify rejected the request",
+        error: data?.message || "Twilio Verify rejected the request",
+        code: data?.code,
         status: resp.status,
-        twilio: data,
       }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
