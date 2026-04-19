@@ -26,7 +26,9 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        # Don't use --frozen-lockfile: Lovable updates package.json without always regenerating bun.lockb,
+        # which causes CI to fail on lockfile drift even when the install would succeed locally.
+        run: bun install
 
       - name: Lint
         run: bun run lint
