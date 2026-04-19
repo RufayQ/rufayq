@@ -352,7 +352,7 @@ const Landing = () => {
             {testimonials.map((t, i) => (
               <div key={i} className="rounded-2xl p-7" style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}>
                 <div className="flex gap-1 mb-4">
-                  {[...Array(t.rating ?? 5)].map((_, j) => <Star key={j} size={13} fill={GOLD} color={GOLD} />)}
+                  {[...Array(5)].map((_, j) => <Star key={j} size={13} fill={GOLD} color={GOLD} />)}
                 </div>
                 <p className="text-sm leading-relaxed mb-5 italic" style={{ color: TEXT }}>
                   "{isAr ? <span className="font-arabic" dir="rtl">{t.textAr}</span> : t.text}"
