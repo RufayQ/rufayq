@@ -80,44 +80,40 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     else toast.success(`SMS code sent to ${to}`);
   };
 
-  const handleOtp = async (index: number, value: string) => {
-    if (value.length > 1) return;
-    const next = [...otp]; next[index] = value; setOtp(next);
-    if (value && index < 5) document.getElementById(`otp-${index + 1}`)?.focus();
-    if (next.every((d) => d !== "")) {
-      const code = next.join("");
-      const to = resolveRecipient(otpChannel);
-      setSubmitting(true);
-      const { data, error } = await supabase.functions.invoke("verify-otp", {
-        body: { to, code },
-      });
-      setSubmitting(false);
-      if (error) {
-        toast.error("Verification failed", { description: error.message });
-        setOtp(["", "", "", "", "", ""]);
-        return;
-      }
-      if (!data?.approved) {
-        toast.error("Incorrect or expired code · رمز غير صحيح", {
-          description: data?.error || "Request a new code and try again",
-        });
-        setOtp(["", "", "", "", "", ""]);
-        return;
-      }
-      // Sign in with the temp credentials returned by verify-otp → real Supabase session.
-      if (data.signInEmail && data.password) {
-        const { error: sErr } = await supabase.auth.signInWithPassword({
-          email: data.signInEmail, password: data.password,
-        });
-        if (sErr) {
-          toast.error("Sign-in failed", { description: sErr.message });
-          return;
-        }
-      }
-      toast.success("Verified · تم التحقق");
-      setTimeout(onLogin, 500);
+  const submitOtp = async (code: string) => {
+    const to = resolveRecipient(otpChannel);
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke("verify-otp", {
+      body: { to, code },
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error("Verification failed", { description: error.message });
+      setOtp(["", "", "", "", "", ""]);
+      return;
     }
+    if (!data?.approved) {
+      toast.error("Incorrect or expired code · رمز غير صحيح", {
+        description: data?.error || "Request a new code and try again",
+      });
+      setOtp(["", "", "", "", "", ""]);
+      return;
+    }
+    if (data.signInEmail && data.password) {
+      const { error: sErr } = await supabase.auth.signInWithPassword({
+        email: data.signInEmail, password: data.password,
+      });
+      if (sErr) {
+        toast.error("Sign-in failed", { description: sErr.message });
+        return;
+      }
+    }
+    toast.success("Verified · تم التحقق");
+    setTimeout(onLogin, 500);
   };
+
+  // Kept for backwards compat with any leftover refs (no longer used by inputs).
+  const handleOtp = (_index: number, _value: string) => {};
 
   const handleGuestContinue = () => {
     toast.info("Continuing as guest · المتابعة كزائر", {
