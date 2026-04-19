@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- SEO: Title 53 chars (well under 580px / 60-char target) -->
-    <title>RufayQ — Bilingual AI Medical Travel Companion</title>
-    <!-- SEO: Meta description 152 chars (under 160 / ~920px) -->
-    <meta name="description" content="RufayQ is the bilingual EN/AR AI medical companion for patients travelling abroad. Track flights, medications, appointments and records — explained instantly." />
+    <!-- SEO: Title 58 chars — within Google's 50–60 sweet spot, under 580px -->
+    <title>RufayQ | Bilingual AI Medical Travel Companion App</title>
+    <!-- SEO: Meta description 148 chars — under 160 / ~920px target -->
+    <meta name="description" content="RufayQ — bilingual EN/AR AI medical travel companion. Track flights, medications, appointments and records. Built for Saudi & Gulf patients." />
     <meta name="author" content="RufayQ" />
     <meta name="keywords" content="medical tourism app, Saudi medical travel, Gulf medical companion, bilingual medical AI, treatment abroad, Arabic English medical translator, RufayQ, medical journey tracker" />
     <meta name="theme-color" content="#06101A" />
@@ -20,6 +20,13 @@
     <link rel="alternate" hreflang="en" href="https://rufayq.com/" />
     <link rel="alternate" hreflang="ar" href="https://rufayq.com/" />
     <link rel="alternate" hreflang="x-default" href="https://rufayq.com/" />
+    <!-- Mobile alternate hint (responsive site — same URL for mobile/desktop) -->
+    <link rel="alternate" media="only screen and (max-width: 640px)" href="https://rufayq.com/" />
+    <meta name="HandheldFriendly" content="true" />
+    <meta name="MobileOptimized" content="width" />
+    <meta name="format-detection" content="telephone=no" />
+    <!-- LLM crawler hints -->
+    <link rel="alternate" type="text/plain" title="llms.txt" href="https://rufayq.com/llms.txt" />
 
     <!-- Performance: preconnect + non-blocking font load (display=swap) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -31,7 +38,7 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RufayQ" />
-    <meta property="og:title" content="RufayQ — Bilingual AI Medical Travel Companion" />
+    <meta property="og:title" content="RufayQ | Bilingual AI Medical Travel Companion App" />
     <meta property="og:description" content="Bilingual EN/AR AI companion for medical travellers. Tracks flights, medications, appointments and explains every report." />
     <meta property="og:url" content="https://rufayq.com/" />
     <meta property="og:locale" content="en_US" />
@@ -44,7 +51,7 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@RufayQ" />
-    <meta name="twitter:title" content="RufayQ — Bilingual AI Medical Travel Companion" />
+    <meta name="twitter:title" content="RufayQ | Bilingual AI Medical Travel Companion App" />
     <meta name="twitter:description" content="Bilingual EN/AR AI companion for medical travellers from the Gulf and worldwide." />
     <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/87f0520a-8d74-4687-b816-4d40f389e21e/id-preview-0291f6a0--aacabea3-4cbd-4aa0-9a0a-eaba72cdef9b.lovable.app-1776391099788.png" />
 
@@ -112,6 +119,36 @@
           "applicationCategory": "HealthApplication",
           "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
           "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "127" }
+        },
+        {
+          "@type": "Service",
+          "@id": "https://rufayq.com/#service",
+          "name": "RufayQ Medical Travel Companion",
+          "serviceType": "Digital health companion for medical travellers",
+          "provider": { "@id": "https://rufayq.com/#org" },
+          "areaServed": [
+            {"@type":"Country","name":"Saudi Arabia"},
+            {"@type":"Country","name":"United Arab Emirates"},
+            {"@type":"Country","name":"Qatar"},
+            {"@type":"Country","name":"Kuwait"},
+            {"@type":"Country","name":"Bahrain"},
+            {"@type":"Country","name":"Oman"}
+          ],
+          "availableChannel": {
+            "@type": "ServiceChannel",
+            "serviceUrl": "https://rufayq.com/",
+            "availableLanguage": ["English", "Arabic"]
+          },
+          "category": "HealthApplication",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        },
+        {
+          "@type": "ContactPage",
+          "@id": "https://rufayq.com/#contact",
+          "url": "https://rufayq.com/",
+          "name": "Contact RufayQ",
+          "inLanguage": ["en", "ar"],
+          "isPartOf": { "@id": "https://rufayq.com/#website" }
         }
       ]
     }
