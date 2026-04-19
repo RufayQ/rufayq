@@ -297,12 +297,13 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           </p>
         </div>
 
-        {/* OTP slots — auto-advance, paste, backspace nav */}
+        {/* OTP slots — auto-advance, paste, backspace nav, shake on error */}
         <OtpInput
           value={otp}
           onChange={setOtp}
           onComplete={submitOtp}
           disabled={submitting}
+          error={otpError}
         />
 
         {/* Submitting indicator */}
@@ -312,23 +313,52 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           </p>
         )}
 
-        {/* Resend block */}
-        <div className="mt-6 text-center">
+        {/* Resend block — circular countdown */}
+        <div className="mt-6 flex flex-col items-center">
           {countdown > 0 ? (
-            <p className="text-xs" style={{ color: "var(--gray)" }}>
-              Didn't get it? Resend in <span className="font-mono font-semibold" style={{ color: "var(--navy)" }}>0:{countdown.toString().padStart(2, "0")}</span>
-            </p>
+            <div className="flex flex-col items-center gap-1.5">
+              <div className="relative w-14 h-14">
+                <svg viewBox="0 0 56 56" className="w-14 h-14 -rotate-90">
+                  <circle cx="28" cy="28" r="24" fill="none" stroke="var(--gray-light)" strokeWidth="3" />
+                  <circle
+                    cx="28" cy="28" r="24" fill="none"
+                    stroke="var(--teal-deep)" strokeWidth="3" strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 24}
+                    strokeDashoffset={(2 * Math.PI * 24) * (1 - countdown / 45)}
+                    style={{ transition: "stroke-dashoffset 1s linear" }}
+                  />
+                </svg>
+                <span
+                  className="absolute inset-0 flex items-center justify-center font-mono text-[12px] font-bold"
+                  style={{ color: "var(--navy)" }}
+                >
+                  0:{countdown.toString().padStart(2, "0")}
+                </span>
+              </div>
+              <p className="text-[11px]" style={{ color: "var(--gray)" }}>
+                Didn't get it? · لم يصلك الرمز؟
+              </p>
+            </div>
           ) : (
             <button
               onClick={() => handleSendOtp(otpChannel)}
               disabled={!canResend}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold underline disabled:opacity-50"
-              style={{ color: "var(--teal-deep)" }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold btn-press disabled:opacity-50"
+              style={{ background: "var(--teal-deep)", color: "white" }}
             >
               <RefreshCw size={12} /> Resend code · إعادة إرسال
             </button>
           )}
         </div>
+
+        {/* Change recipient (number/email) */}
+        <button
+          onClick={() => { setOtp(["","","","","",""]); setOtpError(false); setView(reg.acceptTerms ? "register" : "login"); }}
+          className="mt-3 mx-auto block text-[11px] font-semibold underline"
+          style={{ color: "var(--gray)" }}
+        >
+          Change {otpChannel === "email" ? "email" : "number"} · تغيير {otpChannel === "email" ? "البريد" : "الرقم"}
+        </button>
 
         {/* Channel switcher */}
         <div className="mt-7 pt-5" style={{ borderTop: "1px dashed var(--gray-light)" }}>
