@@ -282,6 +282,38 @@ const MedicationDetailSheet = ({
             </div>
           )}
 
+          {/* ─── SAFETY TAB ─── */}
+          {activeTab === "safety" && (
+            <div className="space-y-3 pt-2">
+              {!hasSafety && (
+                <div className="text-center py-8">
+                  <span className="text-3xl">🛡️</span>
+                  <p className="text-xs mt-2" style={{ color: "var(--gray)" }}>No safety info added yet · لم تُضف معلومات السلامة</p>
+                  <p className="text-[11px] mt-1" style={{ color: "var(--gray)" }}>Edit this medication to add precautions, side effects, contraindications and drug interactions.</p>
+                </div>
+              )}
+
+              {med.precautions && med.precautions.length > 0 && (
+                <SafetyBlock title="PRECAUTIONS · احتياطات" icon="⚠️" tone="warn" items={med.precautions} arItems={med.precautionsAr} />
+              )}
+              {med.sideEffects && med.sideEffects.length > 0 && (
+                <SafetyBlock title="SIDE EFFECTS · آثار جانبية" icon="💢" tone="info" items={med.sideEffects} arItems={med.sideEffectsAr} />
+              )}
+              {med.contraindications && med.contraindications.length > 0 && (
+                <SafetyBlock title="CONTRAINDICATIONS · موانع الاستعمال" icon="🚫" tone="error" items={med.contraindications} arItems={med.contraindicationsAr} />
+              )}
+              {med.interactions && med.interactions.length > 0 && (
+                <SafetyBlock title="DRUG INTERACTIONS · تداخلات دوائية" icon="⚡" tone="error" items={med.interactions} arItems={med.interactionsAr} />
+              )}
+
+              {hasSafety && (
+                <p className="text-[10px] text-center pt-2" style={{ color: "var(--gray)" }}>
+                  Information shown is user-entered. Always verify with your treating physician.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* ─── NOTES TAB ─── */}
           {activeTab === "notes" && (
             <div className="space-y-3 pt-2">
