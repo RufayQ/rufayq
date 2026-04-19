@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          actor_role: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       app_reviews: {
         Row: {
           advice: string | null
@@ -131,6 +170,48 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          org_type: Database["public"]["Enums"]["org_type"]
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          org_type?: Database["public"]["Enums"]["org_type"]
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          org_type?: Database["public"]["Enums"]["org_type"]
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       otp_send_log: {
         Row: {
           channel: string
@@ -165,6 +246,7 @@ export type Database = {
           gender: string | null
           id: string
           nationality: string | null
+          organization_id: string | null
           passport_number: string | null
           phone: string | null
           privacy_accepted_at: string | null
@@ -184,6 +266,7 @@ export type Database = {
           gender?: string | null
           id?: string
           nationality?: string | null
+          organization_id?: string | null
           passport_number?: string | null
           phone?: string | null
           privacy_accepted_at?: string | null
@@ -203,6 +286,7 @@ export type Database = {
           gender?: string | null
           id?: string
           nationality?: string | null
+          organization_id?: string | null
           passport_number?: string | null
           phone?: string | null
           privacy_accepted_at?: string | null
@@ -210,7 +294,15 @@ export type Database = {
           terms_accepted_at?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_pages: {
         Row: {
@@ -370,6 +462,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_user_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
       admin_generate_manual_otp: {
         Args: { _recipient: string }
         Returns: {
@@ -388,9 +487,27 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_audit_event: {
+        Args: {
+          _action: string
+          _actor_email?: string
+          _actor_id?: string
+          _details?: Json
+          _target_id?: string
+          _target_type?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      org_type:
+        | "hospital"
+        | "vendor"
+        | "insurance"
+        | "patient_org"
+        | "clinic"
+        | "other"
       ticket_category: "billing" | "technical" | "medical" | "general"
       ticket_priority: "low" | "medium" | "high" | "urgent"
       ticket_status: "open" | "in_progress" | "resolved" | "closed"
@@ -523,6 +640,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      org_type: [
+        "hospital",
+        "vendor",
+        "insurance",
+        "patient_org",
+        "clinic",
+        "other",
+      ],
       ticket_category: ["billing", "technical", "medical", "general"],
       ticket_priority: ["low", "medium", "high", "urgent"],
       ticket_status: ["open", "in_progress", "resolved", "closed"],
