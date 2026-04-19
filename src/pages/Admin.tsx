@@ -43,9 +43,12 @@ const Admin = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-300 px-6 text-center">
         <Shield size={42} className="mb-4 text-amber-400" />
-        <h1 className="text-2xl font-semibold mb-2">Admin access required</h1>
-        <p className="text-sm text-slate-400 mb-6">You must be signed in as an admin to view this page.</p>
-        <Link to="/app" className="px-5 py-2.5 rounded-full bg-amber-500 text-slate-950 text-sm font-semibold">Open app</Link>
+        <h1 className="text-2xl font-semibold mb-2">Staff sign-in required</h1>
+        <p className="text-sm text-slate-400 mb-6">Sign in with your staff email and password to access the admin portal.</p>
+        <div className="flex gap-3">
+          <Link to="/admin/login" className="px-5 py-2.5 rounded-full bg-amber-500 text-slate-950 text-sm font-semibold">Sign in</Link>
+          <Link to="/" className="px-5 py-2.5 rounded-full border border-slate-700 text-slate-300 text-sm font-semibold">Back to site</Link>
+        </div>
       </div>
     );
   }
