@@ -28,14 +28,17 @@
     <!-- LLM crawler hints -->
     <link rel="alternate" type="text/plain" title="llms.txt" href="https://rufayq.com/llms.txt" />
 
-    <!-- Performance: preconnect + non-blocking font load (display=swap) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Performance: self-hosted font subsets, preconnect to backend, dns-prefetch GA -->
     <link rel="preconnect" href="https://dlzwgkdiqabapgnvufil.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=DM+Sans:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=DM+Sans:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=DM+Sans:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" /></noscript>
+    <!-- Preload LCP-critical font (DM Sans 400 latin — used by hero paragraph) -->
+    <link rel="preload" href="/fonts/dmsans-latin-40fe3cf7.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/fonts/fonts.css" />
+    <!-- Inline critical CSS to eliminate FOUC and unstyled flash on LCP -->
+    <style>
+      html,body{margin:0;padding:0;background:#06101A;color:#E8ECF0;font-family:'DM Sans',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+      #root{min-height:100vh}
+    </style>
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
