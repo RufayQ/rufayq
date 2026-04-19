@@ -155,6 +155,12 @@ const MedicationDetailSheet = ({
           {/* ─── DETAILS TAB ─── */}
           {activeTab === "details" && (
             <div className="space-y-3 pt-2">
+              {/* Pill image */}
+              {med.imageUrl && (
+                <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--gray-light)" }}>
+                  <img src={med.imageUrl} alt={med.name} className="w-full h-40 object-cover" />
+                </div>
+              )}
               {/* Dosage info grid */}
               <div className="rounded-2xl p-4" style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.12)" }}>
                 <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--teal-deep)" }}>DOSAGE INFORMATION</p>
