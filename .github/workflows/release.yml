@@ -27,7 +27,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false
+          # persist-credentials must be true so @semantic-release/git can push the CHANGELOG.md commit
+          persist-credentials: true
 
       - name: Setup Node
         uses: actions/setup-node@v4
