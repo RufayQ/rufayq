@@ -176,10 +176,10 @@ const Landing = () => {
       </nav>
 
       {/* HERO */}
-      <section className="relative overflow-hidden" style={{ background: BG_DARK }}>
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-30 blur-[120px]" style={{ background: `radial-gradient(circle, ${TEAL} 0%, transparent 70%)` }} />
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full opacity-25 blur-[100px]" style={{ background: `radial-gradient(circle, ${GOLD} 0%, transparent 70%)` }} />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+      <section className="lcp-hero relative overflow-hidden" style={{ background: BG_DARK }}>
+        <div className="lcp-blur absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-30 blur-[120px] hidden md:block" style={{ background: `radial-gradient(circle, ${TEAL} 0%, transparent 70%)` }} />
+        <div className="lcp-blur absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full opacity-25 blur-[100px] hidden md:block" style={{ background: `radial-gradient(circle, ${GOLD} 0%, transparent 70%)` }} />
+        <div className="absolute inset-0 opacity-[0.03] hidden md:block" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
         <div className="relative max-w-6xl mx-auto px-6 py-20 md:py-32 grid md:grid-cols-2 gap-12 items-center">
           <div>
@@ -263,7 +263,7 @@ const Landing = () => {
       </section>
 
       {/* FEATURES */}
-      <section id="features" className="py-24 px-6 relative" style={{ background: BG_DARK }}>
+      <section id="features" className="lazy-section py-24 px-6 relative" style={{ background: BG_DARK }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -301,7 +301,7 @@ const Landing = () => {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" className="py-24 px-6 relative" style={{ background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
+      <section id="how" className="lazy-section py-24 px-6 relative" style={{ background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -335,7 +335,7 @@ const Landing = () => {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="py-24 px-6" style={{ background: BG_DARK }}>
+      <section className="lazy-section py-24 px-6" style={{ background: BG_DARK }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -393,7 +393,7 @@ const Landing = () => {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="py-24 px-6 relative overflow-hidden" style={{ background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
+      <section id="pricing" className="lazy-section py-24 px-6 relative overflow-hidden" style={{ background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
         <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(circle at 50% 50%, ${GOLD}15 0%, transparent 60%)` }} />
         <div className="relative max-w-5xl mx-auto text-center">
           <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -449,7 +449,7 @@ const Landing = () => {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-24 px-6" style={{ background: BG_DARK }}>
+      <section id="faq" className="lazy-section py-24 px-6" style={{ background: BG_DARK }}>
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-14">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
