@@ -119,6 +119,36 @@
           "applicationCategory": "HealthApplication",
           "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
           "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "127" }
+        },
+        {
+          "@type": "Service",
+          "@id": "https://rufayq.com/#service",
+          "name": "RufayQ Medical Travel Companion",
+          "serviceType": "Digital health companion for medical travellers",
+          "provider": { "@id": "https://rufayq.com/#org" },
+          "areaServed": [
+            {"@type":"Country","name":"Saudi Arabia"},
+            {"@type":"Country","name":"United Arab Emirates"},
+            {"@type":"Country","name":"Qatar"},
+            {"@type":"Country","name":"Kuwait"},
+            {"@type":"Country","name":"Bahrain"},
+            {"@type":"Country","name":"Oman"}
+          ],
+          "availableChannel": {
+            "@type": "ServiceChannel",
+            "serviceUrl": "https://rufayq.com/",
+            "availableLanguage": ["English", "Arabic"]
+          },
+          "category": "HealthApplication",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        },
+        {
+          "@type": "ContactPage",
+          "@id": "https://rufayq.com/#contact",
+          "url": "https://rufayq.com/",
+          "name": "Contact RufayQ",
+          "inLanguage": ["en", "ar"],
+          "isPartOf": { "@id": "https://rufayq.com/#website" }
         }
       ]
     }
