@@ -36,6 +36,13 @@ const AdminLogin = () => {
       toast.error("This account is not a staff account");
       return;
     }
+    // Audit: staff sign-in
+    await supabase.rpc("log_audit_event", {
+      _action: "staff_signed_in",
+      _target_type: "auth",
+      _target_id: data.user.id,
+      _details: { email: data.user.email, roles: roles?.map((r: any) => r.role) },
+    });
     toast.success("Welcome back");
     navigate("/admin");
   };
