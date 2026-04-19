@@ -393,7 +393,7 @@ const Landing = () => {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="py-24 px-6 relative overflow-hidden" style={{ background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
+      <section id="pricing" className="lazy-section py-24 px-6 relative overflow-hidden" style={{ background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
         <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(circle at 50% 50%, ${GOLD}15 0%, transparent 60%)` }} />
         <div className="relative max-w-5xl mx-auto text-center">
           <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -449,7 +449,7 @@ const Landing = () => {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-24 px-6" style={{ background: BG_DARK }}>
+      <section id="faq" className="lazy-section py-24 px-6" style={{ background: BG_DARK }}>
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-14">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
