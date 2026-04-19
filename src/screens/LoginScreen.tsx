@@ -219,6 +219,16 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
         </div>
 
+        {/* Already have a support code */}
+        <button
+          onClick={() => { setView("login"); setTimeout(() => setView("otp"), 0); setOtpChannel("whatsapp"); setOtp(["","","","","",""]); }}
+          className="w-full py-3 rounded-2xl btn-press flex items-center justify-center gap-2 mb-2"
+          style={{ background: "transparent", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}
+        >
+          <Shield size={14} />
+          <span className="text-[12px] font-semibold">I have a code from support · لدي رمز من الدعم</span>
+        </button>
+
         {/* Guest pathway */}
         <button
           onClick={handleGuestContinue}
