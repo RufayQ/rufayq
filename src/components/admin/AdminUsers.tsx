@@ -181,6 +181,7 @@ const AdminUsers = () => {
                   <>
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                       <h3 className="font-semibold text-sm text-slate-100">{p.full_name_en || "—"}</h3>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${TYPE_BADGE[p.provider_type || "patient"]}`}>{p.provider_type || "patient"}</span>
                       {status && <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                         status === "active" ? "bg-emerald-500/15 text-emerald-300"
                         : status === "on_hold" ? "bg-amber-500/15 text-amber-300"
@@ -191,6 +192,9 @@ const AdminUsers = () => {
                     <p className="text-xs text-slate-400">
                       {p.phone || "no phone"} · {p.email || "no email"} · {p.nationality || "—"}
                     </p>
+                    {p.organization_id && orgsById[p.organization_id] && (
+                      <p className="text-[11px] text-teal-300 mt-0.5">🏢 {orgsById[p.organization_id].name}</p>
+                    )}
                     <p className="text-[10px] text-slate-600 font-mono mt-0.5">{p.device_id.slice(0, 16)}… · joined {new Date(p.created_at).toLocaleDateString()}</p>
                   </>
                 )}

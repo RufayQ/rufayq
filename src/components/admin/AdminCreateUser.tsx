@@ -6,9 +6,18 @@ import { UserPlus, Copy } from "lucide-react";
 interface Org { id: string; name: string; org_type: string }
 
 const ROLES = [
-  { value: "user", label: "Patient / End User" },
-  { value: "moderator", label: "Customer Service Agent" },
-  { value: "admin", label: "Admin" },
+  { value: "user", label: "External user (patient/provider/vendor)" },
+  { value: "moderator", label: "Customer Service Agent (internal)" },
+  { value: "admin", label: "Admin (internal)" },
+];
+
+const PROVIDER_TYPES = [
+  { value: "patient",   label: "Patient / End user" },
+  { value: "hospital",  label: "Hospital" },
+  { value: "physician", label: "Physician" },
+  { value: "vendor",    label: "Vendor" },
+  { value: "insurance", label: "Insurance company" },
+  { value: "internal",  label: "Internal staff" },
 ];
 
 const AdminCreateUser = () => {
@@ -16,7 +25,7 @@ const AdminCreateUser = () => {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     email: "", password: "", full_name: "", phone: "",
-    role: "user", organization_id: "",
+    role: "user", organization_id: "", provider_type: "patient",
   });
   const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
 
