@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import { Star, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,7 @@ interface Props {
   onSubmitted?: () => void;
 }
 
-const ReviewForm = ({ variant = "light", onSubmitted }: Props) => {
+const ReviewForm = forwardRef<HTMLDivElement, Props>(({ variant = "light", onSubmitted }, ref) => {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [name, setName] = useState("");
@@ -47,7 +47,7 @@ const ReviewForm = ({ variant = "light", onSubmitted }: Props) => {
   };
 
   return (
-    <div className="rounded-2xl p-5 space-y-4" style={{ background: cardBg, border: `1px solid ${border}` }}>
+    <div ref={ref} className="rounded-2xl p-5 space-y-4" style={{ background: cardBg, border: `1px solid ${border}` }}>
       <div>
         <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: GOLD }}>YOUR RATING · تقييمك</p>
         <div className="flex gap-1.5">
@@ -93,6 +93,7 @@ const ReviewForm = ({ variant = "light", onSubmitted }: Props) => {
       </button>
     </div>
   );
-};
+});
+ReviewForm.displayName = "ReviewForm";
 
 export default ReviewForm;
