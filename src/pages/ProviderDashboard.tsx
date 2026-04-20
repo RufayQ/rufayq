@@ -11,6 +11,7 @@ import RcmEligibilityWorklist from "@/components/provider/RcmEligibilityWorklist
 import RcmActivationWorklist from "@/components/provider/RcmActivationWorklist";
 import RcmAuthorizationWorklist from "@/components/provider/RcmAuthorizationWorklist";
 import RcmOpErWorklist from "@/components/provider/RcmOpErWorklist";
+import RcmIpDcWorklist from "@/components/provider/RcmIpDcWorklist";
 
 interface Org { id: string; name: string; org_type: string; }
 interface Patient {
@@ -18,7 +19,7 @@ interface Patient {
   patient_email: string | null; patient_phone: string | null; status: string; notes: string | null;
 }
 
-type Tab = "patients" | "find" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation" | "rcm_auth" | "rcm_oper";
+type Tab = "patients" | "find" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation" | "rcm_auth" | "rcm_oper" | "rcm_ipdc";
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
@@ -159,6 +160,7 @@ const ProviderDashboard = () => {
     { id: "rcm_activation", label: "RCM · Activation", icon: FileWarning },
     { id: "rcm_auth", label: "RCM · Authorizations", icon: Send },
     { id: "rcm_oper", label: "RCM · OP/ER Billing", icon: DollarSign },
+    { id: "rcm_ipdc", label: "RCM · IP/DC Admissions", icon: Activity },
   ];
 
   const inputCls = "w-full px-3 py-2 rounded-lg text-sm outline-none";
@@ -219,6 +221,8 @@ const ProviderDashboard = () => {
           <div className="max-w-5xl mx-auto">{activeOrg && <RcmAuthorizationWorklist organizationId={activeOrg} />}</div>
         ) : tab === "rcm_oper" ? (
           <div className="max-w-6xl mx-auto">{activeOrg && <RcmOpErWorklist organizationId={activeOrg} />}</div>
+        ) : tab === "rcm_ipdc" ? (
+          <div className="max-w-6xl mx-auto">{activeOrg && <RcmIpDcWorklist organizationId={activeOrg} />}</div>
         ) : (
         <div className="grid md:grid-cols-[300px_1fr] gap-6">
         {/* Patient list */}
