@@ -310,7 +310,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           className="w-full py-4 rounded-2xl font-bold text-white btn-press flex flex-col items-center"
           style={{ background: "var(--gold)", boxShadow: "0 8px 24px rgba(197,150,90,0.3)" }}>
           <span className="text-[15px]">Create your account</span>
-          <span className="font-arabic text-[12px] mt-0.5" dir="rtl">أنشئ حسابك<span className="font-arabic" dir="rtl"> · مع تحقق برمز</span><</span>
+          <span className="font-arabic text-[12px] mt-0.5" dir="rtl">أنشئ حسابك<span className="font-arabic" dir="rtl"> · مع تحقق برمز</span></span>
         </button>
 
         <button onClick={() => setView("login")}
@@ -321,7 +321,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         <div className="flex items-center my-5">
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
-          <span className="px-3 text-[10px] tracking-widest font-mono" style={{ color: "var(--gray)" }}>OR<span className="font-arabic" dir="rtl"> · أو</span><</span>
+          <span className="px-3 text-[10px] tracking-widest font-mono" style={{ color: "var(--gray)" }}>OR<span className="font-arabic" dir="rtl"> · أو</span></span>
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
         </div>
 
@@ -415,7 +415,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         <div className="flex items-center my-4">
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
-          <span className="px-3 text-xs" style={{ color: "var(--gray)" }}>or<span className="font-arabic" dir="rtl"> · أو</span><</span>
+          <span className="px-3 text-xs" style={{ color: "var(--gray)" }}>or<span className="font-arabic" dir="rtl"> · أو</span></span>
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
         </div>
 
@@ -497,7 +497,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                   0:{countdown.toString().padStart(2, "0")}
                 </span>
               </div>
-              <p className="text-[11px]" style={{ color: "var(--gray)" }}>Didn't get it?<span className="font-arabic" dir="rtl"> · لم يصلك الرمز؟</span><</p>
+              <p className="text-[11px]" style={{ color: "var(--gray)" }}>Didn't get it?<span className="font-arabic" dir="rtl"> · لم يصلك الرمز؟</span></p>
             </div>
           ) : (
             <button onClick={() => handleSendOtp(otpChannel, otpRecipient, otpPurpose)} disabled={!canResend}
@@ -531,12 +531,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>STEP 2 OF 2</p>
           <h2 className="font-display text-2xl mt-1" style={{ color: "var(--navy)" }}>Medical Profile</h2>
           <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>الملف الطبي</p>
-          <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>Optional but helps RufayQ personalize your care<span className="font-arabic" dir="rtl"> · اختياري</span><</p>
+          <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>Optional but helps RufayQ personalize your care<span className="font-arabic" dir="rtl"> · اختياري</span></p>
         </div>
 
         <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--white)" }}>
           <div>
-            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Blood Type<span className="font-arabic" dir="rtl"> · فصيلة الدم</span><</label>
+            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Blood Type<span className="font-arabic" dir="rtl"> · فصيلة الدم</span></label>
             <div className="grid grid-cols-4 gap-1.5 mt-1">
               {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map((bt) => (
                 <button key={bt} onClick={() => setMed({ ...med, bloodType: bt })}
@@ -577,9 +577,9 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                     className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
                   <select value={p.status} onChange={(e) => updatePast(i, "status", e.target.value)}
                     className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }}>
-                    <option value="active">Active<span className="font-arabic" dir="rtl"> · نشط</span><</option>
-                    <option value="resolved">Resolved<span className="font-arabic" dir="rtl"> · شُفي</span><</option>
-                    <option value="chronic">Chronic<span className="font-arabic" dir="rtl"> · مزمن</span><</option>
+                    <option value="active">Active<span className="font-arabic" dir="rtl"> · نشط</span></option>
+                    <option value="resolved">Resolved<span className="font-arabic" dir="rtl"> · شُفي</span></option>
+                    <option value="chronic">Chronic<span className="font-arabic" dir="rtl"> · مزمن</span></option>
                   </select>
                 </div>
               </>
@@ -590,7 +590,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                 <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>{sec.title}</p>
                 <button onClick={sec.add} className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>+ Add</button>
               </div>
-              {sec.list.length === 0 && <p className="text-[10px] italic" style={{ color: "var(--gray)" }}>None recorded<span className="font-arabic" dir="rtl"> · لا يوجد</span><</p>}
+              {sec.list.length === 0 && <p className="text-[10px] italic" style={{ color: "var(--gray)" }}>None recorded<span className="font-arabic" dir="rtl"> · لا يوجد</span></p>}
               {sec.list.map((p: any, i: number) => (
                 <div key={i} className="rounded-xl p-2.5 mb-2 space-y-1.5" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
                   <div className="flex justify-between items-center">
@@ -604,7 +604,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           ))}
 
           <div className="pt-1" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-            <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>EMERGENCY CONTACT<span className="font-arabic" dir="rtl"> · جهة الطوارئ</span><</p>
+            <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>EMERGENCY CONTACT<span className="font-arabic" dir="rtl"> · جهة الطوارئ</span></p>
             <div className="grid grid-cols-2 gap-2">
               <input value={med.emName} onChange={(e) => setMed({ ...med, emName: e.target.value })} placeholder="Name · الاسم"
                 className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
@@ -616,7 +616,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           </div>
 
           <div className="pt-1" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-            <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>INSURANCE<span className="font-arabic" dir="rtl"> · التأمين</span><</p>
+            <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>INSURANCE<span className="font-arabic" dir="rtl"> · التأمين</span></p>
             <div className="grid grid-cols-2 gap-2">
               <input value={med.insurer} onChange={(e) => setMed({ ...med, insurer: e.target.value })} placeholder="Provider"
                 className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
@@ -687,7 +687,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         ))}
 
         <div>
-          <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Gender<span className="font-arabic" dir="rtl"> · الجنس</span><</label>
+          <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Gender<span className="font-arabic" dir="rtl"> · الجنس</span></label>
           <div className="flex gap-2 mt-1">
             {[["male", "Male · ذكر"], ["female", "Female · أنثى"]].map(([val, label]) => (
               <button key={val} onClick={() => setReg({ ...reg, gender: val })}
@@ -703,7 +703,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         {/* Verification channel selector */}
         <div className="pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-          <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>VERIFICATION<span className="font-arabic" dir="rtl"> · التحقق</span><</p>
+          <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>VERIFICATION<span className="font-arabic" dir="rtl"> · التحقق</span></p>
           <p className="text-[11px] mb-2" style={{ color: "var(--gray)" }}>How should we send your one-time code?</p>
           <div className="grid grid-cols-3 gap-2">
             {[
@@ -749,7 +749,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         {/* Password */}
         <div className="pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-          <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>PASSWORD<span className="font-arabic" dir="rtl"> · كلمة المرور</span><</p>
+          <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>PASSWORD<span className="font-arabic" dir="rtl"> · كلمة المرور</span></p>
           <div>
             <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Password * (min 8 chars)</label>
             <input type="password" value={reg.password}
