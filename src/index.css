@@ -259,3 +259,24 @@
   60% { transform: scale(1.2); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* ===== Language switcher visibility =====
+   Convention used across the app:
+   - Arabic blocks are tagged with dir="rtl" or class "font-arabic"
+   - Everything else is treated as English/neutral.
+   The data-lang attribute on <html> drives which is hidden.
+   Opt-out: add class "lang-keep" to elements that must always render
+   (e.g. RufayQ wordmark Arabic, BiText components that handle modes themselves).
+*/
+html[data-lang="en"] [dir="rtl"]:not(.lang-keep),
+html[data-lang="en"] .font-arabic:not(.lang-keep) {
+  display: none !important;
+}
+html[data-lang="ar"] .lang-en-only:not(.lang-keep) {
+  display: none !important;
+}
+/* In Arabic-only mode, give plain English ASCII chips a softer fade (not hidden)
+   so destination names, dates, numerics, and brand strings remain visible. */
+html[data-lang="ar"] body {
+  /* placeholder; we intentionally keep neutral/English glyphs visible */
+}
