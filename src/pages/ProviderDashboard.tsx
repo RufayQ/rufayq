@@ -216,7 +216,9 @@ const ProviderDashboard = () => {
         ) : tab === "rcm_activation" ? (
           <div className="max-w-3xl mx-auto">{activeOrg && <RcmActivationWorklist organizationId={activeOrg} />}</div>
         ) : tab === "rcm_auth" ? (
-          <div className="max-w-3xl mx-auto">{activeOrg && <RcmAuthorizationWorklist organizationId={activeOrg} />}</div>
+          <div className="max-w-5xl mx-auto">{activeOrg && <RcmAuthorizationWorklist organizationId={activeOrg} />}</div>
+        ) : tab === "rcm_oper" ? (
+          <div className="max-w-6xl mx-auto">{activeOrg && <RcmOpErWorklist organizationId={activeOrg} />}</div>
         ) : (
         <div className="grid md:grid-cols-[300px_1fr] gap-6">
         {/* Patient list */}
