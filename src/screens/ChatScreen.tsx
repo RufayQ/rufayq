@@ -4,6 +4,7 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import { quickPrompts } from "@/constants/data";
+import { getDeviceId } from "@/hooks/useDeviceId";
 
 interface ChatMessage {
   id: number;
@@ -113,7 +114,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
     try {
       // Device-id based auth (patient app has no auth.users session).
       // The chat edge function validates this against user_trials server-side.
-      const deviceId = localStorage.getItem("rufayq_device_id") || "";
+      const deviceId = getDeviceId();
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
