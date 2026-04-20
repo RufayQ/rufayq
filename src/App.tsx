@@ -8,9 +8,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { useSyncLanguageWithRoute } from "@/seo/useSyncLanguageWithRoute";
 import Landing from "./pages/Landing.tsx";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 
 // Code-split non-landing routes for faster First Contentful Paint on /
 const Index = lazy(() => import("./pages/Index.tsx"));
+const Pricing = lazy(() => import("./pages/Pricing.tsx"));
+const CancerTreatmentAbroad = lazy(() => import("./pages/content/CancerTreatmentAbroad.tsx"));
+const GermanyMedicalTreatment = lazy(() => import("./pages/content/GermanyMedicalTreatment.tsx"));
+const MedicalVisaGermany = lazy(() => import("./pages/content/MedicalVisaGermany.tsx"));
 const Privacy = lazy(() => import("./pages/Privacy.tsx"));
 const Terms = lazy(() => import("./pages/Terms.tsx"));
 const Security = lazy(() => import("./pages/Security.tsx"));
@@ -39,6 +44,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <HelmetProvider>
       <LanguageProvider>
+        <CurrencyProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -53,6 +59,10 @@ const App = () => (
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/security" element={<Security />} />
                 <Route path="/providers" element={<Providers />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/conditions/cancer-treatment-abroad" element={<CancerTreatmentAbroad />} />
+                <Route path="/destinations/germany-medical-treatment" element={<GermanyMedicalTreatment />} />
+                <Route path="/guides/medical-visa-germany-saudi-citizens" element={<MedicalVisaGermany />} />
 
                 {/* Arabic mirror — same components, lang detected via URL */}
                 <Route path="/ar" element={<Landing />} />
@@ -61,6 +71,10 @@ const App = () => (
                 <Route path="/ar/terms" element={<Terms />} />
                 <Route path="/ar/security" element={<Security />} />
                 <Route path="/ar/providers" element={<Providers />} />
+                <Route path="/ar/pricing" element={<Pricing />} />
+                <Route path="/ar/conditions/cancer-treatment-abroad" element={<CancerTreatmentAbroad />} />
+                <Route path="/ar/destinations/germany-medical-treatment" element={<GermanyMedicalTreatment />} />
+                <Route path="/ar/guides/medical-visa-germany-saudi-citizens" element={<MedicalVisaGermany />} />
 
                 {/* App + non-marketing surfaces */}
                 <Route path="/app" element={<Index />} />
@@ -77,6 +91,7 @@ const App = () => (
             </Suspense>
           </BrowserRouter>
         </TooltipProvider>
+        </CurrencyProvider>
       </LanguageProvider>
     </HelmetProvider>
   </QueryClientProvider>
