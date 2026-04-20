@@ -794,6 +794,155 @@ export type Database = {
           },
         ]
       }
+      rcm_admissions: {
+        Row: {
+          actual_los_days: number | null
+          admission_no: string | null
+          admission_type: Database["public"]["Enums"]["rcm_admission_type"]
+          admitted_at: string
+          attending_name: string | null
+          authorization_id: string | null
+          cancellation_reason: string | null
+          class_id: string | null
+          created_at: string
+          created_by: string | null
+          discharge_advised_at: string | null
+          discharge_ordered_at: string | null
+          discharged_at: string | null
+          expected_discharge_at: string | null
+          financial_discharged_at: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          package_id: string | null
+          patient_device_id: string | null
+          patient_profile_id: string | null
+          payer_id: string | null
+          planned_los_days: number
+          policy_id: string | null
+          service_reconciled_at: string | null
+          specialty: string | null
+          status: Database["public"]["Enums"]["rcm_admission_status"]
+          updated_at: string
+          visit_id: string | null
+          ward: string | null
+        }
+        Insert: {
+          actual_los_days?: number | null
+          admission_no?: string | null
+          admission_type?: Database["public"]["Enums"]["rcm_admission_type"]
+          admitted_at?: string
+          attending_name?: string | null
+          authorization_id?: string | null
+          cancellation_reason?: string | null
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discharge_advised_at?: string | null
+          discharge_ordered_at?: string | null
+          discharged_at?: string | null
+          expected_discharge_at?: string | null
+          financial_discharged_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          package_id?: string | null
+          patient_device_id?: string | null
+          patient_profile_id?: string | null
+          payer_id?: string | null
+          planned_los_days?: number
+          policy_id?: string | null
+          service_reconciled_at?: string | null
+          specialty?: string | null
+          status?: Database["public"]["Enums"]["rcm_admission_status"]
+          updated_at?: string
+          visit_id?: string | null
+          ward?: string | null
+        }
+        Update: {
+          actual_los_days?: number | null
+          admission_no?: string | null
+          admission_type?: Database["public"]["Enums"]["rcm_admission_type"]
+          admitted_at?: string
+          attending_name?: string | null
+          authorization_id?: string | null
+          cancellation_reason?: string | null
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discharge_advised_at?: string | null
+          discharge_ordered_at?: string | null
+          discharged_at?: string | null
+          expected_discharge_at?: string | null
+          financial_discharged_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          package_id?: string | null
+          patient_device_id?: string | null
+          patient_profile_id?: string | null
+          payer_id?: string | null
+          planned_los_days?: number
+          policy_id?: string | null
+          service_reconciled_at?: string | null
+          specialty?: string | null
+          status?: Database["public"]["Enums"]["rcm_admission_status"]
+          updated_at?: string
+          visit_id?: string | null
+          ward?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_admissions_authorization_id_fkey"
+            columns: ["authorization_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_authorization_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_admissions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_admissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_admissions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_admissions_payer_id_fkey"
+            columns: ["payer_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_payers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_admissions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_admissions_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rcm_authorization_attachments: {
         Row: {
           created_at: string
@@ -1112,6 +1261,56 @@ export type Database = {
           },
         ]
       }
+      rcm_bed_assignments: {
+        Row: {
+          admission_id: string
+          bed_no: string | null
+          check_in_at: string
+          check_out_at: string | null
+          created_at: string
+          daily_rate: number | null
+          id: string
+          notes: string | null
+          room_no: string | null
+          room_type: Database["public"]["Enums"]["rcm_room_type"] | null
+          ward: string | null
+        }
+        Insert: {
+          admission_id: string
+          bed_no?: string | null
+          check_in_at?: string
+          check_out_at?: string | null
+          created_at?: string
+          daily_rate?: number | null
+          id?: string
+          notes?: string | null
+          room_no?: string | null
+          room_type?: Database["public"]["Enums"]["rcm_room_type"] | null
+          ward?: string | null
+        }
+        Update: {
+          admission_id?: string
+          bed_no?: string | null
+          check_in_at?: string
+          check_out_at?: string | null
+          created_at?: string
+          daily_rate?: number | null
+          id?: string
+          notes?: string | null
+          room_no?: string | null
+          room_type?: Database["public"]["Enums"]["rcm_room_type"] | null
+          ward?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_bed_assignments_admission_id_fkey"
+            columns: ["admission_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_admissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rcm_class_networks: {
         Row: {
           class_id: string
@@ -1311,6 +1510,47 @@ export type Database = {
           },
         ]
       }
+      rcm_discharge_steps: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          admission_id: string
+          id: string
+          notes: string | null
+          occurred_at: string
+          payload: Json | null
+          stage: Database["public"]["Enums"]["rcm_discharge_stage"]
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          admission_id: string
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          payload?: Json | null
+          stage: Database["public"]["Enums"]["rcm_discharge_stage"]
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          admission_id?: string
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          payload?: Json | null
+          stage?: Database["public"]["Enums"]["rcm_discharge_stage"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_discharge_steps_admission_id_fkey"
+            columns: ["admission_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_admissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rcm_discount_rules: {
         Row: {
           amount: number | null
@@ -1472,6 +1712,198 @@ export type Database = {
             columns: ["policy_id"]
             isOneToOne: false
             referencedRelation: "rcm_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_import_jobs: {
+        Row: {
+          ai_summary: string | null
+          applied_at: string | null
+          applied_by: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          kind: Database["public"]["Enums"]["rcm_import_kind"]
+          parsed_payload: Json | null
+          payer_id: string | null
+          policy_id: string | null
+          price_list_id: string | null
+          source_filename: string | null
+          source_mime: string | null
+          source_url: string | null
+          status: Database["public"]["Enums"]["rcm_import_status"]
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          applied_at?: string | null
+          applied_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["rcm_import_kind"]
+          parsed_payload?: Json | null
+          payer_id?: string | null
+          policy_id?: string | null
+          price_list_id?: string | null
+          source_filename?: string | null
+          source_mime?: string | null
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["rcm_import_status"]
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          applied_at?: string | null
+          applied_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["rcm_import_kind"]
+          parsed_payload?: Json | null
+          payer_id?: string | null
+          policy_id?: string | null
+          price_list_id?: string | null
+          source_filename?: string | null
+          source_mime?: string | null
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["rcm_import_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_import_jobs_payer_id_fkey"
+            columns: ["payer_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_payers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_import_jobs_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_import_jobs_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_price_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_import_mappings: {
+        Row: {
+          approved: boolean
+          confidence: number | null
+          created_at: string
+          id: string
+          job_id: string
+          notes: string | null
+          proposed: Json | null
+          raw_row: Json
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          approved?: boolean
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          job_id: string
+          notes?: string | null
+          proposed?: Json | null
+          raw_row: Json
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          approved?: boolean
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          notes?: string | null
+          proposed?: Json | null
+          raw_row?: Json
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_import_mappings_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_import_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_los_extensions: {
+        Row: {
+          admission_id: string
+          approved_extra_days: number | null
+          authorization_id: string | null
+          clinical_justification: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          id: string
+          requested_by: string | null
+          requested_extra_days: number
+          status: Database["public"]["Enums"]["rcm_los_ext_status"]
+          updated_at: string
+        }
+        Insert: {
+          admission_id: string
+          approved_extra_days?: number | null
+          authorization_id?: string | null
+          clinical_justification?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          requested_by?: string | null
+          requested_extra_days: number
+          status?: Database["public"]["Enums"]["rcm_los_ext_status"]
+          updated_at?: string
+        }
+        Update: {
+          admission_id?: string
+          approved_extra_days?: number | null
+          authorization_id?: string | null
+          clinical_justification?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          requested_by?: string | null
+          requested_extra_days?: number
+          status?: Database["public"]["Enums"]["rcm_los_ext_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_los_extensions_admission_id_fkey"
+            columns: ["admission_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_admissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_los_extensions_authorization_id_fkey"
+            columns: ["authorization_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_authorization_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -1978,6 +2410,7 @@ export type Database = {
         Row: {
           assigned_at: string | null
           assigned_to: string | null
+          class_id: string | null
           created_at: string
           created_by: string | null
           decided_at: string | null
@@ -1987,7 +2420,9 @@ export type Database = {
           evidence_url: string | null
           exception_type: Database["public"]["Enums"]["rcm_eligibility_exception"]
           id: string
+          kind: Database["public"]["Enums"]["rcm_activation_kind"]
           member_number: string | null
+          network_id: string | null
           organization_id: string
           patient_device_id: string | null
           patient_profile_id: string | null
@@ -2005,6 +2440,7 @@ export type Database = {
         Insert: {
           assigned_at?: string | null
           assigned_to?: string | null
+          class_id?: string | null
           created_at?: string
           created_by?: string | null
           decided_at?: string | null
@@ -2014,7 +2450,9 @@ export type Database = {
           evidence_url?: string | null
           exception_type?: Database["public"]["Enums"]["rcm_eligibility_exception"]
           id?: string
+          kind?: Database["public"]["Enums"]["rcm_activation_kind"]
           member_number?: string | null
+          network_id?: string | null
           organization_id: string
           patient_device_id?: string | null
           patient_profile_id?: string | null
@@ -2032,6 +2470,7 @@ export type Database = {
         Update: {
           assigned_at?: string | null
           assigned_to?: string | null
+          class_id?: string | null
           created_at?: string
           created_by?: string | null
           decided_at?: string | null
@@ -2041,7 +2480,9 @@ export type Database = {
           evidence_url?: string | null
           exception_type?: Database["public"]["Enums"]["rcm_eligibility_exception"]
           id?: string
+          kind?: Database["public"]["Enums"]["rcm_activation_kind"]
           member_number?: string | null
+          network_id?: string | null
           organization_id?: string
           patient_device_id?: string | null
           patient_profile_id?: string | null
@@ -2058,10 +2499,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "rcm_policy_activation_requests_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_classes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "rcm_policy_activation_requests_eligibility_check_id_fkey"
             columns: ["eligibility_check_id"]
             isOneToOne: false
             referencedRelation: "rcm_eligibility_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_policy_activation_requests_network_id_fkey"
+            columns: ["network_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_networks"
             referencedColumns: ["id"]
           },
           {
@@ -2888,6 +3343,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      rcm_advance_discharge: {
+        Args: {
+          _admission_id: string
+          _notes?: string
+          _stage: Database["public"]["Enums"]["rcm_discharge_stage"]
+        }
+        Returns: undefined
+      }
       rcm_auth_follow_up: {
         Args: { _hours?: number; _note?: string; _request_id: string }
         Returns: undefined
@@ -2925,6 +3388,7 @@ export type Database = {
         | "vendor"
         | "insurance"
         | "internal"
+      rcm_activation_kind: "policy" | "class" | "network"
       rcm_activation_status:
         | "pending"
         | "assigned"
@@ -2932,6 +3396,21 @@ export type Database = {
         | "activated"
         | "rejected"
         | "cancelled"
+      rcm_admission_status:
+        | "admitted"
+        | "in_treatment"
+        | "discharge_advised"
+        | "discharge_ordered"
+        | "service_reconciled"
+        | "financial_discharged"
+        | "discharged"
+        | "cancelled"
+      rcm_admission_type:
+        | "day_case"
+        | "elective"
+        | "emergency"
+        | "observation"
+        | "transfer_in"
       rcm_auth_event_type:
         | "created"
         | "submitted"
@@ -2964,6 +3443,12 @@ export type Database = {
         | "expired"
       rcm_deductible_type: "percentage" | "amount"
       rcm_diagnosis_role: "principal" | "secondary" | "admitting" | "discharge"
+      rcm_discharge_stage:
+        | "discharge_advice"
+        | "discharge_order"
+        | "service_reconciliation"
+        | "financial_discharge"
+        | "left_facility"
       rcm_discount_kind: "prompt_payment" | "volume" | "contractual_other"
       rcm_eligibility_exception:
         | "none"
@@ -2972,6 +3457,22 @@ export type Database = {
         | "newborn"
       rcm_eligibility_status: "eligible" | "not_eligible" | "error" | "pending"
       rcm_encounter_type: "op" | "er" | "ip" | "dc"
+      rcm_import_kind:
+        | "contract"
+        | "policy"
+        | "price_list"
+        | "package"
+        | "class"
+        | "network"
+        | "tariff"
+      rcm_import_status:
+        | "uploaded"
+        | "parsing"
+        | "ready_for_review"
+        | "mapped"
+        | "applied"
+        | "failed"
+        | "cancelled"
       rcm_invoice_status:
         | "draft"
         | "issued"
@@ -2979,6 +3480,13 @@ export type Database = {
         | "paid"
         | "void"
         | "refunded"
+      rcm_los_ext_status:
+        | "draft"
+        | "submitted"
+        | "approved"
+        | "partial"
+        | "rejected"
+        | "cancelled"
       rcm_payment_method:
         | "cash"
         | "card"
@@ -3209,6 +3717,7 @@ export const Constants = {
         "insurance",
         "internal",
       ],
+      rcm_activation_kind: ["policy", "class", "network"],
       rcm_activation_status: [
         "pending",
         "assigned",
@@ -3216,6 +3725,23 @@ export const Constants = {
         "activated",
         "rejected",
         "cancelled",
+      ],
+      rcm_admission_status: [
+        "admitted",
+        "in_treatment",
+        "discharge_advised",
+        "discharge_ordered",
+        "service_reconciled",
+        "financial_discharged",
+        "discharged",
+        "cancelled",
+      ],
+      rcm_admission_type: [
+        "day_case",
+        "elective",
+        "emergency",
+        "observation",
+        "transfer_in",
       ],
       rcm_auth_event_type: [
         "created",
@@ -3252,6 +3778,13 @@ export const Constants = {
       ],
       rcm_deductible_type: ["percentage", "amount"],
       rcm_diagnosis_role: ["principal", "secondary", "admitting", "discharge"],
+      rcm_discharge_stage: [
+        "discharge_advice",
+        "discharge_order",
+        "service_reconciliation",
+        "financial_discharge",
+        "left_facility",
+      ],
       rcm_discount_kind: ["prompt_payment", "volume", "contractual_other"],
       rcm_eligibility_exception: [
         "none",
@@ -3261,6 +3794,24 @@ export const Constants = {
       ],
       rcm_eligibility_status: ["eligible", "not_eligible", "error", "pending"],
       rcm_encounter_type: ["op", "er", "ip", "dc"],
+      rcm_import_kind: [
+        "contract",
+        "policy",
+        "price_list",
+        "package",
+        "class",
+        "network",
+        "tariff",
+      ],
+      rcm_import_status: [
+        "uploaded",
+        "parsing",
+        "ready_for_review",
+        "mapped",
+        "applied",
+        "failed",
+        "cancelled",
+      ],
       rcm_invoice_status: [
         "draft",
         "issued",
@@ -3268,6 +3819,14 @@ export const Constants = {
         "paid",
         "void",
         "refunded",
+      ],
+      rcm_los_ext_status: [
+        "draft",
+        "submitted",
+        "approved",
+        "partial",
+        "rejected",
+        "cancelled",
       ],
       rcm_payment_method: [
         "cash",
