@@ -242,6 +242,125 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_claims: {
+        Row: {
+          admin_decision_at: string | null
+          admin_decision_by: string | null
+          admin_notes: string | null
+          created_at: string
+          id: string
+          matched_device_id: string | null
+          matched_profile_id: string | null
+          organization_id: string
+          patient_decision_at: string | null
+          patient_notes: string | null
+          reason: string | null
+          requested_by: string
+          search_type: string
+          search_value: string
+          status: Database["public"]["Enums"]["claim_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_decision_at?: string | null
+          admin_decision_by?: string | null
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          matched_device_id?: string | null
+          matched_profile_id?: string | null
+          organization_id: string
+          patient_decision_at?: string | null
+          patient_notes?: string | null
+          reason?: string | null
+          requested_by: string
+          search_type: string
+          search_value: string
+          status?: Database["public"]["Enums"]["claim_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_decision_at?: string | null
+          admin_decision_by?: string | null
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          matched_device_id?: string | null
+          matched_profile_id?: string | null
+          organization_id?: string
+          patient_decision_at?: string | null
+          patient_notes?: string | null
+          reason?: string | null
+          requested_by?: string
+          search_type?: string
+          search_value?: string
+          status?: Database["public"]["Enums"]["claim_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_claims_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_consents: {
+        Row: {
+          claim_id: string | null
+          created_at: string
+          granted: boolean
+          granted_at: string
+          id: string
+          organization_id: string
+          patient_device_id: string
+          revoked_at: string | null
+          section: Database["public"]["Enums"]["consent_section"]
+          updated_at: string
+        }
+        Insert: {
+          claim_id?: string | null
+          created_at?: string
+          granted?: boolean
+          granted_at?: string
+          id?: string
+          organization_id: string
+          patient_device_id: string
+          revoked_at?: string | null
+          section: Database["public"]["Enums"]["consent_section"]
+          updated_at?: string
+        }
+        Update: {
+          claim_id?: string | null
+          created_at?: string
+          granted?: boolean
+          granted_at?: string
+          id?: string
+          organization_id?: string
+          patient_device_id?: string
+          revoked_at?: string | null
+          section?: Database["public"]["Enums"]["consent_section"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_consents_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "patient_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_consents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_notifications: {
         Row: {
           body: string | null
@@ -304,6 +423,7 @@ export type Database = {
           full_name_en: string | null
           gender: string | null
           id: string
+          iqama_number: string | null
           nationality: string | null
           organization_id: string | null
           passport_number: string | null
@@ -325,6 +445,7 @@ export type Database = {
           full_name_en?: string | null
           gender?: string | null
           id?: string
+          iqama_number?: string | null
           nationality?: string | null
           organization_id?: string | null
           passport_number?: string | null
@@ -346,6 +467,7 @@ export type Database = {
           full_name_en?: string | null
           gender?: string | null
           id?: string
+          iqama_number?: string | null
           nationality?: string | null
           organization_id?: string | null
           passport_number?: string | null
@@ -885,10 +1007,32 @@ export type Database = {
         }
         Returns: string
       }
+      provider_has_consent: {
+        Args: {
+          _device_id: string
+          _org_id: string
+          _section: Database["public"]["Enums"]["consent_section"]
+        }
+        Returns: boolean
+      }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      claim_status:
+        | "pending_admin"
+        | "pending_patient"
+        | "approved"
+        | "rejected"
+        | "revoked"
+      consent_section:
+        | "records"
+        | "labs"
+        | "rads"
+        | "meds"
+        | "appointments"
+        | "journey"
+        | "rcm"
       org_type:
         | "hospital"
         | "vendor"
@@ -1035,6 +1179,22 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      claim_status: [
+        "pending_admin",
+        "pending_patient",
+        "approved",
+        "rejected",
+        "revoked",
+      ],
+      consent_section: [
+        "records",
+        "labs",
+        "rads",
+        "meds",
+        "appointments",
+        "journey",
+        "rcm",
+      ],
       org_type: [
         "hospital",
         "vendor",
