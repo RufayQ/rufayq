@@ -87,7 +87,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       <div className="px-5 pt-3 pb-4" style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
         <div className="flex items-center justify-between mb-3">
           <button onClick={onBack} className="btn-press"><ArrowLeft size={20} color="white" /></button>
-          <p className="font-display text-lg text-white">Medications · <span className="font-arabic">الأدوية</span>/p>
+          <p className="font-display text-lg text-white">Medications · <span className="font-arabic">الأدوية</span></p>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowAddMed(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold btn-press" style={{ background: "var(--gold)", color: "white" }}>
               <Plus size={12} /> Add
