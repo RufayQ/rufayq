@@ -1,7 +1,21 @@
 import MarkdownPage from "@/components/MarkdownPage";
+import { Seo } from "@/seo/Seo";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const Security = () => (
-  <MarkdownPage
+const Security = () => {
+  const { mode } = useLanguage();
+  const isAr = mode === "ar";
+  return (
+  <>
+    <Seo
+      title={isAr ? "الأمن والامتثال" : "Security & Compliance"}
+      description={
+        isAr
+          ? "ممارسات الأمن، التشفير، والامتثال (PDPL، HIPAA) في رُفَيِّق."
+          : "RufayQ security practices: encryption, regulatory alignment (PDPL, HIPAA), incident response, and audit posture."
+      }
+    />
+    <MarkdownPage
     slug="security"
     defaultTitle="Security & Compliance"
     defaultTitleAr="الأمن والامتثال"
