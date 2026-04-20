@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, ChevronRight, LogOut, Shield, AlertTriangle, Copy, Eye, EyeOff } from "lucide-react";
 import LogoMark from "@/components/LogoMark";
 import { toast } from "sonner";
+import MedicalHistorySheet from "@/components/MedicalHistorySheet";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -87,6 +88,7 @@ const InfoField = ({ label, value, masked, onCopy }: { label: string; value: str
 
 const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
   const [showPassport, setShowPassport] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard?.writeText(text);
@@ -229,7 +231,9 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         <div className="mt-4 mx-4">
           <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>MEDICAL</p>
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            <SettingRow label="Medical History" labelAr="التاريخ الطبي" />
+            <SettingRow label="Past Medical History" labelAr="التاريخ المرضي السابق" value="View / Edit" onClick={() => setShowHistory(true)} />
+            <SettingRow label="Surgical History" labelAr="التاريخ الجراحي" value="View / Edit" onClick={() => setShowHistory(true)} />
+            <SettingRow label="Family History" labelAr="التاريخ العائلي" value="View / Edit" onClick={() => setShowHistory(true)} />
             <SettingRow label="Allergies" labelAr="الحساسية" value="None recorded" />
             <SettingRow label="Blood Type" labelAr="فصيلة الدم" value={passportData.bloodType} />
           </div>
@@ -284,6 +288,8 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
           RufayQ v1.0 · April 2026
         </p>
       </div>
+
+      {showHistory && <MedicalHistorySheet onClose={() => setShowHistory(false)} />}
     </div>
   );
 };
