@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronRight, LogOut, Shield, AlertTriangle, Copy, Eye, EyeO
 import LogoMark from "@/components/LogoMark";
 import { toast } from "sonner";
 import MedicalHistorySheet from "@/components/MedicalHistorySheet";
+import ConsentsSheet from "@/components/ConsentsSheet";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -89,6 +90,7 @@ const InfoField = ({ label, value, masked, onCopy }: { label: string; value: str
 const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
   const [showPassport, setShowPassport] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showConsents, setShowConsents] = useState(false);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard?.writeText(text);
@@ -239,6 +241,14 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
           </div>
         </div>
 
+        {/* Provider Access (Phase 3 consents) */}
+        <div className="mt-4 mx-4">
+          <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>PROVIDER ACCESS</p>
+          <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+            <SettingRow label="Manage Provider Consents" labelAr="إدارة وصول المزوّدين" value="View" onClick={() => setShowConsents(true)} />
+          </div>
+        </div>
+
         {/* Legal */}
         <div className="mt-4 mx-4">
           <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>LEGAL</p>
@@ -290,6 +300,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
       </div>
 
       {showHistory && <MedicalHistorySheet onClose={() => setShowHistory(false)} />}
+      {showConsents && <ConsentsSheet onClose={() => setShowConsents(false)} />}
     </div>
   );
 };
