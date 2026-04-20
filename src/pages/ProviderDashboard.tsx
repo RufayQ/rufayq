@@ -348,6 +348,8 @@ const ProviderDashboard = () => {
             </div>
           )}
         </section>
+        </div>
+        )}
       </main>
     </div>
   );
