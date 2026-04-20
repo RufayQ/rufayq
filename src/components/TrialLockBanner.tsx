@@ -28,7 +28,10 @@ const TrialLockBanner = ({ onUpgrade }: Props) => {
     return (
       <div className="px-4 py-2 flex items-center gap-2 text-[11px]" style={{ background: "var(--gold)", color: "var(--navy)" }}>
         <Lock size={12} />
-        <span className="flex-1 font-semibold">Trial ends in {daysLeft} day{daysLeft === 1 ? "" : "s"} · تنتهي خلال {daysLeft} يوم</span>
+        <span className="flex-1 font-semibold">
+          Trial ends in {daysLeft} day{daysLeft === 1 ? "" : "s"}
+          <span className="font-arabic"> · تنتهي خلال {daysLeft} يوم</span>
+        </span>
         <button onClick={onUpgrade} className="underline font-bold">Subscribe</button>
       </div>
     );

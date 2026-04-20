@@ -252,7 +252,7 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
             ))}
           </div>
           <button className="w-full mt-2 py-2.5 rounded-xl text-xs font-medium btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--gray)" }}>
-            + Add reminder · إضافة تذكير
+            + Add reminder<span className="font-arabic"> · إضافة تذكير</span>
           </button>
         </div>
       </div>
