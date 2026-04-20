@@ -325,7 +325,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
         </div>
 
-        <button onClick={() => { toast.info("Continuing as guest · Some features need a registered account"); onLogin(); }}
+        <button onClick={() => { localStorage.setItem("rufayq_guest_ok", "1"); toast.info("Continuing as guest · Some features need a registered account"); onLogin(); }}
           className="w-full py-3.5 rounded-2xl btn-press flex items-center justify-center gap-2"
           style={{ background: "transparent", color: "var(--gray)", border: "1px dashed var(--gray-light)" }}>
           <UserCircle2 size={16} />
@@ -419,7 +419,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
         </div>
 
-        <button onClick={() => { toast.info("Continuing as guest"); onLogin(); }}
+        <button onClick={() => { localStorage.setItem("rufayq_guest_ok", "1"); toast.info("Continuing as guest"); onLogin(); }}
           className="w-full py-3 rounded-xl btn-press flex items-center justify-center gap-2"
           style={{ background: "transparent", color: "var(--gray)", border: "1px dashed var(--gray-light)" }}>
           <UserCircle2 size={14} />
