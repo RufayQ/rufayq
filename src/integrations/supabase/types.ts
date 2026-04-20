@@ -130,10 +130,13 @@ export type Database = {
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relation: string | null
+          family_history: Json
           id: string
           insurance_policy_number: string | null
           insurance_provider: string | null
+          past_medical_history: Json
           preferred_language: string | null
+          surgical_history: Json
           updated_at: string
         }
         Insert: {
@@ -146,10 +149,13 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
+          family_history?: Json
           id?: string
           insurance_policy_number?: string | null
           insurance_provider?: string | null
+          past_medical_history?: Json
           preferred_language?: string | null
+          surgical_history?: Json
           updated_at?: string
         }
         Update: {
@@ -162,10 +168,13 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
+          family_history?: Json
           id?: string
           insurance_policy_number?: string | null
           insurance_provider?: string | null
+          past_medical_history?: Json
           preferred_language?: string | null
+          surgical_history?: Json
           updated_at?: string
         }
         Relationships: []
