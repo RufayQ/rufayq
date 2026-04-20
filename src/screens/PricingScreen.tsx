@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { ArrowLeft, Check, Zap, Shield, Crown, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import CurrencySwitcher from "@/components/CurrencySwitcher";
+import { ADDON_META, type AddOnId } from "@/data/currencyMaster";
 
 interface PricingScreenProps {
   onBack: () => void;
@@ -122,12 +125,20 @@ const comparisonFeatures = [
   { feature: "Add-ons", featureAr: "إضافات", free: "—", pro: "✓", enterprise: "Included" },
 ];
 
+const ADDON_MAP: { id: AddOnId; icon: string }[] = [
+  { id: "medicalConsultant", icon: "🩺" },
+  { id: "rushTranslation", icon: "🌐" },
+  { id: "caregiverSeat", icon: "👨‍👩‍👧" },
+  { id: "physioNetwork", icon: "💪" },
+];
+
 const PricingScreen = ({ onBack }: PricingScreenProps) => {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [showComparison, setShowComparison] = useState(false);
   const [showAddOns, setShowAddOns] = useState(false);
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const { getPrice, getAddon, format, currency } = useCurrency();
 
   const handleSelectPlan = (planId: string) => {
     if (planId === "free") return;
