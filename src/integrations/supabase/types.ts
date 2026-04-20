@@ -1311,6 +1311,435 @@ export type Database = {
           },
         ]
       }
+      rcm_bulk_jobs: {
+        Row: {
+          ai_summary: string | null
+          applied_at: string | null
+          applied_by: string | null
+          applied_rows: number
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          failed_rows: number
+          id: string
+          kind: Database["public"]["Enums"]["rcm_bulk_kind"]
+          organization_id: string | null
+          parsed_payload: Json | null
+          source_filename: string | null
+          source_mime: string | null
+          source_url: string | null
+          status: Database["public"]["Enums"]["rcm_bulk_status"]
+          total_rows: number
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          applied_at?: string | null
+          applied_by?: string | null
+          applied_rows?: number
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          failed_rows?: number
+          id?: string
+          kind: Database["public"]["Enums"]["rcm_bulk_kind"]
+          organization_id?: string | null
+          parsed_payload?: Json | null
+          source_filename?: string | null
+          source_mime?: string | null
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["rcm_bulk_status"]
+          total_rows?: number
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          applied_at?: string | null
+          applied_by?: string | null
+          applied_rows?: number
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          failed_rows?: number
+          id?: string
+          kind?: Database["public"]["Enums"]["rcm_bulk_kind"]
+          organization_id?: string | null
+          parsed_payload?: Json | null
+          source_filename?: string | null
+          source_mime?: string | null
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["rcm_bulk_status"]
+          total_rows?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rcm_claim_denials: {
+        Row: {
+          amount: number
+          appeal_status: string
+          appealed_at: string | null
+          claim_id: string
+          claim_line_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          reason_code: string | null
+          reason_text: string | null
+          resolved_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          appeal_status?: string
+          appealed_at?: string | null
+          claim_id: string
+          claim_line_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          reason_code?: string | null
+          reason_text?: string | null
+          resolved_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          appeal_status?: string
+          appealed_at?: string | null
+          claim_id?: string
+          claim_line_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          reason_code?: string | null
+          reason_text?: string | null
+          resolved_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_claim_denials_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_claim_denials_claim_line_id_fkey"
+            columns: ["claim_line_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_claim_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_claim_lines: {
+        Row: {
+          claim_id: string
+          created_at: string
+          denial_reason: string | null
+          denied_amount: number
+          discount_amount: number
+          gross_amount: number
+          id: string
+          line_no: number | null
+          net_amount: number
+          notes: string | null
+          paid_amount: number
+          patient_share: number
+          payer_share: number
+          qty: number
+          service_code: string
+          service_kind: Database["public"]["Enums"]["rcm_service_kind"] | null
+          service_name: string
+          source_visit_service_id: string | null
+          specialty: string | null
+          unit_price: number
+          updated_at: string
+          vat_amount: number
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          denial_reason?: string | null
+          denied_amount?: number
+          discount_amount?: number
+          gross_amount?: number
+          id?: string
+          line_no?: number | null
+          net_amount?: number
+          notes?: string | null
+          paid_amount?: number
+          patient_share?: number
+          payer_share?: number
+          qty?: number
+          service_code: string
+          service_kind?: Database["public"]["Enums"]["rcm_service_kind"] | null
+          service_name: string
+          source_visit_service_id?: string | null
+          specialty?: string | null
+          unit_price?: number
+          updated_at?: string
+          vat_amount?: number
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          denial_reason?: string | null
+          denied_amount?: number
+          discount_amount?: number
+          gross_amount?: number
+          id?: string
+          line_no?: number | null
+          net_amount?: number
+          notes?: string | null
+          paid_amount?: number
+          patient_share?: number
+          payer_share?: number
+          qty?: number
+          service_code?: string
+          service_kind?: Database["public"]["Enums"]["rcm_service_kind"] | null
+          service_name?: string
+          source_visit_service_id?: string | null
+          specialty?: string | null
+          unit_price?: number
+          updated_at?: string
+          vat_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_claim_lines_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_claim_payments: {
+        Row: {
+          amount: number
+          claim_id: string
+          created_at: string
+          id: string
+          method: Database["public"]["Enums"]["rcm_payment_method"]
+          notes: string | null
+          paid_at: string
+          recorded_by: string | null
+          reference: string | null
+          remittance_id: string | null
+        }
+        Insert: {
+          amount?: number
+          claim_id: string
+          created_at?: string
+          id?: string
+          method?: Database["public"]["Enums"]["rcm_payment_method"]
+          notes?: string | null
+          paid_at?: string
+          recorded_by?: string | null
+          reference?: string | null
+          remittance_id?: string | null
+        }
+        Update: {
+          amount?: number
+          claim_id?: string
+          created_at?: string
+          id?: string
+          method?: Database["public"]["Enums"]["rcm_payment_method"]
+          notes?: string | null
+          paid_at?: string
+          recorded_by?: string | null
+          reference?: string | null
+          remittance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_claim_payments_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_claim_payments_remittance_id_fkey"
+            columns: ["remittance_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_remittances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_claim_submissions: {
+        Row: {
+          attempt_no: number
+          claim_id: string
+          error_message: string | null
+          id: string
+          nphies_batch_id: string | null
+          request_payload: Json | null
+          responded_at: string | null
+          response_payload: Json | null
+          status: Database["public"]["Enums"]["rcm_submission_status"]
+          submitted_at: string
+          submitted_by: string | null
+        }
+        Insert: {
+          attempt_no?: number
+          claim_id: string
+          error_message?: string | null
+          id?: string
+          nphies_batch_id?: string | null
+          request_payload?: Json | null
+          responded_at?: string | null
+          response_payload?: Json | null
+          status?: Database["public"]["Enums"]["rcm_submission_status"]
+          submitted_at?: string
+          submitted_by?: string | null
+        }
+        Update: {
+          attempt_no?: number
+          claim_id?: string
+          error_message?: string | null
+          id?: string
+          nphies_batch_id?: string | null
+          request_payload?: Json | null
+          responded_at?: string | null
+          response_payload?: Json | null
+          status?: Database["public"]["Enums"]["rcm_submission_status"]
+          submitted_at?: string
+          submitted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_claim_submissions_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_claims: {
+        Row: {
+          admission_id: string | null
+          authorization_id: string | null
+          claim_no: string | null
+          class_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          denied_amount: number
+          diagnosis_codes: string[] | null
+          discount_amount: number
+          encounter_type: Database["public"]["Enums"]["rcm_encounter_type"]
+          gross_amount: number
+          id: string
+          net_amount: number
+          network_id: string | null
+          notes: string | null
+          nphies_request_ref: string | null
+          nphies_response_ref: string | null
+          organization_id: string
+          outstanding_amount: number
+          paid_amount: number
+          patient_device_id: string | null
+          patient_profile_id: string | null
+          patient_share: number
+          payer_id: string | null
+          payer_share: number
+          policy_id: string | null
+          scrubber_result: Json | null
+          status: Database["public"]["Enums"]["rcm_claim_status"]
+          submitted_at: string | null
+          updated_at: string
+          vat_amount: number
+          visit_id: string | null
+        }
+        Insert: {
+          admission_id?: string | null
+          authorization_id?: string | null
+          claim_no?: string | null
+          class_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          denied_amount?: number
+          diagnosis_codes?: string[] | null
+          discount_amount?: number
+          encounter_type?: Database["public"]["Enums"]["rcm_encounter_type"]
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          network_id?: string | null
+          notes?: string | null
+          nphies_request_ref?: string | null
+          nphies_response_ref?: string | null
+          organization_id: string
+          outstanding_amount?: number
+          paid_amount?: number
+          patient_device_id?: string | null
+          patient_profile_id?: string | null
+          patient_share?: number
+          payer_id?: string | null
+          payer_share?: number
+          policy_id?: string | null
+          scrubber_result?: Json | null
+          status?: Database["public"]["Enums"]["rcm_claim_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          vat_amount?: number
+          visit_id?: string | null
+        }
+        Update: {
+          admission_id?: string | null
+          authorization_id?: string | null
+          claim_no?: string | null
+          class_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          denied_amount?: number
+          diagnosis_codes?: string[] | null
+          discount_amount?: number
+          encounter_type?: Database["public"]["Enums"]["rcm_encounter_type"]
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          network_id?: string | null
+          notes?: string | null
+          nphies_request_ref?: string | null
+          nphies_response_ref?: string | null
+          organization_id?: string
+          outstanding_amount?: number
+          paid_amount?: number
+          patient_device_id?: string | null
+          patient_profile_id?: string | null
+          patient_share?: number
+          payer_id?: string | null
+          payer_share?: number
+          policy_id?: string | null
+          scrubber_result?: Json | null
+          status?: Database["public"]["Enums"]["rcm_claim_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          vat_amount?: number
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_claims_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rcm_class_networks: {
         Row: {
           class_id: string
@@ -1506,6 +1935,62 @@ export type Database = {
             columns: ["policy_id"]
             isOneToOne: false
             referencedRelation: "rcm_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_discharge_signoffs: {
+        Row: {
+          admission_id: string
+          created_at: string
+          id: string
+          nursing_notes: string | null
+          nursing_signed_at: string | null
+          nursing_signed_by: string | null
+          pharmacy_notes: string | null
+          pharmacy_signed_at: string | null
+          pharmacy_signed_by: string | null
+          physician_notes: string | null
+          physician_signed_at: string | null
+          physician_signed_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          admission_id: string
+          created_at?: string
+          id?: string
+          nursing_notes?: string | null
+          nursing_signed_at?: string | null
+          nursing_signed_by?: string | null
+          pharmacy_notes?: string | null
+          pharmacy_signed_at?: string | null
+          pharmacy_signed_by?: string | null
+          physician_notes?: string | null
+          physician_signed_at?: string | null
+          physician_signed_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admission_id?: string
+          created_at?: string
+          id?: string
+          nursing_notes?: string | null
+          nursing_signed_at?: string | null
+          nursing_signed_by?: string | null
+          pharmacy_notes?: string | null
+          pharmacy_signed_at?: string | null
+          pharmacy_signed_by?: string | null
+          physician_notes?: string | null
+          physician_signed_at?: string | null
+          physician_signed_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_discharge_signoffs_admission_id_fkey"
+            columns: ["admission_id"]
+            isOneToOne: true
+            referencedRelation: "rcm_admissions"
             referencedColumns: ["id"]
           },
         ]
@@ -2675,6 +3160,129 @@ export type Database = {
           },
         ]
       }
+      rcm_remittance_lines: {
+        Row: {
+          adjusted_amount: number
+          claim_id: string | null
+          claim_line_id: string | null
+          created_at: string
+          denied_amount: number
+          id: string
+          paid_amount: number
+          reason_code: string | null
+          reason_text: string | null
+          remittance_id: string
+          status: Database["public"]["Enums"]["rcm_remit_line_status"]
+        }
+        Insert: {
+          adjusted_amount?: number
+          claim_id?: string | null
+          claim_line_id?: string | null
+          created_at?: string
+          denied_amount?: number
+          id?: string
+          paid_amount?: number
+          reason_code?: string | null
+          reason_text?: string | null
+          remittance_id: string
+          status?: Database["public"]["Enums"]["rcm_remit_line_status"]
+        }
+        Update: {
+          adjusted_amount?: number
+          claim_id?: string | null
+          claim_line_id?: string | null
+          created_at?: string
+          denied_amount?: number
+          id?: string
+          paid_amount?: number
+          reason_code?: string | null
+          reason_text?: string | null
+          remittance_id?: string
+          status?: Database["public"]["Enums"]["rcm_remit_line_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_remittance_lines_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_remittance_lines_claim_line_id_fkey"
+            columns: ["claim_line_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_claim_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_remittance_lines_remittance_id_fkey"
+            columns: ["remittance_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_remittances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_remittances: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          payer_id: string | null
+          reference: string | null
+          remit_date: string
+          remit_no: string | null
+          source_filename: string | null
+          total_adjusted: number
+          total_denied: number
+          total_paid: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          payer_id?: string | null
+          reference?: string | null
+          remit_date?: string
+          remit_no?: string | null
+          source_filename?: string | null
+          total_adjusted?: number
+          total_denied?: number
+          total_paid?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          payer_id?: string | null
+          reference?: string | null
+          remit_date?: string
+          remit_no?: string | null
+          source_filename?: string | null
+          total_adjusted?: number
+          total_denied?: number
+          total_paid?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_remittances_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rcm_tpas: {
         Row: {
           code: string | null
@@ -3346,7 +3954,7 @@ export type Database = {
       rcm_advance_discharge: {
         Args: {
           _admission_id: string
-          _notes?: string
+          _notes: string
           _stage: Database["public"]["Enums"]["rcm_discharge_stage"]
         }
         Returns: undefined
@@ -3441,6 +4049,31 @@ export type Database = {
         | "rejected"
         | "cancelled"
         | "expired"
+      rcm_bulk_kind:
+        | "claim_upload"
+        | "claim_correction"
+        | "remittance_upload"
+        | "price_correction"
+      rcm_bulk_status:
+        | "uploaded"
+        | "parsing"
+        | "parsed"
+        | "applying"
+        | "applied"
+        | "failed"
+      rcm_claim_status:
+        | "draft"
+        | "scrubbing"
+        | "ready"
+        | "submitted"
+        | "accepted"
+        | "rejected"
+        | "partially_paid"
+        | "paid"
+        | "denied"
+        | "appealed"
+        | "closed"
+        | "void"
       rcm_deductible_type: "percentage" | "amount"
       rcm_diagnosis_role: "principal" | "secondary" | "admitting" | "discharge"
       rcm_discharge_stage:
@@ -3494,6 +4127,7 @@ export type Database = {
         | "wallet"
         | "insurance_writeoff"
         | "adjustment"
+      rcm_remit_line_status: "paid" | "partial" | "denied" | "adjusted"
       rcm_room_type:
         | "ward"
         | "semi_private"
@@ -3531,6 +4165,12 @@ export type Database = {
         | "room"
         | "observation"
         | "other"
+      rcm_submission_status:
+        | "queued"
+        | "sent"
+        | "accepted"
+        | "rejected"
+        | "error"
       rcm_time_band: "any" | "am" | "pm"
       rcm_triage_level:
         | "1_resuscitation"
@@ -3776,6 +4416,34 @@ export const Constants = {
         "cancelled",
         "expired",
       ],
+      rcm_bulk_kind: [
+        "claim_upload",
+        "claim_correction",
+        "remittance_upload",
+        "price_correction",
+      ],
+      rcm_bulk_status: [
+        "uploaded",
+        "parsing",
+        "parsed",
+        "applying",
+        "applied",
+        "failed",
+      ],
+      rcm_claim_status: [
+        "draft",
+        "scrubbing",
+        "ready",
+        "submitted",
+        "accepted",
+        "rejected",
+        "partially_paid",
+        "paid",
+        "denied",
+        "appealed",
+        "closed",
+        "void",
+      ],
       rcm_deductible_type: ["percentage", "amount"],
       rcm_diagnosis_role: ["principal", "secondary", "admitting", "discharge"],
       rcm_discharge_stage: [
@@ -3836,6 +4504,7 @@ export const Constants = {
         "insurance_writeoff",
         "adjustment",
       ],
+      rcm_remit_line_status: ["paid", "partial", "denied", "adjusted"],
       rcm_room_type: [
         "ward",
         "semi_private",
@@ -3876,6 +4545,13 @@ export const Constants = {
         "room",
         "observation",
         "other",
+      ],
+      rcm_submission_status: [
+        "queued",
+        "sent",
+        "accepted",
+        "rejected",
+        "error",
       ],
       rcm_time_band: ["any", "am", "pm"],
       rcm_triage_level: [
