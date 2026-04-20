@@ -165,7 +165,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
           textBuffer = textBuffer.slice(newlineIndex + 1);
           if (line.endsWith("\r")) line = line.slice(0, -1);
           if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
+          if (!line.startsWith("data: "")) continue;
           const jsonStr = line.slice(6).trim();
           if (jsonStr === "[DONE]") break;
           try {
@@ -194,7 +194,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
           if (!raw) continue;
           if (raw.endsWith("\r")) raw = raw.slice(0, -1);
           if (raw.startsWith(":") || raw.trim() === "") continue;
-          if (!raw.startsWith("data: ")) continue;
+          if (!raw.startsWith("data: "")) continue;
           const jsonStr = raw.slice(6).trim();
           if (jsonStr === "[DONE]") continue;
           try {
@@ -389,7 +389,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
             <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.2)" }}>
               <div className="w-3 h-3 rounded-full" style={{ background: "#D94F4F", animation: "pulse 1s ease-in-out infinite" }} />
               <div className="flex-1">
-                <p className="text-[12px] font-bold" style={{ color: "#D94F4F" }}>Recording... · جاري التسجيل</p>
+                <p className="text-[12px] font-bold" style={{ color: "#D94F4F" }}>Recording...<span className="font-arabic" dir="rtl"> · جاري التسجيل</span></p>
                 <div className="flex items-center gap-0.5 mt-1.5 h-4">
                   {Array.from({ length: 28 }).map((_, i) => (
                     <div key={i} className="w-[3px] rounded-full" style={{
@@ -411,7 +411,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
             <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.2)" }}>
               <Mic size={18} style={{ color: "var(--teal-deep)" }} />
               <div className="flex-1">
-                <p className="text-[12px] font-semibold" style={{ color: "var(--teal-deep)" }}>Voice note ready · ملاحظة صوتية جاهزة</p>
+                <p className="text-[12px] font-semibold" style={{ color: "var(--teal-deep)" }}>Voice note ready<span className="font-arabic" dir="rtl"> · ملاحظة صوتية جاهزة</span></p>
                 <div className="flex items-center gap-1 mt-1">
                   <div className="flex items-center gap-0.5 h-3 flex-1">
                     {Array.from({ length: 35 }).map((_, i) => (
@@ -522,7 +522,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
               <p className="font-arabic text-sm" dir="rtl" style={{ color: "var(--gray)" }}>ارفع وثيقة إلى رُفَيِّق</p>
             </div>
             <div className="px-5 mb-3">
-              <p className="text-[10px] font-mono tracking-wider mb-2" style={{ color: "var(--gold)" }}>DOCUMENT TYPE · نوع الوثيقة</p>
+              <p className="text-[10px] font-mono tracking-wider mb-2" style={{ color: "var(--gold)" }}>DOCUMENT TYPE<span className="font-arabic" dir="rtl"> · نوع الوثيقة</span></p>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { emoji: "🔬", label: "Lab Results", ar: "تحاليل" },
@@ -592,7 +592,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
               <div className="px-5 mt-3">
                 <button onClick={handleUploadSend} className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 btn-press" style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
                   <RufayQLogo size={16} variant="light" />
-                  <span>Send to RufayQ · أرسل إلى رُفَيِّق</span>
+                  <span>Send to RufayQ<span className="font-arabic" dir="rtl"> · أرسل إلى رُفَيِّق</span></span>
                 </button>
               </div>
             )}

@@ -87,7 +87,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       <div className="px-5 pt-3 pb-4" style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
         <div className="flex items-center justify-between mb-3">
           <button onClick={onBack} className="btn-press"><ArrowLeft size={20} color="white" /></button>
-          <p className="font-display text-lg text-white">Medications · <span className="font-arabic">الأدوية</span></p>
+          <p className="font-display text-lg text-white">Medications · <span className="font-arabic">الأدوية</span>/p>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowAddMed(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold btn-press" style={{ background: "var(--gold)", color: "white" }}>
               <Plus size={12} /> Add
@@ -106,7 +106,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       <div className="mx-4 mt-3 rounded-xl p-3 flex items-start gap-2.5" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.25)" }}>
         <span className="text-base">⚠️</span>
         <div className="flex-1">
-          <p className="text-[11px] font-bold" style={{ color: "var(--error)" }}>YOUR ALLERGIES · حساسياتك</p>
+          <p className="text-[11px] font-bold" style={{ color: "var(--error)" }}>YOUR ALLERGIES<span className="font-arabic" dir="rtl"> · حساسياتك</span></p>
           <div className="flex flex-wrap gap-1 mt-1">
             {allergies.map((a) => (
               <span key={a} className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "var(--white)", color: "var(--error)", border: "1px solid var(--error)" }}>

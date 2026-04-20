@@ -26,7 +26,7 @@ const RufayQWordmark = ({ size = "md", variant = "dark", showArabic = false }: R
         </span>
       </div>
       {showArabic && (
-        <p className={`font-arabic ${s.arabic} mt-1`} dir="rtl" style={{ color: variant === "light" ? "rgba(255,255,255,0.5)" : "var(--gray)", opacity: 0.5 }}>
+        <p className={`font-arabic lang-keep ${s.arabic} mt-1`} dir="rtl" style={{ color: variant === "light" ? "rgba(255,255,255,0.5)" : "var(--gray)", opacity: 0.5 }}>
           رُفَيِّق
         </p>
       )}

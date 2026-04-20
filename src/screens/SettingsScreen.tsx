@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage, type LangMode } from "@/contexts/LanguageContext";
 
 interface SettingsScreenProps {
   onBack: () => void;
@@ -54,6 +55,7 @@ const RadioOption = ({
 
 const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const stored = JSON.parse(localStorage.getItem("rufayq_settings") || "{}");
+  const { mode: langMode, setMode: setLangMode } = useLanguage();
 
   const applyThemeNow = (t: string) => {
     const root = document.documentElement;
@@ -64,7 +66,12 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
     }
   };
 
-  const [language, setLanguage] = useState(stored.language ?? "bilingual");
+  // Map LanguageContext mode <-> Settings radio (single source of truth)
+  const langRadio: "en" | "ar" | "bilingual" = langMode === "both" ? "bilingual" : langMode;
+  const pickLang = (v: "en" | "ar" | "bilingual") => {
+    const next: LangMode = v === "bilingual" ? "both" : v;
+    setLangMode(next);
+  };
   const [theme, setTheme] = useState(stored.theme ?? "light");
   const [pushNotif, setPushNotif] = useState(stored.pushNotif ?? true);
   const [medReminder, setMedReminder] = useState(stored.medReminder ?? true);
@@ -100,9 +107,9 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>LANGUAGE · اللغة</p>
           </div>
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            <RadioOption label="English Only" labelAr="الإنجليزية فقط" selected={language === "en"} onSelect={() => update("language", setLanguage)("en")} />
-            <RadioOption label="العربية فقط" labelAr="Arabic Only" selected={language === "ar"} onSelect={() => update("language", setLanguage)("ar")} />
-            <RadioOption label="Bilingual · ثنائي اللغة" labelAr="الإنجليزية والعربية" selected={language === "bilingual"} onSelect={() => update("language", setLanguage)("bilingual")} />
+            <RadioOption label="English Only" labelAr="الإنجليزية فقط" selected={langRadio === "en"} onSelect={() => pickLang("en")} />
+            <RadioOption label="العربية فقط" labelAr="Arabic Only" selected={langRadio === "ar"} onSelect={() => pickLang("ar")} />
+            <RadioOption label="Bilingual · ثنائي اللغة" labelAr="الإنجليزية والعربية" selected={langRadio === "bilingual"} onSelect={() => pickLang("bilingual")} />
           </div>
         </div>
 

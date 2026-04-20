@@ -469,7 +469,7 @@ const Step4AIReview = ({ category, fileName, onSave }: {
   const [destinations, setDestinations] = useState<boolean[]>([]);
 
   const cat = categories.find(c => c.id === category);
-  const fields = extractedFieldsByCategory[category || ""] || extractedFieldsByCategory["flight"];
+  const fields = extractedFieldsByCategory[category || "] || extractedFieldsByCategory["flight"];
   const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
 
   useEffect(() => {
@@ -592,7 +592,7 @@ const Step4AIReview = ({ category, fileName, onSave }: {
 
       {/* Save Destinations */}
       <div className="mx-4 mt-4 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-        <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--gray)" }}>SAVE TO: · <span className="font-arabic">احفظ في:</span></p>
+        <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--gray)" }}>SAVE TO: · <span className="font-arabic">احفظ في:</span>/p>
         <div className="space-y-2.5">
           {dests.map((dest, i) => (
             <button key={i} onClick={() => toggleDest(i)} className="w-full flex items-center gap-3 py-2 btn-press">
