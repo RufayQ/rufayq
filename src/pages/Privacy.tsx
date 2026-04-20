@@ -1,8 +1,12 @@
 import { Link } from "react-router-dom";
 import { Shield, Lock, Globe, FileCheck } from "lucide-react";
 import MarkdownPage from "@/components/MarkdownPage";
+import { Seo } from "@/seo/Seo";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Privacy = () => {
+  const { mode } = useLanguage();
+  const isAr = mode === "ar";
   const GOLD = "#C5965A", TEXT = "#E8ECF0", MUTED = "rgba(232,236,240,0.6)";
   const BG2 = "#0B1A28", BORDER = "rgba(197,150,90,0.12)";
 
@@ -104,13 +108,23 @@ const Privacy = () => {
   );
 
   return (
-    <MarkdownPage
-      slug="privacy"
-      defaultTitle="Privacy Policy"
-      defaultTitleAr="سياسة الخصوصية"
-      fallback={fallback}
-      otherLink={{ to: "/terms", label: "Terms →" }}
-    />
+    <>
+      <Seo
+        title={isAr ? "سياسة الخصوصية" : "Privacy Policy"}
+        description={
+          isAr
+            ? "سياسة خصوصية رُفَيِّق — كيف نجمع، نحفظ، ونحمي بياناتك الطبية وفق قوانين السعودية والإمارات وأوروبا."
+            : "RufayQ Privacy Policy — how we collect, store, and protect your medical data under Saudi PDPL, UAE PDPL, HIPAA, and GDPR."
+        }
+      />
+      <MarkdownPage
+        slug="privacy"
+        defaultTitle="Privacy Policy"
+        defaultTitleAr="سياسة الخصوصية"
+        fallback={fallback}
+        otherLink={{ to: isAr ? "/ar/terms" : "/terms", label: "Terms →" }}
+      />
+    </>
   );
 };
 

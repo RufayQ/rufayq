@@ -1,8 +1,12 @@
 import { Link } from "react-router-dom";
 import { FileText, AlertTriangle, Scale, UserCheck } from "lucide-react";
 import MarkdownPage from "@/components/MarkdownPage";
+import { Seo } from "@/seo/Seo";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Terms = () => {
+  const { mode } = useLanguage();
+  const isAr = mode === "ar";
   const GOLD = "#C5965A", TEXT = "#E8ECF0", MUTED = "rgba(232,236,240,0.6)";
   const BG2 = "#0B1A28", BORDER = "rgba(197,150,90,0.12)";
 
@@ -71,13 +75,23 @@ const Terms = () => {
   );
 
   return (
-    <MarkdownPage
-      slug="terms"
-      defaultTitle="Terms of Service"
-      defaultTitleAr="شروط الاستخدام"
-      fallback={fallback}
-      otherLink={{ to: "/privacy", label: "← Privacy" }}
-    />
+    <>
+      <Seo
+        title={isAr ? "شروط الاستخدام" : "Terms of Service"}
+        description={
+          isAr
+            ? "شروط استخدام تطبيق رُفَيِّق — مسؤوليات المستخدم، حدود الخدمة، وأحكام عامة."
+            : "RufayQ Terms of Service — user responsibilities, service limitations, and general provisions."
+        }
+      />
+      <MarkdownPage
+        slug="terms"
+        defaultTitle="Terms of Service"
+        defaultTitleAr="شروط الاستخدام"
+        fallback={fallback}
+        otherLink={{ to: isAr ? "/ar/privacy" : "/privacy", label: "← Privacy" }}
+      />
+    </>
   );
 };
 

@@ -8,6 +8,7 @@ import {
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage, BiText } from "@/contexts/LanguageContext";
+import { Seo } from "@/seo/Seo";
 
 // Lazy-load below-the-fold components — they only render when the user scrolls near them.
 const ApprovedReviews = lazy(() => import("@/components/ApprovedReviews"));
@@ -105,6 +106,13 @@ const Landing = () => {
   ];
 
   return (
+    <>
+      <Seo
+        title={isAr ? "رُفَيِّق — رفيقك الطبي ثنائي اللغة للسفر للعلاج" : "RufayQ — Bilingual AI Medical Travel Companion"}
+        description={isAr
+          ? "رُفَيِّق هو الرفيق الذكي ثنائي اللغة لمرضى الخليج المسافرين للعلاج. تتبّع الرحلات، الأدوية، المواعيد، وكل تقاريرك الطبية."
+          : "RufayQ is the bilingual EN/AR AI companion for Gulf patients travelling for treatment. Track flights, medications, appointments, and every medical report."}
+      />
     <div className="min-h-screen" style={{ background: BG_DARK, color: TEXT, fontFamily: "'DM Sans', system-ui" }} dir={isAr ? "rtl" : "ltr"}>
       {/* NAV */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.75)", borderBottom: `1px solid ${BORDER}` }}>
@@ -561,6 +569,7 @@ const Landing = () => {
         </div>
       </footer>
     </div>
+    </>
   );
 };
 
