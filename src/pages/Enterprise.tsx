@@ -193,9 +193,9 @@ const FAQ_AR = [
 
 const Enterprise = () => {
   const isAr = useLocation().pathname.startsWith("/ar");
-  const { language } = useLanguage();
+  const { mode } = useLanguage();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const ar = isAr || language === "ar";
+  const ar = isAr || mode === "ar";
 
   const titleEn = "Enterprise — RufayQ for hospitals, insurers, and ministries";
   const titleAr = "المؤسسات — رُفَيِّق للمستشفيات والتأمين والوزارات";
@@ -207,11 +207,13 @@ const Enterprise = () => {
   return (
     <>
       <Seo
-        kind="enterprise"
-        titleEn={titleEn} titleAr={titleAr}
-        descriptionEn={descEn} descriptionAr={descAr}
+        title={ar ? titleAr : titleEn}
+        description={ar ? descAr : descEn}
+        lang={ar ? "ar" : "en"}
         jsonLd={[
-          breadcrumbSchema(ar ? [{ name: "الرئيسية", url: "https://rufayq.com/ar" }, { name: "المؤسسات", url: "https://rufayq.com/ar/enterprise" }] : [{ name: "Home", url: "https://rufayq.com/" }, { name: "Enterprise", url: "https://rufayq.com/enterprise" }]),
+          breadcrumbSchema(ar
+            ? [{ name: "الرئيسية", path: "/ar" }, { name: "المؤسسات", path: "/ar/enterprise" }]
+            : [{ name: "Home", path: "/" }, { name: "Enterprise", path: "/enterprise" }]),
           faqSchema(faqs),
         ]}
       />
