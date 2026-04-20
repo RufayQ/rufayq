@@ -18,7 +18,7 @@ interface Patient {
   patient_email: string | null; patient_phone: string | null; status: string; notes: string | null;
 }
 
-type Tab = "patients" | "find" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation" | "rcm_auth";
+type Tab = "patients" | "find" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation" | "rcm_auth" | "rcm_oper";
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
