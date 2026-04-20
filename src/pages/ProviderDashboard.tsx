@@ -158,6 +158,7 @@ const ProviderDashboard = () => {
     { id: "rcm_eligibility", label: "RCM · Eligibility", icon: Activity },
     { id: "rcm_activation", label: "RCM · Activation", icon: FileWarning },
     { id: "rcm_auth", label: "RCM · Authorizations", icon: Send },
+    { id: "rcm_oper", label: "RCM · OP/ER Billing", icon: DollarSign },
   ];
 
   const inputCls = "w-full px-3 py-2 rounded-lg text-sm outline-none";
