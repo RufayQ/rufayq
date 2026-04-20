@@ -18,6 +18,7 @@ import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
+import TrialLockBanner from "@/components/TrialLockBanner";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "main" | "medications" | "profile" | "settings" | "pricing" | "support";
@@ -180,6 +181,7 @@ const Index = () => {
         )}
 
         <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--off-white)" }}>
+          {appView === "main" && <TrialLockBanner onUpgrade={() => setAppView("pricing")} />}
           {renderContent()}
         </div>
 
