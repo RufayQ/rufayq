@@ -90,8 +90,8 @@ Deno.serve(async (req) => {
     }
 
     // 3. Approved → create or fetch Supabase Auth user
-    const usingEmail = isEmail(body.to);
-    const identity = body.to.trim();
+    const usingEmail = isEmail(recipientKey);
+    const identity = recipientKey;
 
     let userId: string | null = null;
     const createPayload: Record<string, unknown> = usingEmail
