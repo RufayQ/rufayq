@@ -33,23 +33,26 @@ serve(async (req) => {
   }
 
   try {
-    // ---- Auth: require a valid Supabase JWT (block anonymous AI usage) ----
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const token = authHeader.replace(/^Bearer\s+/i, "");
-    if (!token) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    // ---- Auth: device-id based (patient app has no auth.users session).
+    // Validate that the device has an active trial / subscription row before
+    // burning AI credits. This blocks unauthenticated/anonymous abuse.
+    const deviceId = req.headers.get("x-device-id") ?? "";
+    if (!deviceId || deviceId.length < 8 || deviceId.length > 128) {
+      return new Response(JSON.stringify({ error: "Missing or invalid x-device-id" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: userData, error: userErr } = await authClient.auth.getUser(token);
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const adminClient = createClient(supabaseUrl, serviceKey);
+    const { data: trial, error: trialErr } = await adminClient
+      .from("user_trials")
+      .select("device_id, trial_ends_at, plan")
+      .eq("device_id", deviceId)
+      .maybeSingle();
+    if (trialErr || !trial) {
+      return new Response(JSON.stringify({ error: "No trial or subscription for this device" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 

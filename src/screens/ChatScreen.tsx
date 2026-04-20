@@ -4,6 +4,7 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import { quickPrompts } from "@/constants/data";
+import { getDeviceId } from "@/hooks/useDeviceId";
 
 interface ChatMessage {
   id: number;
@@ -111,11 +112,15 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
     }));
 
     try {
+      // Device-id based auth (patient app has no auth.users session).
+      // The chat edge function validates this against user_trials server-side.
+      const deviceId = getDeviceId();
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "x-device-id": deviceId,
         },
         body: JSON.stringify({ messages: apiMessages }),
       });
