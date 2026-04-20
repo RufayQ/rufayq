@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  LogOut, Users, FileText, Pill, Calendar, Plus, Send, Building2,
+  LogOut, Users, FileText, Pill, Calendar, Plus, Send, Building2, Search,
 } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
+import PatientSearch from "@/components/provider/PatientSearch";
 
 interface Org { id: string; name: string; org_type: string; }
 interface Patient {
@@ -13,7 +14,7 @@ interface Patient {
   patient_email: string | null; patient_phone: string | null; status: string; notes: string | null;
 }
 
-type Tab = "patients" | "instructions" | "medications" | "appointments";
+type Tab = "patients" | "find" | "instructions" | "medications" | "appointments";
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
@@ -146,6 +147,7 @@ const ProviderDashboard = () => {
 
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "patients", label: "Patients", icon: Users },
+    { id: "find", label: "Find Patient", icon: Search },
     { id: "instructions", label: "Instructions", icon: FileText },
     { id: "medications", label: "Medications", icon: Pill },
     { id: "appointments", label: "Appointments", icon: Calendar },
@@ -193,7 +195,16 @@ const ProviderDashboard = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-6 grid md:grid-cols-[300px_1fr] gap-6">
+      <main className="max-w-7xl mx-auto px-6 py-6">
+        {tab === "find" ? (
+          <div className="max-w-2xl mx-auto">
+            {activeOrg && <PatientSearch organizationId={activeOrg} />}
+            <p className="text-xs mt-4 text-center" style={{ color: MUTED }}>
+              Submitted claims appear in the admin Patient Claims queue. Once admin and patient both approve, the patient will appear in your Patients list.
+            </p>
+          </div>
+        ) : (
+        <div className="grid md:grid-cols-[300px_1fr] gap-6">
         {/* Patient list */}
         <aside className="rounded-2xl p-4" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
           <div className="flex items-center justify-between mb-3">
