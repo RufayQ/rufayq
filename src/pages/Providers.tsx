@@ -88,8 +88,8 @@ const Providers = () => {
     const path = `applications/${appId}/${kind}.${ext.toLowerCase()}`;
     const { error } = await supabase.storage.from("provider-docs").upload(path, file, { upsert: true, contentType: file.type });
     if (error) throw error;
-    const { data } = supabase.storage.from("provider-docs").getPublicUrl(path);
-    return data.publicUrl;
+    // Bucket is private — store the storage path. Admins generate signed URLs on review.
+    return path;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

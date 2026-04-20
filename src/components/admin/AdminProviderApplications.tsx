@@ -278,25 +278,58 @@ const Info = ({ label, value }: { label: string; value: string }) => (
 );
 
 const DocPreview = ({ url, label }: { url: string | null; label: string }) => {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+    // Backwards-compat: legacy rows stored full https URLs; new rows store storage paths.
+    const isLegacyFullUrl = /^https?:\/\//i.test(url);
+    if (isLegacyFullUrl) {
+      setSignedUrl(url);
+      return;
+    }
+    (async () => {
+      const { data, error } = await supabase.storage
+        .from("provider-docs")
+        .createSignedUrl(url, 60 * 10); // 10 min
+      if (cancelled) return;
+      if (error || !data) { setLoadErr(error?.message || "Cannot load"); return; }
+      setSignedUrl(data.signedUrl);
+    })();
+    return () => { cancelled = true; };
+  }, [url]);
+
   if (!url) return (
     <div className="rounded-lg border border-dashed border-slate-800 p-4 text-center text-xs text-slate-500">
       <FileText size={20} className="mx-auto mb-1 opacity-50"/>{label} · not uploaded
     </div>
   );
-  const isPdf = /\.pdf(\?|$)/i.test(url);
-  const isImg = /\.(jpe?g|png|webp)(\?|$)/i.test(url);
+  if (loadErr) return (
+    <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-center text-xs text-red-300">
+      {label} · {loadErr}
+    </div>
+  );
+  if (!signedUrl) return (
+    <div className="rounded-lg border border-slate-800 bg-slate-900 p-4 text-center text-xs text-slate-500">
+      Loading {label}…
+    </div>
+  );
+  const isPdf = /\.pdf(\?|$)/i.test(signedUrl) || /\.pdf$/i.test(url);
+  const isImg = /\.(jpe?g|png|webp)(\?|$)/i.test(signedUrl) || /\.(jpe?g|png|webp)$/i.test(url);
   return (
     <div className="rounded-lg border border-slate-800 overflow-hidden bg-slate-900">
       <div className="px-3 py-2 flex items-center justify-between border-b border-slate-800">
         <span className="text-[11px] text-slate-300 font-medium">{label}</span>
-        <a href={url} target="_blank" rel="noopener" className="text-amber-400 text-[11px] flex items-center gap-1">
+        <a href={signedUrl} target="_blank" rel="noopener" className="text-amber-400 text-[11px] flex items-center gap-1">
           Open <ExternalLink size={10}/>
         </a>
       </div>
       {isPdf ? (
-        <iframe src={url} className="w-full h-56" title={label}/>
+        <iframe src={signedUrl} className="w-full h-56" title={label}/>
       ) : isImg ? (
-        <img src={url} alt={label} className="w-full h-56 object-contain bg-slate-950"/>
+        <img src={signedUrl} alt={label} className="w-full h-56 object-contain bg-slate-950"/>
       ) : (
         <div className="p-6 text-center text-xs text-slate-400">Preview not available</div>
       )}
