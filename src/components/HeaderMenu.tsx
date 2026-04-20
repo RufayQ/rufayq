@@ -78,7 +78,7 @@ const HeaderMenu = ({ items }: HeaderMenuProps) => {
               <div className="flex-1">
                 <span>{item.label}</span>
                 {item.labelAr && (
-                  <span className="font-arabic text-[10px] ml-1.5" style={{ color: "var(--gray)" }}>{item.labelAr}</span>
+                  <span className="font-arabic text-[10px] ml-1.5" dir="rtl" style={{ color: "var(--gray)" }}>{item.labelAr}</span>
                 )}
               </div>
             </button>
