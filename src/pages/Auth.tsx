@@ -66,7 +66,7 @@ const Auth = () => {
 
             <div className="grid md:grid-cols-2 gap-6">
               <button
-                onClick={() => navigate("/app")}
+                onClick={() => navigate("/app?signin=1")}
                 className="group text-start rounded-2xl p-8 transition-all duration-300 hover:scale-[1.02]"
                 style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}
               >
