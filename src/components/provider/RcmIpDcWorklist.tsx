@@ -192,6 +192,31 @@ const RcmIpDcWorklist = ({ organizationId }: Props) => {
               })}
             </div>
 
+            {/* Medical Discharge triple sign-off */}
+            <div className="mb-5 p-3 rounded-xl border border-violet-500/30 bg-violet-500/5">
+              <h4 className="text-xs font-semibold text-violet-300 mb-2 flex items-center gap-1.5">
+                <Activity size={13} /> Medical Discharge · Triple sign-off (required before Financial)
+              </h4>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { k: "nursing", l: "Nursing", icon: UserCheck },
+                  { k: "pharmacy", l: "Pharmacy", icon: Pill },
+                  { k: "physician", l: "Physician", icon: Stethoscope },
+                ].map(r => {
+                  const Icon = r.icon;
+                  const done = signoff?.[`${r.k}_signed_at`];
+                  return (
+                    <button key={r.k} onClick={() => sign(r.k as any)} disabled={!!done}
+                      className={`p-2 rounded-lg text-xs flex flex-col items-center gap-1 border ${done ? "bg-emerald-600/20 text-emerald-300 border-emerald-500/30" : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"}`}>
+                      <Icon size={14} />
+                      <span>{r.l} {done ? "✓" : ""}</span>
+                      {done && <span className="text-[9px] opacity-60">{new Date(done).toLocaleString()}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Beds */}
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2">

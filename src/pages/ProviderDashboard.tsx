@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  LogOut, Users, FileText, Pill, Calendar, Plus, Send, Building2, Search, Activity, FileWarning, DollarSign,
+  LogOut, Users, FileText, Pill, Calendar, Plus, Send, Building2, Search, Activity, FileWarning, DollarSign, Receipt,
 } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import PatientSearch from "@/components/provider/PatientSearch";
@@ -12,6 +12,7 @@ import RcmActivationWorklist from "@/components/provider/RcmActivationWorklist";
 import RcmAuthorizationWorklist from "@/components/provider/RcmAuthorizationWorklist";
 import RcmOpErWorklist from "@/components/provider/RcmOpErWorklist";
 import RcmIpDcWorklist from "@/components/provider/RcmIpDcWorklist";
+import RcmClaimsWorklist from "@/components/provider/RcmClaimsWorklist";
 
 interface Org { id: string; name: string; org_type: string; }
 interface Patient {
@@ -19,7 +20,7 @@ interface Patient {
   patient_email: string | null; patient_phone: string | null; status: string; notes: string | null;
 }
 
-type Tab = "patients" | "find" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation" | "rcm_auth" | "rcm_oper" | "rcm_ipdc";
+type Tab = "patients" | "find" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation" | "rcm_auth" | "rcm_oper" | "rcm_ipdc" | "rcm_claims";
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
