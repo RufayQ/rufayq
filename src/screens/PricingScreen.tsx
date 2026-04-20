@@ -256,7 +256,7 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
           style={{ background: "var(--gold-pale)", border: "1px solid var(--gold)", color: "var(--gold)" }}
         >
           <Zap size={14} />
-          {showAddOns ? "Hide" : "Show"} Pay-As-You-Go Add-ons · إضافات حسب الاستخدام
+          {showAddOns ? "Hide" : "Show"} Pay-As-You-Go Add-ons<span className="font-arabic" dir="rtl"> · إضافات حسب الاستخدام</span>
 
           {showAddOns ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
@@ -295,7 +295,7 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
                 className="w-full py-3 rounded-xl font-semibold text-white btn-press"
                 style={{ background: "var(--teal-deep)" }}
               >
-                Add {selectedAddOns.size} Add-on{selectedAddOns.size > 1 ? "s" : ""} · إضافة
+                Add {selectedAddOns.size} Add-on{selectedAddOns.size > 1 ? "s" : ""}<span className="font-arabic" dir="rtl"> · إضافة</span>
 
               </button>
             )}
@@ -309,7 +309,7 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
           style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
         >
           <Shield size={14} />
-          {showComparison ? "Hide" : "Show"} Full Feature Comparison · مقارنة المزايا
+          {showComparison ? "Hide" : "Show"} Full Feature Comparison<span className="font-arabic" dir="rtl"> · مقارنة المزايا</span>
 
           {showComparison ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
