@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  LogOut, Users, FileText, Pill, Calendar, Plus, Send, Building2, Search,
+  LogOut, Users, FileText, Pill, Calendar, Plus, Send, Building2, Search, Activity, FileWarning,
 } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import PatientSearch from "@/components/provider/PatientSearch";
+import RcmEligibilityWorklist from "@/components/provider/RcmEligibilityWorklist";
+import RcmActivationWorklist from "@/components/provider/RcmActivationWorklist";
 
 interface Org { id: string; name: string; org_type: string; }
 interface Patient {
@@ -14,7 +16,7 @@ interface Patient {
   patient_email: string | null; patient_phone: string | null; status: string; notes: string | null;
 }
 
-type Tab = "patients" | "find" | "instructions" | "medications" | "appointments";
+type Tab = "patients" | "find" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation";
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
@@ -151,6 +153,8 @@ const ProviderDashboard = () => {
     { id: "instructions", label: "Instructions", icon: FileText },
     { id: "medications", label: "Medications", icon: Pill },
     { id: "appointments", label: "Appointments", icon: Calendar },
+    { id: "rcm_eligibility", label: "RCM · Eligibility", icon: Activity },
+    { id: "rcm_activation", label: "RCM · Activation", icon: FileWarning },
   ];
 
   const inputCls = "w-full px-3 py-2 rounded-lg text-sm outline-none";
@@ -203,6 +207,10 @@ const ProviderDashboard = () => {
               Submitted claims appear in the admin Patient Claims queue. Once admin and patient both approve, the patient will appear in your Patients list.
             </p>
           </div>
+        ) : tab === "rcm_eligibility" ? (
+          <div className="max-w-3xl mx-auto">{activeOrg && <RcmEligibilityWorklist organizationId={activeOrg} />}</div>
+        ) : tab === "rcm_activation" ? (
+          <div className="max-w-3xl mx-auto">{activeOrg && <RcmActivationWorklist organizationId={activeOrg} />}</div>
         ) : (
         <div className="grid md:grid-cols-[300px_1fr] gap-6">
         {/* Patient list */}
