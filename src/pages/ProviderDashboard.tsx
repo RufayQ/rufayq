@@ -162,6 +162,7 @@ const ProviderDashboard = () => {
     { id: "rcm_auth", label: "RCM · Authorizations", icon: Send },
     { id: "rcm_oper", label: "RCM · OP/ER Billing", icon: DollarSign },
     { id: "rcm_ipdc", label: "RCM · IP/DC Admissions", icon: Activity },
+    { id: "rcm_claims", label: "RCM · Claims", icon: Receipt },
   ];
 
   const inputCls = "w-full px-3 py-2 rounded-lg text-sm outline-none";
@@ -224,6 +225,8 @@ const ProviderDashboard = () => {
           <div className="max-w-6xl mx-auto">{activeOrg && <RcmOpErWorklist organizationId={activeOrg} />}</div>
         ) : tab === "rcm_ipdc" ? (
           <div className="max-w-6xl mx-auto">{activeOrg && <RcmIpDcWorklist organizationId={activeOrg} />}</div>
+        ) : tab === "rcm_claims" ? (
+          <div className="max-w-6xl mx-auto">{activeOrg && <RcmClaimsWorklist organizationId={activeOrg} />}</div>
         ) : (
         <div className="grid md:grid-cols-[300px_1fr] gap-6">
         {/* Patient list */}

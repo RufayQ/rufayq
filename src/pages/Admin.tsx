@@ -16,8 +16,9 @@ import AdminPatientClaims from "@/components/admin/AdminPatientClaims";
 import AdminRcmMasters from "@/components/admin/AdminRcmMasters";
 import AdminRcmActivations from "@/components/admin/AdminRcmActivations";
 import AdminRcmImports from "@/components/admin/AdminRcmImports";
+import AdminRcmBulkOps from "@/components/admin/AdminRcmBulkOps";
 
-type Tab = "dashboard" | "users" | "create" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "subs" | "reviews" | "tickets" | "pages" | "audit";
+type Tab = "dashboard" | "users" | "create" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "reviews" | "tickets" | "pages" | "audit";
 
 const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boolean }[] = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -29,6 +30,7 @@ const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boole
   { key: "rcm", label: "RCM Masters", Icon: Building2, adminOnly: true },
   { key: "rcm_activations", label: "RCM Activations", Icon: Activity, adminOnly: true },
   { key: "rcm_imports", label: "RCM Imports", Icon: FileText, adminOnly: true },
+  { key: "rcm_bulk", label: "RCM Bulk Ops", Icon: FileText, adminOnly: true },
   { key: "subs", label: "Subscriptions", Icon: CreditCard, adminOnly: true },
   { key: "reviews", label: "Reviews", Icon: Star },
   { key: "tickets", label: "Tickets", Icon: MessageSquare },
@@ -115,6 +117,7 @@ const Admin = () => {
         {tab === "rcm" && role === "admin" && <AdminRcmMasters />}
         {tab === "rcm_activations" && role === "admin" && <AdminRcmActivations />}
         {tab === "rcm_imports" && role === "admin" && <AdminRcmImports />}
+        {tab === "rcm_bulk" && role === "admin" && <AdminRcmBulkOps />}
         {tab === "subs" && role === "admin" && <AdminSubscriptions />}
         {tab === "reviews" && <AdminReviews />}
         {tab === "tickets" && <AdminTickets />}
