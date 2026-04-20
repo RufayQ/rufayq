@@ -104,7 +104,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       return next;
     });
     flashStep(sourceId);
-    toast.success("Step reordered · تم إعادة الترتيب", { duration: 1500 });
+    toast.success("Step reordered<span className="font-arabic" dir="rtl"> · تم إعادة الترتيب</span>"", { duration: 1500 });
   };
 
   const activeTrip = trips.find((t) => t.status === "active") || trips[0];
@@ -132,7 +132,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       bookingRef: undefined,
     };
     setTransportSegments((prev) => [...prev, copy]);
-    toast.success("Ticket replicated to future date · تم نسخ التذكرة لتاريخ مستقبلي", { description: `New trip: ${newDep.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` });
+    toast.success("Ticket replicated to future date<span className="font-arabic" dir="rtl"> · تم نسخ التذكرة لتاريخ مستقبلي</span>"", { description: `New trip: ${newDep.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` });
   };
   const doneCount = journeySteps.filter((s) => s.status === "done").length;
   const progress = (doneCount / journeySteps.length) * 100;
@@ -144,7 +144,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const handleCopyJourney = () => {
     const text = `Treatment Journey — Berlin\n${doneCount}/${journeySteps.length} steps completed\n\nSteps:\n${journeySteps.map((s, i) => `${i + 1}. ${s.titleEn} — ${s.status}`).join("\n")}`;
     navigator.clipboard.writeText(text);
-    toast.success("Journey copied · تم نسخ الرحلة", { duration: 2000 });
+    toast.success("Journey copied<span className="font-arabic" dir="rtl"> · تم نسخ الرحلة</span>"", { duration: 2000 });
   };
 
   const handleShareJourney = () => {
@@ -160,7 +160,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     const a = document.createElement("a");
     a.href = url; a.download = "treatment-journey.txt"; a.click();
     URL.revokeObjectURL(url);
-    toast.success("Journey exported · تم تصدير الرحلة", { duration: 2000 });
+    toast.success("Journey exported<span className="font-arabic" dir="rtl"> · تم تصدير الرحلة</span>"", { duration: 2000 });
   };
 
   const handleAddStep = () => {
@@ -177,7 +177,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     { icon: <Plus size={14} />, label: "Add New Trip", labelAr: "إضافة رحلة جديدة", onClick: () => { if (requireProForAddTrip()) setShowAddTrip(true); } },
     { icon: <Plus size={14} />, label: "Add Journey Step", labelAr: "إضافة خطوة", onClick: handleAddStep },
     { icon: <Sparkles size={14} />, label: "Scan New Ticket", labelAr: "مسح تذكرة جديدة", onClick: () => onOpenScanner?.("flight") },
-    { icon: <Plus size={14} />, label: "Add Companion Ticket", labelAr: "إضافة تذكرة مرافق", onClick: () => { setShowEditTrip(true); toast.info("Add companions in 'Edit Current Trip' · المرافقون داخل تعديل الرحلة"); } },
+    { icon: <Plus size={14} />, label: "Add Companion Ticket", labelAr: "إضافة تذكرة مرافق", onClick: () => { setShowEditTrip(true); toast.info("Add companions in 'Edit Current Trip'<span className="font-arabic" dir="rtl"> · المرافقون داخل تعديل الرحلة</span>""); } },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص", onClick: handleCopyJourney },
     { icon: <Download size={14} />, label: "Export Journey", labelAr: "تصدير الرحلة", onClick: handleExportJourney },
     { icon: <Share2 size={14} />, label: "Share Progress", labelAr: "مشاركة التقدم", onClick: handleShareJourney },
@@ -483,7 +483,7 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: Transp
                   )}
                   <TransportCard seg={seg} onTap={() => {
                     if (group === "past") {
-                      toast.info("Past tickets are read-only · التذاكر السابقة للعرض فقط", { description: "Tap Replicate to copy as a future trip" });
+                      toast.info("Past tickets are read-only<span className="font-arabic" dir="rtl"> · التذاكر السابقة للعرض فقط</span>"", { description: "Tap Replicate to copy as a future trip" });
                       return;
                     }
                     if (!ticketSystemReminders[seg.id]) {
@@ -833,7 +833,7 @@ const StepsTab = ({
     {trips.length > 0 && (
       <div className="px-4 pt-3">
         <div className="flex items-center justify-between mb-1.5">
-          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR JOURNEYS · رحلاتك</p>
+          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR JOURNEYS<span className="font-arabic" dir="rtl"> · رحلاتك</span><</p>
           <button onClick={onEditTrip} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold btn-press" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
             <Edit3 size={10} /> Edit Current Trip
           </button>
@@ -1039,7 +1039,7 @@ const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => 
       notesAr: data.notesAr,
     };
     setLocalAppts(prev => [...prev, newAppt]);
-    toast.success("Appointment added · تم إضافة الموعد", { duration: 3000 });
+    toast.success("Appointment added<span className="font-arabic" dir="rtl"> · تم إضافة الموعد</span>"", { duration: 3000 });
   };
 
   const renderApptCard = (apt: Appointment) => {
