@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/hooks/useTheme";
@@ -38,6 +38,8 @@ const toastMessages: Record<string, { en: string; ar: string }> = {
 const Index = () => {
   const { refresh: refreshTheme } = useTheme();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const forceSignIn = searchParams.get("signin") === "1";
 
   // Staff auto-redirect: if a signed-in staff member lands on the patient app, push them to /admin
   useEffect(() => {
@@ -52,8 +54,24 @@ const Index = () => {
 
   const [appView, setAppView] = useState<AppView>(() => {
     const seen = localStorage.getItem("rufayq_onboarded");
-    return seen ? "main" : "onboarding";
+    if (!seen) return "onboarding";
+    if (forceSignIn) return "login";
+    return "main";
   });
+
+  // If user arrives at /app with no Supabase session, route them through LoginScreen.
+  // Guests can still tap "Continue as guest" inside LoginScreen.
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user && (forceSignIn || appView === "main")) {
+        if (forceSignIn || !localStorage.getItem("rufayq_guest_ok")) {
+          setAppView("login");
+        }
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forceSignIn]);
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
