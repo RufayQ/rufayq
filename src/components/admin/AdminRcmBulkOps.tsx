@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 
 const KIND_LABEL: Record<string, string> = {
   claim_upload: "Bulk Claim Upload",
@@ -46,6 +46,16 @@ const AdminRcmBulkOps = () => {
     }).eq("id", j.id);
     if (error) return toast.error(error.message);
     toast.success("Job marked applied");
+    load();
+  };
+
+  const parseAi = async (j: any) => {
+    toast.loading("AI parsing…", { id: `parse-${j.id}` });
+    const { data, error } = await supabase.functions.invoke("rcm-bulk-parse", { body: { jobId: j.id } });
+    toast.dismiss(`parse-${j.id}`);
+    if (error) return toast.error(error.message || "Parse failed");
+    if ((data as any)?.error) return toast.error((data as any).error);
+    toast.success(`Parsed ${(data as any)?.totalRows ?? 0} rows`);
     load();
   };
 
@@ -99,9 +109,16 @@ const AdminRcmBulkOps = () => {
             {j.ai_summary && <p className="text-[11px] text-slate-400 mt-1 italic">{j.ai_summary}</p>}
             {j.error_message && <p className="text-[11px] text-rose-300 mt-1 flex items-center gap-1"><AlertCircle size={11} /> {j.error_message}</p>}
             {j.status !== "applied" && j.status !== "failed" && (
-              <button onClick={() => apply(j)} className="mt-2 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs flex items-center gap-1">
-                <CheckCircle2 size={11} /> Mark applied
-              </button>
+              <div className="flex gap-2 mt-2">
+                {j.source_url && j.status !== "parsing" && (
+                  <button onClick={() => parseAi(j)} className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs flex items-center gap-1">
+                    <Sparkles size={11} /> Run AI parse
+                  </button>
+                )}
+                <button onClick={() => apply(j)} className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs flex items-center gap-1">
+                  <CheckCircle2 size={11} /> Mark applied
+                </button>
+              </div>
             )}
           </div>
         ))}
