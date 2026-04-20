@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  LogOut, Users, FileText, Pill, Calendar, Plus, Send, Building2, Search, Activity, FileWarning,
+  LogOut, Users, FileText, Pill, Calendar, Plus, Send, Building2, Search, Activity, FileWarning, DollarSign,
 } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import PatientSearch from "@/components/provider/PatientSearch";
