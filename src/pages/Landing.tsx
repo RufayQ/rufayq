@@ -141,6 +141,9 @@ const Landing = () => {
               </div>
             </div>
             <LanguageSwitcher />
+            <Link to="/auth" className="px-4 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105" style={{ border: `1px solid ${GOLD}`, color: GOLD }}>
+              {isAr ? "تسجيل الدخول" : "Sign in"}
+            </Link>
             <button onClick={goToApp} className="px-5 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg" style={{ background: GOLD, color: BG_DARK }}>
               {isAr ? "افتح التطبيق ←" : "Open app →"}
             </button>
