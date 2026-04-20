@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, BedDouble, ClipboardCheck, FileCheck2, DollarSign, LogOut, Activity, Clock } from "lucide-react";
+import { Plus, BedDouble, ClipboardCheck, FileCheck2, DollarSign, LogOut, Activity, Clock, Stethoscope, Pill, UserCheck } from "lucide-react";
 
 interface Props { organizationId: string; }
 
@@ -16,7 +16,7 @@ const ROOM_TYPES = ["ward","semi_private","private","vip","suite","icu","ccu","h
 const STAGES: { v: string; l: string; icon: any }[] = [
   { v: "discharge_advice", l: "Advice", icon: ClipboardCheck },
   { v: "discharge_order", l: "Order", icon: FileCheck2 },
-  { v: "service_reconciliation", l: "Reconcile", icon: Activity },
+  { v: "service_reconciliation", l: "Medical Discharge", icon: Activity },
   { v: "financial_discharge", l: "Financial", icon: DollarSign },
   { v: "left_facility", l: "Left", icon: LogOut },
 ];
@@ -38,6 +38,7 @@ const RcmIpDcWorklist = ({ organizationId }: Props) => {
   const [beds, setBeds] = useState<any[]>([]);
   const [steps, setSteps] = useState<any[]>([]);
   const [losExt, setLosExt] = useState<any[]>([]);
+  const [signoff, setSignoff] = useState<any | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showBed, setShowBed] = useState(false);
   const [showLos, setShowLos] = useState(false);
@@ -57,12 +58,26 @@ const RcmIpDcWorklist = ({ organizationId }: Props) => {
 
   const loadDetail = async (a: any) => {
     setSelected(a);
-    const [b, s, l] = await Promise.all([
+    const [b, s, l, so] = await Promise.all([
       (supabase as any).from("rcm_bed_assignments").select("*").eq("admission_id", a.id).order("check_in_at", { ascending: false }),
       (supabase as any).from("rcm_discharge_steps").select("*").eq("admission_id", a.id).order("occurred_at", { ascending: false }),
       (supabase as any).from("rcm_los_extensions").select("*").eq("admission_id", a.id).order("created_at", { ascending: false }),
+      (supabase as any).from("rcm_discharge_signoffs").select("*").eq("admission_id", a.id).maybeSingle(),
     ]);
     setBeds(b.data || []); setSteps(s.data || []); setLosExt(l.data || []);
+    setSignoff(so.data || null);
+  };
+
+  const sign = async (role: "nursing" | "pharmacy" | "physician") => {
+    if (!selected) return;
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    const patch: any = { admission_id: selected.id };
+    patch[`${role}_signed_at`] = new Date().toISOString();
+    patch[`${role}_signed_by`] = userId;
+    const { error } = await (supabase as any).from("rcm_discharge_signoffs").upsert(patch, { onConflict: "admission_id" });
+    if (error) return toast.error(error.message);
+    toast.success(`${role.charAt(0).toUpperCase() + role.slice(1)} sign-off recorded`);
+    loadDetail(selected);
   };
 
   useEffect(() => { load(); }, [organizationId]);
