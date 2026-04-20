@@ -38,6 +38,23 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     insurer: "", policy: "",
   });
 
+  // Structured histories (persisted as JSONB)
+  const [pastHistory, setPastHistory] = useState<{ condition: string; year: string; status: string; notes: string }[]>([]);
+  const [surgicalHistory, setSurgicalHistory] = useState<{ procedure: string; year: string; hospital: string; notes: string }[]>([]);
+  const [familyHistory, setFamilyHistory] = useState<{ relation: string; condition: string; age_of_onset: string; notes: string }[]>([]);
+
+  const addPast = () => setPastHistory([...pastHistory, { condition: "", year: "", status: "active", notes: "" }]);
+  const updatePast = (i: number, k: string, v: string) => { const n = [...pastHistory]; (n[i] as any)[k] = v; setPastHistory(n); };
+  const removePast = (i: number) => setPastHistory(pastHistory.filter((_, idx) => idx !== i));
+
+  const addSurgical = () => setSurgicalHistory([...surgicalHistory, { procedure: "", year: "", hospital: "", notes: "" }]);
+  const updateSurgical = (i: number, k: string, v: string) => { const n = [...surgicalHistory]; (n[i] as any)[k] = v; setSurgicalHistory(n); };
+  const removeSurgical = (i: number) => setSurgicalHistory(surgicalHistory.filter((_, idx) => idx !== i));
+
+  const addFamily = () => setFamilyHistory([...familyHistory, { relation: "Father", condition: "", age_of_onset: "", notes: "" }]);
+  const updateFamily = (i: number, k: string, v: string) => { const n = [...familyHistory]; (n[i] as any)[k] = v; setFamilyHistory(n); };
+  const removeFamily = (i: number) => setFamilyHistory(familyHistory.filter((_, idx) => idx !== i));
+
   const startCountdown = () => {
     setCountdown(45);
     const timer = setInterval(() => {
@@ -161,6 +178,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
     if (pErr) { setSubmitting(false); toast.error("Signup failed: " + pErr.message); return; }
 
+    const cleanPast = pastHistory.filter((p) => p.condition.trim());
+    const cleanSurgical = surgicalHistory.filter((p) => p.procedure.trim());
+    const cleanFamily = familyHistory.filter((p) => p.condition.trim());
+
     const { error: mErr } = await supabase.from("medical_profiles").upsert({
       device_id,
       blood_type: med.bloodType || null,
@@ -172,7 +193,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       emergency_contact_relation: med.emRelation || null,
       insurance_provider: med.insurer || null,
       insurance_policy_number: med.policy || null,
-    }, { onConflict: "device_id" });
+      past_medical_history: cleanPast as any,
+      surgical_history: cleanSurgical as any,
+      family_history: cleanFamily as any,
+    } as any, { onConflict: "device_id" });
 
     setSubmitting(false);
     if (mErr) { toast.error("Medical info failed: " + mErr.message); return; }
@@ -439,6 +463,106 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                 style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
             </div>
           ))}
+
+          {/* PAST MEDICAL HISTORY */}
+          <div className="pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
+            <div className="flex items-center justify-between mb-1.5 mt-2">
+              <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+                PAST MEDICAL HISTORY · <span className="font-arabic">التاريخ المرضي</span>
+              </p>
+              <button onClick={addPast} className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>+ Add</button>
+            </div>
+            {pastHistory.length === 0 && (
+              <p className="text-[10px] italic" style={{ color: "var(--gray)" }}>No past conditions recorded · لا يوجد</p>
+            )}
+            {pastHistory.map((p, i) => (
+              <div key={i} className="rounded-xl p-2.5 mb-2 space-y-1.5" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>#{i + 1}</span>
+                  <button onClick={() => removePast(i)} className="text-[10px]" style={{ color: "var(--error)" }}>Remove</button>
+                </div>
+                <input value={p.condition} onChange={(e) => updatePast(i, "condition", e.target.value)} placeholder="Condition (e.g. Hypertension)"
+                  className="w-full px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input value={p.year} onChange={(e) => updatePast(i, "year", e.target.value)} placeholder="Year (e.g. 2018)"
+                    className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+                  <select value={p.status} onChange={(e) => updatePast(i, "status", e.target.value)}
+                    className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }}>
+                    <option value="active">Active · نشط</option>
+                    <option value="resolved">Resolved · شُفي</option>
+                    <option value="chronic">Chronic · مزمن</option>
+                    <option value="in_remission">In remission · هدأة</option>
+                  </select>
+                </div>
+                <input value={p.notes} onChange={(e) => updatePast(i, "notes", e.target.value)} placeholder="Notes (optional)"
+                  className="w-full px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+              </div>
+            ))}
+          </div>
+
+          {/* SURGICAL HISTORY */}
+          <div className="pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
+            <div className="flex items-center justify-between mb-1.5 mt-2">
+              <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+                SURGICAL HISTORY · <span className="font-arabic">العمليات السابقة</span>
+              </p>
+              <button onClick={addSurgical} className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>+ Add</button>
+            </div>
+            {surgicalHistory.length === 0 && (
+              <p className="text-[10px] italic" style={{ color: "var(--gray)" }}>No surgeries recorded · لا توجد عمليات</p>
+            )}
+            {surgicalHistory.map((s, i) => (
+              <div key={i} className="rounded-xl p-2.5 mb-2 space-y-1.5" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>#{i + 1}</span>
+                  <button onClick={() => removeSurgical(i)} className="text-[10px]" style={{ color: "var(--error)" }}>Remove</button>
+                </div>
+                <input value={s.procedure} onChange={(e) => updateSurgical(i, "procedure", e.target.value)} placeholder="Procedure (e.g. Appendectomy)"
+                  className="w-full px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input value={s.year} onChange={(e) => updateSurgical(i, "year", e.target.value)} placeholder="Year"
+                    className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+                  <input value={s.hospital} onChange={(e) => updateSurgical(i, "hospital", e.target.value)} placeholder="Hospital"
+                    className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+                </div>
+                <input value={s.notes} onChange={(e) => updateSurgical(i, "notes", e.target.value)} placeholder="Notes (optional)"
+                  className="w-full px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+              </div>
+            ))}
+          </div>
+
+          {/* FAMILY HISTORY */}
+          <div className="pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
+            <div className="flex items-center justify-between mb-1.5 mt-2">
+              <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+                FAMILY HISTORY · <span className="font-arabic">التاريخ العائلي</span>
+              </p>
+              <button onClick={addFamily} className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>+ Add</button>
+            </div>
+            {familyHistory.length === 0 && (
+              <p className="text-[10px] italic" style={{ color: "var(--gray)" }}>No family conditions recorded · لا يوجد</p>
+            )}
+            {familyHistory.map((f, i) => (
+              <div key={i} className="rounded-xl p-2.5 mb-2 space-y-1.5" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>#{i + 1}</span>
+                  <button onClick={() => removeFamily(i)} className="text-[10px]" style={{ color: "var(--error)" }}>Remove</button>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <select value={f.relation} onChange={(e) => updateFamily(i, "relation", e.target.value)}
+                    className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }}>
+                    {["Father", "Mother", "Brother", "Sister", "Son", "Daughter", "Grandfather", "Grandmother", "Uncle", "Aunt", "Cousin", "Other"].map(r => <option key={r}>{r}</option>)}
+                  </select>
+                  <input value={f.age_of_onset} onChange={(e) => updateFamily(i, "age_of_onset", e.target.value)} placeholder="Age at onset"
+                    className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+                </div>
+                <input value={f.condition} onChange={(e) => updateFamily(i, "condition", e.target.value)} placeholder="Condition (e.g. Diabetes)"
+                  className="w-full px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+                <input value={f.notes} onChange={(e) => updateFamily(i, "notes", e.target.value)} placeholder="Notes (optional)"
+                  className="w-full px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+              </div>
+            ))}
+          </div>
 
           <div className="pt-1" style={{ borderTop: "1px dashed var(--gray-light)" }}>
             <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>EMERGENCY CONTACT · جهة الطوارئ</p>
