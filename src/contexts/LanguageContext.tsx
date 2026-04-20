@@ -18,17 +18,21 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     return (localStorage.getItem(KEY) as LangMode) || "both";
   });
 
+  const apply = (m: LangMode) => {
+    const el = document.documentElement;
+    // Keep page direction LTR for app shell; we use data-lang to hide off-language content.
+    el.dir = "ltr";
+    el.lang = m === "ar" ? "ar" : "en";
+    el.setAttribute("data-lang", m);
+  };
+
   const setMode = (m: LangMode) => {
     setModeState(m);
     localStorage.setItem(KEY, m);
-    document.documentElement.dir = m === "ar" ? "rtl" : "ltr";
-    document.documentElement.lang = m === "ar" ? "ar" : "en";
+    apply(m);
   };
 
-  useEffect(() => {
-    document.documentElement.dir = mode === "ar" ? "rtl" : "ltr";
-    document.documentElement.lang = mode === "ar" ? "ar" : "en";
-  }, [mode]);
+  useEffect(() => { apply(mode); }, [mode]);
 
   return (
     <LanguageContext.Provider value={{ mode, setMode, showEn: mode !== "ar", showAr: mode !== "en" }}>
