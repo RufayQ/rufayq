@@ -48,7 +48,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       `💊 ${m.name} (${m.nameAr}) — ${m.dosage} — ${m.frequency} — ${m.time}`
     ).join("\n");
     navigator.clipboard.writeText(`Medication Schedule\nجدول الأدوية\n\n${text}`);
-    toast.success("All medications copied<span className="font-arabic" dir="rtl"> · تم نسخ جميع الأدوية</span>"", { duration: 2000 });
+    toast.success("All medications copied · تم نسخ جميع الأدوية"", { duration: 2000 });
   };
 
   const handleExportMeds = () => {
@@ -60,7 +60,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
     const a = document.createElement("a");
     a.href = url; a.download = "medications-schedule.txt"; a.click();
     URL.revokeObjectURL(url);
-    toast.success("Medications exported<span className="font-arabic" dir="rtl"> · تم تصدير الأدوية</span>"", { duration: 2000 });
+    toast.success("Medications exported · تم تصدير الأدوية"", { duration: 2000 });
   };
 
   const handleShareMeds = () => {
@@ -71,7 +71,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
 
   const handleResetTaken = () => {
     setTakenIds(new Set());
-    toast.success("Reset today's tracking<span className="font-arabic" dir="rtl"> · تم إعادة التتبع</span>"", { duration: 2000 });
+    toast.success("Reset today's tracking · تم إعادة التتبع"", { duration: 2000 });
   };
 
   const medsMenuItems: HeaderMenuItem[] = [
@@ -106,7 +106,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       <div className="mx-4 mt-3 rounded-xl p-3 flex items-start gap-2.5" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.25)" }}>
         <span className="text-base">⚠️</span>
         <div className="flex-1">
-          <p className="text-[11px] font-bold" style={{ color: "var(--error)" }}>YOUR ALLERGIES<span className="font-arabic" dir="rtl"> · حساسياتك</span><</p>
+          <p className="text-[11px] font-bold" style={{ color: "var(--error)" }}>YOUR ALLERGIES · حساسياتك<</p>
           <div className="flex flex-wrap gap-1 mt-1">
             {allergies.map((a) => (
               <span key={a} className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "var(--white)", color: "var(--error)", border: "1px solid var(--error)" }}>

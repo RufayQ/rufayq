@@ -132,12 +132,12 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
   const handleSelectPlan = (planId: string) => {
     if (planId === "free") return;
     if (planId === "enterprise") {
-      toast("Contact Sales<span className="font-arabic" dir="rtl"> · تواصل مع المبيعات</span>"", {
-        description: "Our team will reach out within 24 hours<span className="font-arabic" dir="rtl"> · سيتواصل فريقنا خلال ٢٤ ساعة</span>"",
+      toast("Contact Sales · تواصل مع المبيعات"", {
+        description: "Our team will reach out within 24 hours · سيتواصل فريقنا خلال ٢٤ ساعة"",
       });
     } else {
-      toast.success("Upgrade initiated<span className="font-arabic" dir="rtl"> · بدء الترقية</span>"", {
-        description: "You'll be redirected to payment<span className="font-arabic" dir="rtl"> · ستتم إعادة توجيهك للدفع</span>"",
+      toast.success("Upgrade initiated · بدء الترقية"", {
+        description: "You'll be redirected to payment · ستتم إعادة توجيهك للدفع"",
       });
     }
   };
@@ -256,7 +256,7 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
           style={{ background: "var(--gold-pale)", border: "1px solid var(--gold)", color: "var(--gold)" }}
         >
           <Zap size={14} />
-          {showAddOns ? "Hide" : "Show"} Pay-As-You-Go Add-ons<span className="font-arabic" dir="rtl"> · إضافات حسب الاستخدام</span>
+          {showAddOns ? "Hide" : "Show"} Pay-As-You-Go Add-ons · إضافات حسب الاستخدام
 
           {showAddOns ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
@@ -291,11 +291,11 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
             })}
             {selectedAddOns.size > 0 && (
               <button
-                onClick={() => toast.success("Add-ons added to cart<span className="font-arabic" dir="rtl"> · أُضيفت الإضافات</span>"", { description: `${selectedAddOns.size} add-on(s) selected` })}
+                onClick={() => toast.success("Add-ons added to cart · أُضيفت الإضافات"", { description: `${selectedAddOns.size} add-on(s) selected` })}
                 className="w-full py-3 rounded-xl font-semibold text-white btn-press"
                 style={{ background: "var(--teal-deep)" }}
               >
-                Add {selectedAddOns.size} Add-on{selectedAddOns.size > 1 ? "s" : ""}<span className="font-arabic" dir="rtl"> · إضافة</span>
+                Add {selectedAddOns.size} Add-on{selectedAddOns.size > 1 ? "s" : ""} · إضافة
 
               </button>
             )}
@@ -309,7 +309,7 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
           style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
         >
           <Shield size={14} />
-          {showComparison ? "Hide" : "Show"} Full Feature Comparison<span className="font-arabic" dir="rtl"> · مقارنة المزايا</span>
+          {showComparison ? "Hide" : "Show"} Full Feature Comparison · مقارنة المزايا
 
           {showComparison ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>

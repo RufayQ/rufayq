@@ -108,7 +108,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     // Remember for next-time biometrics
     localStorage.setItem(BIOMETRIC_KEY, signInEmail);
     setBioRemembered(signInEmail);
-    toast.success("Welcome back<span className="font-arabic" dir="rtl"> · مرحباً بعودتك</span>"");
+    toast.success("Welcome back · مرحباً بعودتك"");
     setTimeout(onLogin, 300);
   };
 
@@ -132,7 +132,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         toast.error("Biometric prompt cancelled");
         return;
       }
-      toast.success("Unlocked<span className="font-arabic" dir="rtl"> · تم الفتح</span>"");
+      toast.success("Unlocked · تم الفتح"");
       // The app still needs a valid Supabase session — if cookies are stale, fall through to manual.
       const { data } = await supabase.auth.getSession();
       if (data.session) onLogin();
@@ -166,7 +166,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     setSubmitting(false);
     if (error || (data && data.error)) {
       const msg = (data && data.error) || error?.message || "Failed to send code";
-      toast.error("Couldn't send code<span className="font-arabic" dir="rtl"> · لم نتمكن من إرسال الرمز</span>"", { description: msg });
+      toast.error("Couldn't send code · لم نتمكن من إرسال الرمز"", { description: msg });
       return;
     }
     startCountdown();
@@ -181,7 +181,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     });
     setSubmitting(false);
     if (error || !data?.approved) {
-      toast.error("Incorrect or expired code<span className="font-arabic" dir="rtl"> · رمز غير صحيح</span>"", {
+      toast.error("Incorrect or expired code · رمز غير صحيح"", {
         description: data?.error || error?.message || "Request a new code and try again",
       });
       setOtp(["", "", "", "", "", ""]);
@@ -200,7 +200,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       }
       localStorage.setItem(BIOMETRIC_KEY, data.signInEmail);
     }
-    toast.success("Verified<span className="font-arabic" dir="rtl"> · تم التحقق</span>"");
+    toast.success("Verified · تم التحقق"");
     setTimeout(onLogin, 400);
   };
 
@@ -209,7 +209,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   // ============================================================
   const validateRegister = () => {
     if (!reg.name.trim() || !reg.id.trim() || !reg.dob) {
-      toast.error("Please fill required fields<span className="font-arabic" dir="rtl"> · يرجى تعبئة الحقول المطلوبة</span>""); return false;
+      toast.error("Please fill required fields · يرجى تعبئة الحقول المطلوبة""); return false;
     }
     if (!reg.phone.trim()) { toast.error("Mobile number is required"); return false; }
     if (reg.channel === "email" && !isValidEmail(reg.email)) {
@@ -310,7 +310,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           className="w-full py-4 rounded-2xl font-bold text-white btn-press flex flex-col items-center"
           style={{ background: "var(--gold)", boxShadow: "0 8px 24px rgba(197,150,90,0.3)" }}>
           <span className="text-[15px]">Create your account</span>
-          <span className="font-arabic text-[12px] mt-0.5" dir="rtl">أنشئ حسابك<span className="font-arabic" dir="rtl"> · مع تحقق برمز</span><</span>
+          <span className="font-arabic text-[12px] mt-0.5" dir="rtl">أنشئ حسابك · مع تحقق برمز<</span>
         </button>
 
         <button onClick={() => setView("login")}
@@ -321,7 +321,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         <div className="flex items-center my-5">
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
-          <span className="px-3 text-[10px] tracking-widest font-mono" style={{ color: "var(--gray)" }}>OR<span className="font-arabic" dir="rtl"> · أو</span><</span>
+          <span className="px-3 text-[10px] tracking-widest font-mono" style={{ color: "var(--gray)" }}>OR · أو<</span>
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
         </div>
 
@@ -352,7 +352,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     return (
       <div className="flex flex-col h-full overflow-y-auto px-6 pt-10 pb-6" style={{ background: "var(--off-white)" }}>
         <button onClick={() => setView("welcome")} className="flex items-center gap-1 text-xs mb-3 self-start" style={{ color: "var(--teal-deep)" }}>
-          <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
+          <ArrowLeft size={14} /> Back · رجوع
 
         </button>
         <div className="flex flex-col items-center mb-6">
@@ -380,7 +380,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                 Password <span className="font-arabic" style={{ color: "var(--gray)" }}>· كلمة المرور</span>
               </label>
               <button onClick={handleForgot} className="text-[10px]" style={{ color: "var(--teal-mid)" }}>
-                Forgot?<span className="font-arabic" dir="rtl"> · نسيت؟</span>
+                Forgot? · نسيت؟
 
               </button>
             </div>
@@ -400,7 +400,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           className="w-full mt-4 py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
           style={{ background: "var(--teal-deep)", height: 52, opacity: submitting ? 0.7 : 1 }}>
           {submitting ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
-          {submitting ? "Signing in…" : "Sign in<span className="font-arabic" dir="rtl"> · تسجيل الدخول</span>""}
+          {submitting ? "Signing in…" : "Sign in · تسجيل الدخول""}
         </button>
 
         {bioAvailable && bioRemembered && (
@@ -408,14 +408,14 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
             className="w-full mt-3 py-3 rounded-xl font-semibold btn-press flex items-center justify-center gap-2"
             style={{ background: "var(--white)", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}>
             <Fingerprint size={18} />
-            Use biometrics<span className="font-arabic" dir="rtl"> · استخدم البصمة</span>
+            Use biometrics · استخدم البصمة
 
           </button>
         )}
 
         <div className="flex items-center my-4">
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
-          <span className="px-3 text-xs" style={{ color: "var(--gray)" }}>or<span className="font-arabic" dir="rtl"> · أو</span><</span>
+          <span className="px-3 text-xs" style={{ color: "var(--gray)" }}>or · أو<</span>
           <div className="flex-1 h-px" style={{ background: "var(--gray-light)" }} />
         </div>
 
@@ -429,7 +429,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         <p className="text-center text-xs mt-5" style={{ color: "var(--gray)" }}>
           Don't have an account?{" "}
           <button onClick={() => setView("register")} className="font-semibold" style={{ color: "var(--teal-deep)" }}>
-            Register<span className="font-arabic" dir="rtl"> · سجّل الآن</span>
+            Register · سجّل الآن
 
           </button>
         </p>
@@ -454,7 +454,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       <div className="flex flex-col h-full overflow-y-auto px-6 pt-10 pb-8" style={{ background: "var(--off-white)" }}>
         <button onClick={() => setView(otpPurpose === "signup" ? "medical" : "login")}
           className="flex items-center gap-1 text-xs mb-4 self-start" style={{ color: "var(--teal-deep)" }}>
-          <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
+          <ArrowLeft size={14} /> Back · رجوع
 
         </button>
 
@@ -497,13 +497,13 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                   0:{countdown.toString().padStart(2, "0")}
                 </span>
               </div>
-              <p className="text-[11px]" style={{ color: "var(--gray)" }}>Didn't get it?<span className="font-arabic" dir="rtl"> · لم يصلك الرمز؟</span><</p>
+              <p className="text-[11px]" style={{ color: "var(--gray)" }}>Didn't get it? · لم يصلك الرمز؟<</p>
             </div>
           ) : (
             <button onClick={() => handleSendOtp(otpChannel, otpRecipient, otpPurpose)} disabled={!canResend}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold btn-press disabled:opacity-50"
               style={{ background: "var(--teal-deep)", color: "white" }}>
-              <RefreshCw size={12} /> Resend code<span className="font-arabic" dir="rtl"> · إعادة إرسال</span>
+              <RefreshCw size={12} /> Resend code · إعادة إرسال
 
             </button>
           )}
@@ -524,19 +524,19 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     return (
       <div className="flex flex-col h-full overflow-y-auto px-6 pt-6 pb-6" style={{ background: "var(--off-white)" }}>
         <button onClick={() => setView("register")} className="flex items-center gap-1 text-xs mb-3" style={{ color: "var(--teal-deep)" }}>
-          <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
+          <ArrowLeft size={14} /> Back · رجوع
 
         </button>
         <div className="text-center mb-5">
           <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>STEP 2 OF 2</p>
           <h2 className="font-display text-2xl mt-1" style={{ color: "var(--navy)" }}>Medical Profile</h2>
           <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>الملف الطبي</p>
-          <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>Optional but helps RufayQ personalize your care<span className="font-arabic" dir="rtl"> · اختياري</span><</p>
+          <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>Optional but helps RufayQ personalize your care · اختياري<</p>
         </div>
 
         <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--white)" }}>
           <div>
-            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Blood Type<span className="font-arabic" dir="rtl"> · فصيلة الدم</span><</label>
+            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Blood Type · فصيلة الدم<</label>
             <div className="grid grid-cols-4 gap-1.5 mt-1">
               {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map((bt) => (
                 <button key={bt} onClick={() => setMed({ ...med, bloodType: bt })}
@@ -568,7 +568,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
           {/* histories */}
           {[
-            { title: "PAST MEDICAL HISTORY<span className="font-arabic" dir="rtl"> · التاريخ المرضي</span>"", list: pastHistory, add: addPast, remove: removePast, fields: (p: any, i: number) => (
+            { title: "PAST MEDICAL HISTORY · التاريخ المرضي"", list: pastHistory, add: addPast, remove: removePast, fields: (p: any, i: number) => (
               <>
                 <input value={p.condition} onChange={(e) => updatePast(i, "condition", e.target.value)} placeholder="Condition (e.g. Hypertension)"
                   className="w-full px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
@@ -577,9 +577,9 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                     className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
                   <select value={p.status} onChange={(e) => updatePast(i, "status", e.target.value)}
                     className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }}>
-                    <option value="active">Active<span className="font-arabic" dir="rtl"> · نشط</span><</option>
-                    <option value="resolved">Resolved<span className="font-arabic" dir="rtl"> · شُفي</span><</option>
-                    <option value="chronic">Chronic<span className="font-arabic" dir="rtl"> · مزمن</span><</option>
+                    <option value="active">Active · نشط<</option>
+                    <option value="resolved">Resolved · شُفي<</option>
+                    <option value="chronic">Chronic · مزمن<</option>
                   </select>
                 </div>
               </>
@@ -590,7 +590,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                 <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>{sec.title}</p>
                 <button onClick={sec.add} className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>+ Add</button>
               </div>
-              {sec.list.length === 0 && <p className="text-[10px] italic" style={{ color: "var(--gray)" }}>None recorded<span className="font-arabic" dir="rtl"> · لا يوجد</span><</p>}
+              {sec.list.length === 0 && <p className="text-[10px] italic" style={{ color: "var(--gray)" }}>None recorded · لا يوجد<</p>}
               {sec.list.map((p: any, i: number) => (
                 <div key={i} className="rounded-xl p-2.5 mb-2 space-y-1.5" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
                   <div className="flex justify-between items-center">
@@ -604,19 +604,19 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           ))}
 
           <div className="pt-1" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-            <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>EMERGENCY CONTACT<span className="font-arabic" dir="rtl"> · جهة الطوارئ</span><</p>
+            <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>EMERGENCY CONTACT · جهة الطوارئ<</p>
             <div className="grid grid-cols-2 gap-2">
-              <input value={med.emName} onChange={(e) => setMed({ ...med, emName: e.target.value })} placeholder="Name<span className="font-arabic" dir="rtl"> · الاسم</span>""
+              <input value={med.emName} onChange={(e) => setMed({ ...med, emName: e.target.value })} placeholder="Name · الاسم""
                 className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
               <input value={med.emRelation} onChange={(e) => setMed({ ...med, emRelation: e.target.value })} placeholder="Relation"
                 className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
             </div>
-            <input value={med.emPhone} onChange={(e) => setMed({ ...med, emPhone: e.target.value })} placeholder="Phone<span className="font-arabic" dir="rtl"> · الهاتف</span>""
+            <input value={med.emPhone} onChange={(e) => setMed({ ...med, emPhone: e.target.value })} placeholder="Phone · الهاتف""
               className="w-full mt-2 px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
           </div>
 
           <div className="pt-1" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-            <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>INSURANCE<span className="font-arabic" dir="rtl"> · التأمين</span><</p>
+            <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>INSURANCE · التأمين<</p>
             <div className="grid grid-cols-2 gap-2">
               <input value={med.insurer} onChange={(e) => setMed({ ...med, insurer: e.target.value })} placeholder="Provider"
                 className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
@@ -640,7 +640,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <button onClick={handleCompleteSignup} disabled={submitting}
             className="flex-[2] py-3 rounded-xl font-semibold text-white btn-press"
             style={{ background: "var(--gold)", opacity: submitting ? 0.6 : 1 }}>
-            {submitting ? "Saving…" : "Complete & verify<span className="font-arabic" dir="rtl"> · إكمال</span>""}
+            {submitting ? "Saving…" : "Complete & verify · إكمال""}
           </button>
         </div>
       </div>
@@ -655,7 +655,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   return (
     <div className="flex flex-col h-full overflow-y-auto px-6 pt-6 pb-6" style={{ background: "var(--off-white)" }}>
       <button onClick={() => setView("welcome")} className="flex items-center gap-1 text-xs mb-2 self-start" style={{ color: "var(--teal-deep)" }}>
-        <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
+        <ArrowLeft size={14} /> Back · رجوع
 
       </button>
       <div className="text-center mb-4">
@@ -687,9 +687,9 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         ))}
 
         <div>
-          <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Gender<span className="font-arabic" dir="rtl"> · الجنس</span><</label>
+          <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Gender · الجنس<</label>
           <div className="flex gap-2 mt-1">
-            {[["male", "Male<span className="font-arabic" dir="rtl"> · ذكر</span>""], ["female", "Female<span className="font-arabic" dir="rtl"> · أنثى</span>""]].map(([val, label]) => (
+            {[["male", "Male · ذكر""], ["female", "Female · أنثى""]].map(([val, label]) => (
               <button key={val} onClick={() => setReg({ ...reg, gender: val })}
                 className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all btn-press"
                 style={{
@@ -703,7 +703,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         {/* Verification channel selector */}
         <div className="pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-          <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>VERIFICATION<span className="font-arabic" dir="rtl"> · التحقق</span><</p>
+          <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>VERIFICATION · التحقق<</p>
           <p className="text-[11px] mb-2" style={{ color: "var(--gray)" }}>How should we send your one-time code?</p>
           <div className="grid grid-cols-3 gap-2">
             {[
@@ -749,7 +749,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         {/* Password */}
         <div className="pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-          <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>PASSWORD<span className="font-arabic" dir="rtl"> · كلمة المرور</span><</p>
+          <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>PASSWORD · كلمة المرور<</p>
           <div>
             <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Password * (min 8 chars)</label>
             <input type="password" value={reg.password}
@@ -803,7 +803,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       <button onClick={handleNextToMedical} disabled={!canContinue}
         className="w-full mt-4 py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
         style={{ background: "var(--gold)", opacity: canContinue ? 1 : 0.5, height: 52 }}>
-        Continue → Medical info<span className="font-arabic" dir="rtl"> · متابعة</span>
+        Continue → Medical info · متابعة
 
       </button>
       <button onClick={() => setView("login")} className="mt-3 text-center text-xs" style={{ color: "var(--gray)" }}>

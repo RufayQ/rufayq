@@ -128,11 +128,11 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
         if (resp.status === 429) {
-          toast.error("Rate limit exceeded<span className="font-arabic" dir="rtl"> · تم تجاوز الحد المسموح</span>"");
+          toast.error("Rate limit exceeded · تم تجاوز الحد المسموح"");
         } else if (resp.status === 402) {
-          toast.error("AI credits exhausted<span className="font-arabic" dir="rtl"> · نفدت رصيد الذكاء الاصطناعي</span>"");
+          toast.error("AI credits exhausted · نفدت رصيد الذكاء الاصطناعي"");
         } else {
-          toast.error("AI error<span className="font-arabic" dir="rtl"> · خطأ في الذكاء الاصطناعي</span>"");
+          toast.error("AI error · خطأ في الذكاء الاصطناعي"");
         }
         setIsTyping(false);
         return;
@@ -221,7 +221,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
     } catch (err) {
       console.error("Chat error:", err);
       setIsTyping(false);
-      toast.error("Connection error<span className="font-arabic" dir="rtl"> · خطأ في الاتصال</span>"");
+      toast.error("Connection error · خطأ في الاتصال"");
     }
   };
 
@@ -237,7 +237,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
   const handleCopyChat = () => {
     const text = messages.map(m => `[${m.time}] ${m.sender === "user" ? "You" : "RufayQ AI"}: ${m.text}`).join("\n\n");
     navigator.clipboard.writeText(text);
-    toast.success("Chat copied<span className="font-arabic" dir="rtl"> · تم نسخ المحادثة</span>"", { duration: 2000 });
+    toast.success("Chat copied · تم نسخ المحادثة"", { duration: 2000 });
   };
 
   const handleExportChat = () => {
@@ -247,12 +247,12 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
     const a = document.createElement("a");
     a.href = url; a.download = "rufayq-chat.txt"; a.click();
     URL.revokeObjectURL(url);
-    toast.success("Chat exported<span className="font-arabic" dir="rtl"> · تم تصدير المحادثة</span>"", { duration: 2000 });
+    toast.success("Chat exported · تم تصدير المحادثة"", { duration: 2000 });
   };
 
   const handleClearChat = () => {
     setMessages(initialMessages);
-    toast.success("Chat cleared<span className="font-arabic" dir="rtl"> · تم مسح المحادثة</span>"", { duration: 2000 });
+    toast.success("Chat cleared · تم مسح المحادثة"", { duration: 2000 });
   };
 
   const chatMenuItems: HeaderMenuItem[] = [
@@ -389,7 +389,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
             <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.2)" }}>
               <div className="w-3 h-3 rounded-full" style={{ background: "#D94F4F", animation: "pulse 1s ease-in-out infinite" }} />
               <div className="flex-1">
-                <p className="text-[12px] font-bold" style={{ color: "#D94F4F" }}>Recording...<span className="font-arabic" dir="rtl"> · جاري التسجيل</span><</p>
+                <p className="text-[12px] font-bold" style={{ color: "#D94F4F" }}>Recording... · جاري التسجيل<</p>
                 <div className="flex items-center gap-0.5 mt-1.5 h-4">
                   {Array.from({ length: 28 }).map((_, i) => (
                     <div key={i} className="w-[3px] rounded-full" style={{
@@ -411,7 +411,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
             <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--teal-light)", border: "1px solid rgba(0,77,91,0.2)" }}>
               <Mic size={18} style={{ color: "var(--teal-deep)" }} />
               <div className="flex-1">
-                <p className="text-[12px] font-semibold" style={{ color: "var(--teal-deep)" }}>Voice note ready<span className="font-arabic" dir="rtl"> · ملاحظة صوتية جاهزة</span><</p>
+                <p className="text-[12px] font-semibold" style={{ color: "var(--teal-deep)" }}>Voice note ready · ملاحظة صوتية جاهزة<</p>
                 <div className="flex items-center gap-1 mt-1">
                   <div className="flex items-center gap-0.5 h-3 flex-1">
                     {Array.from({ length: 35 }).map((_, i) => (
@@ -522,7 +522,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
               <p className="font-arabic text-sm" dir="rtl" style={{ color: "var(--gray)" }}>ارفع وثيقة إلى رُفَيِّق</p>
             </div>
             <div className="px-5 mb-3">
-              <p className="text-[10px] font-mono tracking-wider mb-2" style={{ color: "var(--gold)" }}>DOCUMENT TYPE<span className="font-arabic" dir="rtl"> · نوع الوثيقة</span><</p>
+              <p className="text-[10px] font-mono tracking-wider mb-2" style={{ color: "var(--gold)" }}>DOCUMENT TYPE · نوع الوثيقة<</p>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { emoji: "🔬", label: "Lab Results", ar: "تحاليل" },
@@ -592,7 +592,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
               <div className="px-5 mt-3">
                 <button onClick={handleUploadSend} className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 btn-press" style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
                   <RufayQLogo size={16} variant="light" />
-                  <span>Send to RufayQ<span className="font-arabic" dir="rtl"> · أرسل إلى رُفَيِّق</span><</span>
+                  <span>Send to RufayQ · أرسل إلى رُفَيِّق<</span>
                 </button>
               </div>
             )}

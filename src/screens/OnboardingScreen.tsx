@@ -130,7 +130,7 @@ const OnboardingScreen = ({ onComplete }: OnboardingScreenProps) => {
           className="w-full mt-10 py-3.5 rounded-xl font-semibold text-white btn-press"
           style={{ background: "var(--gold)", height: 52 }}
         >
-          Get Started<span className="font-arabic" dir="rtl"> · ابدأ الآن</span>
+          Get Started · ابدأ الآن
 
         </button>
         <button
@@ -138,7 +138,7 @@ const OnboardingScreen = ({ onComplete }: OnboardingScreenProps) => {
           className="w-full mt-3 py-3 rounded-xl text-sm btn-press"
           style={{ border: "1px solid var(--teal-mid)", color: "var(--teal-bright)" }}
         >
-          I already have an account<span className="font-arabic" dir="rtl"> · لدي حساب بالفعل</span>
+          I already have an account · لدي حساب بالفعل
 
         </button>
       </div>
@@ -153,7 +153,7 @@ const OnboardingScreen = ({ onComplete }: OnboardingScreenProps) => {
           className="absolute top-4 right-4 z-10 text-xs px-3 py-1"
           style={{ color: "var(--gray)" }}
         >
-          Skip<span className="font-arabic" dir="rtl"> · تخطى</span>
+          Skip · تخطى
 
         </button>
       )}
@@ -179,7 +179,7 @@ const OnboardingScreen = ({ onComplete }: OnboardingScreenProps) => {
           className="px-10 py-3 rounded-xl font-semibold text-white btn-press"
           style={{ background: "var(--teal-deep)" }}
         >
-          Next<span className="font-arabic" dir="rtl"> · التالي</span>
+          Next · التالي
 
         </button>
       </div>
