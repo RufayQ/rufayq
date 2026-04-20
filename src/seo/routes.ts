@@ -48,7 +48,6 @@ export const ROUTES: BilingualRoute[] = [
   { kind: "enterprise",  en: "/enterprise",  ar: "/ar/enterprise", priority: 0.9, changefreq: "monthly", indexable: true },
   { kind: "about",       en: "/about",       ar: "/ar/about",      priority: 0.7, changefreq: "monthly", indexable: true },
   { kind: "providers",   en: "/providers",   ar: "/ar/providers",  priority: 0.7, changefreq: "monthly", indexable: true },
-  { kind: "pricing",     en: "/pricing",     ar: "/ar/pricing",    priority: 0.9, changefreq: "weekly",  indexable: true },
   { kind: "privacy",     en: "/privacy",     ar: "/ar/privacy",    priority: 0.5, changefreq: "monthly", indexable: true },
   { kind: "terms",       en: "/terms",       ar: "/ar/terms",      priority: 0.5, changefreq: "monthly", indexable: true },
   { kind: "security",    en: "/security",    ar: "/ar/security",   priority: 0.5, changefreq: "monthly", indexable: true },

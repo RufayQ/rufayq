@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { ArrowLeft, Check, Zap, Shield, Crown, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import CurrencySwitcher from "@/components/CurrencySwitcher";
+import { ADDON_META, type AddOnId } from "@/data/currencyMaster";
 
 interface PricingScreenProps {
   onBack: () => void;
@@ -122,12 +125,20 @@ const comparisonFeatures = [
   { feature: "Add-ons", featureAr: "إضافات", free: "—", pro: "✓", enterprise: "Included" },
 ];
 
+const ADDON_MAP: { id: AddOnId; icon: string }[] = [
+  { id: "medicalConsultant", icon: "🩺" },
+  { id: "rushTranslation", icon: "🌐" },
+  { id: "caregiverSeat", icon: "👨‍👩‍👧" },
+  { id: "physioNetwork", icon: "💪" },
+];
+
 const PricingScreen = ({ onBack }: PricingScreenProps) => {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [showComparison, setShowComparison] = useState(false);
   const [showAddOns, setShowAddOns] = useState(false);
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const { getPrice, getAddon, format, currency } = useCurrency();
 
   const handleSelectPlan = (planId: string) => {
     if (planId === "free") return;
@@ -165,7 +176,7 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
         <div className="flex items-center justify-between mb-3">
           <button onClick={onBack} className="btn-press"><ArrowLeft size={20} color="white" /></button>
           <p className="font-display text-lg text-white">Plans & Pricing · <span className="font-arabic">الأسعار</span></p>
-          <div className="w-8" />
+          <CurrencySwitcher variant="inline" />
         </div>
         <div className="flex justify-center">
           <div className="flex rounded-full p-0.5" style={{ background: "rgba(255,255,255,0.1)" }}>
@@ -215,8 +226,11 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
                 </div>
                 <div className="text-right">
                   <p className="font-display text-2xl font-bold" style={{ color: plan.color }}>
-                    {plan.price === "Free" || plan.price === "Custom" ? plan.price :
-                      billing === "yearly" ? `$${(parseFloat(plan.price.replace("$", "")) * 0.8).toFixed(2)}` : plan.price}
+                    {plan.price === "Free" || plan.price === "Custom"
+                      ? plan.price
+                      : plan.id === "pro"
+                        ? format(getPrice("companion", billing === "yearly" ? "annual" : "monthly") / (billing === "yearly" ? 12 : 1))
+                        : plan.price}
                   </p>
                   {plan.period && (
                     <p className="text-[10px]" style={{ color: "var(--gray)" }}>
@@ -264,27 +278,28 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
         {showAddOns && (
           <div className="mt-3 space-y-2">
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>PAY-AS-YOU-GO ADD-ONS</p>
-            {addOns.map((addon) => {
-              const selected = selectedAddOns.has(addon.id);
+            {ADDON_MAP.map(({ id, icon }) => {
+              const meta = ADDON_META[id];
+              const selected = selectedAddOns.has(id);
               return (
                 <button
-                  key={addon.id}
-                  onClick={() => toggleAddOn(addon.id)}
+                  key={id}
+                  onClick={() => toggleAddOn(id)}
                   className="w-full rounded-xl p-3.5 flex items-center gap-3 text-left transition-all"
                   style={{
                     background: selected ? "var(--teal-light)" : "var(--white)",
                     border: selected ? "2px solid var(--teal-deep)" : "1px solid var(--gray-light)",
                   }}
                 >
-                  <span className="text-2xl">{addon.icon}</span>
+                  <span className="text-2xl">{icon}</span>
                   <div className="flex-1">
-                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{addon.name}</p>
-                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{addon.nameAr}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "var(--gray)" }}>{addon.desc}</p>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{meta.nameEn}</p>
+                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{meta.nameAr}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: "var(--gray)" }}>{meta.descEn}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-[14px] font-bold" style={{ color: "var(--teal-deep)" }}>{addon.price}</p>
-                    <p className="text-[9px]" style={{ color: "var(--gray)" }}>{addon.unit}</p>
+                    <p className="text-[14px] font-bold" style={{ color: "var(--teal-deep)" }}>{format(getAddon(id))}</p>
+                    <p className="text-[9px]" style={{ color: "var(--gray)" }}>{meta.unitEn}</p>
                   </div>
                 </button>
               );

@@ -13,6 +13,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 // Code-split non-landing routes for faster First Contentful Paint on /
 const Index = lazy(() => import("./pages/Index.tsx"));
 const Pricing = lazy(() => import("./pages/Pricing.tsx"));
+const Enterprise = lazy(() => import("./pages/Enterprise.tsx"));
 const CancerTreatmentAbroad = lazy(() => import("./pages/content/CancerTreatmentAbroad.tsx"));
 const GermanyMedicalTreatment = lazy(() => import("./pages/content/GermanyMedicalTreatment.tsx"));
 const MedicalVisaGermany = lazy(() => import("./pages/content/MedicalVisaGermany.tsx"));
@@ -60,6 +61,7 @@ const App = () => (
                 <Route path="/security" element={<Security />} />
                 <Route path="/providers" element={<Providers />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/enterprise" element={<Enterprise />} />
                 <Route path="/conditions/cancer-treatment-abroad" element={<CancerTreatmentAbroad />} />
                 <Route path="/destinations/germany-medical-treatment" element={<GermanyMedicalTreatment />} />
                 <Route path="/guides/medical-visa-germany-saudi-citizens" element={<MedicalVisaGermany />} />
@@ -72,6 +74,7 @@ const App = () => (
                 <Route path="/ar/security" element={<Security />} />
                 <Route path="/ar/providers" element={<Providers />} />
                 <Route path="/ar/pricing" element={<Pricing />} />
+                <Route path="/ar/enterprise" element={<Enterprise />} />
                 <Route path="/ar/conditions/cancer-treatment-abroad" element={<CancerTreatmentAbroad />} />
                 <Route path="/ar/destinations/germany-medical-treatment" element={<GermanyMedicalTreatment />} />
                 <Route path="/ar/guides/medical-visa-germany-saudi-citizens" element={<MedicalVisaGermany />} />
