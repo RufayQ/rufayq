@@ -48,18 +48,18 @@ export const ROUTES: BilingualRoute[] = [
   { kind: "enterprise",  en: "/enterprise",  ar: "/ar/enterprise", priority: 0.9, changefreq: "monthly", indexable: true },
   { kind: "about",       en: "/about",       ar: "/ar/about",      priority: 0.7, changefreq: "monthly", indexable: true },
   { kind: "providers",   en: "/providers",   ar: "/ar/providers",  priority: 0.7, changefreq: "monthly", indexable: true },
+  { kind: "pricing",     en: "/pricing",     ar: "/ar/pricing",    priority: 0.9, changefreq: "weekly",  indexable: true },
   { kind: "privacy",     en: "/privacy",     ar: "/ar/privacy",    priority: 0.5, changefreq: "monthly", indexable: true },
   { kind: "terms",       en: "/terms",       ar: "/ar/terms",      priority: 0.5, changefreq: "monthly", indexable: true },
   { kind: "security",    en: "/security",    ar: "/ar/security",   priority: 0.5, changefreq: "monthly", indexable: true },
   { kind: "app",         en: "/app",         ar: "/ar/app",        priority: 0.6, changefreq: "weekly",  indexable: false },
 ];
 
-/** Cornerstone content pages (Phase 1B — extend this array as content ships). */
+/** Cornerstone content pages (Phase 1B). */
 export const CONTENT_ROUTES: BilingualRoute[] = [
-  // Phase 1B will populate:
-  // { kind: "conditions",   en: "/conditions/cancer-treatment-abroad",   ar: "/ar/conditions/cancer-treatment-abroad",   ... },
-  // { kind: "destinations", en: "/destinations/germany-medical-treatment", ar: "/ar/destinations/germany-medical-treatment", ... },
-  // { kind: "guides",       en: "/guides/medical-visa-germany-saudi-citizens", ar: "/ar/guides/medical-visa-germany-saudi-citizens", ... },
+  { kind: "conditions",   en: "/conditions/cancer-treatment-abroad",        ar: "/ar/conditions/cancer-treatment-abroad",        priority: 0.8, changefreq: "monthly", indexable: true },
+  { kind: "destinations", en: "/destinations/germany-medical-treatment",    ar: "/ar/destinations/germany-medical-treatment",    priority: 0.8, changefreq: "monthly", indexable: true },
+  { kind: "guides",       en: "/guides/medical-visa-germany-saudi-citizens", ar: "/ar/guides/medical-visa-germany-saudi-citizens", priority: 0.8, changefreq: "monthly", indexable: true },
 ];
 
 /** All routes (top-level + content) — used by sitemap generator. */

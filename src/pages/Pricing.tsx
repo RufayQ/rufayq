@@ -1,0 +1,301 @@
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { ArrowLeft, Check, Star, ChevronDown, ChevronUp } from "lucide-react";
+import RufayQLogo from "@/components/RufayQLogo";
+import { Seo } from "@/seo/Seo";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import CurrencySwitcher from "@/components/CurrencySwitcher";
+import { ADDON_META, type AddOnId, type TierId } from "@/data/currencyMaster";
+import { faqSchema, breadcrumbSchema } from "@/seo/schema";
+
+const BG = "#06101A", BG2 = "#0B1A28", BORDER = "rgba(197,150,90,0.18)";
+const TEXT = "#E8ECF0", MUTED = "rgba(232,236,240,0.65)", GOLD = "#C5965A", TEAL = "#004D5B";
+
+interface TierMeta {
+  id: "free" | TierId;
+  eyebrowEn: string; eyebrowAr: string;
+  nameEn: string; nameAr: string;
+  descEn: string; descAr: string;
+  ctaEn: string; ctaAr: string;
+  highlight?: boolean;
+  featuresEn: string[]; featuresAr: string[];
+}
+
+const TIERS: TierMeta[] = [
+  {
+    id: "free", eyebrowEn: "Discover", eyebrowAr: "اكتشف", nameEn: "Free", nameAr: "مجاني",
+    descEn: "For patients exploring options before committing.",
+    descAr: "للمرضى الذين يستكشفون الخيارات قبل الالتزام.",
+    ctaEn: "Start free", ctaAr: "ابدأ مجاناً",
+    featuresEn: ["AI chat — 20 messages / month", "Document upload — up to 5 files", "Basic journey tracker", "Read access to 3 condition guides", "No medical consultant access"],
+    featuresAr: ["رفيق ذكي — ٢٠ رسالة شهرياً", "رفع المستندات — حتى ٥ ملفات", "متتبع رحلات أساسي", "قراءة ٣ أدلة حالات", "بدون مستشار طبي"],
+  },
+  {
+    id: "starter", eyebrowEn: "Essential", eyebrowAr: "أساسي", nameEn: "Starter", nameAr: "ستارتر",
+    descEn: "One patient, one destination, the core toolkit.",
+    descAr: "مريض واحد، وجهة واحدة، الأدوات الأساسية.",
+    ctaEn: "Get Starter", ctaAr: "ابدأ ستارتر",
+    featuresEn: ["Everything in Free", "Unlimited AI chat", "Unlimited documents with OCR + auto-route", "Full journey tracker (flight, hotel, hospital)", "Medication manager with interaction alerts", "Email + chat support"],
+    featuresAr: ["كل ما في المجاني", "رفيق ذكي بلا حدود", "مستندات غير محدودة مع OCR", "متتبع رحلة كامل", "إدارة أدوية بتنبيهات تداخل", "دعم بالبريد والمحادثة"],
+  },
+  {
+    id: "companion", eyebrowEn: "Most chosen", eyebrowAr: "الأكثر اختياراً", nameEn: "Companion", nameAr: "كومبانيون",
+    descEn: "The complete medical-travel experience.",
+    descAr: "تجربة السفر الطبي الكاملة.",
+    ctaEn: "Get Companion", ctaAr: "ابدأ كومبانيون", highlight: true,
+    featuresEn: ["Everything in Starter", "Care Hub — full video library", "Real-time symptom monitoring", "Translated discharge summaries", "KSA doctor coordination handoff", "1 free Medical Consultant session / month", "Priority 24/7 support"],
+    featuresAr: ["كل ما في ستارتر", "مركز الرعاية — مكتبة فيديو كاملة", "متابعة أعراض فورية", "ملخصات خروج مترجمة", "تنسيق مع الطبيب السعودي", "جلسة مستشار طبي مجانية شهرياً", "دعم ٢٤/٧ بأولوية"],
+  },
+  {
+    id: "family", eyebrowEn: "Up to 4 patients", eyebrowAr: "حتى ٤ مرضى", nameEn: "Family", nameAr: "فاميلي",
+    descEn: "For families with multiple patients or caregivers abroad.",
+    descAr: "للعائلات بمرضى أو مرافقين متعددين.",
+    ctaEn: "Get Family", ctaAr: "ابدأ فاميلي",
+    featuresEn: ["Everything in Companion", "Up to 4 patient profiles", "Shared family coordinator role", "Caregiver notifications + task assignment", "Consolidated family timeline", "2 free Medical Consultant sessions / month"],
+    featuresAr: ["كل ما في كومبانيون", "حتى ٤ ملفات مرضى", "دور منسّق عائلي مشترك", "تنبيهات وإسناد مهام للمرافقين", "خط زمني عائلي موحّد", "جلستان مجانيتان مع المستشار"],
+  },
+];
+
+const ADDON_ORDER: AddOnId[] = ["medicalConsultant", "rushTranslation", "priorityCoordinator", "caregiverSeat", "physioNetwork", "claimsConcierge"];
+
+const FAQ_EN = [
+  { q: "Can I change plans later?", a: "Yes — upgrade, downgrade, or cancel anytime from Settings. Pro-rated credits apply for mid-cycle changes." },
+  { q: "What currencies do you support?", a: "SAR, AED, EGP, USD, and EUR. We auto-detect from your locale and let you switch anytime." },
+  { q: "What happens if I cancel mid-month?", a: "You keep paid features until the end of the billing period. No partial refunds, but no surprise charges either." },
+  { q: "Is my medical data secure?", a: "Yes — encrypted at rest and in transit, never sold, and never used to train third-party AI. See our Security page for details." },
+  { q: "How do Medical Consultant sessions work?", a: "45-minute private video call with a physician-coordinator who has reviewed your case beforehand. Companion includes 1/month, Family 2/month; extra sessions can be purchased." },
+  { q: "Do you accept health insurance?", a: "Subscriptions are not insurance-eligible, but our Insurance Claims Concierge add-on can recover treatment costs from BUPA Arabia, Tawuniya, and others." },
+];
+const FAQ_AR = [
+  { q: "هل يمكنني تغيير الخطة لاحقاً؟", a: "نعم — ترقية أو تخفيض أو إلغاء في أي وقت من الإعدادات. أرصدة بالنسبة للتغييرات في منتصف الدورة." },
+  { q: "أي عملات تدعمون؟", a: "ر.س، د.إ، ج.م، دولار، ويورو. نكتشف تلقائياً من موقعك ويمكنك التبديل في أي وقت." },
+  { q: "ماذا يحدث إن ألغيت في منتصف الشهر؟", a: "تحتفظ بالميزات المدفوعة حتى نهاية فترة الفوترة. بدون استرداد جزئي وبدون رسوم مفاجئة." },
+  { q: "هل بياناتي الطبية آمنة؟", a: "نعم — مشفّرة في الراحة والنقل، لا تُباع ولا تُستخدم لتدريب ذكاء اصطناعي خارجي. راجع صفحة الأمان." },
+  { q: "كيف تعمل جلسات المستشار الطبي؟", a: "مكالمة فيديو خاصة ٤٥ دقيقة مع طبيب-منسّق راجع حالتك مسبقاً. كومبانيون = ١ شهرياً، فاميلي = ٢؛ يمكن شراء جلسات إضافية." },
+  { q: "هل تقبلون التأمين الصحي؟", a: "الاشتراكات غير مغطاة بالتأمين، لكن إضافة مساعد المطالبات تستردّ تكاليف العلاج من بوبا والتعاونية وغيرها." },
+];
+
+const Pricing = () => {
+  const isAr = useLocation().pathname.startsWith("/ar");
+  const { mode } = useLanguage();
+  const { format, getPrice, getAddon, currency } = useCurrency();
+  const [period, setPeriod] = useState<"monthly" | "annual">("monthly");
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  const showAr = mode === "ar";
+  const showEn = mode !== "ar";
+
+  const tierPrice = (id: "free" | TierId) => {
+    if (id === "free") return showAr ? "مجاني" : "Free";
+    const p = getPrice(id, period);
+    return format(p);
+  };
+
+  return (
+    <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }}>
+      <Seo
+        title={isAr ? "أسعار رُفَيِّق" : "Pricing"}
+        description={isAr
+          ? "اشتراك واحد لكل خطوة من رحلتك العلاجية. خطط من المجاني إلى فاميلي بأسعار محلية بالريال السعودي والدرهم والجنيه والدولار واليورو."
+          : "One subscription for every step of your medical journey. Plans from Free to Family in SAR, AED, EGP, USD, and EUR."}
+        canonical={isAr ? "/ar/pricing" : "/pricing"}
+        jsonLd={[
+          breadcrumbSchema([
+            { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+            { name: isAr ? "الأسعار" : "Pricing", path: isAr ? "/ar/pricing" : "/pricing" },
+          ]),
+          faqSchema(FAQ_EN),
+        ]}
+      />
+
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.85)", borderBottom: `1px solid ${BORDER}` }}>
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
+          <Link to="/" className="flex items-center gap-2.5">
+            <ArrowLeft size={16} color={TEXT} />
+            <RufayQLogo size={28} variant="light" />
+            <span className="font-display text-lg"><span style={{ color: TEXT }}>Rufay</span><span className="font-bold" style={{ color: GOLD }}>Q</span></span>
+          </Link>
+          <CurrencySwitcher />
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <header className="max-w-5xl mx-auto px-6 pt-16 pb-10 text-center">
+        {showEn && <h1 className="font-display text-4xl md:text-6xl tracking-tight mb-4" style={{ fontWeight: 300 }}>One subscription. <span style={{ color: GOLD }}>Every step</span> of your medical journey.</h1>}
+        {showAr && <h1 dir="rtl" className="font-arabic text-3xl md:text-5xl mb-4" style={{ color: GOLD, fontWeight: 600 }}>اشتراك واحد. كل خطوة من رحلتك العلاجية.</h1>}
+        {showEn && <p className="text-base md:text-lg max-w-2xl mx-auto mb-8" style={{ color: MUTED }}>Choose the plan that fits your journey. Upgrade, downgrade, or cancel anytime.</p>}
+        {showAr && <p dir="rtl" className="font-arabic max-w-2xl mx-auto mb-8" style={{ color: MUTED }}>اختر الخطة التي تناسب رحلتك. ترقية أو تخفيض أو إلغاء في أي وقت.</p>}
+
+        {/* Billing toggle */}
+        <div className="inline-flex items-center gap-1 p-1 rounded-full mb-3" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
+          {(["monthly", "annual"] as const).map((p) => (
+            <button key={p} onClick={() => setPeriod(p)}
+              className="px-5 py-2 rounded-full text-xs font-semibold transition-all"
+              style={{ background: period === p ? GOLD : "transparent", color: period === p ? "#06101A" : MUTED }}>
+              {p === "monthly" ? (showAr ? "شهري" : "Monthly") : (showAr ? "سنوي — وفّر شهرين" : "Annual — Save 2 months")}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px]" style={{ color: MUTED }}>
+          {showAr ? `الأسعار بـ ${currency} — ` : `Prices shown in ${currency} — `}
+          <CurrencySwitcher variant="inline" />
+        </p>
+      </header>
+
+      {/* Tier cards */}
+      <section className="max-w-6xl mx-auto px-6 pb-16">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {TIERS.map((t) => (
+            <div key={t.id}
+              className="relative rounded-3xl p-6 flex flex-col"
+              style={{
+                background: t.highlight ? `linear-gradient(180deg, ${GOLD}18, ${BG2})` : BG2,
+                border: `1px solid ${t.highlight ? GOLD : BORDER}`,
+                boxShadow: t.highlight ? `0 20px 60px -20px ${GOLD}55` : undefined,
+              }}>
+              {t.highlight && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider"
+                  style={{ background: GOLD, color: "#06101A" }}>
+                  {showAr ? "الأكثر شيوعاً ★" : "★ MOST POPULAR"}
+                </div>
+              )}
+              <p className="font-mono text-[10px] tracking-[0.25em] uppercase mb-2" style={{ color: GOLD }}>
+                {showAr ? t.eyebrowAr : t.eyebrowEn}
+              </p>
+              <h3 className="font-display text-2xl mb-1" style={{ color: TEXT }}>{showAr ? t.nameAr : t.nameEn}</h3>
+              <p className="text-xs mb-4" style={{ color: MUTED, minHeight: 32 }}>{showAr ? t.descAr : t.descEn}</p>
+              <div className="mb-5">
+                <span className="font-display text-3xl font-semibold" style={{ color: TEXT }}>{tierPrice(t.id)}</span>
+                {t.id !== "free" && (
+                  <span className="text-xs ms-1" style={{ color: MUTED }}>
+                    {period === "monthly" ? (showAr ? "/ شهر" : "/ month") : (showAr ? "/ سنة" : "/ year")}
+                  </span>
+                )}
+                {t.id === "free" && <span className="text-xs ms-1" style={{ color: MUTED }}>{showAr ? "للأبد" : "forever"}</span>}
+                {t.id !== "free" && period === "annual" && (
+                  <div className="mt-1 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#1FA77744", color: "#5EE5B0" }}>
+                    {showAr ? "وفّر شهرين" : "Save 2 months"}
+                  </div>
+                )}
+              </div>
+              <ul className="space-y-2 mb-6 flex-1">
+                {(showAr ? t.featuresAr : t.featuresEn).map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[13px]" style={{ color: TEXT }} dir={showAr ? "rtl" : "ltr"}>
+                    <Check size={14} className="mt-0.5 flex-shrink-0" color={GOLD} />
+                    <span className={showAr ? "font-arabic" : ""}>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link to="/app"
+                className="block text-center px-4 py-2.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.02]"
+                style={{ background: t.highlight ? GOLD : "transparent", color: t.highlight ? "#06101A" : TEXT, border: t.highlight ? "none" : `1px solid ${BORDER}` }}>
+                {showAr ? t.ctaAr : t.ctaEn}
+              </Link>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Why Companion */}
+      <section className="max-w-5xl mx-auto px-6 pb-16">
+        <div className="grid md:grid-cols-3 gap-4">
+          {[
+            { en: "Built-in clinical access", ar: "وصول سريري مدمج", dEn: `One Medical Consultant session/month — worth ${format(getAddon("medicalConsultant"))} on its own.`, dAr: `جلسة مستشار طبي شهرياً — تساوي ${format(getAddon("medicalConsultant"))} منفردة.` },
+            { en: "Translated for your Saudi doctor", ar: "مترجم لطبيبك السعودي", dEn: "Discharge summaries converted for KSA physician handoff.", dAr: "ملخصات خروج محوّلة للتسليم للطبيب السعودي." },
+            { en: "Less than 1% of a typical procedure", ar: "أقل من ١٪ من تكلفة العملية", dEn: `${format(getPrice("companion", "annual"))}/year vs. SAR 150,000 average procedure cost.`, dAr: `${format(getPrice("companion", "annual"))}/سنة مقابل ١٥٠,٠٠٠ ر.س متوسط تكلفة عملية.` },
+          ].map((b, i) => (
+            <div key={i} className="rounded-2xl p-5" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
+              <p className="text-sm font-semibold mb-2" style={{ color: GOLD }}>{showAr ? b.ar : b.en}</p>
+              <p className="text-xs" style={{ color: MUTED }} dir={showAr ? "rtl" : "ltr"}>{showAr ? b.dAr : b.dEn}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Add-ons */}
+      <section className="max-w-6xl mx-auto px-6 pb-20">
+        <div className="text-center mb-10">
+          {showEn && <h2 className="font-display text-3xl md:text-4xl mb-2" style={{ fontWeight: 400 }}>Add-ons — Go deeper when you need to</h2>}
+          {showAr && <h2 dir="rtl" className="font-arabic text-2xl md:text-3xl mb-2" style={{ color: GOLD }}>إضافات — تعمّق عند الحاجة</h2>}
+          <p className="text-sm" style={{ color: MUTED }}>
+            {showAr ? "كل خطة قابلة للتوسيع. ادفع فقط عند الاستخدام." : "Every plan can be extended. Pay only when you use them."}
+          </p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-5">
+          {ADDON_ORDER.map((id) => {
+            const meta = ADDON_META[id];
+            const price = getAddon(id);
+            const hero = meta.hero;
+            return (
+              <div key={id}
+                className="rounded-2xl p-6 flex flex-col"
+                style={{
+                  background: hero ? `linear-gradient(135deg, ${GOLD}1A, ${BG2})` : BG2,
+                  border: `1px solid ${hero ? GOLD : BORDER}`,
+                }}>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <h3 className="font-display text-lg flex items-center gap-1.5" style={{ color: TEXT }}>
+                    {hero && <Star size={14} fill={GOLD} color={GOLD} />}
+                    {showAr ? meta.nameAr : meta.nameEn}
+                  </h3>
+                  <span className="font-mono text-sm font-bold whitespace-nowrap" style={{ color: GOLD }}>
+                    {format(price)} <span className="text-[10px] font-normal" style={{ color: MUTED }}>{showAr ? meta.unitAr : meta.unitEn}</span>
+                  </span>
+                </div>
+                <p className="text-xs mb-4 flex-1" style={{ color: MUTED }} dir={showAr ? "rtl" : "ltr"}>{showAr ? meta.descAr : meta.descEn}</p>
+                <Link to="/app" className="self-start text-xs font-semibold px-4 py-2 rounded-full transition-all hover:scale-105"
+                  style={{ background: hero ? GOLD : "transparent", color: hero ? "#06101A" : TEXT, border: hero ? "none" : `1px solid ${BORDER}` }}>
+                  {showAr ? meta.ctaAr : meta.ctaEn}
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="max-w-3xl mx-auto px-6 pb-20">
+        {showEn && <h2 className="font-display text-3xl text-center mb-8" style={{ fontWeight: 400 }}>Frequently asked</h2>}
+        {showAr && <h2 dir="rtl" className="font-arabic text-2xl text-center mb-8" style={{ color: GOLD }}>الأسئلة الشائعة</h2>}
+        <div className="space-y-2">
+          {(showAr ? FAQ_AR : FAQ_EN).map((f, i) => (
+            <div key={i} className="rounded-2xl overflow-hidden" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
+              <button onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                className="w-full p-4 flex items-center justify-between gap-3 text-left"
+                dir={showAr ? "rtl" : "ltr"}>
+                <span className={`text-sm font-semibold ${showAr ? "font-arabic" : ""}`} style={{ color: TEXT }}>{f.q}</span>
+                {openFaq === i ? <ChevronUp size={16} color={GOLD} /> : <ChevronDown size={16} color={MUTED} />}
+              </button>
+              {openFaq === i && (
+                <p className={`px-4 pb-4 text-xs leading-relaxed ${showAr ? "font-arabic" : ""}`} style={{ color: MUTED }} dir={showAr ? "rtl" : "ltr"}>{f.a}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Enterprise CTA */}
+      <section className="px-6 pb-16">
+        <div className="max-w-5xl mx-auto rounded-3xl p-10 md:p-14 text-center" style={{ background: `linear-gradient(135deg, ${TEAL}, ${BG2})`, border: `1px solid ${BORDER}` }}>
+          {showEn && <h3 className="font-display text-2xl md:text-3xl mb-2" style={{ fontWeight: 400 }}>Building for a hospital, insurer, or facilitator?</h3>}
+          {showAr && <h3 dir="rtl" className="font-arabic text-xl md:text-2xl mb-2" style={{ color: GOLD }}>تبني لمستشفى أو شركة تأمين أو وسيط؟</h3>}
+          <p className="text-sm mb-6" style={{ color: MUTED }}>
+            {showAr ? "رُفَيِّق إنتربرايز منصة مرنة — علامة بيضاء، تكامل تأمين، تحليلات. أسعار مخصصة." : "RufayQ Enterprise is a modular platform — white-label, insurer integration, analytics. Custom pricing."}
+          </p>
+          <Link to="/enterprise" className="inline-block px-6 py-3 rounded-full text-sm font-semibold transition-all hover:scale-105"
+            style={{ background: GOLD, color: "#06101A" }}>
+            {showAr ? "شاهد خيارات إنتربرايز ←" : "See Enterprise options →"}
+          </Link>
+        </div>
+      </section>
+
+      <footer className="border-t py-6 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
+        © 2026 RufayQ · <Link to="/privacy" style={{ color: GOLD }}>Privacy</Link> · <Link to="/terms" style={{ color: GOLD }}>Terms</Link>
+      </footer>
+    </div>
+  );
+};
+
+export default Pricing;
