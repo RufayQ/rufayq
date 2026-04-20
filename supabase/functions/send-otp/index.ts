@@ -18,6 +18,14 @@ const isE164 = (s: string) => /^\+[1-9]\d{6,14}$/.test(s);
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 const RATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+// Single source of truth: recipient key used for rate-limit + manual OTP lookup
+const normalizeRecipient = (channel: string, raw: string) => {
+  const s = (raw || "").trim();
+  if (channel === "email") return s.toLowerCase();
+  // phone — strip spaces, force leading +
+  return s.replace(/\s+/g, "");
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -52,7 +60,7 @@ Deno.serve(async (req) => {
     }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
-    const recipient = body.to.toLowerCase().trim();
+    const recipient = normalizeRecipient(body.channel, body.to);
 
     // Rate limit: 1 successful send per 24h per recipient
     const since = new Date(Date.now() - RATE_WINDOW_MS).toISOString();
