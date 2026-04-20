@@ -165,7 +165,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
           textBuffer = textBuffer.slice(newlineIndex + 1);
           if (line.endsWith("\r")) line = line.slice(0, -1);
           if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
+          if (!line.startsWith("data: "")) continue;
           const jsonStr = line.slice(6).trim();
           if (jsonStr === "[DONE]") break;
           try {
@@ -194,7 +194,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
           if (!raw) continue;
           if (raw.endsWith("\r")) raw = raw.slice(0, -1);
           if (raw.startsWith(":") || raw.trim() === "") continue;
-          if (!raw.startsWith("data: ")) continue;
+          if (!raw.startsWith("data: "")) continue;
           const jsonStr = raw.slice(6).trim();
           if (jsonStr === "[DONE]") continue;
           try {

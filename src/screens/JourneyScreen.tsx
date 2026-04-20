@@ -525,7 +525,7 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: Transp
         <TicketDetailSheet
           seg={selectedSeg}
           onClose={() => setSelectedSeg(null)}
-          notes={ticketNotes[selectedSeg.id] || "}
+          notes={ticketNotes[selectedSeg.id] || ""}
           onSaveNotes={(n) => setTicketNotes((prev) => ({ ...prev, [selectedSeg.id]: n }))}
           alarms={ticketAlarms[selectedSeg.id] || []}
           onToggleAlarm={(m) => handleToggleAlarm(selectedSeg.id, m)}

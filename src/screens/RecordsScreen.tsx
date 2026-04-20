@@ -204,7 +204,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
             <p className="text-[14px] font-semibold mt-3" style={{ color: "var(--navy)" }}>No documents found</p>
             <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد مستندات مطابقة</p>
             {searchQuery && (
-              <button onClick={() => setSearchQuery(")} className="mt-3 px-4 py-2 rounded-full text-[12px] font-medium btn-press" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
+              <button onClick={() => setSearchQuery("")} className="mt-3 px-4 py-2 rounded-full text-[12px] font-medium btn-press" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
                 Clear search
               </button>
             )}

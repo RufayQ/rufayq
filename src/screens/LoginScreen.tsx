@@ -329,7 +329,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           className="w-full py-3.5 rounded-2xl btn-press flex items-center justify-center gap-2"
           style={{ background: "transparent", color: "var(--gray)", border: "1px dashed var(--gray-light)" }}>
           <UserCircle2 size={16} />
-          <span className="text-[13px] font-medium">Continue as guest · <span className="font-arabic">متابعة كزائر</span></span>
+          <span className="text-[13px] font-medium">Continue as guest · <span className="font-arabic">متابعة كزائر</span>/span>
         </button>
         <p className="text-[10px] text-center mt-2" style={{ color: "var(--gray)" }}>
           Explore the app first. You can register anytime.
@@ -423,7 +423,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           className="w-full py-3 rounded-xl btn-press flex items-center justify-center gap-2"
           style={{ background: "transparent", color: "var(--gray)", border: "1px dashed var(--gray-light)" }}>
           <UserCircle2 size={14} />
-          <span className="text-[12px]">Continue as guest · <span className="font-arabic">متابعة كزائر</span></span>
+          <span className="text-[12px]">Continue as guest · <span className="font-arabic">متابعة كزائر</span>/span>
         </button>
 
         <p className="text-center text-xs mt-5" style={{ color: "var(--gray)" }}>
