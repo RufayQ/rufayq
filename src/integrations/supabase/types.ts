@@ -2265,6 +2265,408 @@ export type Database = {
         }
         Relationships: []
       }
+      rcm_visit_diagnoses: {
+        Row: {
+          code: string
+          code_system: string
+          created_at: string
+          description: string | null
+          id: string
+          role: Database["public"]["Enums"]["rcm_diagnosis_role"]
+          visit_id: string
+        }
+        Insert: {
+          code: string
+          code_system?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["rcm_diagnosis_role"]
+          visit_id: string
+        }
+        Update: {
+          code?: string
+          code_system?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["rcm_diagnosis_role"]
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_visit_diagnoses_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_visit_invoices: {
+        Row: {
+          balance_due: number
+          created_at: string
+          currency: string
+          discount_total: number
+          due_at: string | null
+          gross_total: number
+          id: string
+          invoice_no: string | null
+          issued_at: string | null
+          net_total: number
+          notes: string | null
+          paid_total: number
+          patient_share_total: number
+          payer_share_total: number
+          status: Database["public"]["Enums"]["rcm_invoice_status"]
+          updated_at: string
+          vat_total: number
+          visit_id: string
+        }
+        Insert: {
+          balance_due?: number
+          created_at?: string
+          currency?: string
+          discount_total?: number
+          due_at?: string | null
+          gross_total?: number
+          id?: string
+          invoice_no?: string | null
+          issued_at?: string | null
+          net_total?: number
+          notes?: string | null
+          paid_total?: number
+          patient_share_total?: number
+          payer_share_total?: number
+          status?: Database["public"]["Enums"]["rcm_invoice_status"]
+          updated_at?: string
+          vat_total?: number
+          visit_id: string
+        }
+        Update: {
+          balance_due?: number
+          created_at?: string
+          currency?: string
+          discount_total?: number
+          due_at?: string | null
+          gross_total?: number
+          id?: string
+          invoice_no?: string | null
+          issued_at?: string | null
+          net_total?: number
+          notes?: string | null
+          paid_total?: number
+          patient_share_total?: number
+          payer_share_total?: number
+          status?: Database["public"]["Enums"]["rcm_invoice_status"]
+          updated_at?: string
+          vat_total?: number
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_visit_invoices_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_visit_payments: {
+        Row: {
+          amount: number
+          collected_at: string
+          collected_by: string | null
+          created_at: string
+          id: string
+          invoice_id: string
+          method: Database["public"]["Enums"]["rcm_payment_method"]
+          notes: string | null
+          reference: string | null
+        }
+        Insert: {
+          amount?: number
+          collected_at?: string
+          collected_by?: string | null
+          created_at?: string
+          id?: string
+          invoice_id: string
+          method?: Database["public"]["Enums"]["rcm_payment_method"]
+          notes?: string | null
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          collected_at?: string
+          collected_by?: string | null
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          method?: Database["public"]["Enums"]["rcm_payment_method"]
+          notes?: string | null
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_visit_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_visit_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_visit_services: {
+        Row: {
+          authorization_item_id: string | null
+          authorization_request_id: string | null
+          copay_amount: number
+          coverage_pct: number
+          created_at: string
+          decision: Database["public"]["Enums"]["rcm_service_line_decision"]
+          deductible_amount: number
+          denial_reason: string | null
+          discount_amount: number
+          gross_amount: number
+          id: string
+          line_kind: Database["public"]["Enums"]["rcm_service_line_kind"]
+          net_amount: number
+          notes: string | null
+          patient_share: number
+          payer_share: number
+          performed_at: string | null
+          performed_by: string | null
+          qty: number
+          service_code: string
+          service_name: string
+          unit_price: number
+          updated_at: string
+          vat_amount: number
+          vat_pct: number
+          visit_id: string
+        }
+        Insert: {
+          authorization_item_id?: string | null
+          authorization_request_id?: string | null
+          copay_amount?: number
+          coverage_pct?: number
+          created_at?: string
+          decision?: Database["public"]["Enums"]["rcm_service_line_decision"]
+          deductible_amount?: number
+          denial_reason?: string | null
+          discount_amount?: number
+          gross_amount?: number
+          id?: string
+          line_kind?: Database["public"]["Enums"]["rcm_service_line_kind"]
+          net_amount?: number
+          notes?: string | null
+          patient_share?: number
+          payer_share?: number
+          performed_at?: string | null
+          performed_by?: string | null
+          qty?: number
+          service_code: string
+          service_name: string
+          unit_price?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_pct?: number
+          visit_id: string
+        }
+        Update: {
+          authorization_item_id?: string | null
+          authorization_request_id?: string | null
+          copay_amount?: number
+          coverage_pct?: number
+          created_at?: string
+          decision?: Database["public"]["Enums"]["rcm_service_line_decision"]
+          deductible_amount?: number
+          denial_reason?: string | null
+          discount_amount?: number
+          gross_amount?: number
+          id?: string
+          line_kind?: Database["public"]["Enums"]["rcm_service_line_kind"]
+          net_amount?: number
+          notes?: string | null
+          patient_share?: number
+          payer_share?: number
+          performed_at?: string | null
+          performed_by?: string | null
+          qty?: number
+          service_code?: string
+          service_name?: string
+          unit_price?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_pct?: number
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_visit_services_authorization_item_id_fkey"
+            columns: ["authorization_item_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_authorization_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_visit_services_authorization_request_id_fkey"
+            columns: ["authorization_request_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_authorization_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_visit_services_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcm_visits: {
+        Row: {
+          arrival_at: string
+          attending_name: string | null
+          attending_user_id: string | null
+          chief_complaint: string | null
+          class_id: string | null
+          created_at: string
+          created_by: string | null
+          discharge_at: string | null
+          discharge_disposition: string | null
+          eligibility_check_id: string | null
+          id: string
+          is_self_pay: boolean
+          membership_id: string | null
+          network_id: string | null
+          notes: string | null
+          organization_id: string
+          patient_device_id: string | null
+          patient_profile_id: string | null
+          payer_id: string | null
+          policy_id: string | null
+          seen_at: string | null
+          specialty: string | null
+          status: Database["public"]["Enums"]["rcm_visit_status"]
+          triage_level: Database["public"]["Enums"]["rcm_triage_level"]
+          updated_at: string
+          visit_kind: Database["public"]["Enums"]["rcm_visit_kind"]
+          visit_no: string | null
+        }
+        Insert: {
+          arrival_at?: string
+          attending_name?: string | null
+          attending_user_id?: string | null
+          chief_complaint?: string | null
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discharge_at?: string | null
+          discharge_disposition?: string | null
+          eligibility_check_id?: string | null
+          id?: string
+          is_self_pay?: boolean
+          membership_id?: string | null
+          network_id?: string | null
+          notes?: string | null
+          organization_id: string
+          patient_device_id?: string | null
+          patient_profile_id?: string | null
+          payer_id?: string | null
+          policy_id?: string | null
+          seen_at?: string | null
+          specialty?: string | null
+          status?: Database["public"]["Enums"]["rcm_visit_status"]
+          triage_level?: Database["public"]["Enums"]["rcm_triage_level"]
+          updated_at?: string
+          visit_kind?: Database["public"]["Enums"]["rcm_visit_kind"]
+          visit_no?: string | null
+        }
+        Update: {
+          arrival_at?: string
+          attending_name?: string | null
+          attending_user_id?: string | null
+          chief_complaint?: string | null
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discharge_at?: string | null
+          discharge_disposition?: string | null
+          eligibility_check_id?: string | null
+          id?: string
+          is_self_pay?: boolean
+          membership_id?: string | null
+          network_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          patient_device_id?: string | null
+          patient_profile_id?: string | null
+          payer_id?: string | null
+          policy_id?: string | null
+          seen_at?: string | null
+          specialty?: string | null
+          status?: Database["public"]["Enums"]["rcm_visit_status"]
+          triage_level?: Database["public"]["Enums"]["rcm_triage_level"]
+          updated_at?: string
+          visit_kind?: Database["public"]["Enums"]["rcm_visit_kind"]
+          visit_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcm_visits_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_visits_eligibility_check_id_fkey"
+            columns: ["eligibility_check_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_eligibility_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_visits_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_payer_memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_visits_network_id_fkey"
+            columns: ["network_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_networks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_visits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_visits_payer_id_fkey"
+            columns: ["payer_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_payers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcm_visits_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "rcm_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_pages: {
         Row: {
           body_md: string
@@ -2490,6 +2892,7 @@ export type Database = {
         Args: { _hours?: number; _note?: string; _request_id: string }
         Returns: undefined
       }
+      rcm_recompute_invoice: { Args: { _visit_id: string }; Returns: undefined }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
@@ -2560,6 +2963,7 @@ export type Database = {
         | "cancelled"
         | "expired"
       rcm_deductible_type: "percentage" | "amount"
+      rcm_diagnosis_role: "principal" | "secondary" | "admitting" | "discharge"
       rcm_discount_kind: "prompt_payment" | "volume" | "contractual_other"
       rcm_eligibility_exception:
         | "none"
@@ -2568,6 +2972,20 @@ export type Database = {
         | "newborn"
       rcm_eligibility_status: "eligible" | "not_eligible" | "error" | "pending"
       rcm_encounter_type: "op" | "er" | "ip" | "dc"
+      rcm_invoice_status:
+        | "draft"
+        | "issued"
+        | "partially_paid"
+        | "paid"
+        | "void"
+        | "refunded"
+      rcm_payment_method:
+        | "cash"
+        | "card"
+        | "bank_transfer"
+        | "wallet"
+        | "insurance_writeoff"
+        | "adjustment"
       rcm_room_type:
         | "ward"
         | "semi_private"
@@ -2588,7 +3006,45 @@ export type Database = {
         | "medication"
         | "room_board"
         | "other"
+      rcm_service_line_decision:
+        | "pending"
+        | "covered"
+        | "partially_covered"
+        | "not_covered"
+        | "needs_approval"
+        | "denied"
+      rcm_service_line_kind:
+        | "consultation"
+        | "lab"
+        | "radiology"
+        | "procedure"
+        | "medication"
+        | "supply"
+        | "room"
+        | "observation"
+        | "other"
       rcm_time_band: "any" | "am" | "pm"
+      rcm_triage_level:
+        | "1_resuscitation"
+        | "2_emergent"
+        | "3_urgent"
+        | "4_less_urgent"
+        | "5_non_urgent"
+        | "none"
+      rcm_visit_kind:
+        | "op_clinic"
+        | "op_walkin"
+        | "er_triage"
+        | "er_resus"
+        | "telemed"
+        | "daycase_op"
+      rcm_visit_status:
+        | "open"
+        | "in_progress"
+        | "discharged"
+        | "billed"
+        | "closed"
+        | "cancelled"
       ticket_category: "billing" | "technical" | "medical" | "general"
       ticket_priority: "low" | "medium" | "high" | "urgent"
       ticket_status: "open" | "in_progress" | "resolved" | "closed"
@@ -2795,6 +3251,7 @@ export const Constants = {
         "expired",
       ],
       rcm_deductible_type: ["percentage", "amount"],
+      rcm_diagnosis_role: ["principal", "secondary", "admitting", "discharge"],
       rcm_discount_kind: ["prompt_payment", "volume", "contractual_other"],
       rcm_eligibility_exception: [
         "none",
@@ -2804,6 +3261,22 @@ export const Constants = {
       ],
       rcm_eligibility_status: ["eligible", "not_eligible", "error", "pending"],
       rcm_encounter_type: ["op", "er", "ip", "dc"],
+      rcm_invoice_status: [
+        "draft",
+        "issued",
+        "partially_paid",
+        "paid",
+        "void",
+        "refunded",
+      ],
+      rcm_payment_method: [
+        "cash",
+        "card",
+        "bank_transfer",
+        "wallet",
+        "insurance_writeoff",
+        "adjustment",
+      ],
       rcm_room_type: [
         "ward",
         "semi_private",
@@ -2826,7 +3299,50 @@ export const Constants = {
         "room_board",
         "other",
       ],
+      rcm_service_line_decision: [
+        "pending",
+        "covered",
+        "partially_covered",
+        "not_covered",
+        "needs_approval",
+        "denied",
+      ],
+      rcm_service_line_kind: [
+        "consultation",
+        "lab",
+        "radiology",
+        "procedure",
+        "medication",
+        "supply",
+        "room",
+        "observation",
+        "other",
+      ],
       rcm_time_band: ["any", "am", "pm"],
+      rcm_triage_level: [
+        "1_resuscitation",
+        "2_emergent",
+        "3_urgent",
+        "4_less_urgent",
+        "5_non_urgent",
+        "none",
+      ],
+      rcm_visit_kind: [
+        "op_clinic",
+        "op_walkin",
+        "er_triage",
+        "er_resus",
+        "telemed",
+        "daycase_op",
+      ],
+      rcm_visit_status: [
+        "open",
+        "in_progress",
+        "discharged",
+        "billed",
+        "closed",
+        "cancelled",
+      ],
       ticket_category: ["billing", "technical", "medical", "general"],
       ticket_priority: ["low", "medium", "high", "urgent"],
       ticket_status: ["open", "in_progress", "resolved", "closed"],

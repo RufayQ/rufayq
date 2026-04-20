@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  LogOut, Users, FileText, Pill, Calendar, Plus, Send, Building2, Search, Activity, FileWarning,
+  LogOut, Users, FileText, Pill, Calendar, Plus, Send, Building2, Search, Activity, FileWarning, DollarSign,
 } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import PatientSearch from "@/components/provider/PatientSearch";
 import RcmEligibilityWorklist from "@/components/provider/RcmEligibilityWorklist";
 import RcmActivationWorklist from "@/components/provider/RcmActivationWorklist";
 import RcmAuthorizationWorklist from "@/components/provider/RcmAuthorizationWorklist";
+import RcmOpErWorklist from "@/components/provider/RcmOpErWorklist";
 
 interface Org { id: string; name: string; org_type: string; }
 interface Patient {
@@ -17,7 +18,7 @@ interface Patient {
   patient_email: string | null; patient_phone: string | null; status: string; notes: string | null;
 }
 
-type Tab = "patients" | "find" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation" | "rcm_auth";
+type Tab = "patients" | "find" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation" | "rcm_auth" | "rcm_oper";
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
@@ -157,6 +158,7 @@ const ProviderDashboard = () => {
     { id: "rcm_eligibility", label: "RCM · Eligibility", icon: Activity },
     { id: "rcm_activation", label: "RCM · Activation", icon: FileWarning },
     { id: "rcm_auth", label: "RCM · Authorizations", icon: Send },
+    { id: "rcm_oper", label: "RCM · OP/ER Billing", icon: DollarSign },
   ];
 
   const inputCls = "w-full px-3 py-2 rounded-lg text-sm outline-none";
@@ -214,7 +216,9 @@ const ProviderDashboard = () => {
         ) : tab === "rcm_activation" ? (
           <div className="max-w-3xl mx-auto">{activeOrg && <RcmActivationWorklist organizationId={activeOrg} />}</div>
         ) : tab === "rcm_auth" ? (
-          <div className="max-w-3xl mx-auto">{activeOrg && <RcmAuthorizationWorklist organizationId={activeOrg} />}</div>
+          <div className="max-w-5xl mx-auto">{activeOrg && <RcmAuthorizationWorklist organizationId={activeOrg} />}</div>
+        ) : tab === "rcm_oper" ? (
+          <div className="max-w-6xl mx-auto">{activeOrg && <RcmOpErWorklist organizationId={activeOrg} />}</div>
         ) : (
         <div className="grid md:grid-cols-[300px_1fr] gap-6">
         {/* Patient list */}
