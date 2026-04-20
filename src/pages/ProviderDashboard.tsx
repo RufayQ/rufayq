@@ -10,6 +10,7 @@ import PatientSearch from "@/components/provider/PatientSearch";
 import RcmEligibilityWorklist from "@/components/provider/RcmEligibilityWorklist";
 import RcmActivationWorklist from "@/components/provider/RcmActivationWorklist";
 import RcmAuthorizationWorklist from "@/components/provider/RcmAuthorizationWorklist";
+import RcmOpErWorklist from "@/components/provider/RcmOpErWorklist";
 
 interface Org { id: string; name: string; org_type: string; }
 interface Patient {
