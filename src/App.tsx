@@ -1,16 +1,11 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { lazy, Suspense } from "react";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { useSyncLanguageWithRoute } from "@/seo/useSyncLanguageWithRoute";
 import Landing from "./pages/Landing.tsx";
-import { CurrencyProvider } from "@/contexts/CurrencyContext";
 
-// Code-split non-landing routes for faster First Contentful Paint on /
+/* ── Lazy: every non-landing route ───────────────────────────────────────── */
 const Index = lazy(() => import("./pages/Index.tsx"));
 const Pricing = lazy(() => import("./pages/Pricing.tsx"));
 const Enterprise = lazy(() => import("./pages/Enterprise.tsx"));
@@ -29,7 +24,10 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
-const queryClient = new QueryClient();
+/* ── Lazy: heavy app-shell (QueryClient + Toaster + Tooltip + Currency).
+   Only mounted for routes that actually need them. Keeps Landing's critical
+   bundle ~80 kB lighter (no react-query, sonner, radix-toast/tooltip). ─── */
+const AppShell = lazy(() => import("./AppShell.tsx"));
 
 const RouteFallback = () => (
   <div style={{ minHeight: "100vh", background: "#06101A" }} />
@@ -41,63 +39,64 @@ const RouteLanguageSync = () => {
   return null;
 };
 
+/** Wraps a route that needs the heavy shell (toasters, query, tooltip, currency). */
+const Shelled = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<RouteFallback />}>
+    <AppShell>{children}</AppShell>
+  </Suspense>
+);
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <HelmetProvider>
-      <LanguageProvider>
-        <CurrencyProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <RouteLanguageSync />
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                {/* English (root = default language) */}
-                <Route path="/" element={<Landing />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/security" element={<Security />} />
-                <Route path="/providers" element={<Providers />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/enterprise" element={<Enterprise />} />
-                <Route path="/conditions/cancer-treatment-abroad" element={<CancerTreatmentAbroad />} />
-                <Route path="/destinations/germany-medical-treatment" element={<GermanyMedicalTreatment />} />
-                <Route path="/guides/medical-visa-germany-saudi-citizens" element={<MedicalVisaGermany />} />
+  <HelmetProvider>
+    <LanguageProvider>
+      <BrowserRouter>
+        <RouteLanguageSync />
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            {/* English (root = default language) — minimal critical chain */}
+            <Route path="/" element={<Landing />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/security" element={<Security />} />
+            <Route path="/providers" element={<Providers />} />
+            <Route path="/conditions/cancer-treatment-abroad" element={<CancerTreatmentAbroad />} />
+            <Route path="/destinations/germany-medical-treatment" element={<GermanyMedicalTreatment />} />
+            <Route path="/guides/medical-visa-germany-saudi-citizens" element={<MedicalVisaGermany />} />
 
-                {/* Arabic mirror — same components, lang detected via URL */}
-                <Route path="/ar" element={<Landing />} />
-                <Route path="/ar/about" element={<About />} />
-                <Route path="/ar/privacy" element={<Privacy />} />
-                <Route path="/ar/terms" element={<Terms />} />
-                <Route path="/ar/security" element={<Security />} />
-                <Route path="/ar/providers" element={<Providers />} />
-                <Route path="/ar/pricing" element={<Pricing />} />
-                <Route path="/ar/enterprise" element={<Enterprise />} />
-                <Route path="/ar/conditions/cancer-treatment-abroad" element={<CancerTreatmentAbroad />} />
-                <Route path="/ar/destinations/germany-medical-treatment" element={<GermanyMedicalTreatment />} />
-                <Route path="/ar/guides/medical-visa-germany-saudi-citizens" element={<MedicalVisaGermany />} />
+            {/* Pricing & Enterprise need CurrencyProvider → routed through shell */}
+            <Route path="/pricing" element={<Shelled><Pricing /></Shelled>} />
+            <Route path="/enterprise" element={<Shelled><Enterprise /></Shelled>} />
 
-                {/* App + non-marketing surfaces */}
-                <Route path="/app" element={<Index />} />
-                <Route path="/ar/app" element={<Index />} />
-                <Route path="/provider/login" element={<ProviderLogin />} />
-                <Route path="/provider" element={<ProviderDashboard />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/auth" element={<Auth />} />
+            {/* Arabic mirror */}
+            <Route path="/ar" element={<Landing />} />
+            <Route path="/ar/about" element={<About />} />
+            <Route path="/ar/privacy" element={<Privacy />} />
+            <Route path="/ar/terms" element={<Terms />} />
+            <Route path="/ar/security" element={<Security />} />
+            <Route path="/ar/providers" element={<Providers />} />
+            <Route path="/ar/conditions/cancer-treatment-abroad" element={<CancerTreatmentAbroad />} />
+            <Route path="/ar/destinations/germany-medical-treatment" element={<GermanyMedicalTreatment />} />
+            <Route path="/ar/guides/medical-visa-germany-saudi-citizens" element={<MedicalVisaGermany />} />
+            <Route path="/ar/pricing" element={<Shelled><Pricing /></Shelled>} />
+            <Route path="/ar/enterprise" element={<Shelled><Enterprise /></Shelled>} />
 
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
-        </CurrencyProvider>
-      </LanguageProvider>
-    </HelmetProvider>
-  </QueryClientProvider>
+            {/* App + non-marketing surfaces — all need full shell */}
+            <Route path="/app" element={<Shelled><Index /></Shelled>} />
+            <Route path="/ar/app" element={<Shelled><Index /></Shelled>} />
+            <Route path="/provider/login" element={<Shelled><ProviderLogin /></Shelled>} />
+            <Route path="/provider" element={<Shelled><ProviderDashboard /></Shelled>} />
+            <Route path="/admin" element={<Shelled><Admin /></Shelled>} />
+            <Route path="/admin/login" element={<Shelled><AdminLogin /></Shelled>} />
+            <Route path="/auth" element={<Shelled><Auth /></Shelled>} />
+
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </LanguageProvider>
+  </HelmetProvider>
 );
 
 export default App;

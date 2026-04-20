@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import MedicalHistorySheet from "@/components/MedicalHistorySheet";
 import ConsentsSheet from "@/components/ConsentsSheet";
 import RcmStatusPanel from "@/components/RcmStatusPanel";
+import { usePendingClaimsCount } from "@/hooks/usePendingClaimsCount";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -92,6 +93,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
   const [showPassport, setShowPassport] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showConsents, setShowConsents] = useState(false);
+  const { count: pendingClaims } = usePendingClaimsCount();
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard?.writeText(text);
@@ -246,7 +248,20 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         <div className="mt-4 mx-4">
           <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>PROVIDER ACCESS</p>
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            <SettingRow label="Manage Provider Consents" labelAr="إدارة وصول المزوّدين" value="View" onClick={() => setShowConsents(true)} />
+            <button onClick={() => setShowConsents(true)} className="w-full flex items-center justify-between py-3 px-4 btn-press" style={{ borderBottom: "1px solid var(--gray-light)" }}>
+              <div className="text-left">
+                <p className="text-[13px]" style={{ color: "var(--navy)" }}>Manage Provider Consents</p>
+                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>إدارة وصول المزوّدين</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {pendingClaims > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: "var(--gold)", color: "var(--navy)" }}>
+                    {pendingClaims} pending
+                  </span>
+                )}
+                <ChevronRight size={14} style={{ color: "var(--gray)" }} />
+              </div>
+            </button>
           </div>
         </div>
 
