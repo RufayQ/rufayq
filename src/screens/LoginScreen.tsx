@@ -38,6 +38,23 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     insurer: "", policy: "",
   });
 
+  // Structured histories (persisted as JSONB)
+  const [pastHistory, setPastHistory] = useState<{ condition: string; year: string; status: string; notes: string }[]>([]);
+  const [surgicalHistory, setSurgicalHistory] = useState<{ procedure: string; year: string; hospital: string; notes: string }[]>([]);
+  const [familyHistory, setFamilyHistory] = useState<{ relation: string; condition: string; age_of_onset: string; notes: string }[]>([]);
+
+  const addPast = () => setPastHistory([...pastHistory, { condition: "", year: "", status: "active", notes: "" }]);
+  const updatePast = (i: number, k: string, v: string) => { const n = [...pastHistory]; (n[i] as any)[k] = v; setPastHistory(n); };
+  const removePast = (i: number) => setPastHistory(pastHistory.filter((_, idx) => idx !== i));
+
+  const addSurgical = () => setSurgicalHistory([...surgicalHistory, { procedure: "", year: "", hospital: "", notes: "" }]);
+  const updateSurgical = (i: number, k: string, v: string) => { const n = [...surgicalHistory]; (n[i] as any)[k] = v; setSurgicalHistory(n); };
+  const removeSurgical = (i: number) => setSurgicalHistory(surgicalHistory.filter((_, idx) => idx !== i));
+
+  const addFamily = () => setFamilyHistory([...familyHistory, { relation: "Father", condition: "", age_of_onset: "", notes: "" }]);
+  const updateFamily = (i: number, k: string, v: string) => { const n = [...familyHistory]; (n[i] as any)[k] = v; setFamilyHistory(n); };
+  const removeFamily = (i: number) => setFamilyHistory(familyHistory.filter((_, idx) => idx !== i));
+
   const startCountdown = () => {
     setCountdown(45);
     const timer = setInterval(() => {
@@ -161,6 +178,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
     if (pErr) { setSubmitting(false); toast.error("Signup failed: " + pErr.message); return; }
 
+    const cleanPast = pastHistory.filter((p) => p.condition.trim());
+    const cleanSurgical = surgicalHistory.filter((p) => p.procedure.trim());
+    const cleanFamily = familyHistory.filter((p) => p.condition.trim());
+
     const { error: mErr } = await supabase.from("medical_profiles").upsert({
       device_id,
       blood_type: med.bloodType || null,
@@ -172,7 +193,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       emergency_contact_relation: med.emRelation || null,
       insurance_provider: med.insurer || null,
       insurance_policy_number: med.policy || null,
-    }, { onConflict: "device_id" });
+      past_medical_history: cleanPast as any,
+      surgical_history: cleanSurgical as any,
+      family_history: cleanFamily as any,
+    } as any, { onConflict: "device_id" });
 
     setSubmitting(false);
     if (mErr) { toast.error("Medical info failed: " + mErr.message); return; }
