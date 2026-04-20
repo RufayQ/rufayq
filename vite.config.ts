@@ -19,8 +19,17 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           "react-vendor": ["react", "react-dom", "react-router-dom"],
+          "helmet": ["react-helmet-async"],
+          "icons": ["lucide-react"],
           "supabase": ["@supabase/supabase-js"],
           "query": ["@tanstack/react-query"],
+          "radix": [
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-toast",
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-popover",
+            "sonner",
+          ],
         },
       },
     },
