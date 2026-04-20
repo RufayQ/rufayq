@@ -4,6 +4,7 @@ import LogoMark from "@/components/LogoMark";
 import { toast } from "sonner";
 import MedicalHistorySheet from "@/components/MedicalHistorySheet";
 import ConsentsSheet from "@/components/ConsentsSheet";
+import RcmStatusPanel from "@/components/RcmStatusPanel";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -247,6 +248,12 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
             <SettingRow label="Manage Provider Consents" labelAr="إدارة وصول المزوّدين" value="View" onClick={() => setShowConsents(true)} />
           </div>
+        </div>
+
+        {/* RCM Insurance Status (Phase 4 — read-only) */}
+        <div className="mt-4 mx-4">
+          <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>INSURANCE & RCM STATUS</p>
+          <RcmStatusPanel />
         </div>
 
         {/* Legal */}
