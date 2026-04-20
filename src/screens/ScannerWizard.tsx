@@ -469,7 +469,7 @@ const Step4AIReview = ({ category, fileName, onSave }: {
   const [destinations, setDestinations] = useState<boolean[]>([]);
 
   const cat = categories.find(c => c.id === category);
-  const fields = extractedFieldsByCategory[category || ""] || extractedFieldsByCategory["flight"];
+  const fields = extractedFieldsByCategory[category || "] || extractedFieldsByCategory["flight"];
   const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
 
   useEffect(() => {

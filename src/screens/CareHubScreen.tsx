@@ -22,7 +22,7 @@ const CareHubScreen = () => {
 
   const handleCopyCarePlan = () => {
     navigator.clipboard.writeText("Care Plan Summary\nPost-Op Day 5 · Knee Replacement\nStatus: On Track\n\nFollow your prescribed exercises, medications, and follow-up appointments.");
-    toast.success("Care plan copied · تم نسخ خطة الرعاية"", { duration: 2000 });
+    toast.success("Care plan copied · تم نسخ خطة الرعاية", { duration: 2000 });
   };
 
   const handleShareCarePlan = () => {
@@ -38,7 +38,7 @@ const CareHubScreen = () => {
     const a = document.createElement("a");
     a.href = url; a.download = "care-plan.txt"; a.click();
     URL.revokeObjectURL(url);
-    toast.success("Care plan exported · تم تصدير خطة الرعاية"", { duration: 2000 });
+    toast.success("Care plan exported · تم تصدير خطة الرعاية", { duration: 2000 });
   };
 
   const careMenuItems: HeaderMenuItem[] = [
@@ -739,7 +739,7 @@ const ExercisesTab = () => {
                     background: isDone ? "rgba(61,170,110,0.1)" : "var(--teal-deep)",
                     color: isDone ? "var(--success)" : "#fff",
                   }}>
-                  {isDone ? "✓ Done · تم"" : "Mark as Done · تم""}
+                  {isDone ? "✓ Done · تم" : "Mark as Done · تم"}
                 </button>
               </div>
             )}

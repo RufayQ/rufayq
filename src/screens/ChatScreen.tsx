@@ -128,11 +128,11 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
         if (resp.status === 429) {
-          toast.error("Rate limit exceeded · تم تجاوز الحد المسموح"");
+          toast.error("Rate limit exceeded · تم تجاوز الحد المسموح");
         } else if (resp.status === 402) {
-          toast.error("AI credits exhausted · نفدت رصيد الذكاء الاصطناعي"");
+          toast.error("AI credits exhausted · نفدت رصيد الذكاء الاصطناعي");
         } else {
-          toast.error("AI error · خطأ في الذكاء الاصطناعي"");
+          toast.error("AI error · خطأ في الذكاء الاصطناعي");
         }
         setIsTyping(false);
         return;
@@ -221,7 +221,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
     } catch (err) {
       console.error("Chat error:", err);
       setIsTyping(false);
-      toast.error("Connection error · خطأ في الاتصال"");
+      toast.error("Connection error · خطأ في الاتصال");
     }
   };
 
@@ -237,7 +237,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
   const handleCopyChat = () => {
     const text = messages.map(m => `[${m.time}] ${m.sender === "user" ? "You" : "RufayQ AI"}: ${m.text}`).join("\n\n");
     navigator.clipboard.writeText(text);
-    toast.success("Chat copied · تم نسخ المحادثة"", { duration: 2000 });
+    toast.success("Chat copied · تم نسخ المحادثة", { duration: 2000 });
   };
 
   const handleExportChat = () => {
@@ -247,12 +247,12 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
     const a = document.createElement("a");
     a.href = url; a.download = "rufayq-chat.txt"; a.click();
     URL.revokeObjectURL(url);
-    toast.success("Chat exported · تم تصدير المحادثة"", { duration: 2000 });
+    toast.success("Chat exported · تم تصدير المحادثة", { duration: 2000 });
   };
 
   const handleClearChat = () => {
     setMessages(initialMessages);
-    toast.success("Chat cleared · تم مسح المحادثة"", { duration: 2000 });
+    toast.success("Chat cleared · تم مسح المحادثة", { duration: 2000 });
   };
 
   const chatMenuItems: HeaderMenuItem[] = [

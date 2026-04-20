@@ -132,12 +132,12 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
   const handleSelectPlan = (planId: string) => {
     if (planId === "free") return;
     if (planId === "enterprise") {
-      toast("Contact Sales · تواصل مع المبيعات"", {
-        description: "Our team will reach out within 24 hours · سيتواصل فريقنا خلال ٢٤ ساعة"",
+      toast("Contact Sales · تواصل مع المبيعات", {
+        description: "Our team will reach out within 24 hours · سيتواصل فريقنا خلال ٢٤ ساعة",
       });
     } else {
-      toast.success("Upgrade initiated · بدء الترقية"", {
-        description: "You'll be redirected to payment · ستتم إعادة توجيهك للدفع"",
+      toast.success("Upgrade initiated · بدء الترقية", {
+        description: "You'll be redirected to payment · ستتم إعادة توجيهك للدفع",
       });
     }
   };
@@ -291,7 +291,7 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
             })}
             {selectedAddOns.size > 0 && (
               <button
-                onClick={() => toast.success("Add-ons added to cart · أُضيفت الإضافات"", { description: `${selectedAddOns.size} add-on(s) selected` })}
+                onClick={() => toast.success("Add-ons added to cart · أُضيفت الإضافات", { description: `${selectedAddOns.size} add-on(s) selected` })}
                 className="w-full py-3 rounded-xl font-semibold text-white btn-press"
                 style={{ background: "var(--teal-deep)" }}
               >

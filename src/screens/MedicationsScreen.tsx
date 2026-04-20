@@ -48,7 +48,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       `💊 ${m.name} (${m.nameAr}) — ${m.dosage} — ${m.frequency} — ${m.time}`
     ).join("\n");
     navigator.clipboard.writeText(`Medication Schedule\nجدول الأدوية\n\n${text}`);
-    toast.success("All medications copied · تم نسخ جميع الأدوية"", { duration: 2000 });
+    toast.success("All medications copied · تم نسخ جميع الأدوية", { duration: 2000 });
   };
 
   const handleExportMeds = () => {
@@ -60,7 +60,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
     const a = document.createElement("a");
     a.href = url; a.download = "medications-schedule.txt"; a.click();
     URL.revokeObjectURL(url);
-    toast.success("Medications exported · تم تصدير الأدوية"", { duration: 2000 });
+    toast.success("Medications exported · تم تصدير الأدوية", { duration: 2000 });
   };
 
   const handleShareMeds = () => {
@@ -71,7 +71,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
 
   const handleResetTaken = () => {
     setTakenIds(new Set());
-    toast.success("Reset today's tracking · تم إعادة التتبع"", { duration: 2000 });
+    toast.success("Reset today's tracking · تم إعادة التتبع", { duration: 2000 });
   };
 
   const medsMenuItems: HeaderMenuItem[] = [

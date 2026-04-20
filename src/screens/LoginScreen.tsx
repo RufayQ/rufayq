@@ -108,7 +108,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     // Remember for next-time biometrics
     localStorage.setItem(BIOMETRIC_KEY, signInEmail);
     setBioRemembered(signInEmail);
-    toast.success("Welcome back · مرحباً بعودتك"");
+    toast.success("Welcome back · مرحباً بعودتك");
     setTimeout(onLogin, 300);
   };
 
@@ -132,7 +132,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         toast.error("Biometric prompt cancelled");
         return;
       }
-      toast.success("Unlocked · تم الفتح"");
+      toast.success("Unlocked · تم الفتح");
       // The app still needs a valid Supabase session — if cookies are stale, fall through to manual.
       const { data } = await supabase.auth.getSession();
       if (data.session) onLogin();
@@ -166,7 +166,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     setSubmitting(false);
     if (error || (data && data.error)) {
       const msg = (data && data.error) || error?.message || "Failed to send code";
-      toast.error("Couldn't send code · لم نتمكن من إرسال الرمز"", { description: msg });
+      toast.error("Couldn't send code · لم نتمكن من إرسال الرمز", { description: msg });
       return;
     }
     startCountdown();
@@ -181,7 +181,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     });
     setSubmitting(false);
     if (error || !data?.approved) {
-      toast.error("Incorrect or expired code · رمز غير صحيح"", {
+      toast.error("Incorrect or expired code · رمز غير صحيح", {
         description: data?.error || error?.message || "Request a new code and try again",
       });
       setOtp(["", "", "", "", "", ""]);
@@ -200,7 +200,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       }
       localStorage.setItem(BIOMETRIC_KEY, data.signInEmail);
     }
-    toast.success("Verified · تم التحقق"");
+    toast.success("Verified · تم التحقق");
     setTimeout(onLogin, 400);
   };
 
@@ -209,7 +209,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   // ============================================================
   const validateRegister = () => {
     if (!reg.name.trim() || !reg.id.trim() || !reg.dob) {
-      toast.error("Please fill required fields · يرجى تعبئة الحقول المطلوبة""); return false;
+      toast.error("Please fill required fields · يرجى تعبئة الحقول المطلوبة"); return false;
     }
     if (!reg.phone.trim()) { toast.error("Mobile number is required"); return false; }
     if (reg.channel === "email" && !isValidEmail(reg.email)) {
@@ -400,7 +400,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           className="w-full mt-4 py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
           style={{ background: "var(--teal-deep)", height: 52, opacity: submitting ? 0.7 : 1 }}>
           {submitting ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
-          {submitting ? "Signing in…" : "Sign in · تسجيل الدخول""}
+          {submitting ? "Signing in…" : "Sign in · تسجيل الدخول"}
         </button>
 
         {bioAvailable && bioRemembered && (
@@ -568,7 +568,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
           {/* histories */}
           {[
-            { title: "PAST MEDICAL HISTORY · التاريخ المرضي"", list: pastHistory, add: addPast, remove: removePast, fields: (p: any, i: number) => (
+            { title: "PAST MEDICAL HISTORY · التاريخ المرضي", list: pastHistory, add: addPast, remove: removePast, fields: (p: any, i: number) => (
               <>
                 <input value={p.condition} onChange={(e) => updatePast(i, "condition", e.target.value)} placeholder="Condition (e.g. Hypertension)"
                   className="w-full px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
@@ -606,12 +606,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <div className="pt-1" style={{ borderTop: "1px dashed var(--gray-light)" }}>
             <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>EMERGENCY CONTACT<span className="font-arabic" dir="rtl"> · جهة الطوارئ</span><</p>
             <div className="grid grid-cols-2 gap-2">
-              <input value={med.emName} onChange={(e) => setMed({ ...med, emName: e.target.value })} placeholder="Name · الاسم""
+              <input value={med.emName} onChange={(e) => setMed({ ...med, emName: e.target.value })} placeholder="Name · الاسم"
                 className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
               <input value={med.emRelation} onChange={(e) => setMed({ ...med, emRelation: e.target.value })} placeholder="Relation"
                 className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
             </div>
-            <input value={med.emPhone} onChange={(e) => setMed({ ...med, emPhone: e.target.value })} placeholder="Phone · الهاتف""
+            <input value={med.emPhone} onChange={(e) => setMed({ ...med, emPhone: e.target.value })} placeholder="Phone · الهاتف"
               className="w-full mt-2 px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
           </div>
 
@@ -640,7 +640,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <button onClick={handleCompleteSignup} disabled={submitting}
             className="flex-[2] py-3 rounded-xl font-semibold text-white btn-press"
             style={{ background: "var(--gold)", opacity: submitting ? 0.6 : 1 }}>
-            {submitting ? "Saving…" : "Complete & verify · إكمال""}
+            {submitting ? "Saving…" : "Complete & verify · إكمال"}
           </button>
         </div>
       </div>
@@ -689,7 +689,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         <div>
           <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Gender<span className="font-arabic" dir="rtl"> · الجنس</span><</label>
           <div className="flex gap-2 mt-1">
-            {[["male", "Male · ذكر""], ["female", "Female · أنثى""]].map(([val, label]) => (
+            {[["male", "Male · ذكر"], ["female", "Female · أنثى"]].map(([val, label]) => (
               <button key={val} onClick={() => setReg({ ...reg, gender: val })}
                 className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all btn-press"
                 style={{
