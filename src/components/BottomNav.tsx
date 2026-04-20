@@ -98,7 +98,7 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
         >
           <RufayQLogo size={24} variant={isHomeActive ? "light" : "dark"} />
         </button>
-        <span className="font-arabic" style={{
+        <span className="font-arabic lang-keep" style={{
           color: isHomeActive ? "var(--teal-deep)" : "var(--gray)",
           fontSize: 9,
           fontWeight: 600,
