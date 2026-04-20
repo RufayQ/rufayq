@@ -352,7 +352,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     return (
       <div className="flex flex-col h-full overflow-y-auto px-6 pt-10 pb-6" style={{ background: "var(--off-white)" }}>
         <button onClick={() => setView("welcome")} className="flex items-center gap-1 text-xs mb-3 self-start" style={{ color: "var(--teal-deep)" }}>
-          <ArrowLeft size={14} /> Back · رجوع
+          <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
 
         </button>
         <div className="flex flex-col items-center mb-6">
@@ -380,7 +380,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                 Password <span className="font-arabic" style={{ color: "var(--gray)" }}>· كلمة المرور</span>
               </label>
               <button onClick={handleForgot} className="text-[10px]" style={{ color: "var(--teal-mid)" }}>
-                Forgot? · نسيت؟
+                Forgot?<span className="font-arabic" dir="rtl"> · نسيت؟</span>
 
               </button>
             </div>
@@ -408,7 +408,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
             className="w-full mt-3 py-3 rounded-xl font-semibold btn-press flex items-center justify-center gap-2"
             style={{ background: "var(--white)", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}>
             <Fingerprint size={18} />
-            Use biometrics · استخدم البصمة
+            Use biometrics<span className="font-arabic" dir="rtl"> · استخدم البصمة</span>
 
           </button>
         )}
@@ -429,7 +429,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         <p className="text-center text-xs mt-5" style={{ color: "var(--gray)" }}>
           Don't have an account?{" "}
           <button onClick={() => setView("register")} className="font-semibold" style={{ color: "var(--teal-deep)" }}>
-            Register · سجّل الآن
+            Register<span className="font-arabic" dir="rtl"> · سجّل الآن</span>
 
           </button>
         </p>
@@ -454,7 +454,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       <div className="flex flex-col h-full overflow-y-auto px-6 pt-10 pb-8" style={{ background: "var(--off-white)" }}>
         <button onClick={() => setView(otpPurpose === "signup" ? "medical" : "login")}
           className="flex items-center gap-1 text-xs mb-4 self-start" style={{ color: "var(--teal-deep)" }}>
-          <ArrowLeft size={14} /> Back · رجوع
+          <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
 
         </button>
 
@@ -503,7 +503,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
             <button onClick={() => handleSendOtp(otpChannel, otpRecipient, otpPurpose)} disabled={!canResend}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold btn-press disabled:opacity-50"
               style={{ background: "var(--teal-deep)", color: "white" }}>
-              <RefreshCw size={12} /> Resend code · إعادة إرسال
+              <RefreshCw size={12} /> Resend code<span className="font-arabic" dir="rtl"> · إعادة إرسال</span>
 
             </button>
           )}
@@ -524,7 +524,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     return (
       <div className="flex flex-col h-full overflow-y-auto px-6 pt-6 pb-6" style={{ background: "var(--off-white)" }}>
         <button onClick={() => setView("register")} className="flex items-center gap-1 text-xs mb-3" style={{ color: "var(--teal-deep)" }}>
-          <ArrowLeft size={14} /> Back · رجوع
+          <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
 
         </button>
         <div className="text-center mb-5">
@@ -655,7 +655,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   return (
     <div className="flex flex-col h-full overflow-y-auto px-6 pt-6 pb-6" style={{ background: "var(--off-white)" }}>
       <button onClick={() => setView("welcome")} className="flex items-center gap-1 text-xs mb-2 self-start" style={{ color: "var(--teal-deep)" }}>
-        <ArrowLeft size={14} /> Back · رجوع
+        <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
 
       </button>
       <div className="text-center mb-4">
@@ -803,7 +803,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       <button onClick={handleNextToMedical} disabled={!canContinue}
         className="w-full mt-4 py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
         style={{ background: "var(--gold)", opacity: canContinue ? 1 : 0.5, height: 52 }}>
-        Continue → Medical info · متابعة
+        Continue → Medical info<span className="font-arabic" dir="rtl"> · متابعة</span>
 
       </button>
       <button onClick={() => setView("login")} className="mt-3 text-center text-xs" style={{ color: "var(--gray)" }}>

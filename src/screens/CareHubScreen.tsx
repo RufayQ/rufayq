@@ -547,13 +547,13 @@ const FAQsTab = () => {
                     <p className="font-arabic text-[10px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>{highlightText(q.aar, true)}</p>
                     {(q as any).emergency && (
                       <a href="tel:112" className="mt-2 w-full py-2.5 rounded-xl text-[13px] font-bold text-white text-center block btn-press" style={{ background: "var(--error)" }}>
-                        🚨 CALL EMERGENCY · اتصل بالطوارئ
+                        🚨 CALL EMERGENCY<span className="font-arabic" dir="rtl"> · اتصل بالطوارئ</span>
 
                       </a>
                     )}
                     {(q as any).mental && (
                       <button className="mt-2 w-full py-2.5 rounded-xl text-[13px] font-bold text-white btn-press" style={{ background: "var(--gold)" }}>
-                        💬 Talk to RufayQ · تحدث مع رُفَيِّق
+                        💬 Talk to RufayQ<span className="font-arabic" dir="rtl"> · تحدث مع رُفَيِّق</span>
 
                       </button>
                     )}
@@ -566,7 +566,7 @@ const FAQsTab = () => {
       ))}
 
       <button className="w-full py-3 rounded-2xl text-[14px] font-bold text-white btn-press" style={{ background: "var(--gold)" }}>
-        💬 Ask RufayQ · اسأل رُفَيِّق
+        💬 Ask RufayQ<span className="font-arabic" dir="rtl"> · اسأل رُفَيِّق</span>
 
       </button>
     </div>
