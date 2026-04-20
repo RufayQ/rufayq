@@ -18,6 +18,12 @@ interface VerifyOtpBody {
 
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
+const normalizeRecipient = (raw: string) => {
+  const s = (raw || "").trim();
+  if (isEmail(s)) return s.toLowerCase();
+  return s.replace(/\s+/g, "");
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -42,9 +48,11 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
+    const recipientKey = normalizeRecipient(body.to);
+
     // 1. Try manual admin-issued OTP first (free path)
     const { data: manualMatch } = await admin.rpc("consume_manual_otp", {
-      _recipient: body.to.trim(),
+      _recipient: recipientKey,
       _code: body.code,
     });
     let approved = manualMatch === true;
