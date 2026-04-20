@@ -13,8 +13,9 @@ import AdminAuditLog from "@/components/admin/AdminAuditLog";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminProviderApplications from "@/components/admin/AdminProviderApplications";
 import AdminPatientClaims from "@/components/admin/AdminPatientClaims";
+import AdminRcmMasters from "@/components/admin/AdminRcmMasters";
 
-type Tab = "dashboard" | "users" | "create" | "orgs" | "applications" | "claims" | "subs" | "reviews" | "tickets" | "pages" | "audit";
+type Tab = "dashboard" | "users" | "create" | "orgs" | "applications" | "claims" | "rcm" | "subs" | "reviews" | "tickets" | "pages" | "audit";
 
 const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boolean }[] = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
@@ -23,6 +24,7 @@ const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boole
   { key: "orgs", label: "Organizations", Icon: Building2 },
   { key: "applications", label: "Applications", Icon: Briefcase },
   { key: "claims", label: "Patient Claims", Icon: UserPlus },
+  { key: "rcm", label: "RCM Masters", Icon: Building2, adminOnly: true },
   { key: "subs", label: "Subscriptions", Icon: CreditCard, adminOnly: true },
   { key: "reviews", label: "Reviews", Icon: Star },
   { key: "tickets", label: "Tickets", Icon: MessageSquare },
@@ -106,6 +108,7 @@ const Admin = () => {
         {tab === "orgs" && <AdminOrganizations />}
         {tab === "applications" && <AdminProviderApplications />}
         {tab === "claims" && <AdminPatientClaims />}
+        {tab === "rcm" && role === "admin" && <AdminRcmMasters />}
         {tab === "subs" && role === "admin" && <AdminSubscriptions />}
         {tab === "reviews" && <AdminReviews />}
         {tab === "tickets" && <AdminTickets />}
