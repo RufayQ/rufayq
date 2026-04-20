@@ -833,7 +833,7 @@ const StepsTab = ({
     {trips.length > 0 && (
       <div className="px-4 pt-3">
         <div className="flex items-center justify-between mb-1.5">
-          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR JOURNEYS · رحلاتك<</p>
+          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>YOUR JOURNEYS<span className="font-arabic" dir="rtl"> · رحلاتك</span><</p>
           <button onClick={onEditTrip} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold btn-press" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
             <Edit3 size={10} /> Edit Current Trip
           </button>

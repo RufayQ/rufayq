@@ -67,7 +67,7 @@ const CareHubScreen = () => {
           <span className="text-[14px]">🦽</span>
           <div className="flex-1">
             <p className="text-[11px] text-white font-medium">Post-Op Day 5 · Knee Replacement</p>
-            <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "rgba(255,255,255,0.4)" }}>اليوم الخامس بعد العملية · استبدال الركبة<</p>
+            <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "rgba(255,255,255,0.4)" }}>اليوم الخامس بعد العملية<span className="font-arabic" dir="rtl"> · استبدال الركبة</span><</p>
           </div>
           <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(61,170,110,0.2)", color: "#3DAA6E" }}>On Track</span>
         </div>
@@ -627,7 +627,7 @@ const NutritionTab = () => {
 
       {/* Foods to Avoid */}
       <div className="rounded-2xl p-4" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.15)" }}>
-        <p className="text-[12px] font-bold" style={{ color: "var(--error)" }}>⚠️ Foods to Avoid · أطعمة يجب تجنبها<</p>
+        <p className="text-[12px] font-bold" style={{ color: "var(--error)" }}>⚠️ Foods to Avoid<span className="font-arabic" dir="rtl"> · أطعمة يجب تجنبها</span><</p>
         <div className="mt-2 space-y-1">
           {["Alcohol — slows healing", "Excessive sugar — increases inflammation", "Processed foods — low nutrient value", "Caffeine excess — dehydration risk"].map((f, i) => (
             <p key={i} className="text-[11px]" style={{ color: "var(--navy)" }}>• {f}</p>
