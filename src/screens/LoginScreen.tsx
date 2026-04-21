@@ -308,9 +308,11 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   // SIGN-UP submit (validation + profile insert + send OTP)
   // ============================================================
   const validateRegister = () => {
-    if (!reg.name.trim() || !reg.id.trim() || !reg.dob) {
-      toast.error("Please fill required fields · يرجى تعبئة الحقول المطلوبة"); return false;
-    }
+    // Shortened sign-up: only Name, ID/Passport, Mobile, Password, T&C are required.
+    // DOB, Nationality, Arabic name, and the entire medical profile can be filled later
+    // from Profile → Edit (or Profile → Medical history).
+    if (!reg.name.trim()) { toast.error("Full name is required"); return false; }
+    if (!reg.id.trim()) { toast.error("ID or passport number is required"); return false; }
     if (!reg.phone.trim()) { toast.error("Mobile number is required"); return false; }
     if (reg.channel === "email" && !isValidEmail(reg.email)) {
       toast.error("Email is required for Email OTP"); return false;
@@ -327,7 +329,14 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     return true;
   };
 
-  const handleNextToMedical = () => { if (validateRegister()) setView("medical"); };
+  // Shortened flow: skip the medical step entirely and go straight to OTP.
+  // Users can complete the medical profile later from Profile → Medical history.
+  const handleNextToMedical = () => {
+    if (!validateRegister()) return;
+    const r = resolveSignupRecipient();
+    if (!r) return;
+    handleSendOtp(r.channel, r.to, "signup");
+  };
 
   // Profile + medical writes are deferred until AFTER OTP verification
   // (so we have a real auth user and RLS-compatible device_id = `auth_${userId}`).
@@ -559,7 +568,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
     return (
       <div className="flex flex-col h-full overflow-y-auto px-6 pt-10 pb-8" style={{ background: "var(--off-white)" }}>
-        <button onClick={() => setView(otpPurpose === "signup" ? "medical" : "login")}
+        <button onClick={() => setView(otpPurpose === "signup" ? "register" : "login")}
           className="flex items-center gap-1 text-xs mb-4 self-start" style={{ color: "var(--teal-deep)" }}>
           <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
 
@@ -822,8 +831,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     );
   }
 
-  // ----- REGISTER (step 1 of 2) -----
-  const canContinue = reg.name && reg.id && reg.dob && reg.phone && reg.password.length >= 8
+  // ----- REGISTER (single step now — medical is optional & added later from Profile) -----
+  const canContinue = reg.name && reg.id && reg.phone && reg.password.length >= 8
     && reg.password === reg.confirmPassword && reg.acceptTerms && reg.acceptPrivacy
     && (reg.channel !== "email" || isValidEmail(reg.email));
 
@@ -834,20 +843,23 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
       </button>
       <div className="text-center mb-4">
-        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>STEP 1 OF 2</p>
+        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>QUICK SIGN-UP · تسجيل سريع</p>
         <h2 className="font-display text-2xl mt-1" style={{ color: "var(--navy)" }}>Create your account</h2>
-        <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>أنشئ حسابك</p>
+        <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>أنشئ حسابك في خطوة واحدة</p>
+        <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
+          Only the basics now — add medical info later from Profile.
+        </p>
       </div>
 
       <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--white)" }}>
         {/* Personal */}
         {[
           { label: "Full Name *", labelAr: "الاسم الكامل", placeholder: "Mohammed Al-Rashidi", key: "name" },
-          { label: "الاسم بالعربي", labelAr: "", placeholder: "محمد الراشدي", key: "nameAr", rtl: true },
+          { label: "الاسم بالعربي (optional)", labelAr: "", placeholder: "محمد الراشدي", key: "nameAr", rtl: true },
           { label: "ID / Passport *", labelAr: "الهوية / الجواز", placeholder: "1234567890", key: "id" },
-          { label: "Date of Birth *", labelAr: "تاريخ الميلاد", placeholder: "1990-01-15", key: "dob", type: "date" },
+          { label: "Date of Birth (optional)", labelAr: "تاريخ الميلاد", placeholder: "1990-01-15", key: "dob", type: "date" },
           { label: "Mobile Number *", labelAr: "رقم الجوال", placeholder: "+966 5X XXX XXXX", key: "phone", type: "tel" },
-          { label: "Nationality", labelAr: "الجنسية", placeholder: "Saudi Arabia / UAE / Qatar / …", key: "nationality" },
+          { label: "Nationality (optional)", labelAr: "الجنسية", placeholder: "Saudi Arabia / UAE / Qatar / …", key: "nationality" },
         ].map((f) => (
           <div key={f.key}>
             <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
@@ -978,9 +990,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       <button onClick={handleNextToMedical} disabled={!canContinue}
         className="w-full mt-4 py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
         style={{ background: "var(--gold)", opacity: canContinue ? 1 : 0.5, height: 52 }}>
-        Continue → Medical info<span className="font-arabic" dir="rtl"> · متابعة</span>
+        Verify & create account<span className="font-arabic" dir="rtl"> · تحقق وأنشئ الحساب</span>
 
       </button>
+      <p className="text-[10px] text-center mt-2" style={{ color: "var(--gray)" }}>
+        You can complete your medical profile later from <span className="font-semibold" style={{ color: "var(--teal-deep)" }}>Profile → Medical history</span>.
+      </p>
       <button onClick={() => setView("login")} className="mt-3 text-center text-xs" style={{ color: "var(--gray)" }}>
         Already have an account? <span style={{ color: "var(--teal-deep)" }} className="font-semibold">Sign In</span>
       </button>
