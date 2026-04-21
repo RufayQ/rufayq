@@ -60,7 +60,7 @@ const AdminSubscriptions = () => {
 
   // === Subscription actions ===
   const setStatus = async (s: Sub, status: string, extra: Record<string, unknown> = {}) => {
-    const { error } = await supabase.from("subscriptions").update({ status, ...extra }).eq("id", s.id);
+    const { error } = await supabase.from("subscriptions").update({ status: status as any, ...extra }).eq("id", s.id);
     if (error) return toast.error(error.message);
     await supabase.rpc("log_audit_event", { _action: `sub_${status}`, _target_type: "subscription", _target_id: s.id, _details: { plan: s.plan } });
     toast.success(`✓ ${status}`); load();
@@ -77,7 +77,7 @@ const AdminSubscriptions = () => {
     toast.success("✓ Family activated"); load();
   };
   const setPlan = async (s: Sub, plan: string) => {
-    const { error } = await supabase.from("subscriptions").update({ plan }).eq("id", s.id);
+    const { error } = await supabase.from("subscriptions").update({ plan: plan as any }).eq("id", s.id);
     if (error) return toast.error(error.message);
     await supabase.rpc("log_audit_event", { _action: "sub_plan_changed", _target_type: "subscription", _target_id: s.id, _details: { plan } });
     toast.success(`Plan → ${plan}`); load();
@@ -85,7 +85,7 @@ const AdminSubscriptions = () => {
 
   // === Add-on actions ===
   const setAddonStatus = async (a: Addon, status: string) => {
-    const patch: any = { status };
+    const patch: any = { status: status as any };
     if (status === "active") patch.activated_at = new Date().toISOString();
     if (status === "canceled") patch.canceled_at = new Date().toISOString();
     const { error } = await supabase.from("subscription_addons").update(patch).eq("id", a.id);

@@ -249,7 +249,7 @@ const SubscriptionDashboard = () => {
                 <div className="space-y-1.5">
                   {events.map((e) => (
                     <div key={e.id} className="flex items-center justify-between text-xs py-2 border-b" style={{ borderColor: BORDER }}>
-                      <span className="capitalize">{e.event_type.replaceAll("_", " ")}</span>
+                      <span className="capitalize">{e.event_type.replace(/_/g, " ")}</span>
                       <div className="text-right">
                         {e.amount != null && <span className="font-mono" style={{ color: GOLD }}>{format(Number(e.amount))}</span>}
                         <p className="text-[10px]" style={{ color: MUTED }}>{new Date(e.created_at).toLocaleString()}</p>
