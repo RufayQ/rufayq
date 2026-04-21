@@ -27,9 +27,13 @@ const STATUS_BADGE: Record<Status, string> = {
   rejected: "bg-rose-500/15 text-rose-300",
 };
 
+type Persona = "patient" | "provider" | "unknown";
+
 const AdminVerificationAssist = () => {
   const [rows, setRows] = useState<Row[]>([]);
+  const [personaMap, setPersonaMap] = useState<Record<string, Persona>>({});
   const [filter, setFilter] = useState<"all" | "pending" | Kind>("pending");
+  const [section, setSection] = useState<"patients" | "providers">("patients");
   const [loading, setLoading] = useState(false);
   const [otpModal, setOtpModal] = useState<{ recipient: string; code: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -42,10 +46,43 @@ const AdminVerificationAssist = () => {
       .order("created_at", { ascending: false })
       .limit(300);
     if (error) toast.error(error.message);
-    setRows((data || []) as Row[]);
+    const list = (data || []) as Row[];
+    setRows(list);
+
+    // Resolve persona by matching device_id / phone / email against profiles
+    const deviceIds = Array.from(new Set(list.map(r => r.device_id).filter(Boolean))) as string[];
+    const recipients = Array.from(new Set(list.map(r => r.recipient).filter(Boolean))) as string[];
+    const phones = recipients.filter(r => !r.includes("@"));
+    const emails = recipients.filter(r => r.includes("@"));
+    const map: Record<string, Persona> = {};
+    if (deviceIds.length || phones.length || emails.length) {
+      // Build OR filter — profiles RLS is admin/mod readable
+      const orParts: string[] = [];
+      if (deviceIds.length) orParts.push(`device_id.in.(${deviceIds.map(d => `"${d}"`).join(",")})`);
+      if (phones.length) orParts.push(`phone.in.(${phones.map(p => `"${p}"`).join(",")})`);
+      if (emails.length) orParts.push(`email.in.(${emails.map(e => `"${e}"`).join(",")})`);
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("device_id,phone,email,provider_type")
+        .or(orParts.join(","));
+      (profs || []).forEach((p: any) => {
+        const persona: Persona = p.provider_type === "patient" ? "patient" : "provider";
+        if (p.device_id) map[`d:${p.device_id}`] = persona;
+        if (p.phone) map[`r:${p.phone}`] = persona;
+        if (p.email) map[`r:${p.email.toLowerCase()}`] = persona;
+      });
+    }
+    setPersonaMap(map);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  const personaOf = (r: Row): Persona => {
+    if (r.device_id && personaMap[`d:${r.device_id}`]) return personaMap[`d:${r.device_id}`];
+    const k = r.recipient?.includes("@") ? r.recipient.toLowerCase() : r.recipient;
+    if (k && personaMap[`r:${k}`]) return personaMap[`r:${k}`];
+    return "unknown";
+  };
 
   const update = async (id: string, patch: Partial<Row>) => {
     setBusyId(id);
@@ -87,25 +124,49 @@ const AdminVerificationAssist = () => {
     update(row.id, { status: "fulfilled", resolution_notes: "Profile activation approved" } as never);
   };
 
-  const filtered = rows.filter(r => {
+  const sectionFiltered = rows.filter(r => {
+    const persona = personaOf(r);
+    // Patients section also catches unknown so nothing gets hidden by accident
+    return section === "patients" ? persona !== "provider" : persona === "provider";
+  });
+  const filtered = sectionFiltered.filter(r => {
     if (filter === "all") return true;
     if (filter === "pending") return r.status === "pending" || r.status === "in_progress";
     return r.kind === filter;
   });
 
+  const counts = {
+    patients: rows.filter(r => personaOf(r) !== "provider" && (r.status === "pending" || r.status === "in_progress")).length,
+    providers: rows.filter(r => personaOf(r) === "provider" && (r.status === "pending" || r.status === "in_progress")).length,
+  };
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <h2 className="text-base font-semibold text-slate-100">Verification Assistance</h2>
-        <p className="text-xs text-slate-500 ml-2">Patient / provider sign-up fallback requests</p>
-        <div className="flex gap-1 ml-auto">
-          {(["pending", "manual_code", "profile_activation", "all"] as const).map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs ${filter === f ? "bg-amber-500 text-slate-950 font-semibold" : "bg-slate-800 text-slate-300"}`}>
-              {f === "pending" ? "Open" : f === "manual_code" ? "Code requests" : f === "profile_activation" ? "Activations" : "All"}
-            </button>
-          ))}
-        </div>
+      <div>
+        <h2 className="text-base font-semibold text-slate-100">User Activations</h2>
+        <p className="text-xs text-slate-500">Sign-up fallback requests — manual codes & profile activations</p>
+      </div>
+
+      {/* Persona section toggle */}
+      <div className="flex gap-2 border-b border-slate-800">
+        {(["patients", "providers"] as const).map(s => (
+          <button key={s} onClick={() => setSection(s)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px flex items-center gap-2 ${
+              section === s ? "border-amber-400 text-white" : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}>
+            {s === "patients" ? "Patients" : "Providers"}
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300">{counts[s]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-1 flex-wrap">
+        {(["pending", "manual_code", "profile_activation", "all"] as const).map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-xs ${filter === f ? "bg-amber-500 text-slate-950 font-semibold" : "bg-slate-800 text-slate-300"}`}>
+            {f === "pending" ? "Open" : f === "manual_code" ? "Code requests" : f === "profile_activation" ? "Activations" : "All"}
+          </button>
+        ))}
       </div>
 
       {loading && <p className="text-slate-400 text-sm">Loading…</p>}
@@ -120,6 +181,9 @@ const AdminVerificationAssist = () => {
                   {r.kind === "manual_code" ? <><KeyRound size={9} className="inline mr-1"/>Manual code</> : <><Shield size={9} className="inline mr-1"/>Profile activation</>}
                 </span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full ${STATUS_BADGE[r.status]}`}>{r.status}</span>
+                {(() => { const p = personaOf(r); return (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${p === "provider" ? "bg-blue-500/15 text-blue-300" : p === "patient" ? "bg-rose-500/15 text-rose-300" : "bg-slate-700 text-slate-400"}`}>{p}</span>
+                ); })()}
                 {r.channel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">{r.channel}</span>}
               </div>
               <p className="text-sm text-slate-100 font-mono break-all">{r.recipient}</p>

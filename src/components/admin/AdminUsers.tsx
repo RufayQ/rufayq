@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pause, Play, Ban, Trash2, KeyRound, Search, Copy, MessageCircle, Mail, Edit3, Save, X } from "lucide-react";
+import { Pause, Play, Ban, Trash2, KeyRound, Search, Copy, MessageCircle, Mail, Edit3, Save, X, RotateCw, Shuffle } from "lucide-react";
 
 interface Profile {
   id: string; device_id: string; full_name_en: string | null; phone: string | null;
@@ -30,6 +30,7 @@ const AdminUsers = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [otpModal, setOtpModal] = useState<{ recipient: string; code: string; expires: string } | null>(null);
+  const [pwdModal, setPwdModal] = useState<{ user_id: string; label: string; password: string; mode: "auto" | "manual" } | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Profile>>({});
 
@@ -62,6 +63,23 @@ const AdminUsers = () => {
     if (!row) { toast.error("No code returned"); return; }
     setOtpModal({ recipient, code: row.code, expires: row.expires_at });
   };
+
+  const resetPassword = async (p: Profile, mode: "auto" | "manual") => {
+    const auth_id = p.device_id?.startsWith("auth_") ? p.device_id.slice(5) : null;
+    if (!auth_id) { toast.error("This profile has no linked sign-in account."); return; }
+    let manual = "";
+    if (mode === "manual") {
+      manual = prompt("Enter the new password (min 8 chars):") || "";
+      if (manual.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    }
+    const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+      body: { user_id: auth_id, password: manual || undefined, auto_generate: mode === "auto" },
+    });
+    if (error || (data as any)?.error) { toast.error((data as any)?.error || error?.message || "Failed"); return; }
+    setPwdModal({ user_id: auth_id, label: p.full_name_en || p.email || p.phone || auth_id, password: (data as any).password, mode });
+    toast.success("Password reset");
+  };
+
 
   // Resolve the auth.users.id from a profile. We key profiles by `device_id`
   // and for registered users that device_id is `auth_<uuid>`. Guests have no
@@ -225,6 +243,14 @@ const AdminUsers = () => {
                   <>
                     <button onClick={() => generateOtp(recipient)} disabled={!recipient || isDeleted}
                       className="px-2.5 py-1 rounded bg-amber-500/15 text-amber-300 text-[11px] flex items-center gap-1 disabled:opacity-30"><KeyRound size={11}/>Send OTP</button>
+                    <button onClick={() => resetPassword(p, "auto")} disabled={!auth_id || isDeleted}
+                      className="px-2.5 py-1 rounded bg-violet-500/15 text-violet-300 text-[11px] flex items-center gap-1 disabled:opacity-30" title="Generate a new random password">
+                      <Shuffle size={11}/>Auto pwd
+                    </button>
+                    <button onClick={() => resetPassword(p, "manual")} disabled={!auth_id || isDeleted}
+                      className="px-2.5 py-1 rounded bg-violet-500/15 text-violet-300 text-[11px] flex items-center gap-1 disabled:opacity-30" title="Set a specific password">
+                      <RotateCw size={11}/>Set pwd
+                    </button>
                     <button onClick={() => startEdit(p)} disabled={isDeleted}
                       className="px-2.5 py-1 rounded bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1 disabled:opacity-30"><Edit3 size={11}/>Edit</button>
                   </>
@@ -273,6 +299,23 @@ const AdminUsers = () => {
                 className="py-2 rounded-lg bg-blue-500/20 text-blue-300 text-xs flex items-center justify-center gap-1"><Mail size={12}/>Email</a>
             </div>
             <button onClick={() => setOtpModal(null)} className="w-full mt-3 py-2 text-xs text-slate-400">Close</button>
+          </div>
+        </div>
+      )}
+      {pwdModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-6" onClick={() => setPwdModal(null)}>
+          <div className="bg-slate-900 border border-violet-500/40 rounded-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-violet-300 mb-1 flex items-center gap-2"><RotateCw size={18}/>New password ready</h3>
+            <p className="text-xs text-slate-400 mb-4">For: <span className="text-slate-200">{pwdModal.label}</span></p>
+            <div className="bg-slate-950 border border-slate-700 rounded-xl py-5 text-center mb-3">
+              <p className="text-2xl font-mono font-bold tracking-wider text-violet-300 break-all px-3">{pwdModal.password}</p>
+            </div>
+            <p className="text-[11px] text-slate-500 mb-4">
+              Share this password securely with the user. They can change it after signing in.
+            </p>
+            <button onClick={() => { navigator.clipboard.writeText(pwdModal.password); toast.success("Copied"); }}
+              className="w-full py-2 rounded-lg bg-slate-700 text-slate-200 text-xs flex items-center justify-center gap-1 mb-2"><Copy size={12}/>Copy password</button>
+            <button onClick={() => setPwdModal(null)} className="w-full py-2 text-xs text-slate-400">Close</button>
           </div>
         </div>
       )}
