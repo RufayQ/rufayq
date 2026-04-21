@@ -3889,6 +3889,54 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_assistance_requests: {
+        Row: {
+          channel: string | null
+          created_at: string
+          device_id: string | null
+          full_name: string | null
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          kind: Database["public"]["Enums"]["verification_assist_kind"]
+          note: string | null
+          recipient: string
+          resolution_notes: string | null
+          status: Database["public"]["Enums"]["verification_assist_status"]
+          updated_at: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          device_id?: string | null
+          full_name?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["verification_assist_kind"]
+          note?: string | null
+          recipient: string
+          resolution_notes?: string | null
+          status?: Database["public"]["Enums"]["verification_assist_status"]
+          updated_at?: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          device_id?: string | null
+          full_name?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["verification_assist_kind"]
+          note?: string | null
+          recipient?: string
+          resolution_notes?: string | null
+          status?: Database["public"]["Enums"]["verification_assist_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -4197,6 +4245,12 @@ export type Database = {
       ticket_priority: "low" | "medium" | "high" | "urgent"
       ticket_status: "open" | "in_progress" | "resolved" | "closed"
       user_status_enum: "active" | "on_hold" | "suspended"
+      verification_assist_kind: "manual_code" | "profile_activation"
+      verification_assist_status:
+        | "pending"
+        | "in_progress"
+        | "fulfilled"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4582,6 +4636,13 @@ export const Constants = {
       ticket_priority: ["low", "medium", "high", "urgent"],
       ticket_status: ["open", "in_progress", "resolved", "closed"],
       user_status_enum: ["active", "on_hold", "suspended"],
+      verification_assist_kind: ["manual_code", "profile_activation"],
+      verification_assist_status: [
+        "pending",
+        "in_progress",
+        "fulfilled",
+        "rejected",
+      ],
     },
   },
 } as const

@@ -586,12 +586,54 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           )}
         </div>
 
-        <p className="text-[10px] text-center mt-6" style={{ color: "var(--gray)" }}>
-          No code? Contact{" "}
-          <a href="mailto:customersupport@rufayq.com" className="font-semibold underline" style={{ color: "var(--teal-deep)" }}>
-            customersupport@rufayq.com
-          </a>{" "}for a manual code.
-        </p>
+        {/* Fallback verification methods */}
+        <div className="mt-8 pt-5 border-t" style={{ borderColor: "var(--gray-light)" }}>
+          <p className="font-mono text-[9px] tracking-widest text-center mb-3" style={{ color: "var(--gold)" }}>
+            STILL CAN'T VERIFY? · لا يمكنك التحقق؟
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            <button onClick={async () => {
+              const note = prompt("Add a short note for support (optional)") || null;
+              const { error } = await supabase.from("verification_assistance_requests").insert({
+                kind: "manual_code",
+                channel: otpChannel,
+                recipient: otpRecipient,
+                full_name: reg.name?.trim() || null,
+                note,
+                device_id: localStorage.getItem("rufayq_device_id"),
+              });
+              if (error) toast.error("Couldn't submit request", { description: error.message });
+              else toast.success("Support has been notified · سيقوم فريق الدعم بالتواصل معك");
+            }}
+              className="w-full py-3 rounded-xl text-sm font-semibold btn-press flex items-center justify-center gap-2"
+              style={{ background: "var(--white)", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}>
+              <MessageCircle size={14} /> Request a code from Support · <span className="font-arabic">طلب رمز من الدعم</span>
+            </button>
+            <button onClick={async () => {
+              const note = prompt("Tell support why you need manual activation (optional)") || null;
+              const { error } = await supabase.from("verification_assistance_requests").insert({
+                kind: "profile_activation",
+                channel: otpChannel,
+                recipient: otpRecipient,
+                full_name: reg.name?.trim() || null,
+                note,
+                device_id: localStorage.getItem("rufayq_device_id"),
+              });
+              if (error) toast.error("Couldn't submit request", { description: error.message });
+              else toast.success("Activation request sent · تم إرسال طلب التفعيل");
+            }}
+              className="w-full py-3 rounded-xl text-sm font-semibold btn-press flex items-center justify-center gap-2"
+              style={{ background: "var(--white)", color: "var(--gold)", border: "1px solid var(--gold)" }}>
+              <Shield size={14} /> Request profile activation · <span className="font-arabic">طلب تفعيل يدوي</span>
+            </button>
+          </div>
+          <p className="text-[10px] text-center mt-3" style={{ color: "var(--gray)" }}>
+            Or email{" "}
+            <a href="mailto:customersupport@rufayq.com" className="font-semibold underline" style={{ color: "var(--teal-deep)" }}>
+              customersupport@rufayq.com
+            </a>
+          </p>
+        </div>
       </div>
     );
   }
