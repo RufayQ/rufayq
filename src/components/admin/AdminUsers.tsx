@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pause, Play, Ban, Trash2, KeyRound, Search, Copy, MessageCircle, Mail, Edit3, Save, X } from "lucide-react";
+import { Pause, Play, Ban, Trash2, KeyRound, Search, Copy, MessageCircle, Mail, Edit3, Save, X, RotateCw, Shuffle } from "lucide-react";
 
 interface Profile {
   id: string; device_id: string; full_name_en: string | null; phone: string | null;
@@ -30,6 +30,7 @@ const AdminUsers = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [otpModal, setOtpModal] = useState<{ recipient: string; code: string; expires: string } | null>(null);
+  const [pwdModal, setPwdModal] = useState<{ user_id: string; label: string; password: string; mode: "auto" | "manual" } | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Profile>>({});
 
