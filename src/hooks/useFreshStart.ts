@@ -18,8 +18,10 @@ const TOUR_PREFIX = "rufayq_tour_done_";
 
 export const markUserFresh = (userId: string) => {
   try {
+    console.log(`[TourDebug] Marking user ${userId} as fresh`);
     localStorage.setItem(FRESH_PREFIX + userId, "1");
     localStorage.removeItem(TOUR_PREFIX + userId);
+    window.dispatchEvent(new CustomEvent("rufayq:fresh-user", { detail: { userId } }));
   } catch { /* noop */ }
 };
 
@@ -55,7 +57,20 @@ export const useFreshStart = () => {
         setTourPending(false);
       }
     });
-    return () => { mounted = false; sub.subscription.unsubscribe(); };
+    const onFresh = (e: Event) => {
+      const uid = (e as CustomEvent<{ userId: string }>).detail?.userId;
+      if (!uid) return;
+      console.log(`[TourDebug] fresh-user event for ${uid}`);
+      setUserId(uid);
+      setIsFresh(true);
+      setTourPending(true);
+    };
+    window.addEventListener("rufayq:fresh-user", onFresh);
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+      window.removeEventListener("rufayq:fresh-user", onFresh);
+    };
   }, []);
 
   const markTourDone = useCallback(() => {
