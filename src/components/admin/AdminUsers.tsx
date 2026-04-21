@@ -232,11 +232,11 @@ const AdminUsers = () => {
             </div>
             {!isEditing && (
               <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800">
-                <button onClick={() => setStatus(p.id, "active")} disabled={status === "active" || isDeleted}
+                <button onClick={() => setStatus(p, "active")} disabled={status === "active" || isDeleted}
                   className="px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[10px] disabled:opacity-30 flex items-center gap-1"><Play size={10}/>Activate</button>
-                <button onClick={() => setStatus(p.id, "on_hold")} disabled={status === "on_hold" || isDeleted}
+                <button onClick={() => setStatus(p, "on_hold")} disabled={status === "on_hold" || isDeleted}
                   className="px-2 py-1 rounded bg-amber-500/15 text-amber-300 text-[10px] disabled:opacity-30 flex items-center gap-1"><Pause size={10}/>Hold</button>
-                <button onClick={() => setStatus(p.id, "suspended")} disabled={status === "suspended" || isDeleted}
+                <button onClick={() => setStatus(p, "suspended")} disabled={status === "suspended" || isDeleted}
                   className="px-2 py-1 rounded bg-rose-500/15 text-rose-300 text-[10px] disabled:opacity-30 flex items-center gap-1"><Ban size={10}/>Suspend</button>
                 <div className="flex-1" />
                 {isDeleted ? (
