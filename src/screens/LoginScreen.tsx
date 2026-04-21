@@ -831,8 +831,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     );
   }
 
-  // ----- REGISTER (step 1 of 2) -----
-  const canContinue = reg.name && reg.id && reg.dob && reg.phone && reg.password.length >= 8
+  // ----- REGISTER (single step now — medical is optional & added later from Profile) -----
+  const canContinue = reg.name && reg.id && reg.phone && reg.password.length >= 8
     && reg.password === reg.confirmPassword && reg.acceptTerms && reg.acceptPrivacy
     && (reg.channel !== "email" || isValidEmail(reg.email));
 
@@ -843,20 +843,23 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
       </button>
       <div className="text-center mb-4">
-        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>STEP 1 OF 2</p>
+        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>QUICK SIGN-UP · تسجيل سريع</p>
         <h2 className="font-display text-2xl mt-1" style={{ color: "var(--navy)" }}>Create your account</h2>
-        <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>أنشئ حسابك</p>
+        <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>أنشئ حسابك في خطوة واحدة</p>
+        <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
+          Only the basics now — add medical info later from Profile.
+        </p>
       </div>
 
       <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--white)" }}>
         {/* Personal */}
         {[
           { label: "Full Name *", labelAr: "الاسم الكامل", placeholder: "Mohammed Al-Rashidi", key: "name" },
-          { label: "الاسم بالعربي", labelAr: "", placeholder: "محمد الراشدي", key: "nameAr", rtl: true },
+          { label: "الاسم بالعربي (optional)", labelAr: "", placeholder: "محمد الراشدي", key: "nameAr", rtl: true },
           { label: "ID / Passport *", labelAr: "الهوية / الجواز", placeholder: "1234567890", key: "id" },
-          { label: "Date of Birth *", labelAr: "تاريخ الميلاد", placeholder: "1990-01-15", key: "dob", type: "date" },
+          { label: "Date of Birth (optional)", labelAr: "تاريخ الميلاد", placeholder: "1990-01-15", key: "dob", type: "date" },
           { label: "Mobile Number *", labelAr: "رقم الجوال", placeholder: "+966 5X XXX XXXX", key: "phone", type: "tel" },
-          { label: "Nationality", labelAr: "الجنسية", placeholder: "Saudi Arabia / UAE / Qatar / …", key: "nationality" },
+          { label: "Nationality (optional)", labelAr: "الجنسية", placeholder: "Saudi Arabia / UAE / Qatar / …", key: "nationality" },
         ].map((f) => (
           <div key={f.key}>
             <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
