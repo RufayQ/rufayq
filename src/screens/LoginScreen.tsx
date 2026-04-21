@@ -990,9 +990,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       <button onClick={handleNextToMedical} disabled={!canContinue}
         className="w-full mt-4 py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
         style={{ background: "var(--gold)", opacity: canContinue ? 1 : 0.5, height: 52 }}>
-        Continue → Medical info<span className="font-arabic" dir="rtl"> · متابعة</span>
+        Verify & create account<span className="font-arabic" dir="rtl"> · تحقق وأنشئ الحساب</span>
 
       </button>
+      <p className="text-[10px] text-center mt-2" style={{ color: "var(--gray)" }}>
+        You can complete your medical profile later from <span className="font-semibold" style={{ color: "var(--teal-deep)" }}>Profile → Medical history</span>.
+      </p>
       <button onClick={() => setView("login")} className="mt-3 text-center text-xs" style={{ color: "var(--gray)" }}>
         Already have an account? <span style={{ color: "var(--teal-deep)" }} className="font-semibold">Sign In</span>
       </button>
