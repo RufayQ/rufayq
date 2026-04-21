@@ -4,7 +4,7 @@ import LazyOnView from "@/components/LazyOnView";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { SeoLazy } from "@/seo/SeoLazy";
+import { Seo } from "@/seo/Seo";
 import {
   ArrowRightIcon, SparklesIcon, LockIcon, GlobeIcon, HeartIcon,
   MenuIcon, XIcon, ChevronDownIcon,
@@ -53,7 +53,7 @@ const Landing = () => {
 
   return (
     <>
-      <SeoLazy
+      <Seo
         title={isAr ? "رُفَيِّق — رفيقك الطبي ثنائي اللغة للسفر للعلاج" : "RufayQ — Bilingual AI Medical Travel Companion"}
         description={isAr
           ? "رُفَيِّق هو الرفيق الذكي ثنائي اللغة لمرضى الخليج المسافرين للعلاج. تتبّع الرحلات، الأدوية، المواعيد، وكل تقاريرك الطبية."
