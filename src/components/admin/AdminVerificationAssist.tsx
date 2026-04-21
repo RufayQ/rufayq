@@ -60,15 +60,23 @@ const AdminVerificationAssist = () => {
   };
 
   const generateCode = async (row: Row) => {
+    // Allow admin to confirm/edit recipient before issuing — must EXACTLY match what the user
+    // sees on their OTP screen (E.164 phone or lowercase email), otherwise consume_manual_otp won't match.
+    const editedRaw = prompt(
+      `Issue a 6-digit code for which recipient?\n\nMust match exactly what appears on the user's verification screen (e.g. +966569590418 or user@email.com).`,
+      row.recipient,
+    );
+    if (!editedRaw) return;
+    const recipient = editedRaw.trim().includes("@") ? editedRaw.trim().toLowerCase() : editedRaw.trim().replace(/\s+/g, "");
     setBusyId(row.id);
-    const { data, error } = await supabase.rpc("admin_generate_manual_otp", { _recipient: row.recipient });
+    const { data, error } = await supabase.rpc("admin_generate_manual_otp", { _recipient: recipient });
     if (error) { setBusyId(null); toast.error(error.message); return; }
     const r = (data as any)?.[0];
     if (!r) { setBusyId(null); toast.error("No code returned"); return; }
-    setOtpModal({ recipient: row.recipient, code: r.code });
+    setOtpModal({ recipient, code: r.code });
     await supabase
       .from("verification_assistance_requests")
-      .update({ status: "fulfilled", handled_at: new Date().toISOString(), resolution_notes: "Manual code issued" } as never)
+      .update({ status: "fulfilled", handled_at: new Date().toISOString(), resolution_notes: `Manual code issued to ${recipient}` } as never)
       .eq("id", row.id);
     setBusyId(null);
     load();

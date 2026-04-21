@@ -21,11 +21,13 @@ import AdminVerificationAssist from "@/components/admin/AdminVerificationAssist"
 
 type Tab = "dashboard" | "users" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "reviews" | "tickets" | "pages" | "audit";
 
+// Tabs are grouped: Users area first (Users → Create User → User Activations),
+// then Org/Provider area, then RCM, then ops.
 const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boolean }[] = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { key: "users", label: "Users", Icon: Users },
   { key: "create", label: "Create User", Icon: UserPlus, adminOnly: true },
-  { key: "verify_assist", label: "Verify Assist", Icon: Shield },
+  { key: "verify_assist", label: "User Activations", Icon: Shield },
   { key: "orgs", label: "Organizations", Icon: Building2 },
   { key: "applications", label: "Applications", Icon: Briefcase },
   { key: "claims", label: "Patient Claims", Icon: UserPlus },
