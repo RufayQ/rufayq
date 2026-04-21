@@ -167,8 +167,6 @@ const AdminVerificationAssist = () => {
             {f === "pending" ? "Open" : f === "manual_code" ? "Code requests" : f === "profile_activation" ? "Activations" : "All"}
           </button>
         ))}
-      </div>
-
         <button onClick={load} disabled={loading}
           className="ml-auto px-3 py-1.5 rounded-lg text-xs bg-slate-800 text-slate-200 flex items-center gap-1.5 disabled:opacity-50">
           {loading ? <Loader2 size={11} className="animate-spin"/> : <Clock size={11}/>}
