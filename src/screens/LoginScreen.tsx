@@ -568,7 +568,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
     return (
       <div className="flex flex-col h-full overflow-y-auto px-6 pt-10 pb-8" style={{ background: "var(--off-white)" }}>
-        <button onClick={() => setView(otpPurpose === "signup" ? "medical" : "login")}
+        <button onClick={() => setView(otpPurpose === "signup" ? "register" : "login")}
           className="flex items-center gap-1 text-xs mb-4 self-start" style={{ color: "var(--teal-deep)" }}>
           <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
 
