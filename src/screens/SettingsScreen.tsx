@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy } from "lucide-react";
+import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage, type LangMode } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SettingsScreenProps {
   onBack: () => void;
@@ -190,6 +191,42 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           </div>
         </div>
 
+        {/* Tour replay */}
+        <div className="mx-4 mt-5">
+          <div className="flex items-center gap-2 mb-1.5 px-1">
+            <Sparkles size={13} style={{ color: "var(--gold)" }} />
+            <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>GUIDED TOUR · الجولة الإرشادية</p>
+          </div>
+          <button
+            onClick={async () => {
+              const { data: { session } } = await supabase.auth.getSession();
+              const uid = session?.user?.id;
+              if (!uid) {
+                toast.error("Sign in first to replay the tour · سجّل الدخول أولاً");
+                return;
+              }
+              try {
+                localStorage.setItem(`rufayq_fresh_${uid}`, "1");
+                localStorage.removeItem(`rufayq_tour_done_${uid}`);
+                window.dispatchEvent(new CustomEvent("rufayq:fresh-user", { detail: { userId: uid } }));
+              } catch { /* noop */ }
+              toast.success("Tour will restart · ستُعاد الجولة");
+              setTimeout(() => onBack(), 350);
+            }}
+            className="w-full flex items-center justify-between py-3 px-4 btn-press rounded-xl"
+            style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+          >
+            <div className="flex items-center gap-3">
+              <Sparkles size={15} style={{ color: "var(--gold)" }} />
+              <div className="text-left">
+                <p className="text-[13px]" style={{ color: "var(--navy)" }}>Replay welcome tour</p>
+                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>إعادة تشغيل الجولة الإرشادية</p>
+              </div>
+            </div>
+            <ExternalLink size={13} style={{ color: "var(--gray)" }} />
+          </button>
+        </div>
+
         {/* About & Links */}
         <div className="mx-4 mt-5">
           <div className="flex items-center gap-2 mb-1.5 px-1">
@@ -199,7 +236,7 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
             {[
               { icon: <Globe size={15} style={{ color: "var(--teal-deep)" }} />, label: "Visit RufayQ Website", labelAr: "زيارة موقع رُفَيِّق", href: "https://rufayq.com" },
-              { icon: <CreditCard size={15} style={{ color: "var(--gold)" }} />, label: "Pricing & Plans", labelAr: "الأسعار والباقات", href: "https://rufayq.com#pricing" },
+              { icon: <CreditCard size={15} style={{ color: "var(--gold)" }} />, label: "Pricing & Plans", labelAr: "الأسعار والباقات", href: "/pricing" },
               { icon: <LifeBuoy size={15} style={{ color: "var(--teal-mid)" }} />, label: "Help Center", labelAr: "مركز المساعدة", href: "/#faq" },
               { icon: <Mail size={15} style={{ color: "var(--success)" }} />, label: "Contact Support", labelAr: "تواصل معنا", href: "mailto:support@rufayq.com" },
               { icon: <FileText size={15} style={{ color: "var(--gray)" }} />, label: "Privacy Policy (PDPL · HIPAA · GDPR)", labelAr: "سياسة الخصوصية", href: "/privacy" },
