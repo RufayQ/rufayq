@@ -173,7 +173,8 @@ const AdminUsers = () => {
       {!loading && filtered.length === 0 && <p className="text-slate-500 text-sm">No users.</p>}
 
       {filtered.map((p) => {
-        const status = statuses[p.id]?.status;
+        const auth_id = p.device_id?.startsWith("auth_") ? p.device_id.slice(5) : null;
+        const status = auth_id ? statuses[auth_id]?.status : undefined;
         const isDeleted = !!p.deleted_at;
         const recipient = p.email || (p.phone?.startsWith("+") ? p.phone : p.phone ? `+966${p.phone.replace(/^0+/, "")}` : "");
         const isEditing = editing === p.id;
