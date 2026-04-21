@@ -197,7 +197,7 @@ const Pricing = () => {
                   {showAr ? t.ctaAr : t.ctaEn}
                 </button>
               ) : (
-                <Link to={t.id === "free" ? "/auth" : "/app/dashboard/subscription"}
+                <Link to={t.id === "free" ? "/auth" : "/app"}
                   className="block text-center px-4 py-2.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.02]"
                   style={{ background: t.highlight ? GOLD : "transparent", color: t.highlight ? "#06101A" : TEXT, border: t.highlight ? "none" : `1px solid ${BORDER}` }}>
                   {showAr ? t.ctaAr : t.ctaEn}

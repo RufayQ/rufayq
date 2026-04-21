@@ -1,4 +1,4 @@
-import { ReactNode, Suspense, useEffect, useRef, useState } from "react";
+import { forwardRef, ReactNode, Ref, Suspense, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 interface LazyOnViewProps {
   children: ReactNode;
@@ -13,14 +13,18 @@ interface LazyOnViewProps {
  * Renders children only after the placeholder scrolls near the viewport.
  * Combine with React.lazy() so the chunk + render are both deferred,
  * cutting initial JS evaluation cost on the Landing page.
+ *
+ * forwardRef so parents (Helmet, Suspense, motion) that probe for refs
+ * don't warn about "Function components cannot be given refs".
  */
-const LazyOnView = ({
+const LazyOnView = forwardRef<HTMLDivElement, LazyOnViewProps>(({
   children,
   fallback = null,
   rootMargin = "300px",
   minHeight = 200,
-}: LazyOnViewProps) => {
+}, forwardedRef) => {
   const ref = useRef<HTMLDivElement>(null);
+  useImperativeHandle(forwardedRef, () => ref.current as HTMLDivElement);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -50,6 +54,8 @@ const LazyOnView = ({
       {visible ? <Suspense fallback={fallback}>{children}</Suspense> : fallback}
     </div>
   );
-};
+});
+
+LazyOnView.displayName = "LazyOnView";
 
 export default LazyOnView;

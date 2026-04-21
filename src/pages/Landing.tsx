@@ -41,10 +41,10 @@ const Landing = () => {
     { Icon: HeartIcon, en: "For Gulf & global patients", ar: "لمرضى الخليج والعالم" },
   ];
 
-  const navLinks: { en: string; ar: string; href: string }[] = [
+  const navLinks: { en: string; ar: string; href: string; isRoute?: boolean }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
     { en: "How", ar: "كيف يعمل", href: "#how" },
-    { en: "Pricing", ar: "الأسعار", href: "#pricing" },
+    { en: "Pricing", ar: "الأسعار", href: isAr ? "/ar/pricing" : "/pricing", isRoute: true },
     { en: "FAQ", ar: "الأسئلة", href: "#faq" },
     { en: "Contact", ar: "تواصل", href: "#contact" },
   ];
@@ -73,10 +73,17 @@ const Landing = () => {
 
             <div className="hidden md:flex items-center gap-6">
               {navLinks.map((l) => (
-                <a key={l.href} href={l.href} className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group" style={{ color: TEXT_MUTED }}>
-                  {isAr ? l.ar : l.en}
-                  <span aria-hidden className="absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" style={{ background: GOLD }} />
-                </a>
+                l.isRoute ? (
+                  <Link key={l.href} to={l.href} className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group" style={{ color: TEXT_MUTED }}>
+                    {isAr ? l.ar : l.en}
+                    <span aria-hidden className="absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" style={{ background: GOLD }} />
+                  </Link>
+                ) : (
+                  <a key={l.href} href={l.href} className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group" style={{ color: TEXT_MUTED }}>
+                    {isAr ? l.ar : l.en}
+                    <span aria-hidden className="absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" style={{ background: GOLD }} />
+                  </a>
+                )
               ))}
               <Link to="/providers" className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group" style={{ color: TEXT_MUTED }}>
                 {isAr ? "للمزوّدين" : "For Providers"}
@@ -114,9 +121,15 @@ const Landing = () => {
           {menuOpen && (
             <div className="md:hidden px-6 pb-4 space-y-3" style={{ borderTop: `1px solid ${BORDER}` }}>
               {navLinks.map((l) => (
-                <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
-                  {isAr ? l.ar : l.en}
-                </a>
+                l.isRoute ? (
+                  <Link key={l.href} to={l.href} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
+                    {isAr ? l.ar : l.en}
+                  </Link>
+                ) : (
+                  <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
+                    {isAr ? l.ar : l.en}
+                  </a>
+                )
               ))}
               <Link to="/providers" onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
                 {isAr ? "للمزوّدين" : "For Providers"}
