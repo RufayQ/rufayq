@@ -167,6 +167,11 @@ const AdminVerificationAssist = () => {
             {f === "pending" ? "Open" : f === "manual_code" ? "Code requests" : f === "profile_activation" ? "Activations" : "All"}
           </button>
         ))}
+        <button onClick={load} disabled={loading}
+          className="ml-auto px-3 py-1.5 rounded-lg text-xs bg-slate-800 text-slate-200 flex items-center gap-1.5 disabled:opacity-50">
+          {loading ? <Loader2 size={11} className="animate-spin"/> : <Clock size={11}/>}
+          Refresh
+        </button>
       </div>
 
       {loading && <p className="text-slate-400 text-sm">Loading…</p>}
@@ -239,8 +244,14 @@ const AdminVerificationAssist = () => {
             <div className="bg-slate-950 border border-slate-700 rounded-xl py-6 text-center mb-3">
               <p className="text-4xl font-mono font-bold tracking-[0.4em] text-amber-300">{otpModal.code}</p>
             </div>
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-2.5 mb-3">
+              <p className="text-[11px] text-amber-200 leading-relaxed">
+                ⚠️ User must enter <strong>this exact recipient</strong> on their verification screen:
+              </p>
+              <p className="text-xs font-mono text-amber-100 mt-1 break-all">{otpModal.recipient}</p>
+            </div>
             <p className="text-[11px] text-slate-500 mb-4">
-              Expires in 15 minutes. Share via WhatsApp / SMS / email. The user enters it on their verification screen.
+              Expires in 15 minutes. Share via WhatsApp / SMS / email.
             </p>
             <div className="grid grid-cols-3 gap-2">
               <button onClick={() => { navigator.clipboard.writeText(otpModal.code); toast.success("Copied"); }}

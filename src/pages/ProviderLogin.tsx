@@ -31,15 +31,19 @@ const ProviderLogin = () => {
     notReg: { en: "Not registered yet?", ar: "غير مسجّل بعد؟" },
     apply: { en: "Apply as a provider", ar: "قدّم كمزوّد" },
     invalid: { en: "Invalid credentials", ar: "بيانات الاعتماد غير صحيحة" },
-    notLinked: { en: "This account is not linked to an approved provider organization yet.", ar: "هذا الحساب غير مرتبط بمؤسسة مزوّدة معتمدة بعد." },
+    notLinked: { en: "This account is not linked to an approved provider organization. Contact enterprise@rufayq.com.", ar: "هذا الحساب غير مرتبط بمؤسسة مزوّدة معتمدة. تواصل مع enterprise@rufayq.com." },
     welcome: { en: "Welcome back", ar: "مرحباً بعودتك" },
+    forgot: { en: "Forgot password?", ar: "نسيت كلمة المرور؟" },
+    resetSent: { en: "Password reset link sent to your email", ar: "تم إرسال رابط إعادة التعيين إلى بريدك" },
+    resetNeedEmail: { en: "Enter your email above first", ar: "أدخل بريدك الإلكتروني أولاً" },
   };
   const tx = (k: keyof typeof t) => mode === "ar" ? t[k].ar : mode === "en" ? t[k].en : `${t[k].en} · ${t[k].ar}`;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const cleanEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
     if (error || !data.session) {
       setBusy(false);
       toast.error(error?.message || tx("invalid"));
@@ -58,6 +62,16 @@ const ProviderLogin = () => {
     }
     toast.success(tx("welcome"));
     navigate("/provider", { replace: true });
+  };
+
+  const handleForgot = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) { toast.error(tx("resetNeedEmail")); return; }
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: `${window.location.origin}/auth?reset=1`,
+    });
+    if (error) toast.error(error.message);
+    else toast.success(tx("resetSent"));
   };
 
   return (
@@ -106,6 +120,11 @@ const ProviderLogin = () => {
               <Lock size={14} /> {busy ? tx("signing") : tx("signIn")}
             </button>
           </form>
+
+          <button type="button" onClick={handleForgot}
+            className="w-full mt-3 text-xs text-center underline" style={{ color: TEAL }}>
+            {tx("forgot")}
+          </button>
 
           <p className="text-xs mt-6 text-center" style={{ color: MUTED }}>
             {tx("notReg")}{" "}

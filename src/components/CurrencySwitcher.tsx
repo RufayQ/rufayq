@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import { Check, X, ChevronDown } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -11,7 +11,7 @@ interface Props {
   className?: string;
 }
 
-const CurrencySwitcher = ({ variant = "pill", className = "" }: Props) => {
+const CurrencySwitcher = forwardRef<HTMLButtonElement, Props>(({ variant = "pill", className = "" }, ref) => {
   const { currency, setCurrency, isGccPegged } = useCurrency();
   const { mode } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -22,6 +22,7 @@ const CurrencySwitcher = ({ variant = "pill", className = "" }: Props) => {
   return (
     <>
       <button
+        ref={ref}
         onClick={() => setOpen(true)}
         className={`inline-flex items-center gap-1.5 text-xs font-mono font-semibold transition-all ${
           variant === "pill" ? "px-3 py-1.5 rounded-full" : "underline"
@@ -106,6 +107,8 @@ const CurrencySwitcher = ({ variant = "pill", className = "" }: Props) => {
       )}
     </>
   );
-};
+});
+
+CurrencySwitcher.displayName = "CurrencySwitcher";
 
 export default CurrencySwitcher;

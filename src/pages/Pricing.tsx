@@ -140,10 +140,10 @@ const Pricing = () => {
             </button>
           ))}
         </div>
-        <p className="text-[11px]" style={{ color: MUTED }}>
+        <span className="text-[11px] inline-flex items-center gap-1" style={{ color: MUTED }}>
           {showAr ? `الأسعار بـ ${currency} — ` : `Prices shown in ${currency} — `}
           <CurrencySwitcher variant="inline" />
-        </p>
+        </span>
       </header>
 
       {/* Tier cards */}
