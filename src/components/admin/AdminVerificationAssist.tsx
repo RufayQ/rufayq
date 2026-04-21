@@ -124,25 +124,49 @@ const AdminVerificationAssist = () => {
     update(row.id, { status: "fulfilled", resolution_notes: "Profile activation approved" } as never);
   };
 
-  const filtered = rows.filter(r => {
+  const sectionFiltered = rows.filter(r => {
+    const persona = personaOf(r);
+    // Patients section also catches unknown so nothing gets hidden by accident
+    return section === "patients" ? persona !== "provider" : persona === "provider";
+  });
+  const filtered = sectionFiltered.filter(r => {
     if (filter === "all") return true;
     if (filter === "pending") return r.status === "pending" || r.status === "in_progress";
     return r.kind === filter;
   });
 
+  const counts = {
+    patients: rows.filter(r => personaOf(r) !== "provider" && (r.status === "pending" || r.status === "in_progress")).length,
+    providers: rows.filter(r => personaOf(r) === "provider" && (r.status === "pending" || r.status === "in_progress")).length,
+  };
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <h2 className="text-base font-semibold text-slate-100">Verification Assistance</h2>
-        <p className="text-xs text-slate-500 ml-2">Patient / provider sign-up fallback requests</p>
-        <div className="flex gap-1 ml-auto">
-          {(["pending", "manual_code", "profile_activation", "all"] as const).map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs ${filter === f ? "bg-amber-500 text-slate-950 font-semibold" : "bg-slate-800 text-slate-300"}`}>
-              {f === "pending" ? "Open" : f === "manual_code" ? "Code requests" : f === "profile_activation" ? "Activations" : "All"}
-            </button>
-          ))}
-        </div>
+      <div>
+        <h2 className="text-base font-semibold text-slate-100">User Activations</h2>
+        <p className="text-xs text-slate-500">Sign-up fallback requests — manual codes & profile activations</p>
+      </div>
+
+      {/* Persona section toggle */}
+      <div className="flex gap-2 border-b border-slate-800">
+        {(["patients", "providers"] as const).map(s => (
+          <button key={s} onClick={() => setSection(s)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px flex items-center gap-2 ${
+              section === s ? "border-amber-400 text-white" : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}>
+            {s === "patients" ? "Patients" : "Providers"}
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300">{counts[s]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-1 flex-wrap">
+        {(["pending", "manual_code", "profile_activation", "all"] as const).map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-xs ${filter === f ? "bg-amber-500 text-slate-950 font-semibold" : "bg-slate-800 text-slate-300"}`}>
+            {f === "pending" ? "Open" : f === "manual_code" ? "Code requests" : f === "profile_activation" ? "Activations" : "All"}
+          </button>
+        ))}
       </div>
 
       {loading && <p className="text-slate-400 text-sm">Loading…</p>}
