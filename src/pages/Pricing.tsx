@@ -196,9 +196,105 @@ const Pricing = () => {
             </div>
           ))}
         </div>
+
+        {/* Enterprise tier — contact sales */}
+        <div className="mt-6 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-5"
+          style={{ background: `linear-gradient(135deg, ${TEAL}55, ${BG2})`, border: `1px solid ${BORDER}` }}>
+          <div className="flex-1">
+            <p className="font-mono text-[10px] tracking-[0.25em] uppercase mb-1" style={{ color: GOLD }}>
+              {showAr ? "للمؤسسات" : "Enterprise"}
+            </p>
+            <h3 className="font-display text-2xl md:text-3xl mb-2" style={{ color: TEXT }}>
+              {showAr ? "حلول للمستشفيات وشركات التأمين والوكالات الحكومية" : "For hospitals, insurers & government agencies"}
+            </h3>
+            <p className="text-sm mb-3" style={{ color: MUTED }} dir={showAr ? "rtl" : "ltr"}>
+              {showAr
+                ? "استخدام غير محدود، تكامل مع NPHIES و EHR، SSO، اتفاقية معالجة البيانات (DPA)، فوترة سنوية بالفاتورة، ومدير حساب مخصص."
+                : "Unlimited seats, NPHIES & EHR integration, SSO, signed DPA, annual invoice billing, and a dedicated account manager."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(showAr
+                ? ["NPHIES", "تكامل EHR", "SSO / SAML", "DPA موقّعة", "فوترة بالفاتورة", "SLA ٩٩٫٩٪"]
+                : ["NPHIES", "EHR Integration", "SSO / SAML", "Signed DPA", "Invoice billing", "99.9% SLA"]
+              ).map((tag) => (
+                <span key={tag} className="text-[10px] font-mono px-2 py-1 rounded-full" style={{ background: BG, color: GOLD, border: `1px solid ${BORDER}` }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 w-full md:w-auto">
+            <Link to="/enterprise" className="text-center px-5 py-3 rounded-full text-sm font-semibold whitespace-nowrap" style={{ background: GOLD, color: "#06101A" }}>
+              {showAr ? "تواصل مع المبيعات" : "Contact sales"}
+            </Link>
+            <a href="mailto:enterprise@rufayq.com" className="text-center text-[11px]" style={{ color: MUTED }}>
+              enterprise@rufayq.com
+            </a>
+          </div>
+        </div>
+
+        {/* Family workflow + Admin/management workflow */}
+        <div className="mt-10 grid md:grid-cols-2 gap-5">
+          <div className="rounded-2xl p-6" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
+            <p className="font-mono text-[10px] tracking-[0.25em] uppercase mb-2" style={{ color: GOLD }}>
+              {showAr ? "كيف تعمل خطة فاميلي" : "How Family works"}
+            </p>
+            <h3 className="font-display text-xl mb-3" style={{ color: TEXT }}>
+              {showAr ? "ملف واحد. حتى ٤ مرضى. منسّق عائلي." : "One account. Up to 4 patients. One family coordinator."}
+            </h3>
+            <ol className="space-y-2 text-sm" style={{ color: TEXT }} dir={showAr ? "rtl" : "ltr"}>
+              {(showAr ? [
+                "ادفع اشتراك فاميلي مرة واحدة من حسابك.",
+                "أنشئ حتى ٤ ملفات مرضى تحت مظلتك (أبناء، والدين، زوج).",
+                "ادعُ مرافقين بصلاحيات قراءة أو إدارة عبر البريد أو رقم الجوال.",
+                "تظهر جميع الرحلات والأدوية والمستندات في خط زمني عائلي موحّد.",
+                "كل مريض يحتفظ بخصوصية بياناته الطبية — يتحكم بمن يرى ماذا.",
+              ] : [
+                "Pay for a single Family subscription from your account.",
+                "Create up to 4 patient profiles under your umbrella (kids, parents, spouse).",
+                "Invite caregivers with read or manage permissions via email or mobile.",
+                "All trips, medications, and documents appear in one consolidated family timeline.",
+                "Each patient still owns their medical privacy — they control who sees what.",
+              ]).map((step, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="font-mono font-bold flex-shrink-0" style={{ color: GOLD }}>{i + 1}.</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="rounded-2xl p-6" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
+            <p className="font-mono text-[10px] tracking-[0.25em] uppercase mb-2" style={{ color: GOLD }}>
+              {showAr ? "إدارة الاشتراكات" : "Subscription management"}
+            </p>
+            <h3 className="font-display text-xl mb-3" style={{ color: TEXT }}>
+              {showAr ? "تطبيق وإدارة الباقة من لوحة التحكم" : "Apply & manage your plan from one dashboard"}
+            </h3>
+            <ol className="space-y-2 text-sm" style={{ color: TEXT }} dir={showAr ? "rtl" : "ltr"}>
+              {(showAr ? [
+                "اختر الباقة وادفع بأمان عبر مدى أو فيزا أو Apple Pay.",
+                "تظهر باقتك فوراً في الإعدادات → الاشتراك مع تاريخ التجديد.",
+                "يستلم فريق رُفَيِّق إشعار التفعيل ويُجهّز رحلتك خلال ساعة.",
+                "ترقية، تخفيض، أو إلغاء بنقرة واحدة — تطبق فوراً مع تسوية بالنسبة.",
+                "الفواتير وإيصالات ضريبة القيمة المضافة متاحة للتحميل في أي وقت.",
+              ] : [
+                "Choose your tier and pay securely via Mada, Visa, or Apple Pay.",
+                "Your plan appears instantly in Settings → Subscription with the renewal date.",
+                "RufayQ ops gets the activation notice and prepares your journey within an hour.",
+                "Upgrade, downgrade, or cancel in one tap — applied instantly with prorated billing.",
+                "Invoices and VAT-compliant receipts are downloadable any time.",
+              ]).map((step, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="font-mono font-bold flex-shrink-0" style={{ color: GOLD }}>{i + 1}.</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
       </section>
 
-      {/* Why Companion */}
       <section className="max-w-5xl mx-auto px-6 pb-16">
         <div className="grid md:grid-cols-3 gap-4">
           {[

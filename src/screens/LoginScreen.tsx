@@ -60,6 +60,36 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [newPass, setNewPass] = useState("");
   const [newPassConfirm, setNewPassConfirm] = useState("");
 
+  // Verification-assistance modal state
+  const [assistKind, setAssistKind] = useState<null | "manual_code" | "profile_activation">(null);
+  const [assistNote, setAssistNote] = useState("");
+  const [assistSubmitting, setAssistSubmitting] = useState(false);
+
+  const submitAssist = async () => {
+    if (!assistKind) return;
+    setAssistSubmitting(true);
+    const { error } = await supabase.from("verification_assistance_requests").insert({
+      kind: assistKind,
+      channel: otpChannel,
+      recipient: otpRecipient,
+      full_name: reg.name?.trim() || null,
+      note: assistNote.trim() || null,
+      device_id: localStorage.getItem("rufayq_device_id"),
+    });
+    setAssistSubmitting(false);
+    if (error) {
+      toast.error("Couldn't submit request", { description: error.message });
+      return;
+    }
+    toast.success(
+      assistKind === "manual_code"
+        ? "Support has been notified · سيقوم فريق الدعم بالتواصل معك"
+        : "Activation request sent · تم إرسال طلب التفعيل"
+    );
+    setAssistKind(null);
+    setAssistNote("");
+  };
+
   // Medical step (unchanged structure)
   const [med, setMed] = useState({
     bloodType: "", allergies: "", chronic: "", currentMeds: "",
@@ -592,36 +622,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
             STILL CAN'T VERIFY? · لا يمكنك التحقق؟
           </p>
           <div className="grid grid-cols-1 gap-2">
-            <button onClick={async () => {
-              const note = prompt("Add a short note for support (optional)") || null;
-              const { error } = await supabase.from("verification_assistance_requests").insert({
-                kind: "manual_code",
-                channel: otpChannel,
-                recipient: otpRecipient,
-                full_name: reg.name?.trim() || null,
-                note,
-                device_id: localStorage.getItem("rufayq_device_id"),
-              });
-              if (error) toast.error("Couldn't submit request", { description: error.message });
-              else toast.success("Support has been notified · سيقوم فريق الدعم بالتواصل معك");
-            }}
+            <button onClick={() => { setAssistNote(""); setAssistKind("manual_code"); }}
               className="w-full py-3 rounded-xl text-sm font-semibold btn-press flex items-center justify-center gap-2"
               style={{ background: "var(--white)", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}>
               <MessageCircle size={14} /> Request a code from Support · <span className="font-arabic">طلب رمز من الدعم</span>
             </button>
-            <button onClick={async () => {
-              const note = prompt("Tell support why you need manual activation (optional)") || null;
-              const { error } = await supabase.from("verification_assistance_requests").insert({
-                kind: "profile_activation",
-                channel: otpChannel,
-                recipient: otpRecipient,
-                full_name: reg.name?.trim() || null,
-                note,
-                device_id: localStorage.getItem("rufayq_device_id"),
-              });
-              if (error) toast.error("Couldn't submit request", { description: error.message });
-              else toast.success("Activation request sent · تم إرسال طلب التفعيل");
-            }}
+            <button onClick={() => { setAssistNote(""); setAssistKind("profile_activation"); }}
               className="w-full py-3 rounded-xl text-sm font-semibold btn-press flex items-center justify-center gap-2"
               style={{ background: "var(--white)", color: "var(--gold)", border: "1px solid var(--gold)" }}>
               <Shield size={14} /> Request profile activation · <span className="font-arabic">طلب تفعيل يدوي</span>
@@ -634,6 +640,53 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
             </a>
           </p>
         </div>
+
+        {/* Verification-assistance modal — replaces blocked native prompt() */}
+        {assistKind && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-4 pb-4 pt-12"
+            onClick={() => !assistSubmitting && setAssistKind(null)}>
+            <div className="w-full max-w-sm rounded-2xl p-5 shadow-2xl"
+              style={{ background: "var(--white)" }}
+              onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2 mb-2">
+                {assistKind === "manual_code"
+                  ? <MessageCircle size={18} style={{ color: "var(--teal-deep)" }} />
+                  : <Shield size={18} style={{ color: "var(--gold)" }} />}
+                <h3 className="font-display text-lg" style={{ color: "var(--navy)" }}>
+                  {assistKind === "manual_code" ? "Request a code from Support" : "Request profile activation"}
+                </h3>
+              </div>
+              <p className="font-arabic text-sm mb-3" dir="rtl" style={{ color: "var(--gray)" }}>
+                {assistKind === "manual_code" ? "طلب رمز من الدعم" : "طلب تفعيل يدوي"}
+              </p>
+              <p className="text-[11px] mb-2" style={{ color: "var(--gray)" }}>
+                Sending for: <span className="font-mono" style={{ color: "var(--navy)" }}>{otpRecipient}</span>
+              </p>
+              <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
+                {assistKind === "manual_code"
+                  ? "Add a short note (optional)"
+                  : "Tell support why you need manual activation (optional)"}
+              </label>
+              <textarea value={assistNote} onChange={(e) => setAssistNote(e.target.value)}
+                rows={3} placeholder="e.g. WhatsApp not delivering, lost SIM…"
+                className="w-full mt-1 px-3 py-2 rounded-xl text-sm outline-none resize-none"
+                style={{ border: "1px solid var(--gray-light)", background: "var(--off-white)", color: "var(--navy)" }} />
+              <div className="flex gap-2 mt-4">
+                <button onClick={() => setAssistKind(null)} disabled={assistSubmitting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold btn-press"
+                  style={{ border: "1px solid var(--gray-light)", color: "var(--gray)" }}>
+                  Cancel · إلغاء
+                </button>
+                <button onClick={submitAssist} disabled={assistSubmitting}
+                  className="flex-[2] py-2.5 rounded-xl text-sm font-semibold text-white btn-press flex items-center justify-center gap-1.5"
+                  style={{ background: assistKind === "manual_code" ? "var(--teal-deep)" : "var(--gold)", opacity: assistSubmitting ? 0.6 : 1 }}>
+                  {assistSubmitting && <Loader2 size={13} className="animate-spin" />}
+                  {assistSubmitting ? "Sending…" : "Send request · إرسال"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
