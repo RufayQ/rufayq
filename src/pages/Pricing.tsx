@@ -6,6 +6,7 @@ import { Seo } from "@/seo/Seo";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
+import FamilySetupModal from "@/components/FamilySetupModal";
 import { ADDON_META, type AddOnId, type TierId } from "@/data/currencyMaster";
 import { faqSchema, breadcrumbSchema } from "@/seo/schema";
 
@@ -82,6 +83,7 @@ const Pricing = () => {
   const { format, getPrice, getAddon, currency } = useCurrency();
   const [period, setPeriod] = useState<"monthly" | "annual">("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [familyOpen, setFamilyOpen] = useState(false);
 
   const showAr = mode === "ar";
   const showEn = mode !== "ar";
@@ -188,11 +190,19 @@ const Pricing = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/app"
-                className="block text-center px-4 py-2.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.02]"
-                style={{ background: t.highlight ? GOLD : "transparent", color: t.highlight ? "#06101A" : TEXT, border: t.highlight ? "none" : `1px solid ${BORDER}` }}>
-                {showAr ? t.ctaAr : t.ctaEn}
-              </Link>
+              {t.id === "family" ? (
+                <button onClick={() => setFamilyOpen(true)}
+                  className="block w-full text-center px-4 py-2.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.02]"
+                  style={{ background: GOLD, color: "#06101A" }}>
+                  {showAr ? t.ctaAr : t.ctaEn}
+                </button>
+              ) : (
+                <Link to={t.id === "free" ? "/auth" : "/app/dashboard/subscription"}
+                  className="block text-center px-4 py-2.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.02]"
+                  style={{ background: t.highlight ? GOLD : "transparent", color: t.highlight ? "#06101A" : TEXT, border: t.highlight ? "none" : `1px solid ${BORDER}` }}>
+                  {showAr ? t.ctaAr : t.ctaEn}
+                </Link>
+              )}
             </div>
           ))}
         </div>
