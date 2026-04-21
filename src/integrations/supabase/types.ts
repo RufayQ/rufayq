@@ -89,6 +89,205 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_events: {
+        Row: {
+          amount: number | null
+          created_at: string
+          currency: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          subscription_id: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          subscription_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          subscription_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_device_id: string | null
+          created_at: string
+          expires_at: string
+          family_member_id: string | null
+          id: string
+          invite_code: string
+          invite_email: string | null
+          invite_phone: string | null
+          organizer_id: string
+          status: string
+          subscription_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_device_id?: string | null
+          created_at?: string
+          expires_at?: string
+          family_member_id?: string | null
+          id?: string
+          invite_code?: string
+          invite_email?: string | null
+          invite_phone?: string | null
+          organizer_id: string
+          status?: string
+          subscription_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_device_id?: string | null
+          created_at?: string
+          expires_at?: string
+          family_member_id?: string | null
+          id?: string
+          invite_code?: string
+          invite_email?: string | null
+          invite_phone?: string | null
+          organizer_id?: string
+          status?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_invites_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_invites_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_members: {
+        Row: {
+          allergies: string[] | null
+          blood_type: string | null
+          chronic_conditions: string[] | null
+          created_at: string
+          current_medications: string[] | null
+          date_of_birth: string | null
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
+          family_history: string | null
+          full_name: string
+          full_name_ar: string | null
+          gender: string | null
+          id: string
+          member_device_id: string | null
+          national_id: string | null
+          nationality: string | null
+          notes: string | null
+          organizer_id: string
+          passport_number: string | null
+          phone: string | null
+          relationship: string
+          status: string
+          subscription_id: string
+          surgical_history: string | null
+          updated_at: string
+        }
+        Insert: {
+          allergies?: string[] | null
+          blood_type?: string | null
+          chronic_conditions?: string[] | null
+          created_at?: string
+          current_medications?: string[] | null
+          date_of_birth?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          family_history?: string | null
+          full_name: string
+          full_name_ar?: string | null
+          gender?: string | null
+          id?: string
+          member_device_id?: string | null
+          national_id?: string | null
+          nationality?: string | null
+          notes?: string | null
+          organizer_id: string
+          passport_number?: string | null
+          phone?: string | null
+          relationship: string
+          status?: string
+          subscription_id: string
+          surgical_history?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allergies?: string[] | null
+          blood_type?: string | null
+          chronic_conditions?: string[] | null
+          created_at?: string
+          current_medications?: string[] | null
+          date_of_birth?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          family_history?: string | null
+          full_name?: string
+          full_name_ar?: string | null
+          gender?: string | null
+          id?: string
+          member_device_id?: string | null
+          national_id?: string | null
+          nationality?: string | null
+          notes?: string | null
+          organizer_id?: string
+          passport_number?: string | null
+          phone?: string | null
+          relationship?: string
+          status?: string
+          subscription_id?: string
+          surgical_history?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       manual_otp_codes: {
         Row: {
           code: string
@@ -3757,6 +3956,125 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_addons: {
+        Row: {
+          activated_at: string | null
+          addon: Database["public"]["Enums"]["addon_id"]
+          admin_notes: string | null
+          canceled_at: string | null
+          created_at: string
+          currency: string
+          id: string
+          qty: number
+          status: Database["public"]["Enums"]["addon_status"]
+          subscription_id: string
+          unit_price: number
+          updated_at: string
+          user_id: string
+          user_notes: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          addon: Database["public"]["Enums"]["addon_id"]
+          admin_notes?: string | null
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          qty?: number
+          status?: Database["public"]["Enums"]["addon_status"]
+          subscription_id: string
+          unit_price?: number
+          updated_at?: string
+          user_id: string
+          user_notes?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          addon?: Database["public"]["Enums"]["addon_id"]
+          admin_notes?: string | null
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          qty?: number
+          status?: Database["public"]["Enums"]["addon_status"]
+          subscription_id?: string
+          unit_price?: number
+          updated_at?: string
+          user_id?: string
+          user_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_addons_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          amount: number
+          billing_cycle: Database["public"]["Enums"]["billing_cycle"]
+          canceled_at: string | null
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          current_period_start: string
+          device_id: string | null
+          family_seat_capacity: number
+          family_setup_completed: boolean
+          id: string
+          notes: string | null
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          device_id?: string | null
+          family_seat_capacity?: number
+          family_setup_completed?: boolean
+          id?: string
+          notes?: string | null
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          device_id?: string | null
+          family_seat_capacity?: number
+          family_setup_completed?: boolean
+          id?: string
+          notes?: string | null
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           category: Database["public"]["Enums"]["ticket_category"]
@@ -4015,7 +4333,16 @@ export type Database = {
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
+      addon_id:
+        | "medicalConsultant"
+        | "rushTranslation"
+        | "priorityCoordinator"
+        | "caregiverSeat"
+        | "physioNetwork"
+        | "claimsConcierge"
+      addon_status: "pending_admin" | "active" | "canceled" | "expired"
       app_role: "admin" | "moderator" | "user"
+      billing_cycle: "monthly" | "annual"
       claim_status:
         | "pending_admin"
         | "pending_patient"
@@ -4241,6 +4568,19 @@ export type Database = {
         | "billed"
         | "closed"
         | "cancelled"
+      subscription_plan:
+        | "free"
+        | "starter"
+        | "companion"
+        | "family"
+        | "enterprise"
+      subscription_status:
+        | "trial"
+        | "active"
+        | "past_due"
+        | "canceled"
+        | "expired"
+        | "pending_setup"
       ticket_category: "billing" | "technical" | "medical" | "general"
       ticket_priority: "low" | "medium" | "high" | "urgent"
       ticket_status: "open" | "in_progress" | "resolved" | "closed"
@@ -4378,7 +4718,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      addon_id: [
+        "medicalConsultant",
+        "rushTranslation",
+        "priorityCoordinator",
+        "caregiverSeat",
+        "physioNetwork",
+        "claimsConcierge",
+      ],
+      addon_status: ["pending_admin", "active", "canceled", "expired"],
       app_role: ["admin", "moderator", "user"],
+      billing_cycle: ["monthly", "annual"],
       claim_status: [
         "pending_admin",
         "pending_patient",
@@ -4631,6 +4981,21 @@ export const Constants = {
         "billed",
         "closed",
         "cancelled",
+      ],
+      subscription_plan: [
+        "free",
+        "starter",
+        "companion",
+        "family",
+        "enterprise",
+      ],
+      subscription_status: [
+        "trial",
+        "active",
+        "past_due",
+        "canceled",
+        "expired",
+        "pending_setup",
       ],
       ticket_category: ["billing", "technical", "medical", "general"],
       ticket_priority: ["low", "medium", "high", "urgent"],
