@@ -19,6 +19,9 @@ import ScannerWizard from "@/screens/ScannerWizard";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import TrialLockBanner from "@/components/TrialLockBanner";
+import HomeScreenEmpty from "@/screens/HomeScreenEmpty";
+import TourGuide from "@/components/TourGuide";
+import { useFreshStart } from "@/hooks/useFreshStart";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "main" | "medications" | "profile" | "settings" | "pricing" | "support";
@@ -40,6 +43,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const forceSignIn = searchParams.get("signin") === "1";
+  const { isFresh, tourPending, markTourDone, reset: resetFresh } = useFreshStart();
 
   // Staff auto-redirect: if a signed-in staff member lands on the patient app, push them to /admin
   useEffect(() => {
@@ -87,6 +91,7 @@ const Index = () => {
 
   const handleLogin = () => setAppView("main");
   const handleLogout = () => {
+    resetFresh();
     localStorage.removeItem("rufayq_onboarded");
     setAppView("onboarding");
   };
@@ -168,7 +173,10 @@ const Index = () => {
         return <SupportScreen onBack={() => setAppView("main")} />;
       case "main":
         switch (activeTab) {
-          case "home": return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;
+          case "home":
+            return isFresh
+              ? <HomeScreenEmpty onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />
+              : <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;
           case "journey": return <JourneyScreen onOpenScanner={openScanner} onNavigate={handleNavigate} />;
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
           case "carehub": return <CareHubScreen />;
@@ -211,6 +219,11 @@ const Index = () => {
             preselectedCategory={scannerCategory}
             onSave={handleScannerSave}
           />
+        )}
+
+        {/* First-launch tour for newly registered users */}
+        {appView === "main" && tourPending && (
+          <TourGuide onFinish={markTourDone} />
         )}
       </div>
     </div>

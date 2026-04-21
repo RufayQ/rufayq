@@ -252,6 +252,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     if (userId) {
       const newDeviceId = `auth_${userId}`;
       try { localStorage.setItem("rufayq_device_id", newDeviceId); } catch {}
+      // Mark this account as a brand-new registration so the home screen
+      // shows the empty-state and the welcome tour fires once.
+      try {
+        const { markUserFresh } = await import("@/hooks/useFreshStart");
+        markUserFresh(userId);
+      } catch { /* noop */ }
       // Override the user's password with the one they chose at sign-up
       if (reg.password) {
         await supabase.auth.updateUser({ password: reg.password });
