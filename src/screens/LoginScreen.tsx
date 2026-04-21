@@ -60,6 +60,36 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [newPass, setNewPass] = useState("");
   const [newPassConfirm, setNewPassConfirm] = useState("");
 
+  // Verification-assistance modal state
+  const [assistKind, setAssistKind] = useState<null | "manual_code" | "profile_activation">(null);
+  const [assistNote, setAssistNote] = useState("");
+  const [assistSubmitting, setAssistSubmitting] = useState(false);
+
+  const submitAssist = async () => {
+    if (!assistKind) return;
+    setAssistSubmitting(true);
+    const { error } = await supabase.from("verification_assistance_requests").insert({
+      kind: assistKind,
+      channel: otpChannel,
+      recipient: otpRecipient,
+      full_name: reg.name?.trim() || null,
+      note: assistNote.trim() || null,
+      device_id: localStorage.getItem("rufayq_device_id"),
+    });
+    setAssistSubmitting(false);
+    if (error) {
+      toast.error("Couldn't submit request", { description: error.message });
+      return;
+    }
+    toast.success(
+      assistKind === "manual_code"
+        ? "Support has been notified · سيقوم فريق الدعم بالتواصل معك"
+        : "Activation request sent · تم إرسال طلب التفعيل"
+    );
+    setAssistKind(null);
+    setAssistNote("");
+  };
+
   // Medical step (unchanged structure)
   const [med, setMed] = useState({
     bloodType: "", allergies: "", chronic: "", currentMeds: "",
