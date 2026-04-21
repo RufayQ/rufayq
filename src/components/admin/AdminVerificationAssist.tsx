@@ -27,9 +27,13 @@ const STATUS_BADGE: Record<Status, string> = {
   rejected: "bg-rose-500/15 text-rose-300",
 };
 
+type Persona = "patient" | "provider" | "unknown";
+
 const AdminVerificationAssist = () => {
   const [rows, setRows] = useState<Row[]>([]);
+  const [personaMap, setPersonaMap] = useState<Record<string, Persona>>({});
   const [filter, setFilter] = useState<"all" | "pending" | Kind>("pending");
+  const [section, setSection] = useState<"patients" | "providers">("patients");
   const [loading, setLoading] = useState(false);
   const [otpModal, setOtpModal] = useState<{ recipient: string; code: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -42,10 +46,43 @@ const AdminVerificationAssist = () => {
       .order("created_at", { ascending: false })
       .limit(300);
     if (error) toast.error(error.message);
-    setRows((data || []) as Row[]);
+    const list = (data || []) as Row[];
+    setRows(list);
+
+    // Resolve persona by matching device_id / phone / email against profiles
+    const deviceIds = Array.from(new Set(list.map(r => r.device_id).filter(Boolean))) as string[];
+    const recipients = Array.from(new Set(list.map(r => r.recipient).filter(Boolean))) as string[];
+    const phones = recipients.filter(r => !r.includes("@"));
+    const emails = recipients.filter(r => r.includes("@"));
+    const map: Record<string, Persona> = {};
+    if (deviceIds.length || phones.length || emails.length) {
+      // Build OR filter — profiles RLS is admin/mod readable
+      const orParts: string[] = [];
+      if (deviceIds.length) orParts.push(`device_id.in.(${deviceIds.map(d => `"${d}"`).join(",")})`);
+      if (phones.length) orParts.push(`phone.in.(${phones.map(p => `"${p}"`).join(",")})`);
+      if (emails.length) orParts.push(`email.in.(${emails.map(e => `"${e}"`).join(",")})`);
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("device_id,phone,email,provider_type")
+        .or(orParts.join(","));
+      (profs || []).forEach((p: any) => {
+        const persona: Persona = p.provider_type === "patient" ? "patient" : "provider";
+        if (p.device_id) map[`d:${p.device_id}`] = persona;
+        if (p.phone) map[`r:${p.phone}`] = persona;
+        if (p.email) map[`r:${p.email.toLowerCase()}`] = persona;
+      });
+    }
+    setPersonaMap(map);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  const personaOf = (r: Row): Persona => {
+    if (r.device_id && personaMap[`d:${r.device_id}`]) return personaMap[`d:${r.device_id}`];
+    const k = r.recipient?.includes("@") ? r.recipient.toLowerCase() : r.recipient;
+    if (k && personaMap[`r:${k}`]) return personaMap[`r:${k}`];
+    return "unknown";
+  };
 
   const update = async (id: string, patch: Partial<Row>) => {
     setBusyId(id);
