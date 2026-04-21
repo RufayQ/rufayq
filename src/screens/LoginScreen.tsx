@@ -576,7 +576,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <h2 className="font-display text-2xl" style={{ color: "var(--navy)" }}>Enter your code</h2>
           <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>أدخل رمز التحقق</p>
           <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
-            We sent a 6-digit code. It expires in 10 minutes.
+            6-digit code · expires in 10 minutes.
+          </p>
+          <p className="text-[10px] mt-1" style={{ color: "var(--teal-mid)" }}>
+            Got a code from Support? Just type it here. <span className="font-arabic" dir="rtl">رمز من الدعم؟ أدخله هنا.</span>
           </p>
         </div>
 
