@@ -299,54 +299,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
   const handleNextToMedical = () => { if (validateRegister()) setView("medical"); };
 
+  // Profile + medical writes are deferred until AFTER OTP verification
+  // (so we have a real auth user and RLS-compatible device_id = `auth_${userId}`).
   const handleCompleteSignup = async () => {
-    setSubmitting(true);
-    const device_id = getDeviceId();
-    const now = new Date().toISOString();
-
-    const { error: pErr } = await supabase.from("profiles").upsert({
-      device_id,
-      full_name_en: reg.name.trim(),
-      full_name_ar: reg.nameAr.trim() || null,
-      saudi_id: reg.id.trim().length === 10 ? reg.id.trim() : null,
-      passport_number: reg.id.trim().length !== 10 ? reg.id.trim() : null,
-      date_of_birth: reg.dob || null,
-      gender: reg.gender,
-      phone: phoneToE164(reg.phone) || null,
-      email: reg.email.trim() || null,
-      nationality: reg.nationality,
-      terms_accepted_at: now,
-      privacy_accepted_at: now,
-    }, { onConflict: "device_id" });
-
-    if (pErr) { setSubmitting(false); toast.error("Signup failed: " + pErr.message); return; }
-
-    const cleanPast = pastHistory.filter((p) => p.condition.trim());
-    const cleanSurgical = surgicalHistory.filter((p) => p.procedure.trim());
-    const cleanFamily = familyHistory.filter((p) => p.condition.trim());
-
-    const { error: mErr } = await supabase.from("medical_profiles").upsert({
-      device_id,
-      blood_type: med.bloodType || null,
-      allergies: med.allergies ? med.allergies.split(",").map((s) => s.trim()).filter(Boolean) : [],
-      chronic_conditions: med.chronic ? med.chronic.split(",").map((s) => s.trim()).filter(Boolean) : [],
-      current_medications: med.currentMeds ? med.currentMeds.split(",").map((s) => s.trim()).filter(Boolean) : [],
-      emergency_contact_name: med.emName || null,
-      emergency_contact_phone: med.emPhone || null,
-      emergency_contact_relation: med.emRelation || null,
-      insurance_provider: med.insurer || null,
-      insurance_policy_number: med.policy || null,
-      past_medical_history: cleanPast as any,
-      surgical_history: cleanSurgical as any,
-      family_history: cleanFamily as any,
-    } as any, { onConflict: "device_id" });
-
-    setSubmitting(false);
-    if (mErr) { toast.error("Medical info failed: " + mErr.message); return; }
-    toast.success("Profile saved · Verifying your contact next");
-
     const r = resolveSignupRecipient();
-    if (r) handleSendOtp(r.channel, r.to, "signup");
+    if (!r) return;
+    handleSendOtp(r.channel, r.to, "signup");
   };
 
   // ============================================================
