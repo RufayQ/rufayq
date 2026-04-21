@@ -64,6 +64,23 @@ const AdminUsers = () => {
     setOtpModal({ recipient, code: row.code, expires: row.expires_at });
   };
 
+  const resetPassword = async (p: Profile, mode: "auto" | "manual") => {
+    const auth_id = p.device_id?.startsWith("auth_") ? p.device_id.slice(5) : null;
+    if (!auth_id) { toast.error("This profile has no linked sign-in account."); return; }
+    let manual = "";
+    if (mode === "manual") {
+      manual = prompt("Enter the new password (min 8 chars):") || "";
+      if (manual.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    }
+    const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+      body: { user_id: auth_id, password: manual || undefined, auto_generate: mode === "auto" },
+    });
+    if (error || (data as any)?.error) { toast.error((data as any)?.error || error?.message || "Failed"); return; }
+    setPwdModal({ user_id: auth_id, label: p.full_name_en || p.email || p.phone || auth_id, password: (data as any).password, mode });
+    toast.success("Password reset");
+  };
+
+
   // Resolve the auth.users.id from a profile. We key profiles by `device_id`
   // and for registered users that device_id is `auth_<uuid>`. Guests have no
   // auth user yet → status changes are not applicable.
