@@ -1,5 +1,5 @@
 import { forwardRef, useState } from "react";
-import { Star, Send } from "lucide-react";
+import { StarIcon, SendIcon } from "@/components/HeroIcons";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
@@ -51,13 +51,16 @@ const ReviewForm = forwardRef<HTMLDivElement, Props>(({ variant = "light", onSub
       <div>
         <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: GOLD }}>YOUR RATING · تقييمك</p>
         <div className="flex gap-1.5">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button key={n} type="button" aria-label={`Rate ${n} star${n > 1 ? "s" : ""}`}
-              onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)} onClick={() => setRating(n)}
-              className="transition-transform hover:scale-110">
-              <Star size={28} fill={(hover || rating) >= n ? GOLD : "transparent"} color={GOLD} strokeWidth={1.5} />
-            </button>
-          ))}
+          {[1, 2, 3, 4, 5].map((n) => {
+            const filled = (hover || rating) >= n;
+            return (
+              <button key={n} type="button" aria-label={`Rate ${n} star${n > 1 ? "s" : ""}`}
+                onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)} onClick={() => setRating(n)}
+                className="transition-transform hover:scale-110">
+                <StarIcon size={28} color={GOLD} style={{ fill: filled ? GOLD : "transparent", strokeWidth: 1.5 }} />
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -90,7 +93,7 @@ const ReviewForm = forwardRef<HTMLDivElement, Props>(({ variant = "light", onSub
       <button onClick={handleSubmit} disabled={submitting}
         className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 btn-press"
         style={{ background: GOLD, color: "#06101A", opacity: submitting ? 0.6 : 1 }}>
-        <Send size={14} /> {submitting ? "Sending…" : "Submit review · إرسال"}
+        <SendIcon size={14} /> {submitting ? "Sending…" : "Submit review · إرسال"}
       </button>
     </div>
   );
