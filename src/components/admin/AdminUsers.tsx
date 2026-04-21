@@ -63,11 +63,26 @@ const AdminUsers = () => {
     setOtpModal({ recipient, code: row.code, expires: row.expires_at });
   };
 
-  const setStatus = async (user_id: string, status: UserStatus["status"]) => {
+  // Resolve the auth.users.id from a profile. We key profiles by `device_id`
+  // and for registered users that device_id is `auth_<uuid>`. Guests have no
+  // auth user yet → status changes are not applicable.
+  const authIdFromProfile = (p: Profile): string | null => {
+    if (p.device_id?.startsWith("auth_")) return p.device_id.slice(5);
+    return null;
+  };
+
+  const setStatus = async (p: Profile, status: UserStatus["status"]) => {
+    const auth_id = authIdFromProfile(p);
+    if (!auth_id) {
+      toast.error("This profile has no linked sign-in account yet.", {
+        description: "Guest profiles can't be activated/suspended. Ask the user to register first.",
+      });
+      return;
+    }
     const reason = status !== "active" ? prompt(`Reason for ${status}?`) || null : null;
-    const { error } = await supabase.from("user_status").upsert({ user_id, status, reason }, { onConflict: "user_id" });
+    const { error } = await supabase.from("user_status").upsert({ user_id: auth_id, status, reason }, { onConflict: "user_id" });
     if (error) toast.error(error.message); else {
-      await supabase.rpc("log_audit_event", { _action: "user_status_changed", _target_type: "user", _target_id: user_id, _details: { status, reason } });
+      await supabase.rpc("log_audit_event", { _action: "user_status_changed", _target_type: "user", _target_id: auth_id, _details: { status, reason } });
       toast.success(`Set to ${status}`); load();
     }
   };
