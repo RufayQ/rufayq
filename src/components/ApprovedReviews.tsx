@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { StarIcon } from "@/components/HeroIcons";
 
 interface Review {
   id: string;
@@ -33,7 +33,11 @@ const ApprovedReviews = ({ limit = 6 }: Props) => {
       {reviews.map((r) => (
         <div key={r.id} className="rounded-2xl p-6" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
           <div className="flex gap-1 mb-3">
-            {[...Array(r.rating)].map((_, j) => <Star key={j} size={12} fill={GOLD} color={GOLD} />)}
+            {[...Array(r.rating)].map((_, j) => (
+              <span key={j} style={{ color: GOLD }}>
+                <StarIcon size={12} color={GOLD} style={{ fill: GOLD }} />
+              </span>
+            ))}
           </div>
           <p className="text-sm leading-relaxed mb-4 italic" style={{ color: TEXT }}>"{r.notes}"</p>
           <p className="text-xs font-semibold" style={{ color: TEXT }}>{r.reviewer_name || "RufayQ user"}</p>
