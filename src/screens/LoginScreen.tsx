@@ -9,7 +9,7 @@ import {
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getDeviceId } from "@/hooks/useDeviceId";
+
 
 type AuthView = "welcome" | "login" | "register" | "medical" | "otp" | "recover" | "newpass";
 type OtpChannel = "whatsapp" | "sms" | "email";
