@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 
-type AuthView = "welcome" | "login" | "register" | "medical" | "otp" | "recover";
+type AuthView = "welcome" | "login" | "register" | "medical" | "otp" | "recover" | "newpass";
 type OtpChannel = "whatsapp" | "sms" | "email";
 
 interface LoginScreenProps { onLogin: () => void }
@@ -55,6 +55,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [otpRecipient, setOtpRecipient] = useState("");
   const [otpPurpose, setOtpPurpose] = useState<"signup" | "recover">("signup");
   const [countdown, setCountdown] = useState(45);
+
+  // New-password (after recovery) state
+  const [newPass, setNewPass] = useState("");
+  const [newPassConfirm, setNewPassConfirm] = useState("");
 
   // Medical step (unchanged structure)
   const [med, setMed] = useState({
