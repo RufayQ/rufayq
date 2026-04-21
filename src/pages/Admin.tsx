@@ -17,13 +17,15 @@ import AdminRcmMasters from "@/components/admin/AdminRcmMasters";
 import AdminRcmActivations from "@/components/admin/AdminRcmActivations";
 import AdminRcmImports from "@/components/admin/AdminRcmImports";
 import AdminRcmBulkOps from "@/components/admin/AdminRcmBulkOps";
+import AdminVerificationAssist from "@/components/admin/AdminVerificationAssist";
 
-type Tab = "dashboard" | "users" | "create" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "reviews" | "tickets" | "pages" | "audit";
+type Tab = "dashboard" | "users" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "reviews" | "tickets" | "pages" | "audit";
 
 const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boolean }[] = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { key: "users", label: "Users", Icon: Users },
   { key: "create", label: "Create User", Icon: UserPlus, adminOnly: true },
+  { key: "verify_assist", label: "Verify Assist", Icon: Shield },
   { key: "orgs", label: "Organizations", Icon: Building2 },
   { key: "applications", label: "Applications", Icon: Briefcase },
   { key: "claims", label: "Patient Claims", Icon: UserPlus },
@@ -111,6 +113,7 @@ const Admin = () => {
         {tab === "dashboard" && <AdminDashboard />}
         {tab === "users" && <AdminUsers />}
         {tab === "create" && role === "admin" && <AdminCreateUser />}
+        {tab === "verify_assist" && <AdminVerificationAssist />}
         {tab === "orgs" && <AdminOrganizations />}
         {tab === "applications" && <AdminProviderApplications />}
         {tab === "claims" && <AdminPatientClaims />}
