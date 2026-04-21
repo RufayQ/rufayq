@@ -42,12 +42,17 @@ Deno.serve(async (req) => {
     const email = String(body?.email || "").trim().toLowerCase();
     const password = String(body?.password || "");
     const full_name = body?.full_name ? String(body.full_name).trim() : null;
+    const full_name_ar = body?.full_name_ar ? String(body.full_name_ar).trim() : null;
     const phone = body?.phone ? String(body.phone).trim() : null;
     const role = VALID_ROLES.includes(body?.role) ? body.role : null;
     const organization_id = body?.organization_id || null;
     const provider_type = VALID_PTYPES.includes(body?.provider_type)
       ? body.provider_type
       : (role === "admin" || role === "moderator" ? "internal" : "patient");
+    const id_number = body?.id_number ? String(body.id_number).trim() : null;
+    const date_of_birth = body?.date_of_birth || null;
+    const gender = body?.gender ? String(body.gender) : null;
+    const nationality = body?.nationality ? String(body.nationality).trim() : null;
 
     if (!email || !isEmail(email)) return j({ error: "A valid email is required." }, 400);
     if (!password || password.length < 8) return j({ error: "Password must be at least 8 characters." }, 400);
@@ -64,13 +69,11 @@ Deno.serve(async (req) => {
     } else {
       const isDup = cErr?.message?.toLowerCase().includes("already") || cErr?.message?.toLowerCase().includes("registered");
       if (!isDup) return j({ error: cErr?.message || "Failed to create auth user." }, 400);
-      // Look up existing
       const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
       const match = list?.users.find((u) => u.email?.toLowerCase() === email);
       if (!match) return j({ error: "User exists but could not be located." }, 500);
       userId = match.id;
       alreadyExisted = true;
-      // Reset password so admin's new password takes effect
       await admin.auth.admin.updateUserById(userId, { password });
     }
 
@@ -85,16 +88,30 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3. Upsert profile row keyed by deterministic device_id derived from auth uid
+    // 3. Upsert profile keyed by deterministic device_id derived from auth uid
     const device_id = `auth_${userId}`;
+    // ID-number heuristic: 10 digits → Saudi national ID; otherwise treat as passport
+    const id_clean = id_number ? id_number.replace(/\s+/g, "") : null;
+    const saudi_id = id_clean && /^\d{10}$/.test(id_clean) ? id_clean : null;
+    const passport_number = id_clean && !saudi_id ? id_clean : null;
+    const now = new Date().toISOString();
+
     const { error: pErr } = await admin.from("profiles").upsert(
       {
         device_id,
         full_name_en: full_name,
+        full_name_ar,
         email,
         phone,
         organization_id,
         provider_type,
+        date_of_birth,
+        gender,
+        nationality,
+        saudi_id,
+        passport_number,
+        terms_accepted_at: now,
+        privacy_accepted_at: now,
       },
       { onConflict: "device_id" },
     );
