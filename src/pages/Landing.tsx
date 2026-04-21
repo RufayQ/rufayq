@@ -50,6 +50,7 @@ const Landing = () => {
     { en: "Features", ar: "المميزات", href: "#features" },
     { en: "How", ar: "كيف يعمل", href: "#how" },
     { en: "Pricing", ar: "الأسعار", href: isAr ? "/ar/pricing" : "/pricing", isRoute: true },
+    { en: "News", ar: "الأخبار", href: "#news" },
     { en: "FAQ", ar: "الأسئلة", href: "#faq" },
     { en: "Contact", ar: "تواصل", href: "#contact" },
   ];

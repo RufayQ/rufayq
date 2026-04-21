@@ -358,6 +358,7 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
           <div className="flex gap-5">
             <Link to="/privacy" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الخصوصية</span> : "Privacy"}</Link>
             <Link to="/terms" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الشروط</span> : "Terms"}</Link>
+            <a href="#news" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الأخبار</span> : "News"}</a>
             <a href="#contact" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">تواصل</span> : "Contact"}</a>
           </div>
         </div>
