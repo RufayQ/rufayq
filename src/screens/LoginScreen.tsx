@@ -308,9 +308,11 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   // SIGN-UP submit (validation + profile insert + send OTP)
   // ============================================================
   const validateRegister = () => {
-    if (!reg.name.trim() || !reg.id.trim() || !reg.dob) {
-      toast.error("Please fill required fields · يرجى تعبئة الحقول المطلوبة"); return false;
-    }
+    // Shortened sign-up: only Name, ID/Passport, Mobile, Password, T&C are required.
+    // DOB, Nationality, Arabic name, and the entire medical profile can be filled later
+    // from Profile → Edit (or Profile → Medical history).
+    if (!reg.name.trim()) { toast.error("Full name is required"); return false; }
+    if (!reg.id.trim()) { toast.error("ID or passport number is required"); return false; }
     if (!reg.phone.trim()) { toast.error("Mobile number is required"); return false; }
     if (reg.channel === "email" && !isValidEmail(reg.email)) {
       toast.error("Email is required for Email OTP"); return false;
@@ -327,7 +329,14 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     return true;
   };
 
-  const handleNextToMedical = () => { if (validateRegister()) setView("medical"); };
+  // Shortened flow: skip the medical step entirely and go straight to OTP.
+  // Users can complete the medical profile later from Profile → Medical history.
+  const handleNextToMedical = () => {
+    if (!validateRegister()) return;
+    const r = resolveSignupRecipient();
+    if (!r) return;
+    handleSendOtp(r.channel, r.to, "signup");
+  };
 
   // Profile + medical writes are deferred until AFTER OTP verification
   // (so we have a real auth user and RLS-compatible device_id = `auth_${userId}`).
