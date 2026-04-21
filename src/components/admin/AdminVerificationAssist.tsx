@@ -181,6 +181,9 @@ const AdminVerificationAssist = () => {
                   {r.kind === "manual_code" ? <><KeyRound size={9} className="inline mr-1"/>Manual code</> : <><Shield size={9} className="inline mr-1"/>Profile activation</>}
                 </span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full ${STATUS_BADGE[r.status]}`}>{r.status}</span>
+                {(() => { const p = personaOf(r); return (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${p === "provider" ? "bg-blue-500/15 text-blue-300" : p === "patient" ? "bg-rose-500/15 text-rose-300" : "bg-slate-700 text-slate-400"}`}>{p}</span>
+                ); })()}
                 {r.channel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">{r.channel}</span>}
               </div>
               <p className="text-sm text-slate-100 font-mono break-all">{r.recipient}</p>
