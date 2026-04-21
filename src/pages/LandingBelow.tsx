@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { lazy, useState } from "react";
 import {
-  Plane, Pill, FileText, Sparkles, Heart, MessageCircle, Star, ChevronDown, Check,
-} from "lucide-react";
+  PlaneIcon as Plane, PillIcon as Pill, FileTextIcon as FileText,
+  SparklesIcon as Sparkles, HeartIcon as Heart, MessageCircleIcon as MessageCircle,
+  StarIcon as Star, ChevronDownIcon as ChevronDown, CheckIcon as Check,
+} from "@/components/HeroIcons";
 import LazyOnView from "@/components/LazyOnView";
 import RufayQLogo from "@/components/RufayQLogo";
 import { useLanguage } from "@/contexts/LanguageContext";

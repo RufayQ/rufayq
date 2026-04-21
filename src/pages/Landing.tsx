@@ -4,7 +4,12 @@ import LazyOnView from "@/components/LazyOnView";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Seo } from "@/seo/Seo";
+/**
+ * SEO is mounted lazily (after first paint) so react-helmet-async (~17 kB)
+ * never enters the LCP critical chain. Googlebot waits for hydrated content,
+ * so canonical/hreflang/OG/JSON-LD still get picked up.
+ */
+import { SeoLazy } from "@/seo/SeoLazy";
 import {
   ArrowRightIcon, SparklesIcon, LockIcon, GlobeIcon, HeartIcon,
   MenuIcon, XIcon, ChevronDownIcon,
@@ -53,7 +58,7 @@ const Landing = () => {
 
   return (
     <>
-      <Seo
+      <SeoLazy
         title={isAr ? "رُفَيِّق — رفيقك الطبي ثنائي اللغة للسفر للعلاج" : "RufayQ — Bilingual AI Medical Travel Companion"}
         description={isAr
           ? "رُفَيِّق هو الرفيق الذكي ثنائي اللغة لمرضى الخليج المسافرين للعلاج. تتبّع الرحلات، الأدوية، المواعيد، وكل تقاريرك الطبية."
