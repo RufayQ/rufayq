@@ -4,12 +4,13 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { findRoutePair } from "./routes";
 
 /**
- * Auto-syncs the global LanguageContext mode with the URL.
- *   /ar/*   → mode "ar"
- *   /*      → mode "en"
- * Runs once on mount + on every route change. Does NOT override user's manual
- * "both" choice on bilingual app screens (e.g. /app, /provider/*) because those
- * routes don't appear in the bilingual ROUTES table.
+ * Auto-syncs the global LanguageContext mode with the URL on marketing routes.
+ * Marketing pages must render in a single language on first paint (no "both")
+ * so initial HTML matches the hydrated React tree — see LanguageContext for
+ * the matching synchronous initial mode.
+ *
+ * App-shell paths (/app, /provider/*, /admin, /auth) are NOT in the bilingual
+ * ROUTES table and keep the user's explicit "both"/"en"/"ar" preference.
  */
 export const useSyncLanguageWithRoute = () => {
   const location = useLocation();
@@ -17,9 +18,12 @@ export const useSyncLanguageWithRoute = () => {
 
   useEffect(() => {
     const pair = findRoutePair(location.pathname);
-    if (!pair) return; // app shell, not a marketing page — leave user's preference intact
-    if (pair.lang === "ar" && mode !== "ar") setMode("ar");
+    if (!pair) return; // app shell — leave user's preference intact
+    // Marketing route: lock to that route's language unless the user has manually
+    // toggled to "both" *on this same route* via the switcher (setMode persists it).
+    // We accept "both" only if it was already set by the user explicitly; otherwise
+    // we hard-set to the route's language to avoid layout-shift on hydration.
+    if (pair.lang === "ar" && mode === "en") setMode("ar");
     if (pair.lang === "en" && mode === "ar") setMode("en");
-    // mode "both" on a marketing page → respect user's explicit toggle, don't force
   }, [location.pathname, mode, setMode]);
 };
