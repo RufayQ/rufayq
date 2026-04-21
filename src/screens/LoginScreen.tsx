@@ -183,8 +183,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     const { data, error } = await supabase.functions.invoke("verify-otp", {
       body: { to: otpRecipient, code, channel: otpChannel },
     });
-    setSubmitting(false);
     if (error || !data?.approved) {
+      setSubmitting(false);
       toast.error("Incorrect or expired code · رمز غير صحيح", {
         description: data?.error || error?.message || "Request a new code and try again",
       });
@@ -193,18 +193,84 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       setTimeout(() => setOtpError(false), 500);
       return;
     }
+
+    // Sign in with the one-time temp password verify-otp issued
     if (data.signInEmail && data.password) {
       const { error: sErr } = await supabase.auth.signInWithPassword({
         email: data.signInEmail, password: data.password,
       });
-      if (sErr) { toast.error("Sign-in failed", { description: sErr.message }); return; }
-      // If signup with chosen password — set it now to override the temp password
-      if (otpPurpose === "signup" && reg.password) {
+      if (sErr) {
+        setSubmitting(false);
+        toast.error("Sign-in failed", { description: sErr.message });
+        return;
+      }
+    }
+
+    const userId = data.userId as string | undefined;
+
+    if (otpPurpose === "recover") {
+      // Land on the set-new-password screen — user is signed in via temp pw,
+      // updateUser({ password }) will replace it permanently.
+      setSubmitting(false);
+      toast.success("Verified · set a new password");
+      setView("newpass");
+      return;
+    }
+
+    // SIGN-UP path: persist profile + medical now that we have a real auth user.
+    // Re-key local device id to `auth_${userId}` so header-based RLS allows the writes.
+    if (userId) {
+      const newDeviceId = `auth_${userId}`;
+      try { localStorage.setItem("rufayq_device_id", newDeviceId); } catch {}
+      // Override the user's password with the one they chose at sign-up
+      if (reg.password) {
         await supabase.auth.updateUser({ password: reg.password });
       }
       localStorage.setItem(BIOMETRIC_KEY, data.signInEmail);
+
+      const now = new Date().toISOString();
+      const { error: pErr } = await supabase.from("profiles").upsert({
+        device_id: newDeviceId,
+        full_name_en: reg.name.trim(),
+        full_name_ar: reg.nameAr.trim() || null,
+        saudi_id: reg.id.trim().length === 10 ? reg.id.trim() : null,
+        passport_number: reg.id.trim().length !== 10 ? reg.id.trim() : null,
+        date_of_birth: reg.dob || null,
+        gender: reg.gender,
+        phone: phoneToE164(reg.phone) || null,
+        email: reg.email.trim() || null,
+        nationality: reg.nationality,
+        terms_accepted_at: now,
+        privacy_accepted_at: now,
+      }, { onConflict: "device_id" });
+
+      if (pErr) console.error("[signup] profile upsert error", pErr);
+
+      const cleanPast = pastHistory.filter((p) => p.condition.trim());
+      const cleanSurgical = surgicalHistory.filter((p) => p.procedure.trim());
+      const cleanFamily = familyHistory.filter((p) => p.condition.trim());
+
+      const { error: mErr } = await supabase.from("medical_profiles").upsert({
+        device_id: newDeviceId,
+        blood_type: med.bloodType || null,
+        allergies: med.allergies ? med.allergies.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        chronic_conditions: med.chronic ? med.chronic.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        current_medications: med.currentMeds ? med.currentMeds.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        emergency_contact_name: med.emName || null,
+        emergency_contact_phone: med.emPhone || null,
+        emergency_contact_relation: med.emRelation || null,
+        insurance_provider: med.insurer || null,
+        insurance_policy_number: med.policy || null,
+        past_medical_history: cleanPast as any,
+        surgical_history: cleanSurgical as any,
+        family_history: cleanFamily as any,
+      } as any, { onConflict: "device_id" });
+
+      if (mErr) console.error("[signup] medical upsert error", mErr);
     }
-    toast.success("Verified · تم التحقق");
+
+    setSubmitting(false);
+    toast.success("Welcome to RufayQ · أهلاً بك");
     setTimeout(onLogin, 400);
   };
 
