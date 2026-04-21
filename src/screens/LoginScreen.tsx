@@ -465,6 +465,55 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     );
   }
 
+  // ----- NEW PASSWORD (after recovery OTP) -----
+  if (view === "newpass") {
+    const valid = newPass.length >= 8 && newPass === newPassConfirm;
+    const submitNewPass = async () => {
+      if (!valid) { toast.error("Password must be at least 8 chars and match"); return; }
+      setSubmitting(true);
+      const { error } = await supabase.auth.updateUser({ password: newPass });
+      setSubmitting(false);
+      if (error) { toast.error("Couldn't update password", { description: error.message }); return; }
+      toast.success("Password updated · تم تحديث كلمة المرور");
+      setNewPass(""); setNewPassConfirm("");
+      setTimeout(onLogin, 400);
+    };
+    return (
+      <div className="flex flex-col h-full overflow-y-auto px-6 pt-12 pb-8" style={{ background: "var(--off-white)" }}>
+        <div className="text-center mb-6">
+          <RufayQLogo size={56} variant="dark" />
+          <h2 className="font-display text-2xl mt-3" style={{ color: "var(--navy)" }}>Set a new password</h2>
+          <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>اختر كلمة مرور جديدة</p>
+        </div>
+        <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--white)" }}>
+          <div>
+            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>New password (min 8 chars)</label>
+            <input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)}
+              autoComplete="new-password" placeholder="••••••••"
+              className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none"
+              style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+          </div>
+          <div>
+            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Confirm new password</label>
+            <input type="password" value={newPassConfirm} onChange={(e) => setNewPassConfirm(e.target.value)}
+              autoComplete="new-password" placeholder="••••••••"
+              className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none"
+              style={{
+                border: `1px solid ${newPassConfirm && newPass !== newPassConfirm ? "var(--error)" : "var(--gray-light)"}`,
+                background: "var(--white)", color: "var(--navy)",
+              }} />
+          </div>
+        </div>
+        <button onClick={submitNewPass} disabled={!valid || submitting}
+          className="w-full mt-4 py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
+          style={{ background: "var(--teal-deep)", height: 52, opacity: !valid || submitting ? 0.6 : 1 }}>
+          {submitting ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
+          {submitting ? "Updating…" : "Update password · تحديث"}
+        </button>
+      </div>
+    );
+  }
+
   // ----- OTP -----
   if (view === "otp") {
     const masked = otpChannel === "email"
