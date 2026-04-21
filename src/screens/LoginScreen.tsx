@@ -9,9 +9,9 @@ import {
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getDeviceId } from "@/hooks/useDeviceId";
 
-type AuthView = "welcome" | "login" | "register" | "medical" | "otp" | "recover";
+
+type AuthView = "welcome" | "login" | "register" | "medical" | "otp" | "recover" | "newpass";
 type OtpChannel = "whatsapp" | "sms" | "email";
 
 interface LoginScreenProps { onLogin: () => void }
@@ -55,6 +55,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [otpRecipient, setOtpRecipient] = useState("");
   const [otpPurpose, setOtpPurpose] = useState<"signup" | "recover">("signup");
   const [countdown, setCountdown] = useState(45);
+
+  // New-password (after recovery) state
+  const [newPass, setNewPass] = useState("");
+  const [newPassConfirm, setNewPassConfirm] = useState("");
 
   // Medical step (unchanged structure)
   const [med, setMed] = useState({
@@ -179,8 +183,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     const { data, error } = await supabase.functions.invoke("verify-otp", {
       body: { to: otpRecipient, code, channel: otpChannel },
     });
-    setSubmitting(false);
     if (error || !data?.approved) {
+      setSubmitting(false);
       toast.error("Incorrect or expired code · رمز غير صحيح", {
         description: data?.error || error?.message || "Request a new code and try again",
       });
@@ -189,18 +193,84 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       setTimeout(() => setOtpError(false), 500);
       return;
     }
+
+    // Sign in with the one-time temp password verify-otp issued
     if (data.signInEmail && data.password) {
       const { error: sErr } = await supabase.auth.signInWithPassword({
         email: data.signInEmail, password: data.password,
       });
-      if (sErr) { toast.error("Sign-in failed", { description: sErr.message }); return; }
-      // If signup with chosen password — set it now to override the temp password
-      if (otpPurpose === "signup" && reg.password) {
+      if (sErr) {
+        setSubmitting(false);
+        toast.error("Sign-in failed", { description: sErr.message });
+        return;
+      }
+    }
+
+    const userId = data.userId as string | undefined;
+
+    if (otpPurpose === "recover") {
+      // Land on the set-new-password screen — user is signed in via temp pw,
+      // updateUser({ password }) will replace it permanently.
+      setSubmitting(false);
+      toast.success("Verified · set a new password");
+      setView("newpass");
+      return;
+    }
+
+    // SIGN-UP path: persist profile + medical now that we have a real auth user.
+    // Re-key local device id to `auth_${userId}` so header-based RLS allows the writes.
+    if (userId) {
+      const newDeviceId = `auth_${userId}`;
+      try { localStorage.setItem("rufayq_device_id", newDeviceId); } catch {}
+      // Override the user's password with the one they chose at sign-up
+      if (reg.password) {
         await supabase.auth.updateUser({ password: reg.password });
       }
       localStorage.setItem(BIOMETRIC_KEY, data.signInEmail);
+
+      const now = new Date().toISOString();
+      const { error: pErr } = await supabase.from("profiles").upsert({
+        device_id: newDeviceId,
+        full_name_en: reg.name.trim(),
+        full_name_ar: reg.nameAr.trim() || null,
+        saudi_id: reg.id.trim().length === 10 ? reg.id.trim() : null,
+        passport_number: reg.id.trim().length !== 10 ? reg.id.trim() : null,
+        date_of_birth: reg.dob || null,
+        gender: reg.gender,
+        phone: phoneToE164(reg.phone) || null,
+        email: reg.email.trim() || null,
+        nationality: reg.nationality,
+        terms_accepted_at: now,
+        privacy_accepted_at: now,
+      }, { onConflict: "device_id" });
+
+      if (pErr) console.error("[signup] profile upsert error", pErr);
+
+      const cleanPast = pastHistory.filter((p) => p.condition.trim());
+      const cleanSurgical = surgicalHistory.filter((p) => p.procedure.trim());
+      const cleanFamily = familyHistory.filter((p) => p.condition.trim());
+
+      const { error: mErr } = await supabase.from("medical_profiles").upsert({
+        device_id: newDeviceId,
+        blood_type: med.bloodType || null,
+        allergies: med.allergies ? med.allergies.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        chronic_conditions: med.chronic ? med.chronic.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        current_medications: med.currentMeds ? med.currentMeds.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        emergency_contact_name: med.emName || null,
+        emergency_contact_phone: med.emPhone || null,
+        emergency_contact_relation: med.emRelation || null,
+        insurance_provider: med.insurer || null,
+        insurance_policy_number: med.policy || null,
+        past_medical_history: cleanPast as any,
+        surgical_history: cleanSurgical as any,
+        family_history: cleanFamily as any,
+      } as any, { onConflict: "device_id" });
+
+      if (mErr) console.error("[signup] medical upsert error", mErr);
     }
-    toast.success("Verified · تم التحقق");
+
+    setSubmitting(false);
+    toast.success("Welcome to RufayQ · أهلاً بك");
     setTimeout(onLogin, 400);
   };
 
@@ -229,54 +299,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
   const handleNextToMedical = () => { if (validateRegister()) setView("medical"); };
 
+  // Profile + medical writes are deferred until AFTER OTP verification
+  // (so we have a real auth user and RLS-compatible device_id = `auth_${userId}`).
   const handleCompleteSignup = async () => {
-    setSubmitting(true);
-    const device_id = getDeviceId();
-    const now = new Date().toISOString();
-
-    const { error: pErr } = await supabase.from("profiles").upsert({
-      device_id,
-      full_name_en: reg.name.trim(),
-      full_name_ar: reg.nameAr.trim() || null,
-      saudi_id: reg.id.trim().length === 10 ? reg.id.trim() : null,
-      passport_number: reg.id.trim().length !== 10 ? reg.id.trim() : null,
-      date_of_birth: reg.dob || null,
-      gender: reg.gender,
-      phone: phoneToE164(reg.phone) || null,
-      email: reg.email.trim() || null,
-      nationality: reg.nationality,
-      terms_accepted_at: now,
-      privacy_accepted_at: now,
-    }, { onConflict: "device_id" });
-
-    if (pErr) { setSubmitting(false); toast.error("Signup failed: " + pErr.message); return; }
-
-    const cleanPast = pastHistory.filter((p) => p.condition.trim());
-    const cleanSurgical = surgicalHistory.filter((p) => p.procedure.trim());
-    const cleanFamily = familyHistory.filter((p) => p.condition.trim());
-
-    const { error: mErr } = await supabase.from("medical_profiles").upsert({
-      device_id,
-      blood_type: med.bloodType || null,
-      allergies: med.allergies ? med.allergies.split(",").map((s) => s.trim()).filter(Boolean) : [],
-      chronic_conditions: med.chronic ? med.chronic.split(",").map((s) => s.trim()).filter(Boolean) : [],
-      current_medications: med.currentMeds ? med.currentMeds.split(",").map((s) => s.trim()).filter(Boolean) : [],
-      emergency_contact_name: med.emName || null,
-      emergency_contact_phone: med.emPhone || null,
-      emergency_contact_relation: med.emRelation || null,
-      insurance_provider: med.insurer || null,
-      insurance_policy_number: med.policy || null,
-      past_medical_history: cleanPast as any,
-      surgical_history: cleanSurgical as any,
-      family_history: cleanFamily as any,
-    } as any, { onConflict: "device_id" });
-
-    setSubmitting(false);
-    if (mErr) { toast.error("Medical info failed: " + mErr.message); return; }
-    toast.success("Profile saved · Verifying your contact next");
-
     const r = resolveSignupRecipient();
-    if (r) handleSendOtp(r.channel, r.to, "signup");
+    if (!r) return;
+    handleSendOtp(r.channel, r.to, "signup");
   };
 
   // ============================================================
@@ -433,6 +461,55 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
           </button>
         </p>
+      </div>
+    );
+  }
+
+  // ----- NEW PASSWORD (after recovery OTP) -----
+  if (view === "newpass") {
+    const valid = newPass.length >= 8 && newPass === newPassConfirm;
+    const submitNewPass = async () => {
+      if (!valid) { toast.error("Password must be at least 8 chars and match"); return; }
+      setSubmitting(true);
+      const { error } = await supabase.auth.updateUser({ password: newPass });
+      setSubmitting(false);
+      if (error) { toast.error("Couldn't update password", { description: error.message }); return; }
+      toast.success("Password updated · تم تحديث كلمة المرور");
+      setNewPass(""); setNewPassConfirm("");
+      setTimeout(onLogin, 400);
+    };
+    return (
+      <div className="flex flex-col h-full overflow-y-auto px-6 pt-12 pb-8" style={{ background: "var(--off-white)" }}>
+        <div className="text-center mb-6">
+          <RufayQLogo size={56} variant="dark" />
+          <h2 className="font-display text-2xl mt-3" style={{ color: "var(--navy)" }}>Set a new password</h2>
+          <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>اختر كلمة مرور جديدة</p>
+        </div>
+        <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--white)" }}>
+          <div>
+            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>New password (min 8 chars)</label>
+            <input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)}
+              autoComplete="new-password" placeholder="••••••••"
+              className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none"
+              style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+          </div>
+          <div>
+            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Confirm new password</label>
+            <input type="password" value={newPassConfirm} onChange={(e) => setNewPassConfirm(e.target.value)}
+              autoComplete="new-password" placeholder="••••••••"
+              className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none"
+              style={{
+                border: `1px solid ${newPassConfirm && newPass !== newPassConfirm ? "var(--error)" : "var(--gray-light)"}`,
+                background: "var(--white)", color: "var(--navy)",
+              }} />
+          </div>
+        </div>
+        <button onClick={submitNewPass} disabled={!valid || submitting}
+          className="w-full mt-4 py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
+          style={{ background: "var(--teal-deep)", height: 52, opacity: !valid || submitting ? 0.6 : 1 }}>
+          {submitting ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
+          {submitting ? "Updating…" : "Update password · تحديث"}
+        </button>
       </div>
     );
   }
