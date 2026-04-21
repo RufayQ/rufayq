@@ -12,6 +12,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 // Lazy-load social-proof + form components (each is its own chunk)
 const ApprovedReviews = lazy(() => import("@/components/ApprovedReviews"));
 const ReviewForm = lazy(() => import("@/components/ReviewForm"));
+// Admin-managed news/articles section (its own chunk — pulls react-markdown)
+const LandingNews = lazy(() => import("@/components/LandingNews"));
 
 interface Props {
   goToApp: () => void;
@@ -300,6 +302,11 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
         </div>
       </section>
 
+      {/* NEWS & ARTICLES — admin-managed via AdminPages (slug = "landing-news") */}
+      <LazyOnView minHeight={300} rootMargin="400px">
+        <LandingNews theme={{ BG_DARK, BG_DARK_2, BORDER, TEXT, TEXT_MUTED, GOLD }} />
+      </LazyOnView>
+
       {/* CONTACT */}
       <section id="contact" className="py-20 px-6" style={{ background: BG_DARK, borderTop: `1px solid ${BORDER}` }}>
         <div className="max-w-4xl mx-auto text-center">
@@ -351,6 +358,7 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
           <div className="flex gap-5">
             <Link to="/privacy" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الخصوصية</span> : "Privacy"}</Link>
             <Link to="/terms" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الشروط</span> : "Terms"}</Link>
+            <a href="#news" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الأخبار</span> : "News"}</a>
             <a href="#contact" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">تواصل</span> : "Contact"}</a>
           </div>
         </div>
