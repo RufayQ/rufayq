@@ -177,6 +177,20 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
         {/* LIST VIEW */}
         {viewMode === "list" && (
           <>
+            {/* Welcome banner */}
+            <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}>
+              <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>WELCOME · أهلاً</p>
+              <p className="text-[15px] font-semibold text-white mt-1">
+                {patientName ? `Hi ${patientName} 👋` : "Hi there 👋"}
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.7)" }}>
+                We're here to help — pick a channel below or open a ticket.
+              </p>
+              <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>
+                نحن هنا للمساعدة — اختر قناة التواصل أو افتح تذكرة.
+              </p>
+            </div>
+
             {/* Quick Stats */}
             <div className="grid grid-cols-3 gap-2">
               {[
@@ -188,6 +202,36 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
                   <p className="font-display text-2xl" style={{ color: s.color }}>{s.count}</p>
                   <p className="text-[9px] font-mono" style={{ color: "var(--gray)" }}>{s.label}</p>
                 </div>
+              ))}
+            </div>
+
+            {/* App Tour Guides — on-demand */}
+            <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+                <PlayCircle size={13} style={{ color: "var(--gold)" }} />
+                <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>APP TOUR GUIDES · جولات التطبيق</p>
+              </div>
+              {replayableTours.map((t, i, arr) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    if (currentUid) clearTourDone(currentUid, t.id);
+                    setReplayTourId(t.id);
+                  }}
+                  className="w-full flex items-center justify-between py-3 px-4 btn-press text-left"
+                  style={{ borderTop: i > 0 ? "1px solid var(--gray-light)" : "none" }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <PlayCircle size={15} style={{ color: "var(--teal-deep)" }} />
+                    <div className="min-w-0">
+                      <p className="text-[13px] truncate" style={{ color: "var(--navy)" }}>{t.titleEn}</p>
+                      <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{t.titleAr}</p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--gold)" }}>
+                    {t.kind}
+                  </span>
+                </button>
               ))}
             </div>
 
