@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { useLanguage, type LangMode } from "@/contexts/LanguageContext";
 
 interface Props {
@@ -9,14 +10,19 @@ interface Props {
   activeText?: string;
 }
 
-const LanguageSwitcher = ({
+/**
+ * forwardRef wrapper silences "Function components cannot be given refs"
+ * warnings emitted when a parent (e.g. lazy boundary, animation lib) tries
+ * to attach a ref to the switcher root.
+ */
+const LanguageSwitcher = forwardRef<HTMLDivElement, Props>(({
   compact,
   bg = "rgba(11,26,40,0.6)",
   border = "rgba(197,150,90,0.18)",
   active = "#C5965A",
   inactive = "rgba(232,236,240,0.55)",
   activeText = "#06101A",
-}: Props) => {
+}, ref) => {
   const { mode, setMode } = useLanguage();
   const opts: { v: LangMode; label: string }[] = [
     { v: "en", label: "EN" },
@@ -24,7 +30,7 @@ const LanguageSwitcher = ({
     { v: "both", label: "EN/AR" },
   ];
   return (
-    <div className="flex rounded-full p-0.5" style={{ background: bg, border: `1px solid ${border}` }}>
+    <div ref={ref} className="flex rounded-full p-0.5" style={{ background: bg, border: `1px solid ${border}` }}>
       {opts.map(o => (
         <button
           key={o.v}
@@ -40,6 +46,8 @@ const LanguageSwitcher = ({
       ))}
     </div>
   );
-};
+});
+
+LanguageSwitcher.displayName = "LanguageSwitcher";
 
 export default LanguageSwitcher;

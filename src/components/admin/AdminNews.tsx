@@ -14,11 +14,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Save, Plus, Trash2, ChevronUp, ChevronDown, Eye, FileText, Globe,
-  Copy, Link as LinkIcon, AlertTriangle, Sparkles,
+  Copy, Link as LinkIcon, AlertTriangle, Sparkles, Search,
 } from "lucide-react";
 import {
   ArticleMeta, estimateReadingTime, extractMeta, resolveSlug, serializeMeta, slugify,
 } from "@/lib/articleMeta";
+import { getClusterSuggestions } from "@/lib/seoCluster";
+import ArticleSeoPreview from "./ArticleSeoPreview";
 
 type Lang = "en" | "ar";
 
@@ -134,6 +136,8 @@ const AdminNews = () => {
   const [previewLang, setPreviewLang] = useState<Lang | "off">("off");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [showLinkPicker, setShowLinkPicker] = useState(false);
+  const [showSeoPreview, setShowSeoPreview] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -174,6 +178,12 @@ const AdminNews = () => {
     });
     return new Set([...counts.entries()].filter(([, ids]) => ids.length > 1).map(([slug]) => slug));
   }, [slugMap]);
+
+  /** Articles missing one half of the EN/AR pair (hreflang would break). */
+  const unpairedArticles = useMemo(
+    () => articles.filter((a) => !a.titleEn.trim() || !a.titleAr.trim() || !a.bodyEn.trim() || !a.bodyAr.trim()),
+    [articles],
+  );
 
   const update = (patch: Partial<Article>) => {
     if (!active) return;
@@ -238,14 +248,16 @@ const AdminNews = () => {
     });
   };
 
-  const insertLink = (target: { slug: string; title: string }) => {
+  const insertLink = (target: { slug: string; title: string }, customAnchor?: string) => {
     if (!active) return;
     const isAr = editLang === "ar";
     const root = isAr ? "/ar/news" : "/news";
-    const md = `[${target.title}](${root}/${target.slug})`;
+    const anchor = customAnchor?.trim() || target.title;
+    const md = `[${anchor}](${root}/${target.slug})`;
     if (editLang === "en") update({ bodyEn: `${active.bodyEn}\n\n${md}` });
     else update({ bodyAr: `${active.bodyAr}\n\n${md}` });
     setShowLinkPicker(false);
+    setPickerQuery("");
     toast.success("Internal link inserted at end of body");
   };
 
@@ -261,6 +273,11 @@ const AdminNews = () => {
   const save = async () => {
     if (slugConflicts.size > 0) {
       toast.error("Resolve duplicate slugs before publishing");
+      return;
+    }
+    if (unpairedArticles.length > 0) {
+      const names = unpairedArticles.map((a) => a.titleEn || a.titleAr || "Untitled").join(", ");
+      toast.error(`${unpairedArticles.length} article(s) missing EN↔AR pairing — fix to keep hreflang consistent: ${names}`);
       return;
     }
     setSaving(true);
@@ -327,7 +344,12 @@ const AdminNews = () => {
                   <p dir="rtl" className="truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
                   <p className="truncate text-[9px] mt-1 font-mono opacity-50">/{slug}</p>
                 </div>
-                {conflict && <AlertTriangle size={11} className="text-rose-400 shrink-0" />}
+                <div className="flex flex-col gap-1 items-end shrink-0">
+                  {conflict && <AlertTriangle size={11} className="text-rose-400" />}
+                  {(!a.titleEn.trim() || !a.titleAr.trim() || !a.bodyEn.trim() || !a.bodyAr.trim()) && (
+                    <span title="Missing EN/AR pair" className="text-[8px] uppercase font-semibold text-amber-500/80">½</span>
+                  )}
+                </div>
               </button>
             );
           })
@@ -336,7 +358,7 @@ const AdminNews = () => {
         <div className="mt-4 px-2">
           <button
             onClick={save}
-            disabled={saving || slugConflicts.size > 0}
+            disabled={saving || slugConflicts.size > 0 || unpairedArticles.length > 0}
             className="w-full px-3 py-2 rounded-lg bg-amber-500 text-slate-950 text-xs font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
             <Save size={12} />
@@ -345,6 +367,12 @@ const AdminNews = () => {
           {slugConflicts.size > 0 && (
             <p className="text-[10px] text-rose-400 mt-2 text-center">
               Duplicate slug{slugConflicts.size > 1 ? "s" : ""} — fix before publishing
+            </p>
+          )}
+          {unpairedArticles.length > 0 && (
+            <p className="text-[10px] text-amber-400 mt-2 text-center leading-relaxed">
+              {unpairedArticles.length} article{unpairedArticles.length === 1 ? "" : "s"} missing EN↔AR pair —
+              hreflang requires both languages.
             </p>
           )}
           {updatedAt && (
@@ -390,6 +418,7 @@ const AdminNews = () => {
                   <button onClick={() => setPreviewLang("off")} title="Edit" className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center ${previewLang === "off" ? "bg-slate-700 text-amber-300" : "text-slate-400"}`}><FileText size={11} /></button>
                   <button onClick={() => setPreviewLang(editLang)} title="Preview" className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center ${previewLang !== "off" ? "bg-slate-700 text-amber-300" : "text-slate-400"}`}><Eye size={11} /></button>
                 </div>
+                <button onClick={() => setShowSeoPreview((v) => !v)} className={`p-1.5 rounded-md ${showSeoPreview ? "bg-amber-500/15 text-amber-300" : "text-slate-400 hover:bg-slate-800"}`} title="Toggle SEO preview"><Globe size={13} /></button>
                 <button onClick={duplicateActive} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800" title="Duplicate article"><Copy size={13} /></button>
                 <button onClick={() => move(-1)} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800" title="Move up"><ChevronUp size={13} /></button>
                 <button onClick={() => move(1)} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800" title="Move down"><ChevronDown size={13} /></button>
@@ -492,7 +521,7 @@ const AdminNews = () => {
                 </label>
               </div>
 
-              {/* Internal link picker */}
+              {/* Internal link picker — curated cluster suggestions + free search */}
               <div className="mt-4 pt-3 border-t border-slate-800">
                 <button
                   onClick={() => setShowLinkPicker((v) => !v)}
@@ -501,27 +530,87 @@ const AdminNews = () => {
                   <LinkIcon size={11} /> Insert internal link to another article
                 </button>
                 {showLinkPicker && (
-                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto p-1">
-                    {slugMap.filter((s) => s.id !== active.id).length === 0 ? (
-                      <p className="text-[11px] text-slate-500 col-span-2 p-2">No other articles to link to.</p>
-                    ) : (
-                      slugMap
-                        .filter((s) => s.id !== active.id)
-                        .map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => insertLink(s)}
-                            className="text-left px-2 py-1.5 rounded-md bg-slate-800/40 hover:bg-amber-500/10 hover:text-amber-300 text-[11px] text-slate-300 truncate"
-                            title={`/news/${s.slug}`}
-                          >
-                            <span className="opacity-60 font-mono">/{s.slug}</span>
-                            <span className="block truncate">{s.title}</span>
-                          </button>
-                        ))
-                    )}
+                  <div className="mt-3 space-y-3">
+                    {/* Curated cluster suggestions per SEO masterplan */}
+                    {(() => {
+                      const suggestions = getClusterSuggestions(resolvedSlug);
+                      if (suggestions.length === 0) return null;
+                      return (
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest text-amber-400 mb-1.5 flex items-center gap-1">
+                            <Sparkles size={10} /> Suggested anchors · SEO masterplan
+                          </p>
+                          <div className="space-y-1.5">
+                            {suggestions.map((sg) => {
+                              const targetTitle = slugMap.find((s) => s.slug === sg.toSlug)?.title || sg.toSlug;
+                              const anchor = editLang === "ar" ? sg.anchorAr : sg.anchorEn;
+                              return (
+                                <button
+                                  key={sg.toSlug}
+                                  onClick={() => insertLink({ slug: sg.toSlug, title: targetTitle }, anchor)}
+                                  dir={editLang === "ar" ? "rtl" : "ltr"}
+                                  className="w-full text-left px-2.5 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] text-amber-200"
+                                >
+                                  <span className="block truncate">{anchor}</span>
+                                  <span className="opacity-60 font-mono text-[9px] block mt-0.5">→ /{sg.toSlug}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* All articles (filterable) */}
+                    <div>
+                      <div className="relative mb-1.5">
+                        <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <input
+                          value={pickerQuery}
+                          onChange={(e) => setPickerQuery(e.target.value)}
+                          placeholder="Filter all articles…"
+                          className="w-full pl-7 pr-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-[11px] text-slate-200 outline-none focus:border-amber-500"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-44 overflow-y-auto p-1">
+                        {slugMap
+                          .filter((s) => s.id !== active.id)
+                          .filter((s) => {
+                            const q = pickerQuery.trim().toLowerCase();
+                            return !q || s.slug.includes(q) || s.title.toLowerCase().includes(q);
+                          })
+                          .map((s) => (
+                            <button
+                              key={s.id}
+                              onClick={() => insertLink(s)}
+                              className="text-left px-2 py-1.5 rounded-md bg-slate-800/40 hover:bg-amber-500/10 hover:text-amber-300 text-[11px] text-slate-300 truncate"
+                              title={`/news/${s.slug}`}
+                            >
+                              <span className="opacity-60 font-mono">/{s.slug}</span>
+                              <span className="block truncate">{s.title}</span>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* SEO preview panel (toggle via Globe in toolbar) */}
+            {showSeoPreview && (
+              <div className="p-4 border-b border-slate-800 bg-slate-950/40">
+                <ArticleSeoPreview
+                  slug={resolvedSlug}
+                  titleEn={active.titleEn}
+                  titleAr={active.titleAr}
+                  metaEn={active.meta}
+                  metaAr={active.metaAr}
+                  excerptEn={active.bodyEn.slice(0, 200)}
+                  excerptAr={active.bodyAr.slice(0, 200)}
+                />
+              </div>
+            )}
             </div>
 
             {/* Editor / preview */}

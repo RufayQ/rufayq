@@ -24,6 +24,7 @@ const Admin = lazy(() => import("./pages/Admin.tsx"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+const SitemapPreview = lazy(() => import("./pages/SitemapPreview.tsx"));
 
 /* ── Lazy: heavy app-shell (QueryClient + Toaster + Tooltip + Currency).
    Only mounted for routes that actually need them. Keeps Landing's critical
@@ -94,6 +95,9 @@ const App = () => (
             <Route path="/admin" element={<Shelled><Admin /></Shelled>} />
             <Route path="/admin/login" element={<Shelled><AdminLogin /></Shelled>} />
             <Route path="/auth" element={<Shelled><Auth /></Shelled>} />
+
+            {/* SEO QA tools (no /ar mirror — internal use only) */}
+            <Route path="/sitemap-preview" element={<SitemapPreview />} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
