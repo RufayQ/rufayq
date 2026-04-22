@@ -1,33 +1,38 @@
 /**
- * AdminNews — sectionized article manager backed by the same `landing-news`
- * row in `site_pages`. Articles are stored as markdown blocks separated by
- * top-level `## ` headings (matches the parser in src/pages/News.tsx), so no
- * schema change is needed and the public site keeps rendering as before.
+ * AdminNews — sectionized article manager with full SEO metadata panel,
+ * cross-link inserter, slug uniqueness checks, and a duplicate action.
  *
- * Admins can:
- *  - Browse all articles (EN + AR side-by-side)
- *  - Create / edit / delete individual articles
- *  - Reorder (move up / down)
- *  - Live preview a single article
+ * Storage: same `landing-news` row in `site_pages`. Each article block in the
+ * markdown body uses an HTML comment to carry per-article SEO metadata
+ * (slug, description, author, publishedAt, readingTime, keywords, image).
+ * See src/lib/articleMeta.ts for the format.
  */
 import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, Plus, Trash2, ChevronUp, ChevronDown, Eye, FileText, Globe } from "lucide-react";
+import {
+  Save, Plus, Trash2, ChevronUp, ChevronDown, Eye, FileText, Globe,
+  Copy, Link as LinkIcon, AlertTriangle, Sparkles,
+} from "lucide-react";
+import {
+  ArticleMeta, estimateReadingTime, extractMeta, resolveSlug, serializeMeta, slugify,
+} from "@/lib/articleMeta";
 
 type Lang = "en" | "ar";
 
 interface Article {
-  id: string;        // local-only id for list rendering
+  id: string;
   titleEn: string;
   titleAr: string;
   bodyEn: string;
   bodyAr: string;
+  meta: ArticleMeta;
+  metaAr: ArticleMeta;
 }
 
-const SEP = "\n\n"; // blocks are separated by a blank line
+const SEP = "\n\n";
 
 const newArticle = (): Article => ({
   id: crypto.randomUUID(),
@@ -35,42 +40,66 @@ const newArticle = (): Article => ({
   titleAr: "مقال جديد",
   bodyEn: "Write your article here…",
   bodyAr: "اكتب مقالك هنا…",
+  meta: { author: "RufayQ Editorial", publishedAt: new Date().toISOString().slice(0, 10) },
+  metaAr: {},
 });
 
-/** Split a `## Heading\n…body…` markdown blob into Article shells. */
-const parseBlocks = (md: string): Array<{ title: string; body: string }> => {
+/** Split a markdown blob into Article shells, parsing each `<!--meta-->` block. */
+const parseBlocks = (md: string): Array<{ title: string; body: string; meta: ArticleMeta }> => {
   if (!md.trim()) return [];
   const lines = md.split("\n");
-  const out: Array<{ title: string; body: string }> = [];
+  const out: Array<{ title: string; body: string; meta: ArticleMeta }> = [];
   let cur: { title: string; body: string[] } | null = null;
+  const flush = () => {
+    if (!cur) return;
+    const raw = cur.body.join("\n").trim();
+    const { meta, body } = extractMeta(raw);
+    out.push({ title: cur.title, body, meta });
+  };
   for (const line of lines) {
     const m = line.match(/^##\s+(.+?)\s*$/);
-    if (m) {
-      if (cur) out.push({ title: cur.title, body: cur.body.join("\n").trim() });
-      cur = { title: m[1], body: [] };
-    } else if (cur) {
-      cur.body.push(line);
-    }
+    if (m) { flush(); cur = { title: m[1], body: [] }; }
+    else if (cur) { cur.body.push(line); }
   }
-  if (cur) out.push({ title: cur.title, body: cur.body.join("\n").trim() });
+  flush();
   return out;
 };
 
-/** Zip EN + AR blocks into Article rows (pads when counts differ). */
+/** Pair EN + AR blocks (slug-matched when possible, falls back to position). */
 const zipArticles = (en: string, ar: string): Article[] => {
   const eb = parseBlocks(en);
   const ab = parseBlocks(ar);
-  const max = Math.max(eb.length, ab.length);
+  const used = new Set<number>();
   const arr: Article[] = [];
-  for (let i = 0; i < max; i++) {
+  eb.forEach((e) => {
+    const eSlug = resolveSlug(e.title, e.meta);
+    const aIdx = ab.findIndex((a, i) => !used.has(i) && resolveSlug(a.title, a.meta) === eSlug);
+    if (aIdx >= 0) {
+      used.add(aIdx);
+      arr.push({
+        id: crypto.randomUUID(),
+        titleEn: e.title, titleAr: ab[aIdx].title,
+        bodyEn: e.body, bodyAr: ab[aIdx].body,
+        meta: e.meta, metaAr: ab[aIdx].meta,
+      });
+    } else {
+      arr.push({
+        id: crypto.randomUUID(),
+        titleEn: e.title, titleAr: "",
+        bodyEn: e.body, bodyAr: "",
+        meta: e.meta, metaAr: {},
+      });
+    }
+  });
+  ab.forEach((a, i) => {
+    if (used.has(i)) return;
     arr.push({
       id: crypto.randomUUID(),
-      titleEn: eb[i]?.title || "",
-      titleAr: ab[i]?.title || "",
-      bodyEn: eb[i]?.body || "",
-      bodyAr: ab[i]?.body || "",
+      titleEn: "", titleAr: a.title,
+      bodyEn: "", bodyAr: a.body,
+      meta: {}, metaAr: a.meta,
     });
-  }
+  });
   return arr;
 };
 
@@ -80,8 +109,18 @@ const serialize = (articles: Article[], lang: Lang): string =>
     .map((a) => {
       const t = lang === "en" ? a.titleEn : a.titleAr;
       const b = lang === "en" ? a.bodyEn : a.bodyAr;
+      const meta = lang === "en" ? a.meta : a.metaAr;
+      // AR blocks inherit the canonical slug from EN so the pair stays linked
+      const effectiveMeta: ArticleMeta = lang === "ar"
+        ? { ...meta, slug: meta.slug || a.meta.slug || (a.titleEn ? slugify(a.titleEn) : undefined) }
+        : meta;
       if (!t.trim() && !b.trim()) return "";
-      return `## ${t.trim() || "Untitled"}\n\n${b.trim()}`;
+      const head = `## ${t.trim() || "Untitled"}`;
+      const metaBlock = serializeMeta(effectiveMeta);
+      const parts = [head];
+      if (metaBlock) parts.push(metaBlock);
+      parts.push(b.trim());
+      return parts.join("\n\n");
     })
     .filter(Boolean)
     .join(SEP);
@@ -94,6 +133,7 @@ const AdminNews = () => {
   const [editLang, setEditLang] = useState<Lang>("en");
   const [previewLang, setPreviewLang] = useState<Lang | "off">("off");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [showLinkPicker, setShowLinkPicker] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -115,9 +155,42 @@ const AdminNews = () => {
 
   const active = useMemo(() => articles.find((a) => a.id === activeId), [articles, activeId]);
 
+  /** Resolved slugs for every article (EN canonical). Used for uniqueness + link picker. */
+  const slugMap = useMemo(() => {
+    return articles.map((a) => ({
+      id: a.id,
+      slug: resolveSlug(a.titleEn || a.titleAr, a.meta),
+      title: a.titleEn || a.titleAr || "Untitled",
+    }));
+  }, [articles]);
+
+  /** Map of slug → ids that share it (for uniqueness warning). */
+  const slugConflicts = useMemo(() => {
+    const counts = new Map<string, string[]>();
+    slugMap.forEach((s) => {
+      const arr = counts.get(s.slug) || [];
+      arr.push(s.id);
+      counts.set(s.slug, arr);
+    });
+    return new Set([...counts.entries()].filter(([, ids]) => ids.length > 1).map(([slug]) => slug));
+  }, [slugMap]);
+
   const update = (patch: Partial<Article>) => {
     if (!active) return;
     setArticles((arr) => arr.map((a) => (a.id === active.id ? { ...a, ...patch } : a)));
+  };
+
+  const updateMeta = (lang: Lang, patch: Partial<ArticleMeta>) => {
+    if (!active) return;
+    setArticles((arr) =>
+      arr.map((a) =>
+        a.id !== active.id
+          ? a
+          : lang === "en"
+            ? { ...a, meta: { ...a.meta, ...patch } }
+            : { ...a, metaAr: { ...a.metaAr, ...patch } },
+      ),
+    );
   };
 
   const addArticle = () => {
@@ -126,12 +199,29 @@ const AdminNews = () => {
     setActiveId(a.id);
   };
 
-  const removeActive = async () => {
+  const duplicateActive = () => {
+    if (!active) return;
+    const copy: Article = {
+      ...active,
+      id: crypto.randomUUID(),
+      titleEn: `${active.titleEn} (copy)`,
+      titleAr: active.titleAr ? `${active.titleAr} (نسخة)` : "",
+      meta: { ...active.meta, slug: active.meta.slug ? `${active.meta.slug}-copy` : undefined },
+      metaAr: { ...active.metaAr },
+    };
+    setArticles((arr) => [copy, ...arr]);
+    setActiveId(copy.id);
+    toast.success("Duplicated — edit the slug before saving");
+  };
+
+  const removeActive = () => {
     if (!active) return;
     if (!confirm(`Delete article "${active.titleEn || active.titleAr || "Untitled"}"? This cannot be undone after saving.`)) return;
-    setArticles((arr) => arr.filter((a) => a.id !== active.id));
+    const idToDelete = active.id;
+    setArticles((arr) => arr.filter((a) => a.id !== idToDelete));
     setActiveId((curId) => {
-      const remaining = articles.filter((a) => a.id !== curId);
+      if (curId !== idToDelete) return curId;
+      const remaining = articles.filter((a) => a.id !== idToDelete);
       return remaining[0]?.id || null;
     });
   };
@@ -148,7 +238,31 @@ const AdminNews = () => {
     });
   };
 
+  const insertLink = (target: { slug: string; title: string }) => {
+    if (!active) return;
+    const isAr = editLang === "ar";
+    const root = isAr ? "/ar/news" : "/news";
+    const md = `[${target.title}](${root}/${target.slug})`;
+    if (editLang === "en") update({ bodyEn: `${active.bodyEn}\n\n${md}` });
+    else update({ bodyAr: `${active.bodyAr}\n\n${md}` });
+    setShowLinkPicker(false);
+    toast.success("Internal link inserted at end of body");
+  };
+
+  const autoFillReadingTime = () => {
+    if (!active) return;
+    const en = estimateReadingTime(active.bodyEn);
+    const ar = estimateReadingTime(active.bodyAr);
+    updateMeta("en", { readingTime: en });
+    if (active.bodyAr.trim()) updateMeta("ar", { readingTime: ar });
+    toast.success(`Reading time updated · EN ${en} min · AR ${ar} min`);
+  };
+
   const save = async () => {
+    if (slugConflicts.size > 0) {
+      toast.error("Resolve duplicate slugs before publishing");
+      return;
+    }
     setSaving(true);
     const body_md = serialize(articles, "en");
     const body_md_ar = serialize(articles, "ar");
@@ -157,10 +271,7 @@ const AdminNews = () => {
       .update({ body_md, body_md_ar })
       .eq("slug", "landing-news");
     setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+    if (error) { toast.error(error.message); return; }
     await supabase.rpc("log_audit_event", {
       _action: "news_articles_saved",
       _target_type: "site_page",
@@ -173,9 +284,13 @@ const AdminNews = () => {
 
   if (loading) return <p className="text-slate-400 text-sm">Loading…</p>;
 
+  const activeMeta = active ? (editLang === "en" ? active.meta : active.metaAr) : null;
+  const resolvedSlug = active ? resolveSlug(active.titleEn || active.titleAr, active.meta) : "";
+  const hasConflict = active && slugConflicts.has(resolvedSlug);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
-      {/* SIDEBAR — article list */}
+      {/* SIDEBAR */}
       <aside className="space-y-1">
         <div className="flex items-center justify-between mb-2 px-2">
           <p className="text-[10px] uppercase tracking-wider text-slate-500">Articles · {articles.length}</p>
@@ -190,54 +305,63 @@ const AdminNews = () => {
         {articles.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-700 p-4 text-center">
             <p className="text-[11px] text-slate-500 mb-2">No articles yet.</p>
-            <button
-              onClick={addArticle}
-              className="px-3 py-1.5 rounded-md bg-amber-500 text-slate-950 text-[11px] font-semibold inline-flex items-center gap-1"
-            >
+            <button onClick={addArticle} className="px-3 py-1.5 rounded-md bg-amber-500 text-slate-950 text-[11px] font-semibold inline-flex items-center gap-1">
               <Plus size={11} /> Create first article
             </button>
           </div>
         ) : (
-          articles.map((a, i) => (
-            <button
-              key={a.id}
-              onClick={() => setActiveId(a.id)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-start gap-2 ${
-                activeId === a.id ? "bg-amber-500/15 text-amber-300" : "text-slate-400 hover:bg-slate-800/50"
-              }`}
-            >
-              <span className="font-mono text-[10px] mt-0.5 opacity-60 shrink-0">{String(i + 1).padStart(2, "0")}</span>
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-[12px] leading-tight">{a.titleEn || "Untitled"}</p>
-                <p dir="rtl" className="truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
-              </div>
-            </button>
-          ))
+          articles.map((a, i) => {
+            const slug = resolveSlug(a.titleEn || a.titleAr, a.meta);
+            const conflict = slugConflicts.has(slug);
+            return (
+              <button
+                key={a.id}
+                onClick={() => setActiveId(a.id)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-start gap-2 ${
+                  activeId === a.id ? "bg-amber-500/15 text-amber-300" : "text-slate-400 hover:bg-slate-800/50"
+                }`}
+              >
+                <span className="font-mono text-[10px] mt-0.5 opacity-60 shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-[12px] leading-tight">{a.titleEn || "Untitled"}</p>
+                  <p dir="rtl" className="truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
+                  <p className="truncate text-[9px] mt-1 font-mono opacity-50">/{slug}</p>
+                </div>
+                {conflict && <AlertTriangle size={11} className="text-rose-400 shrink-0" />}
+              </button>
+            );
+          })
         )}
 
         <div className="mt-4 px-2">
           <button
             onClick={save}
-            disabled={saving}
+            disabled={saving || slugConflicts.size > 0}
             className="w-full px-3 py-2 rounded-lg bg-amber-500 text-slate-950 text-xs font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
             <Save size={12} />
             {saving ? "Publishing…" : "Publish all"}
           </button>
+          {slugConflicts.size > 0 && (
+            <p className="text-[10px] text-rose-400 mt-2 text-center">
+              Duplicate slug{slugConflicts.size > 1 ? "s" : ""} — fix before publishing
+            </p>
+          )}
           {updatedAt && (
             <p className="text-[10px] text-slate-600 mt-2 text-center">
               Last published {new Date(updatedAt).toLocaleString()}
             </p>
           )}
           <p className="text-[10px] text-slate-600 mt-2 leading-relaxed">
-            Articles appear at <code className="text-amber-400">/news</code> and <code className="text-amber-400">/ar/news</code>. Use both EN + AR for a complete bilingual archive.
+            Articles appear at <code className="text-amber-400">/news/&lt;slug&gt;</code> and{" "}
+            <code className="text-amber-400">/ar/news/&lt;slug&gt;</code>.
           </p>
         </div>
       </aside>
 
       {/* EDITOR */}
       <div className="rounded-xl border border-slate-800 bg-slate-900/50">
-        {!active ? (
+        {!active || !activeMeta ? (
           <div className="p-10 text-center text-slate-500">
             <FileText size={28} className="mx-auto mb-3 opacity-40" />
             <p className="text-sm">Select an article — or create a new one.</p>
@@ -257,66 +381,146 @@ const AdminNews = () => {
                   className="flex-1 bg-transparent text-base font-semibold text-slate-100 outline-none"
                 />
               </div>
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center flex-wrap">
                 <div className="flex rounded-lg bg-slate-800 p-0.5">
-                  <button
-                    onClick={() => setEditLang("en")}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${
-                      editLang === "en" ? "bg-amber-500 text-slate-950" : "text-slate-400"
-                    }`}
-                  >
-                    EN
-                  </button>
-                  <button
-                    onClick={() => setEditLang("ar")}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${
-                      editLang === "ar" ? "bg-amber-500 text-slate-950" : "text-slate-400"
-                    }`}
-                  >
-                    AR
-                  </button>
+                  <button onClick={() => setEditLang("en")} className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${editLang === "en" ? "bg-amber-500 text-slate-950" : "text-slate-400"}`}>EN</button>
+                  <button onClick={() => setEditLang("ar")} className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${editLang === "ar" ? "bg-amber-500 text-slate-950" : "text-slate-400"}`}>AR</button>
                 </div>
                 <div className="flex rounded-lg bg-slate-800 p-0.5">
-                  <button
-                    onClick={() => setPreviewLang("off")}
-                    title="Edit"
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center ${
-                      previewLang === "off" ? "bg-slate-700 text-amber-300" : "text-slate-400"
-                    }`}
-                  >
-                    <FileText size={11} />
-                  </button>
-                  <button
-                    onClick={() => setPreviewLang(editLang)}
-                    title="Preview"
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center ${
-                      previewLang !== "off" ? "bg-slate-700 text-amber-300" : "text-slate-400"
-                    }`}
-                  >
-                    <Eye size={11} />
-                  </button>
+                  <button onClick={() => setPreviewLang("off")} title="Edit" className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center ${previewLang === "off" ? "bg-slate-700 text-amber-300" : "text-slate-400"}`}><FileText size={11} /></button>
+                  <button onClick={() => setPreviewLang(editLang)} title="Preview" className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center ${previewLang !== "off" ? "bg-slate-700 text-amber-300" : "text-slate-400"}`}><Eye size={11} /></button>
                 </div>
-                <button
-                  onClick={() => move(-1)}
-                  className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800"
-                  title="Move up"
-                >
-                  <ChevronUp size={13} />
+                <button onClick={duplicateActive} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800" title="Duplicate article"><Copy size={13} /></button>
+                <button onClick={() => move(-1)} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800" title="Move up"><ChevronUp size={13} /></button>
+                <button onClick={() => move(1)} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800" title="Move down"><ChevronDown size={13} /></button>
+                <button onClick={removeActive} className="p-1.5 rounded-md text-rose-400 hover:bg-rose-500/10" title="Delete article"><Trash2 size={13} /></button>
+              </div>
+            </div>
+
+            {/* SEO METADATA PANEL */}
+            <div className="p-4 border-b border-slate-800 bg-slate-950/40">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] uppercase tracking-widest text-amber-400 font-semibold">SEO metadata</p>
+                <button onClick={autoFillReadingTime} className="text-[10px] text-slate-400 hover:text-amber-300 inline-flex items-center gap-1">
+                  <Sparkles size={10} /> Auto reading time
                 </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[12px]">
+                {/* Slug — EN-only, shared by AR */}
+                <label className="block md:col-span-2">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">URL slug (shared EN/AR)</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[11px] text-slate-600 font-mono">/news/</span>
+                    <input
+                      value={active.meta.slug || ""}
+                      onChange={(e) => updateMeta("en", { slug: slugify(e.target.value) })}
+                      placeholder={slugify(active.titleEn || active.titleAr)}
+                      className="flex-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 font-mono text-[12px]"
+                    />
+                  </div>
+                  {hasConflict && (
+                    <p className="text-[10px] text-rose-400 mt-1 flex items-center gap-1">
+                      <AlertTriangle size={10} /> Another article uses this slug
+                    </p>
+                  )}
+                  <p className="text-[10px] text-slate-600 mt-1">Resolved: <code className="text-amber-400">/{editLang === "ar" ? "ar/" : ""}news/{resolvedSlug}</code></p>
+                </label>
+
+                <label className="block md:col-span-2">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Meta description ({editLang.toUpperCase()})</span>
+                  <textarea
+                    value={activeMeta.description || ""}
+                    onChange={(e) => updateMeta(editLang, { description: e.target.value })}
+                    rows={2}
+                    dir={editLang === "ar" ? "rtl" : "ltr"}
+                    placeholder={editLang === "en" ? "150-160 char snippet for Google search results" : "وصف ميتا للمقال"}
+                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                  />
+                  <p className="text-[10px] text-slate-600 mt-0.5">{(activeMeta.description || "").length}/160</p>
+                </label>
+
+                <label className="block">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Author</span>
+                  <input
+                    value={active.meta.author || ""}
+                    onChange={(e) => updateMeta("en", { author: e.target.value })}
+                    placeholder="Dr. Abdelrahman Morsy"
+                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Published date</span>
+                  <input
+                    type="date"
+                    value={active.meta.publishedAt || ""}
+                    onChange={(e) => updateMeta("en", { publishedAt: e.target.value })}
+                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Reading time (min)</span>
+                  <input
+                    type="number" min={1} max={60}
+                    value={activeMeta.readingTime || ""}
+                    onChange={(e) => updateMeta(editLang, { readingTime: parseInt(e.target.value, 10) || undefined })}
+                    placeholder="auto"
+                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Primary keywords ({editLang.toUpperCase()})</span>
+                  <input
+                    value={activeMeta.keywords || ""}
+                    onChange={(e) => updateMeta(editLang, { keywords: e.target.value })}
+                    placeholder="medical tourism saudi arabia, …"
+                    dir={editLang === "ar" ? "rtl" : "ltr"}
+                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                  />
+                </label>
+
+                <label className="block md:col-span-2">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Open Graph image (path or URL)</span>
+                  <input
+                    value={active.meta.image || ""}
+                    onChange={(e) => updateMeta("en", { image: e.target.value })}
+                    placeholder="/og-news-1.jpg"
+                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px] font-mono"
+                  />
+                </label>
+              </div>
+
+              {/* Internal link picker */}
+              <div className="mt-4 pt-3 border-t border-slate-800">
                 <button
-                  onClick={() => move(1)}
-                  className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800"
-                  title="Move down"
+                  onClick={() => setShowLinkPicker((v) => !v)}
+                  className="text-[11px] text-amber-300 hover:text-amber-200 font-semibold inline-flex items-center gap-1.5"
                 >
-                  <ChevronDown size={13} />
+                  <LinkIcon size={11} /> Insert internal link to another article
                 </button>
-                <button
-                  onClick={removeActive}
-                  className="p-1.5 rounded-md text-rose-400 hover:bg-rose-500/10"
-                  title="Delete article"
-                >
-                  <Trash2 size={13} />
-                </button>
+                {showLinkPicker && (
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto p-1">
+                    {slugMap.filter((s) => s.id !== active.id).length === 0 ? (
+                      <p className="text-[11px] text-slate-500 col-span-2 p-2">No other articles to link to.</p>
+                    ) : (
+                      slugMap
+                        .filter((s) => s.id !== active.id)
+                        .map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => insertLink(s)}
+                            className="text-left px-2 py-1.5 rounded-md bg-slate-800/40 hover:bg-amber-500/10 hover:text-amber-300 text-[11px] text-slate-300 truncate"
+                            title={`/news/${s.slug}`}
+                          >
+                            <span className="opacity-60 font-mono">/{s.slug}</span>
+                            <span className="block truncate">{s.title}</span>
+                          </button>
+                        ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -334,15 +538,12 @@ const AdminNews = () => {
                 className="w-full p-5 bg-transparent text-sm font-mono text-slate-200 outline-none resize-none leading-relaxed"
                 placeholder={
                   editLang === "en"
-                    ? "Write the article body in markdown…\n\n## Subheadings, **bold**, lists, [links](https://…) all supported."
+                    ? "Write the article body in markdown…\n\n## Subheadings, **bold**, lists, [links](/news/other-article-slug) all supported."
                     : "اكتب نص المقال بصيغة ماركداون…"
                 }
               />
             ) : (
-              <article
-                dir={previewLang === "ar" ? "rtl" : "ltr"}
-                className="prose prose-invert max-w-none p-6 min-h-[60vh]"
-              >
+              <article dir={previewLang === "ar" ? "rtl" : "ltr"} className="prose prose-invert max-w-none p-6 min-h-[60vh]">
                 <p className="text-[10px] uppercase tracking-widest text-amber-400 mb-2 flex items-center gap-1">
                   <Globe size={10} /> Preview · {previewLang === "ar" ? "العربية" : "English"}
                 </p>

@@ -2,28 +2,29 @@
  * News & Articles page — admin-managed content rendered as a browsable
  * archive with individual article cards and detail view.
  *
- * Source: site_pages row with slug="landing-news". The markdown body is
- * split into articles by top-level "## " headings — each becomes a card.
- *
  * Routing:
  *   /news           → list view (English by default)
- *   /news/:slug     → single article
- *   /ar/news...     → Arabic mirror
- *
- * Admins edit the same `landing-news` row in the existing AdminPages screen.
+ *   /news/:slug     → single article with full SEO scaffolding
+ *   /ar/news...     → Arabic mirror (hreflang paired)
  */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, ArrowRight, Calendar, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Clock, Search, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { SeoLazy } from "@/seo/SeoLazy";
+import { SITE_ORIGIN } from "@/seo/routes";
+import {
+  ArticleMeta,
+  estimateReadingTime,
+  extractMeta,
+  resolveSlug,
+} from "@/lib/articleMeta";
 
-// Theme tokens (kept in sync with Landing for visual continuity)
 const BG_DARK = "#06101A";
 const BG_DARK_2 = "#0B1A28";
 const BORDER = "rgba(197,150,90,0.12)";
@@ -35,56 +36,49 @@ interface Article {
   slug: string;
   title: string;
   body: string;
-  /** First paragraph used as the card excerpt. */
   excerpt: string;
+  meta: ArticleMeta;
+  readingTime: number;
 }
 
-/** Convert "Some Title 123!" → "some-title-123". */
-const slugify = (s: string) =>
-  s.toLowerCase().trim()
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "article";
-
-/** Split markdown into articles by top-level `## Heading` blocks. */
+/** Split markdown into articles by top-level `## Heading` blocks + parse meta. */
 const parseArticles = (md: string): Article[] => {
   if (!md.trim()) return [];
   const lines = md.split("\n");
   const articles: Article[] = [];
   let current: { title: string; lines: string[] } | null = null;
+  const flush = () => {
+    if (!current) return;
+    const rawBody = current.lines.join("\n").trim();
+    const { meta, body } = extractMeta(rawBody);
+    articles.push({
+      slug: resolveSlug(current.title, meta),
+      title: current.title,
+      body,
+      excerpt: meta.description?.trim() || extractExcerpt(body),
+      meta,
+      readingTime: meta.readingTime || estimateReadingTime(body),
+    });
+  };
   for (const line of lines) {
     const m = line.match(/^##\s+(.+?)\s*$/);
     if (m) {
-      if (current) {
-        const body = current.lines.join("\n").trim();
-        articles.push({
-          slug: slugify(current.title),
-          title: current.title,
-          body,
-          excerpt: extractExcerpt(body),
-        });
-      }
+      flush();
       current = { title: m[1], lines: [] };
     } else if (current) {
       current.lines.push(line);
     }
   }
-  if (current) {
-    const body = current.lines.join("\n").trim();
-    articles.push({
-      slug: slugify(current.title),
-      title: current.title,
-      body,
-      excerpt: extractExcerpt(body),
-    });
-  }
-  // Fallback: no `## ` headings → wrap everything as a single article.
+  flush();
   if (articles.length === 0 && md.trim()) {
+    const { meta, body } = extractMeta(md);
     articles.push({
-      slug: "latest",
+      slug: meta.slug || "latest",
       title: "Latest Update",
-      body: md,
-      excerpt: extractExcerpt(md),
+      body,
+      excerpt: meta.description || extractExcerpt(body),
+      meta,
+      readingTime: meta.readingTime || estimateReadingTime(body),
     });
   }
   return articles;
@@ -93,7 +87,6 @@ const parseArticles = (md: string): Article[] => {
 const extractExcerpt = (body: string): string => {
   const firstPara = body.split(/\n\s*\n/).find((p) => p.trim() && !p.startsWith("#"));
   if (!firstPara) return "";
-  // Strip basic markdown for the excerpt
   return firstPara
     .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
@@ -134,10 +127,9 @@ const News = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const articles = useMemo(
-    () => parseArticles(isAr ? bodyAr : bodyEn),
-    [isAr, bodyEn, bodyAr],
-  );
+  const articlesEn = useMemo(() => parseArticles(bodyEn), [bodyEn]);
+  const articlesAr = useMemo(() => parseArticles(bodyAr), [bodyAr]);
+  const articles = isAr ? articlesAr : articlesEn;
 
   const filtered = useMemo(() => {
     if (!query.trim()) return articles;
@@ -148,31 +140,96 @@ const News = () => {
   }, [articles, query]);
 
   const article = slug ? articles.find((a) => a.slug === slug) : null;
+  /** Pair article: same slug in the other language (for hreflang). */
+  const pairArticle = useMemo(() => {
+    if (!article) return null;
+    const other = isAr ? articlesEn : articlesAr;
+    return other.find((a) => a.slug === article.slug) || null;
+  }, [article, isAr, articlesEn, articlesAr]);
+
   const newsRoot = isAr ? "/ar/news" : "/news";
   const homeRoot = isAr ? "/ar" : "/";
-  const formattedDate = updatedAt
+  const formattedUpdated = updatedAt
     ? new Date(updatedAt).toLocaleDateString(isAr ? "ar-SA" : "en-US", {
         year: "numeric", month: "long", day: "numeric",
       })
     : "";
+  const formattedPublished = article?.meta.publishedAt
+    ? new Date(article.meta.publishedAt).toLocaleDateString(isAr ? "ar-SA" : "en-US", {
+        year: "numeric", month: "long", day: "numeric",
+      })
+    : formattedUpdated;
+
+  // ---------- SEO inputs (per-article when on detail) ----------
+  const seoTitle = article
+    ? article.title
+    : isAr ? "الأخبار والمقالات — رُفَيِّق" : "News & Articles — RufayQ";
+  const seoDesc = article?.excerpt
+    || (isAr
+      ? "آخر الأخبار والمقالات من رُفَيِّق — رفيقك الطبي ثنائي اللغة."
+      : "Latest news and articles from RufayQ — your bilingual AI medical companion.");
+  const canonicalPath = article ? `${newsRoot}/${article.slug}` : newsRoot;
+  const seoImage = article?.meta.image || "/og-image.jpg";
+
+  /** JSON-LD: Article + BreadcrumbList when on detail page. */
+  const jsonLd = useMemo(() => {
+    if (!article) {
+      return {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        name: seoTitle,
+        url: `${SITE_ORIGIN}${canonicalPath}`,
+        inLanguage: isAr ? "ar-SA" : "en-SA",
+        publisher: { "@type": "Organization", name: "RufayQ", url: SITE_ORIGIN },
+      };
+    }
+    const articleLd: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: article.title,
+      description: article.excerpt,
+      inLanguage: isAr ? "ar-SA" : "en-SA",
+      url: `${SITE_ORIGIN}${canonicalPath}`,
+      mainEntityOfPage: `${SITE_ORIGIN}${canonicalPath}`,
+      image: seoImage.startsWith("http") ? seoImage : `${SITE_ORIGIN}${seoImage}`,
+      author: {
+        "@type": "Person",
+        name: article.meta.author || "RufayQ Editorial",
+      },
+      publisher: {
+        "@type": "Organization",
+        name: "RufayQ",
+        url: SITE_ORIGIN,
+        logo: { "@type": "ImageObject", url: `${SITE_ORIGIN}/og-image.jpg` },
+      },
+      datePublished: article.meta.publishedAt || updatedAt || undefined,
+      dateModified: updatedAt || article.meta.publishedAt || undefined,
+      keywords: article.meta.keywords,
+    };
+    const breadcrumbLd = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: isAr ? "الرئيسية" : "Home", item: `${SITE_ORIGIN}${homeRoot}` },
+        { "@type": "ListItem", position: 2, name: isAr ? "الأخبار" : "News", item: `${SITE_ORIGIN}${newsRoot}` },
+        { "@type": "ListItem", position: 3, name: article.title, item: `${SITE_ORIGIN}${canonicalPath}` },
+      ],
+    };
+    return [articleLd, breadcrumbLd];
+  }, [article, canonicalPath, homeRoot, isAr, newsRoot, seoImage, seoTitle, updatedAt]);
 
   return (
     <>
       <SeoLazy
-        title={
-          article
-            ? `${article.title} — RufayQ News`
-            : isAr ? "الأخبار والمقالات — رُفَيِّق" : "News & Articles — RufayQ"
-        }
-        description={
-          article?.excerpt ||
-          (isAr
-            ? "آخر الأخبار والمقالات من رُفَيِّق — رفيقك الطبي ثنائي اللغة."
-            : "Latest news and articles from RufayQ — your bilingual AI medical companion.")
-        }
+        title={seoTitle}
+        description={seoDesc}
+        image={seoImage}
+        canonical={canonicalPath}
+        type={article ? "article" : "website"}
+        jsonLd={jsonLd}
       />
       <div className="min-h-screen" style={{ background: BG_DARK, color: TEXT, fontFamily: "'DM Sans', system-ui" }} dir={isAr ? "rtl" : "ltr"}>
-        {/* NAV (slim) */}
+        {/* NAV */}
         <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.75)", borderBottom: `1px solid ${BORDER}` }}>
           <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
             <Link to={homeRoot} className="flex items-center gap-2.5">
@@ -194,6 +251,17 @@ const News = () => {
         {/* DETAIL VIEW */}
         {article ? (
           <article className="max-w-3xl mx-auto px-6 py-12 md:py-16">
+            {/* Breadcrumbs (visual) */}
+            <nav aria-label="Breadcrumb" className="mb-8">
+              <ol className="flex flex-wrap items-center gap-2 text-[11px]" style={{ color: TEXT_MUTED }}>
+                <li><Link to={homeRoot} className="hover:underline">{isAr ? "الرئيسية" : "Home"}</Link></li>
+                <li aria-hidden>/</li>
+                <li><Link to={newsRoot} className="hover:underline">{isAr ? "الأخبار" : "News"}</Link></li>
+                <li aria-hidden>/</li>
+                <li className="truncate max-w-[260px]" style={{ color: TEXT }}>{article.title}</li>
+              </ol>
+            </nav>
+
             <button
               onClick={() => navigate(newsRoot)}
               className="inline-flex items-center gap-2 text-[12px] font-medium mb-8 transition-colors hover:text-white"
@@ -202,18 +270,37 @@ const News = () => {
               {isAr ? <ArrowRight size={14} /> : <ArrowLeft size={14} />}
               {isAr ? "كل الأخبار" : "All articles"}
             </button>
+
             <p className="font-mono text-[10px] tracking-[0.3em] mb-3" style={{ color: GOLD }}>
               {isAr ? "الأخبار والمقالات" : "NEWS & ARTICLE"}
             </p>
             <h1 className="font-display text-3xl md:text-5xl tracking-tight mb-6 leading-tight" style={{ color: TEXT, fontWeight: 300 }}>
               {article.title}
             </h1>
-            {formattedDate && (
-              <p className="text-xs mb-10 flex items-center gap-2" style={{ color: TEXT_MUTED }}>
-                <Calendar size={12} />
-                {isAr ? `آخر تحديث: ${formattedDate}` : `Updated: ${formattedDate}`}
-              </p>
-            )}
+
+            {/* Byline + meta */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs mb-10" style={{ color: TEXT_MUTED }}>
+              {article.meta.author && (
+                <span className="flex items-center gap-1.5"><User size={12} />{article.meta.author}</span>
+              )}
+              {formattedPublished && (
+                <span className="flex items-center gap-1.5"><Calendar size={12} />{formattedPublished}</span>
+              )}
+              <span className="flex items-center gap-1.5">
+                <Clock size={12} />
+                {isAr ? `${article.readingTime} دقيقة قراءة` : `${article.readingTime} min read`}
+              </span>
+              {pairArticle && (
+                <Link
+                  to={`${isAr ? "/news" : "/ar/news"}/${pairArticle.slug}`}
+                  className="hover:underline"
+                  style={{ color: GOLD }}
+                >
+                  {isAr ? "Read in English →" : "اقرأ بالعربية →"}
+                </Link>
+              )}
+            </div>
+
             <div
               className="prose prose-invert max-w-none"
               style={{
@@ -296,6 +383,7 @@ const News = () => {
                     >
                       <p className="font-mono text-[10px] tracking-widest mb-3" style={{ color: GOLD }}>
                         {String(i + 1).padStart(2, "0")} · {isAr ? "مقال" : "ARTICLE"}
+                        <span className="opacity-60"> · {a.readingTime} {isAr ? "د" : "min"}</span>
                       </p>
                       <h2 className="font-display text-xl md:text-2xl mb-3 tracking-tight transition-colors group-hover:text-white" style={{ color: TEXT, fontWeight: 400 }}>
                         {a.title}
@@ -312,9 +400,9 @@ const News = () => {
                 </div>
               )}
 
-              {formattedDate && articles.length > 0 && (
+              {formattedUpdated && articles.length > 0 && (
                 <p className="text-center text-[11px] mt-12 font-mono tracking-wider" style={{ color: TEXT_MUTED }}>
-                  {isAr ? `آخر تحديث · ${formattedDate}` : `Last updated · ${formattedDate}`}
+                  {isAr ? `آخر تحديث · ${formattedUpdated}` : `Last updated · ${formattedUpdated}`}
                 </p>
               )}
             </main>
