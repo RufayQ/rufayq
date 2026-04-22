@@ -46,8 +46,8 @@
     <!-- LLM crawler hints -->
     <link rel="alternate" type="text/plain" title="llms.txt" href="https://rufayq.com/llms.txt" />
 
-    <!-- Performance: self-hosted font subsets, preconnect to backend, dns-prefetch GA -->
-    <link rel="preconnect" href="https://dlzwgkdiqabapgnvufil.supabase.co" crossorigin />
+    <!-- Performance: dns-prefetch only (Supabase preconnect removed — landing doesn't hit it; GA loads on idle) -->
+    <link rel="dns-prefetch" href="https://dlzwgkdiqabapgnvufil.supabase.co" />
     <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
     <!-- Preload LCP-critical font (DM Sans 400 latin — used by hero paragraph) -->
     <link rel="preload" href="/fonts/dmsans-latin-40fe3cf7.woff2" as="font" type="font/woff2" crossorigin />
