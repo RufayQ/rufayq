@@ -1,92 +1,80 @@
 
-## Stabilize homepage SEO/performance so app changes stop hurting marketing pages
 
-### What is happening now
-The homepage is still coupled to runtime app behavior in a few ways, which is why unrelated app work can move FCP/LCP:
-- The static hero in `index.html` and the React-rendered hero in `src/pages/Landing.tsx` do not match exactly, so the first paint is being replaced after JS loads instead of staying stable.
-- Marketing pages still inherit shared client boot/runtime work from `src/App.tsx`, `src/main.tsx`, and `src/contexts/LanguageContext.tsx`.
-- The homepage starts in one state from raw HTML, then JS can switch language/render mode (`data-lang="both"`), which changes layout and text after first paint.
-- `LandingBelow.tsx` still pulls `lucide-react` and interactive review widgets into the marketing experience, even though they are below the fold.
-- SEO tags are split between `index.html` and `src/seo/Seo.tsx`, increasing head churn and making the route render heavier than necessary.
+## Validation: 3-Article SEO Cluster Strategy
 
-## Implementation plan
+**Verdict: Strategy is excellent and ready to execute.** Your current infrastructure (admin News editor + `/news` + `/ar/news` routes + bilingual markdown parsing) already handles 80% of what's required. Three gaps must be closed for the cluster to deliver the projected SEO results.
 
-### 1. Fully isolate the marketing homepage from app runtime drift
-Update `src/App.tsx` and related routing so `/` and `/ar` stay on the lightest possible route tree and never mount app-only concerns.
-- Keep the landing route outside `AppShell`
-- Ensure no app providers, query state, toasts, auth UI, or patient-shell code can load on homepage render
-- Keep marketing routes independent from `/app`, `/admin`, `/provider`, and auth flows
+---
 
-### 2. Make the first paint and hydrated paint identical
-Align `index.html` and `src/pages/Landing.tsx` so React hydrates cleanly instead of visually replacing the hero.
-- Match hero copy, bilingual mode, CTA targets, and structure exactly
-- Match the language mode the landing page actually renders with on first load
-- Prevent post-hydration text/layout swaps caused by `LanguageContext`
-- Keep the server-like shell as the stable LCP element
+### What's already working ✅
+- Sectionized admin: `AdminNews.tsx` already supports per-article create / edit / delete / reorder + EN+AR side-by-side.
+- Bilingual public archive at `/news` and `/ar/news` with detail pages at `/news/:slug`.
+- Article 1 ("Medical Tourism for Saudi Patients 2026") is already published.
 
-This is the biggest reason app changes should stop affecting homepage metrics.
+### Gaps vs. the SEO masterplan ❌
+1. **No per-article SEO metadata** — strategy requires unique meta title, meta description, slug override, primary keyword, author, reading time, publish date per article. Current parser auto-generates slug from `##` heading and uses a single shared description.
+2. **No internal cross-linking system** — strategy depends on bidirectional links between Articles 1 ↔ 2 ↔ 3 with specific anchor text. Current markdown supports `[text](/news/slug)` but admin has no helper / link picker, and there's no reliable way to keep slugs stable when titles change.
+3. **No SEO scaffolding on detail pages** — missing per-article JSON-LD `Article` schema, canonical URL, Open Graph tags, hreflang EN↔AR pair, breadcrumbs, reading time, and `/sitemap.xml` entries. Without these, rankings won't materialize as projected.
+4. **Article 2 & 3 not yet published.**
 
-### 3. Stop marketing pages from defaulting to “both” language on load
-Refine `src/contexts/LanguageContext.tsx` and `src/seo/useSyncLanguageWithRoute.ts` so marketing routes use route-defined language immediately:
-- `/` loads as English
-- `/ar` loads as Arabic
-- bilingual toggle remains available only after first stable paint
-- no initial “both” mode on the landing page unless explicitly chosen later
+---
 
-That removes avoidable extra text/layout work from the hero.
+## Plan
 
-### 4. Reduce below-the-fold homepage JS
-Refactor `src/pages/LandingBelow.tsx`, `src/components/ApprovedReviews.tsx`, and `src/components/ReviewForm.tsx` to keep below-the-fold content cheap:
-- Replace landing-only `lucide-react` usage with the existing inline icon pattern used in `HeroIcons.tsx`
-- Keep reviews/forms off the critical path and load them only when truly needed
-- Avoid immediate data-fetching widgets during landing render unless the section is reached
-- Preserve content/SEO value while making the landing bundle more static
+### 1. Upgrade article data model (admin + public)
+Extend each article block with a YAML-style frontmatter header inside the same markdown blob (no DB migration needed):
 
-### 5. Simplify head management for the homepage
-Clean up `index.html` and `src/seo/Seo.tsx` so homepage metadata is stable and not duplicated unnecessarily.
-- Keep essential fallback metadata in `index.html`
-- Let route-level SEO override only what is needed
-- Remove duplicate or conflicting homepage tags that cause head mutations during hydration
-- Keep structured data, canonical, hreflang, and OG intact
-
-### 6. Defer non-essential third-party work
-Trim early blocking caused by analytics on the homepage.
-- Delay the GA init/config until after first paint or idle time
-- Keep pageview tracking, but do not let it compete with render-critical work
-- Retain SEO-safe metadata while reducing main-thread and network noise
-
-### 7. Keep performance fixes local to marketing pages
-Create a clear boundary so future feature work in the patient app cannot regress the website again.
-- Treat `Landing.tsx`, `LandingBelow.tsx`, `index.html`, and SEO files as a separate marketing surface
-- Reuse lightweight components there only
-- Avoid importing broad app dependencies into marketing routes
-
-## Files likely to change
 ```text
-index.html
-src/App.tsx
-src/main.tsx
-src/contexts/LanguageContext.tsx
-src/seo/useSyncLanguageWithRoute.ts
-src/seo/Seo.tsx
-src/pages/Landing.tsx
-src/pages/LandingBelow.tsx
-src/components/ApprovedReviews.tsx
-src/components/ReviewForm.tsx
-src/components/LanguageSwitcher.tsx
-src/components/HeroIcons.tsx
-vite.config.ts
+## Why Medical Document Translation Fails Patients
+<!--meta
+slug: medical-document-translation-ai-scanning
+description: Learn why standard medical translation fails Saudi patients...
+author: Dr. Abdelrahman Morsy
+publishedAt: 2026-04-25
+readingTime: 15
+keywords: medical document translation, AI scanning
+-->
+
+Article body in markdown...
 ```
 
-## Expected outcome
-- Homepage becomes stable again and largely insulated from app feature changes
-- FCP/LCP improve because the first painted hero no longer gets replaced after JS loads
-- Marketing routes stay lightweight while `/app` can continue evolving independently
-- SEO remains intact while performance returns closer to the earlier high-water mark
+- Update `parseArticles` in `News.tsx` and `parseBlocks` in `AdminNews.tsx` to read/write the `<!--meta ... -->` block.
+- Slug becomes **stable** (admin-controlled), so cross-links never break when a title is reworded.
 
-## Validation after implementation
-- Recheck homepage on the published/custom-domain build, not the preview/dev runtime
-- Confirm no layout/text swap between initial HTML and hydrated React
-- Confirm route language is correct on `/` and `/ar`
-- Re-measure FCP/LCP and compare against the current 3.5s / 4.3s baseline
-- Confirm canonical, hreflang, OG, and JSON-LD are still present on the final page
+### 2. Admin News editor upgrades (`AdminNews.tsx`)
+- Add a structured metadata panel above the markdown body: Slug, Meta Description (EN/AR), Author, Published Date, Reading Time, Primary Keyword.
+- Add an **"Insert internal link"** dropdown that lists every other article's slug — one click inserts `[anchor text](/news/<slug>)`.
+- Add a **slug uniqueness check** + warning when two articles share a slug.
+- Add a "Duplicate article" action to speed up creating Article 2 & 3 from Article 1's structure.
+
+### 3. SEO scaffolding on `/news` and `/news/:slug`
+- Per-article `<SeoLazy>` driven by the new metadata: unique title, description, canonical (`https://rufayq.com/news/<slug>`), `og:type=article`, `og:locale`, hreflang pair to the AR mirror.
+- Inject JSON-LD `Article` schema (headline, author, datePublished, dateModified, inLanguage, image).
+- Add breadcrumbs (`Home → News → Article`) both visually and as `BreadcrumbList` JSON-LD.
+- Render reading time and author byline on the detail page.
+- Update `public/sitemap.xml` to dynamically include each article's EN + AR URL with `<xhtml:link rel="alternate" hreflang="…">`. (Generated at build time from the same `landing-news` row via a small Vite plugin.)
+
+### 4. Publish Articles 2 & 3
+- Use the new admin to create both articles with the metadata panel.
+- Wire the 6 cross-links per the masterplan (Article 1 → 2 & 3, Article 2 → 1 & 3, Article 3 → 1 & 2) using exact anchor texts from the strategy doc.
+- Add a CTA block (existing pattern) at the bottom of each article pointing to the relevant RufayQ feature (journey / scanner / care hub).
+
+### 5. Indexing & monitoring (manual, after publish)
+- Submit updated `sitemap.xml` to Google Search Console.
+- Verify each article via the URL Inspection tool.
+- Track rankings at Week 2, 4, 8, 12 against targets in the strategy doc.
+
+---
+
+## Technical notes
+- All changes are client-side + the existing `site_pages.body_md` / `body_md_ar` columns — no schema migration needed.
+- Backwards compatible: articles without a `<!--meta-->` block fall back to today's behavior (auto slug from heading).
+- Sitemap generation runs in `vite.config.ts` `buildStart` against the public Supabase row, so every deploy ships fresh URLs.
+
+---
+
+## What you should do next
+1. **Approve this plan** so I can switch to default mode and implement steps 1–3 (the editor + SEO infra).
+2. After step 3 ships, **paste Article 2 then Article 3** into the upgraded admin (I'll pre-fill the metadata using your strategy docs so it's a 5-minute job each).
+3. Publish, then submit the new sitemap to Google Search Console.
+
