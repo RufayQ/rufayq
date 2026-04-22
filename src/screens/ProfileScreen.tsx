@@ -6,6 +6,7 @@ import MedicalHistorySheet from "@/components/MedicalHistorySheet";
 import ConsentsSheet from "@/components/ConsentsSheet";
 import RcmStatusPanel from "@/components/RcmStatusPanel";
 import { usePendingClaimsCount } from "@/hooks/usePendingClaimsCount";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -90,6 +91,7 @@ const InfoField = ({ label, value, masked, onCopy }: { label: string; value: str
 };
 
 const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
+  const isGuest = useGuestMode();
   const [showPassport, setShowPassport] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showConsents, setShowConsents] = useState(false);
@@ -99,6 +101,65 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
     navigator.clipboard?.writeText(text);
     toast.success(`${label} copied · تم النسخ`);
   };
+
+  if (!isGuest) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="relative px-5 pt-3 pb-6 text-center" style={{ background: "var(--navy)" }}>
+          <button onClick={onBack} className="absolute left-4 top-3 btn-press"><ArrowLeft size={20} color="white" /></button>
+          <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center" style={{ border: "2px solid var(--gold)", background: "rgba(197,150,90,0.15)", color: "var(--gold)" }}>
+            <LogoMark size={28} />
+          </div>
+          <p className="font-display text-xl text-white mt-2">Your Profile</p>
+          <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>ملفك الشخصي</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pb-6" style={{ background: "var(--off-white)" }}>
+          <div className="mx-4 mt-3 rounded-xl p-4" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+            <p className="text-[14px] font-semibold" style={{ color: "var(--navy)" }}>No demo identity data is shown for signed-in users.</p>
+            <p className="text-[12px] mt-1" style={{ color: "var(--gray)" }}>Your personal details will appear here once connected to your account records.</p>
+            <p className="font-arabic text-[11px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>لن تظهر أي بيانات تجريبية للمستخدمين المسجلين، وستظهر بياناتك هنا عند ربطها بحسابك.</p>
+          </div>
+
+          <div className="mt-4 mx-4">
+            <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>MEDICAL</p>
+            <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              <SettingRow label="Past Medical History" labelAr="التاريخ المرضي السابق" value="View / Edit" onClick={() => setShowHistory(true)} />
+              <SettingRow label="Surgical History" labelAr="التاريخ الجراحي" value="View / Edit" onClick={() => setShowHistory(true)} />
+              <SettingRow label="Family History" labelAr="التاريخ العائلي" value="View / Edit" onClick={() => setShowHistory(true)} />
+            </div>
+          </div>
+
+          <div className="mt-4 mx-4">
+            <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>PROVIDER ACCESS</p>
+            <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              <button onClick={() => setShowConsents(true)} className="w-full flex items-center justify-between py-3 px-4 btn-press">
+                <div className="text-left">
+                  <p className="text-[13px]" style={{ color: "var(--navy)" }}>Manage Provider Consents</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>إدارة وصول المزوّدين</p>
+                </div>
+                <ChevronRight size={14} style={{ color: "var(--gray)" }} />
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 mx-4">
+            <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>INSURANCE & RCM STATUS</p>
+            <RcmStatusPanel />
+          </div>
+
+          <div className="mx-4 mt-6">
+            <button onClick={onLogout} className="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 btn-press" style={{ background: "var(--white)", border: "1px solid var(--error)", color: "var(--error)" }}>
+              <LogOut size={16} /> Sign Out · تسجيل الخروج
+            </button>
+          </div>
+        </div>
+
+        {showHistory && <MedicalHistorySheet onClose={() => setShowHistory(false)} />}
+        {showConsents && <ConsentsSheet onClose={() => setShowConsents(false)} />}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">

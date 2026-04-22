@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard } from "lucide-react";
 import { journeySteps as defaultJourneySteps, defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
-import { useFreshStart } from "@/hooks/useFreshStart";
+import { useGuestMode } from "@/hooks/useGuestMode";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import EditTripSheet from "@/components/EditTripSheet";
@@ -67,18 +67,17 @@ const stayTypeOptions = [
 ];
 
 const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string) => void }) => {
-  const { isFresh } = useFreshStart();
+  const isGuest = useGuestMode();
   const [expanded, setExpanded] = useState<number | null>(null);
-  // Newly registered patients see a clean slate — no demo trip / transport / steps.
-  const [trips, setTrips] = useState<TripData[]>(isFresh ? [] : [defaultTrip]);
+  const [trips, setTrips] = useState<TripData[]>(isGuest ? [defaultTrip] : []);
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
-  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(isFresh ? [] : defaultTransportSegments);
+  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(isGuest ? defaultTransportSegments : []);
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
-  const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(isFresh ? [] : defaultJourneySteps);
+  const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(isGuest ? defaultJourneySteps : []);
   const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
   const [flashStepId, setFlashStepId] = useState<number | null>(null);
   const [flashTripId, setFlashTripId] = useState<string | null>(null);
@@ -110,7 +109,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     toast.success("Step reordered · تم إعادة الترتيب", { duration: 1500 });
   };
 
-  const activeTrip = trips.find((t) => t.status === "active") || trips[0];
+  const activeTrip = trips.find((t) => t.status === "active") || trips[0] || null;
 
   const requireProForAddTrip = () => {
     // Free tier: 1 trip. If user already has any trip, gate behind paywall unless trial is active.
@@ -176,11 +175,11 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   };
 
   const journeyMenuItems: HeaderMenuItem[] = [
-    { icon: <Edit3 size={14} />, label: "Edit Current Trip", labelAr: "تعديل الرحلة الحالية", onClick: () => setShowEditTrip(true) },
+    { icon: <Edit3 size={14} />, label: "Edit Current Trip", labelAr: "تعديل الرحلة الحالية", onClick: () => activeTrip ? setShowEditTrip(true) : setShowAddTrip(true) },
     { icon: <Plus size={14} />, label: "Add New Trip", labelAr: "إضافة رحلة جديدة", onClick: () => { if (requireProForAddTrip()) setShowAddTrip(true); } },
     { icon: <Plus size={14} />, label: "Add Journey Step", labelAr: "إضافة خطوة", onClick: handleAddStep },
     { icon: <Sparkles size={14} />, label: "Scan New Ticket", labelAr: "مسح تذكرة جديدة", onClick: () => onOpenScanner?.("flight") },
-    { icon: <Plus size={14} />, label: "Add Companion Ticket", labelAr: "إضافة تذكرة مرافق", onClick: () => { setShowEditTrip(true); toast.info("Add companions in 'Edit Current Trip' · المرافقون داخل تعديل الرحلة"); } },
+    { icon: <Plus size={14} />, label: "Add Companion Ticket", labelAr: "إضافة تذكرة مرافق", onClick: () => { activeTrip ? setShowEditTrip(true) : setShowAddTrip(true); toast.info("Add companions in 'Edit Current Trip' · المرافقون داخل تعديل الرحلة"); } },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص", onClick: handleCopyJourney },
     { icon: <Download size={14} />, label: "Export Journey", labelAr: "تصدير الرحلة", onClick: handleExportJourney },
     { icon: <Share2 size={14} />, label: "Share Progress", labelAr: "مشاركة التقدم", onClick: handleShareJourney },
@@ -237,7 +236,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />}
-        {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
+        {activeSubTab === "stay" && <StayTab isGuest={isGuest} onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
         {activeSubTab === "appointments" && <AppointmentsTab onOpenScanner={onOpenScanner} />}
         {activeSubTab === "steps" && (
           <StepsTab
