@@ -1,8 +1,10 @@
-import { useState } from "react";
-import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy, Sparkles, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage, type LangMode } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { TOURS, clearTourDone } from "@/lib/tours";
+import TourRunner from "@/components/TourRunner";
 
 interface SettingsScreenProps {
   onBack: () => void;
