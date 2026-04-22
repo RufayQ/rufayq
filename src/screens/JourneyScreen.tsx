@@ -67,16 +67,18 @@ const stayTypeOptions = [
 ];
 
 const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string) => void }) => {
+  const { isFresh } = useFreshStart();
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [trips, setTrips] = useState<TripData[]>([defaultTrip]);
+  // Newly registered patients see a clean slate — no demo trip / transport / steps.
+  const [trips, setTrips] = useState<TripData[]>(isFresh ? [] : [defaultTrip]);
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
-  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(defaultTransportSegments);
+  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(isFresh ? [] : defaultTransportSegments);
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
-  const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(defaultJourneySteps);
+  const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(isFresh ? [] : defaultJourneySteps);
   const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
   const [flashStepId, setFlashStepId] = useState<number | null>(null);
   const [flashTripId, setFlashTripId] = useState<string | null>(null);
@@ -136,7 +138,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     toast.success("Ticket replicated to future date · تم نسخ التذكرة لتاريخ مستقبلي", { description: `New trip: ${newDep.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` });
   };
   const doneCount = journeySteps.filter((s) => s.status === "done").length;
-  const progress = (doneCount / journeySteps.length) * 100;
+  const progress = journeySteps.length > 0 ? (doneCount / journeySteps.length) * 100 : 0;
 
   const handleAddTrip = (trip: TripData) => {
     setTrips([...trips, trip]);
@@ -998,8 +1000,9 @@ const StepsTab = ({
 
 /* ─── APPOINTMENTS TAB ─── */
 const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => void }) => {
+  const { isFresh } = useFreshStart();
   const [showAddAppt, setShowAddAppt] = useState(false);
-  const [localAppts, setLocalAppts] = useState<Appointment[]>(appointments);
+  const [localAppts, setLocalAppts] = useState<Appointment[]>(isFresh ? [] : appointments);
   const upcomingAppts = localAppts.filter(a => a.status === "upcoming");
   const pastAppts = localAppts.filter(a => a.status === "completed" || a.status === "cancelled");
 
