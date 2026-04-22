@@ -179,6 +179,12 @@ const AdminNews = () => {
     return new Set([...counts.entries()].filter(([, ids]) => ids.length > 1).map(([slug]) => slug));
   }, [slugMap]);
 
+  /** Articles missing one half of the EN/AR pair (hreflang would break). */
+  const unpairedArticles = useMemo(
+    () => articles.filter((a) => !a.titleEn.trim() || !a.titleAr.trim() || !a.bodyEn.trim() || !a.bodyAr.trim()),
+    [articles],
+  );
+
   const update = (patch: Partial<Article>) => {
     if (!active) return;
     setArticles((arr) => arr.map((a) => (a.id === active.id ? { ...a, ...patch } : a)));
