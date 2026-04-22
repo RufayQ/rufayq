@@ -14,11 +14,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Save, Plus, Trash2, ChevronUp, ChevronDown, Eye, FileText, Globe,
-  Copy, Link as LinkIcon, AlertTriangle, Sparkles,
+  Copy, Link as LinkIcon, AlertTriangle, Sparkles, Search,
 } from "lucide-react";
 import {
   ArticleMeta, estimateReadingTime, extractMeta, resolveSlug, serializeMeta, slugify,
 } from "@/lib/articleMeta";
+import { getClusterSuggestions } from "@/lib/seoCluster";
+import ArticleSeoPreview from "./ArticleSeoPreview";
 
 type Lang = "en" | "ar";
 
