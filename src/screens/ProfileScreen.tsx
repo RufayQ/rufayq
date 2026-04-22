@@ -431,6 +431,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
 
       {showHistory && <MedicalHistorySheet onClose={() => setShowHistory(false)} />}
       {showConsents && <ConsentsSheet onClose={() => setShowConsents(false)} />}
+      {showEmergency && <EmergencyContactsSheet onClose={() => setShowEmergency(false)} onChange={setEmergencyContacts} />}
     </div>
   );
 };
