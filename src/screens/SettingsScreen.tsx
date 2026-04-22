@@ -83,6 +83,17 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const [quietHours, setQuietHours] = useState(stored.quietHours ?? false);
   const [biometric, setBiometric] = useState(stored.biometric ?? true);
   const [autoBackup, setAutoBackup] = useState(stored.autoBackup ?? true);
+  const [replayTourId, setReplayTourId] = useState<string | null>(null);
+  const [currentUid, setCurrentUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUid(session?.user?.id || null);
+    });
+  }, []);
+
+  const replayableTours = TOURS.filter((t) => t.steps.length > 0);
+  const activeReplayTour = replayTourId ? TOURS.find((t) => t.id === replayTourId) : null;
 
   const update = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T>>) => (val: T) => {
     setter(val);
@@ -227,7 +238,43 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             </div>
             <ExternalLink size={13} style={{ color: "var(--gray)" }} />
           </button>
+
+          {/* On-demand tour list */}
+          {replayableTours.length > 0 && (
+            <div className="mt-3 rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              {replayableTours.map((t, i, arr) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    if (currentUid) clearTourDone(currentUid, t.id);
+                    setReplayTourId(t.id);
+                  }}
+                  className="w-full flex items-center justify-between py-3 px-4 btn-press text-left"
+                  style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--gray-light)" : "none" }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <PlayCircle size={15} style={{ color: "var(--teal-deep)" }} />
+                    <div className="min-w-0">
+                      <p className="text-[13px] truncate" style={{ color: "var(--navy)" }}>{t.titleEn}</p>
+                      <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{t.titleAr}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: "var(--gold)" }}>
+                    {t.kind}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
+        {activeReplayTour && (
+          <TourRunner
+            tour={activeReplayTour}
+            onFinish={() => setReplayTourId(null)}
+            allowSkip
+          />
+        )}
 
         {/* About & Links */}
         <div className="mx-4 mt-5">
