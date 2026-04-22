@@ -57,8 +57,7 @@ export function extractMeta(body: string): { meta: ArticleMeta; body: string } {
       const n = parseInt(value, 10);
       if (!Number.isNaN(n)) meta.readingTime = n;
     } else {
-      // @ts-expect-error string assignment
-      meta[key] = value;
+      (meta as Record<string, string>)[key] = value;
     }
   });
   const cleanBody = body.replace(m[0], "").replace(/^\n+/, "").trimEnd();
