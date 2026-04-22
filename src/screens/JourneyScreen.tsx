@@ -236,7 +236,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />}
-        {activeSubTab === "stay" && <StayTab isGuest={isGuest} onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
+        {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
         {activeSubTab === "appointments" && <AppointmentsTab onOpenScanner={onOpenScanner} />}
         {activeSubTab === "steps" && (
           <StepsTab
@@ -999,9 +999,9 @@ const StepsTab = ({
 
 /* ─── APPOINTMENTS TAB ─── */
 const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => void }) => {
-  const { isFresh } = useFreshStart();
+  const isGuest = useGuestMode();
   const [showAddAppt, setShowAddAppt] = useState(false);
-  const [localAppts, setLocalAppts] = useState<Appointment[]>(isFresh ? [] : appointments);
+  const [localAppts, setLocalAppts] = useState<Appointment[]>(isGuest ? appointments : []);
   const upcomingAppts = localAppts.filter(a => a.status === "upcoming");
   const pastAppts = localAppts.filter(a => a.status === "completed" || a.status === "cancelled");
 
