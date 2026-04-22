@@ -15,6 +15,7 @@ const MedicalVisaGermany = lazy(() => import("./pages/content/MedicalVisaGermany
 const Privacy = lazy(() => import("./pages/Privacy.tsx"));
 const Terms = lazy(() => import("./pages/Terms.tsx"));
 const Security = lazy(() => import("./pages/Security.tsx"));
+const News = lazy(() => import("./pages/News.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const Providers = lazy(() => import("./pages/Providers.tsx"));
 const ProviderLogin = lazy(() => import("./pages/ProviderLogin.tsx"));
@@ -63,6 +64,8 @@ const App = () => (
             <Route path="/conditions/cancer-treatment-abroad" element={<CancerTreatmentAbroad />} />
             <Route path="/destinations/germany-medical-treatment" element={<GermanyMedicalTreatment />} />
             <Route path="/guides/medical-visa-germany-saudi-citizens" element={<MedicalVisaGermany />} />
+            <Route path="/news" element={<News />} />
+            <Route path="/news/:slug" element={<News />} />
 
             {/* Pricing & Enterprise need CurrencyProvider → routed through shell */}
             <Route path="/pricing" element={<Shelled><Pricing /></Shelled>} />
@@ -78,6 +81,8 @@ const App = () => (
             <Route path="/ar/conditions/cancer-treatment-abroad" element={<CancerTreatmentAbroad />} />
             <Route path="/ar/destinations/germany-medical-treatment" element={<GermanyMedicalTreatment />} />
             <Route path="/ar/guides/medical-visa-germany-saudi-citizens" element={<MedicalVisaGermany />} />
+            <Route path="/ar/news" element={<News />} />
+            <Route path="/ar/news/:slug" element={<News />} />
             <Route path="/ar/pricing" element={<Shelled><Pricing /></Shelled>} />
             <Route path="/ar/enterprise" element={<Shelled><Enterprise /></Shelled>} />
 
