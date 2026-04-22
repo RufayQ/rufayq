@@ -1,8 +1,16 @@
 /**
  * useFreshStart — detects if the currently signed-in account is a brand-new
  * registration that should see an empty app (no demo trips / meds / appts) +
- * the guided tour. Set by LoginScreen on successful sign-up; cleared by the
- * tour's "Finish" action.
+ * the guided tour.
+ *
+ * Two ways an account becomes "fresh":
+ *  1. LoginScreen calls `markUserFresh(userId)` right after the OTP signup
+ *     completes — the localStorage flag is the strongest signal.
+ *  2. Auto-detection: on any sign-in we look at the linked profile row. If it
+ *     was created in the last 24h AND the tour hasn't been marked done yet,
+ *     we treat the account as fresh. This catches users who signed up on one
+ *     device and signed in on another, or who closed the app before the tour
+ *     finished.
  *
  * Exposes:
  *  - isFresh: true while the flag exists for this user
@@ -15,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const FRESH_PREFIX = "rufayq_fresh_";
 const TOUR_PREFIX = "rufayq_tour_done_";
+const FRESH_WINDOW_MS = 24 * 60 * 60 * 1000; // 24h
 
 export const markUserFresh = (userId: string) => {
   try {
@@ -25,6 +34,36 @@ export const markUserFresh = (userId: string) => {
   } catch { /* noop */ }
 };
 
+/**
+ * Look up the user's profile row and decide whether this is a brand-new
+ * account that should see the empty state + tour. Mutates localStorage so
+ * subsequent renders are synchronous.
+ */
+const detectFreshFromProfile = async (userId: string): Promise<boolean> => {
+  // If tour was already marked done on this device, never re-fresh.
+  const tourDone = localStorage.getItem(TOUR_PREFIX + userId) === "1";
+  if (tourDone) return false;
+  // If we already have the flag, no need to query.
+  if (localStorage.getItem(FRESH_PREFIX + userId) === "1") return true;
+
+  try {
+    const deviceId = `auth_${userId}`;
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("created_at")
+      .eq("device_id", deviceId)
+      .maybeSingle();
+    if (error || !data?.created_at) return false;
+    const ageMs = Date.now() - new Date(data.created_at).getTime();
+    if (ageMs <= FRESH_WINDOW_MS) {
+      console.log(`[TourDebug] Auto-marking user ${userId} as fresh (profile age ${Math.round(ageMs / 1000)}s)`);
+      localStorage.setItem(FRESH_PREFIX + userId, "1");
+      return true;
+    }
+  } catch { /* noop */ }
+  return false;
+};
+
 export const useFreshStart = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isFresh, setIsFresh] = useState(false);
@@ -32,31 +71,42 @@ export const useFreshStart = () => {
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
-      const uid = session?.user?.id || null;
-      setUserId(uid);
-      if (uid) {
-        const fresh = localStorage.getItem(FRESH_PREFIX + uid) === "1";
-        const tourDone = localStorage.getItem(TOUR_PREFIX + uid) === "1";
-        setIsFresh(fresh);
-        setTourPending(fresh && !tourDone);
-      }
-    })();
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      const uid = session?.user?.id || null;
-      setUserId(uid);
-      if (uid) {
-        const fresh = localStorage.getItem(FRESH_PREFIX + uid) === "1";
-        const tourDone = localStorage.getItem(TOUR_PREFIX + uid) === "1";
-        setIsFresh(fresh);
-        setTourPending(fresh && !tourDone);
-      } else {
+
+    const evaluate = async (uid: string | null) => {
+      if (!uid) {
+        if (!mounted) return;
+        setUserId(null);
         setIsFresh(false);
         setTourPending(false);
+        return;
       }
+      // Sync read from localStorage first (instant render)
+      let fresh = localStorage.getItem(FRESH_PREFIX + uid) === "1";
+      const tourDone = localStorage.getItem(TOUR_PREFIX + uid) === "1";
+      if (mounted) {
+        setUserId(uid);
+        setIsFresh(fresh);
+        setTourPending(fresh && !tourDone);
+      }
+      // Then async profile-age check (catches cross-device sign-ins)
+      if (!fresh && !tourDone) {
+        const auto = await detectFreshFromProfile(uid);
+        if (auto && mounted) {
+          setIsFresh(true);
+          setTourPending(true);
+        }
+      }
+    };
+
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      evaluate(session?.user?.id || null);
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      evaluate(session?.user?.id || null);
     });
+
     const onFresh = (e: Event) => {
       const uid = (e as CustomEvent<{ userId: string }>).detail?.userId;
       if (!uid) return;
@@ -66,6 +116,7 @@ export const useFreshStart = () => {
       setTourPending(true);
     };
     window.addEventListener("rufayq:fresh-user", onFresh);
+
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();

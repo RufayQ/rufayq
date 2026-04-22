@@ -283,6 +283,11 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
         </div>
       </section>
 
+      {/* NEWS & ARTICLES — admin-managed via AdminPages (slug = "landing-news") */}
+      <LazyOnView minHeight={300} rootMargin="400px">
+        <LandingNews theme={{ BG_DARK, BG_DARK_2, BORDER, TEXT, TEXT_MUTED, GOLD }} />
+      </LazyOnView>
+
       {/* FINAL CTA */}
       <section className="py-24 px-6 text-center relative overflow-hidden" style={{ background: BG_DARK_2 }}>
         <div className="absolute inset-0 opacity-40" style={{ background: `radial-gradient(circle at 50% 0%, ${TEAL}20 0%, transparent 60%)` }} />
@@ -301,11 +306,6 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
           </button>
         </div>
       </section>
-
-      {/* NEWS & ARTICLES — admin-managed via AdminPages (slug = "landing-news") */}
-      <LazyOnView minHeight={300} rootMargin="400px">
-        <LandingNews theme={{ BG_DARK, BG_DARK_2, BORDER, TEXT, TEXT_MUTED, GOLD }} />
-      </LazyOnView>
 
       {/* CONTACT */}
       <section id="contact" className="py-20 px-6" style={{ background: BG_DARK, borderTop: `1px solid ${BORDER}` }}>
