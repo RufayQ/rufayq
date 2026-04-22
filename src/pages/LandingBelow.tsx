@@ -12,8 +12,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 // Lazy-load social-proof + form components (each is its own chunk)
 const ApprovedReviews = lazy(() => import("@/components/ApprovedReviews"));
 const ReviewForm = lazy(() => import("@/components/ReviewForm"));
-// Admin-managed news/articles section (its own chunk — pulls react-markdown)
-const LandingNews = lazy(() => import("@/components/LandingNews"));
 
 interface Props {
   goToApp: () => void;
@@ -283,10 +281,7 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
         </div>
       </section>
 
-      {/* NEWS & ARTICLES — admin-managed via AdminPages (slug = "landing-news") */}
-      <LazyOnView minHeight={300} rootMargin="400px">
-        <LandingNews theme={{ BG_DARK, BG_DARK_2, BORDER, TEXT, TEXT_MUTED, GOLD }} />
-      </LazyOnView>
+      {/* News & Articles now lives at /news (linked from the gold nav CTA). */}
 
       {/* FINAL CTA */}
       <section className="py-24 px-6 text-center relative overflow-hidden" style={{ background: BG_DARK_2 }}>
