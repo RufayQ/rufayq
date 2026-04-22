@@ -153,6 +153,23 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
             <RcmStatusPanel />
           </div>
 
+          {/* Emergency contacts (registered users) */}
+          <div className="mt-4 mx-4">
+            <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>EMERGENCY CONTACTS · جهات الطوارئ</p>
+            <button onClick={() => setShowEmergency(true)} className="w-full rounded-xl px-4 py-3 flex items-center justify-between btn-press" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              <div className="flex items-center gap-3">
+                <Phone size={15} style={{ color: "#D94F4F" }} />
+                <div className="text-left">
+                  <p className="text-[13px]" style={{ color: "var(--navy)" }}>Manage emergency contacts</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>إدارة جهات الاتصال للطوارئ</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full" style={{ background: emergencyContacts.length ? "var(--teal-light)" : "var(--gray-light)", color: emergencyContacts.length ? "var(--teal-deep)" : "var(--gray)" }}>
+                {emergencyContacts.length || "0"} {emergencyContacts.length === 1 ? "contact" : "contacts"}
+              </span>
+            </button>
+          </div>
+
           <div className="mx-4 mt-6">
             <button onClick={onLogout} className="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 btn-press" style={{ background: "var(--white)", border: "1px solid var(--error)", color: "var(--error)" }}>
               <LogOut size={16} /> Sign Out · تسجيل الخروج
@@ -162,6 +179,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
 
         {showHistory && <MedicalHistorySheet onClose={() => setShowHistory(false)} />}
         {showConsents && <ConsentsSheet onClose={() => setShowConsents(false)} />}
+        {showEmergency && <EmergencyContactsSheet onClose={() => setShowEmergency(false)} onChange={setEmergencyContacts} />}
       </div>
     );
   }
