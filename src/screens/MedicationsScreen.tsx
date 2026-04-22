@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { medications, type Medication } from "@/constants/data";
+import { medications as demoMedications, type Medication } from "@/constants/data";
 import { ArrowLeft, Plus, Copy, Share2, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
@@ -7,6 +7,7 @@ import MedicationDetailSheet, { type MedNote } from "@/components/MedicationDeta
 import AddMedicationSheet from "@/components/AddMedicationSheet";
 import ProviderFeedCard from "@/components/ProviderFeedCard";
 import { useProviderFeed } from "@/hooks/useProviderFeed";
+import { useFreshStart } from "@/hooks/useFreshStart";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -14,11 +15,14 @@ interface MedicationsScreenProps {
 }
 
 const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
+  const { isFresh } = useFreshStart();
+  // Fresh users see a clean schedule. They start adding meds via the "+ Add" sheet.
+  const medications: Medication[] = isFresh ? [] : demoMedications;
   const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
   const [medNotes, setMedNotes] = useState<Record<string, MedNote[]>>({});
   const [medReminders, setMedReminders] = useState<Record<string, number[]>>({});
-  const [allergies] = useState<string[]>(["Penicillin", "Sulfa drugs", "Shellfish"]);
+  const [allergies] = useState<string[]>(isFresh ? [] : ["Penicillin", "Sulfa drugs", "Shellfish"]);
   const [extraMeds, setExtraMeds] = useState<Medication[]>([]);
   const [showAddMed, setShowAddMed] = useState(false);
   const { medUpdates } = useProviderFeed();
