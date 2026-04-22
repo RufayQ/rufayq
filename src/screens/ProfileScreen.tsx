@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { ArrowLeft, ChevronRight, LogOut, Shield, AlertTriangle, Copy, Eye, EyeOff } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, ChevronRight, LogOut, Shield, AlertTriangle, Copy, Eye, EyeOff, Phone } from "lucide-react";
 import LogoMark from "@/components/LogoMark";
 import { toast } from "sonner";
 import MedicalHistorySheet from "@/components/MedicalHistorySheet";
 import ConsentsSheet from "@/components/ConsentsSheet";
 import RcmStatusPanel from "@/components/RcmStatusPanel";
+import EmergencyContactsSheet, { loadEmergencyContacts, CATEGORY_META, type EmergencyContact } from "@/components/EmergencyContactsSheet";
 import { usePendingClaimsCount } from "@/hooks/usePendingClaimsCount";
 import { useGuestMode } from "@/hooks/useGuestMode";
 
@@ -95,7 +96,11 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
   const [showPassport, setShowPassport] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showConsents, setShowConsents] = useState(false);
+  const [showEmergency, setShowEmergency] = useState(false);
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
   const { count: pendingClaims } = usePendingClaimsCount();
+
+  useEffect(() => { setEmergencyContacts(loadEmergencyContacts()); }, []);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard?.writeText(text);
