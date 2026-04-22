@@ -1,13 +1,17 @@
 import { useState, useMemo, useCallback } from "react";
-import { records, filterCategories, type DocRecord } from "@/constants/data";
+import { records as demoRecords, filterCategories, type DocRecord } from "@/constants/data";
 import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, RefreshCw } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
+import { useFreshStart } from "@/hooks/useFreshStart";
 
 type SortMode = "newest" | "oldest" | "category";
 
 const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => void; onNavigate?: (tab: string, context?: string) => void }) => {
+  const { isFresh } = useFreshStart();
+  // Fresh users see an empty vault. They populate it via the AI Scanner / Upload flow.
+  const records: DocRecord[] = isFresh ? [] : demoRecords;
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedDoc, setSelectedDoc] = useState<DocRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
