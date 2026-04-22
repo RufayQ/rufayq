@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard } from "lucide-react";
 import { journeySteps as defaultJourneySteps, defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
+import { useFreshStart } from "@/hooks/useFreshStart";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import EditTripSheet from "@/components/EditTripSheet";
