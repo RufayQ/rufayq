@@ -23,6 +23,7 @@ import HomeScreenEmpty from "@/screens/HomeScreenEmpty";
 import TourGuide from "@/components/TourGuide";
 import TourRunner from "@/components/TourRunner";
 import { useFreshStart } from "@/hooks/useFreshStart";
+import { useGuestMode } from "@/hooks/useGuestMode";
 import { useTourSystem } from "@/hooks/useTourSystem";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
@@ -46,6 +47,7 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const forceSignIn = searchParams.get("signin") === "1";
   const { isFresh, tourPending, markTourDone, reset: resetFresh } = useFreshStart();
+  const isGuest = useGuestMode();
   const { activeTour, allowSkip, finishActive } = useTourSystem(tourPending);
 
   // Staff auto-redirect: if a signed-in staff member lands on the patient app, push them to /admin
@@ -177,9 +179,9 @@ const Index = () => {
       case "main":
         switch (activeTab) {
           case "home":
-            return isFresh
-              ? <HomeScreenEmpty onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />
-              : <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;
+            return isGuest
+              ? <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />
+              : <HomeScreenEmpty onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;
           case "journey": return <JourneyScreen onOpenScanner={openScanner} onNavigate={handleNavigate} />;
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
           case "carehub": return <CareHubScreen />;

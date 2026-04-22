@@ -7,7 +7,7 @@ import MedicationDetailSheet, { type MedNote } from "@/components/MedicationDeta
 import AddMedicationSheet from "@/components/AddMedicationSheet";
 import ProviderFeedCard from "@/components/ProviderFeedCard";
 import { useProviderFeed } from "@/hooks/useProviderFeed";
-import { useFreshStart } from "@/hooks/useFreshStart";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -15,14 +15,13 @@ interface MedicationsScreenProps {
 }
 
 const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
-  const { isFresh } = useFreshStart();
-  // Fresh users see a clean schedule. They start adding meds via the "+ Add" sheet.
-  const medications: Medication[] = isFresh ? [] : demoMedications;
+  const isGuest = useGuestMode();
+  const medications: Medication[] = isGuest ? demoMedications : [];
   const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
   const [medNotes, setMedNotes] = useState<Record<string, MedNote[]>>({});
   const [medReminders, setMedReminders] = useState<Record<string, number[]>>({});
-  const [allergies] = useState<string[]>(isFresh ? [] : ["Penicillin", "Sulfa drugs", "Shellfish"]);
+  const [allergies] = useState<string[]>(isGuest ? ["Penicillin", "Sulfa drugs", "Shellfish"] : []);
   const [extraMeds, setExtraMeds] = useState<Medication[]>([]);
   const [showAddMed, setShowAddMed] = useState(false);
   const { medUpdates } = useProviderFeed();
@@ -107,7 +106,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       </div>
 
       {/* Allergies banner */}
-      <div className="mx-4 mt-3 rounded-xl p-3 flex items-start gap-2.5" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.25)" }}>
+      {allergies.length > 0 && <div className="mx-4 mt-3 rounded-xl p-3 flex items-start gap-2.5" style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.25)" }}>
         <span className="text-base">⚠️</span>
         <div className="flex-1">
           <p className="text-[11px] font-bold" style={{ color: "var(--error)" }}>YOUR ALLERGIES<span className="font-arabic" dir="rtl"> · حساسياتك</span></p>
@@ -120,7 +119,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
           </div>
           <p className="font-arabic text-[10px] mt-1" dir="rtl" style={{ color: "var(--error)" }}>تأكد من خلو أدويتك من هذه المواد</p>
         </div>
-      </div>
+      </div>}
 
       {/* Schedule */}
       <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ background: "var(--off-white)" }}>

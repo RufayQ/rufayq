@@ -5,6 +5,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import ProviderFeedCard from "@/components/ProviderFeedCard";
 import { useProviderFeed } from "@/hooks/useProviderFeed";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 type SubTab = "careplan" | "videos" | "education" | "faqs" | "nutrition" | "exercises";
 
@@ -18,6 +19,7 @@ const subTabs: { id: SubTab; emoji: string; en: string }[] = [
 ];
 
 const CareHubScreen = () => {
+  const isGuest = useGuestMode();
   const [activeTab, setActiveTab] = useState<SubTab>("careplan");
 
   const handleCopyCarePlan = () => {
@@ -46,6 +48,31 @@ const CareHubScreen = () => {
     { icon: <Download size={14} />, label: "Export Plan", labelAr: "تصدير الخطة", onClick: handleExportCarePlan },
     { icon: <Share2 size={14} />, label: "Share with Doctor", labelAr: "مشاركة مع الطبيب", onClick: handleShareCarePlan },
   ];
+
+  if (!isGuest) {
+    return (
+      <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
+        <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(145deg, var(--header-dark-from), var(--header-dark-to))" }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(197,150,90,0.6)" }}>04 — CARE HUB</p>
+              <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Your Recovery Hub</p>
+              <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>مركز التعافي الخاص بك</p>
+            </div>
+            <HeaderMenu items={careMenuItems} />
+          </div>
+        </div>
+        <div className="flex-1 px-4 py-6" style={{ background: "var(--off-white)" }}>
+          <div className="rounded-2xl p-6 text-center" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+            <div className="text-4xl">🩺</div>
+            <p className="mt-3 text-[15px] font-semibold" style={{ color: "var(--navy)" }}>Your care plan will appear here</p>
+            <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>Provider instructions, recovery tasks, and education will show once added to your account.</p>
+            <p className="font-arabic text-[11px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>ستظهر هنا خطة الرعاية والتعليمات والمهام عند إضافتها إلى حسابك.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>

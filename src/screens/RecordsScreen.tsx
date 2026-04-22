@@ -4,14 +4,13 @@ import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText,
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
-import { useFreshStart } from "@/hooks/useFreshStart";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 type SortMode = "newest" | "oldest" | "category";
 
 const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => void; onNavigate?: (tab: string, context?: string) => void }) => {
-  const { isFresh } = useFreshStart();
-  // Fresh users see an empty vault. They populate it via the AI Scanner / Upload flow.
-  const records: DocRecord[] = isFresh ? [] : demoRecords;
+  const isGuest = useGuestMode();
+  const records: DocRecord[] = isGuest ? demoRecords : [];
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedDoc, setSelectedDoc] = useState<DocRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -162,7 +161,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {/* Featured Discharge Pack */}
-        {activeFilter === "All" && !searchQuery && (
+        {activeFilter === "All" && !searchQuery && records.length > 0 && (
           <div className="relative rounded-2xl p-5 overflow-hidden" style={{ background: "linear-gradient(135deg, var(--header-dark-from), var(--header-dark-alt))" }}>
             <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.2)" }} />
             <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.08)" }} />
