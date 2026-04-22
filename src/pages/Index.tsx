@@ -21,7 +21,9 @@ import SupportScreen from "@/screens/SupportScreen";
 import TrialLockBanner from "@/components/TrialLockBanner";
 import HomeScreenEmpty from "@/screens/HomeScreenEmpty";
 import TourGuide from "@/components/TourGuide";
+import TourRunner from "@/components/TourRunner";
 import { useFreshStart } from "@/hooks/useFreshStart";
+import { useTourSystem } from "@/hooks/useTourSystem";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "main" | "medications" | "profile" | "settings" | "pricing" | "support";
@@ -44,6 +46,7 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const forceSignIn = searchParams.get("signin") === "1";
   const { isFresh, tourPending, markTourDone, reset: resetFresh } = useFreshStart();
+  const { activeTour, allowSkip, finishActive } = useTourSystem(tourPending);
 
   // Staff auto-redirect: if a signed-in staff member lands on the patient app, push them to /admin
   useEffect(() => {
@@ -224,6 +227,11 @@ const Index = () => {
         {/* First-launch tour for newly registered users */}
         {appView === "main" && tourPending && (
           <TourGuide onFinish={markTourDone} />
+        )}
+
+        {/* Feature/element tours from the tour registry (lib/tours.ts) */}
+        {appView === "main" && !tourPending && activeTour && (
+          <TourRunner tour={activeTour} onFinish={finishActive} allowSkip={allowSkip} />
         )}
       </div>
     </div>
