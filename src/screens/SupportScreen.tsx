@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Clock, CheckCircle, AlertCircle, MessageCircle, ChevronDown, Star } from "lucide-react";
+import { ArrowLeft, Plus, Clock, CheckCircle, AlertCircle, MessageCircle, ChevronDown, Star, PlayCircle, Phone, Mail, MessageSquare } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import ReviewForm from "@/components/ReviewForm";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { TOURS, clearTourDone } from "@/lib/tours";
+import TourRunner from "@/components/TourRunner";
+import EmergencyContactsSheet, { loadEmergencyContacts, CATEGORY_META, type EmergencyContact } from "@/components/EmergencyContactsSheet";
 
 type TicketRow = {
   id: string;
@@ -47,6 +50,14 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedTicket, setSelectedTicket] = useState<TicketRow | null>(null);
+  const [patientName, setPatientName] = useState<string>("");
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
+  const [showEmergencySheet, setShowEmergencySheet] = useState(false);
+  const [replayTourId, setReplayTourId] = useState<string | null>(null);
+  const [currentUid, setCurrentUid] = useState<string | null>(null);
+
+  const replayableTours = useMemo(() => TOURS.filter((t) => t.steps.length > 0), []);
+  const activeReplayTour = replayTourId ? TOURS.find((t) => t.id === replayTourId) : null;
 
   // Form state
   const [title, setTitle] = useState("");
@@ -54,6 +65,30 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
   const [category, setCategory] = useState<string>("general");
   const [priority, setPriority] = useState<string>("medium");
   const [submitting, setSubmitting] = useState(false);
+
+  // Load patient greeting name (auth metadata > profile > device fallback)
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const uid = session?.user?.id || null;
+      setCurrentUid(uid);
+      const meta = (session?.user?.user_metadata || {}) as Record<string, string>;
+      let name = meta.full_name || meta.name || "";
+      if (!name) {
+        const did = getDeviceId();
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name_en, full_name_ar")
+          .eq("device_id", did)
+          .maybeSingle();
+        name = (prof?.full_name_en || prof?.full_name_ar || "").split(" ")[0] || "";
+      } else {
+        name = name.split(" ")[0];
+      }
+      setPatientName(name);
+    })();
+    setEmergencyContacts(loadEmergencyContacts());
+  }, []);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -142,6 +177,20 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
         {/* LIST VIEW */}
         {viewMode === "list" && (
           <>
+            {/* Welcome banner */}
+            <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}>
+              <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>WELCOME · أهلاً</p>
+              <p className="text-[15px] font-semibold text-white mt-1">
+                {patientName ? `Hi ${patientName} 👋` : "Hi there 👋"}
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.7)" }}>
+                We're here to help — pick a channel below or open a ticket.
+              </p>
+              <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>
+                نحن هنا للمساعدة — اختر قناة التواصل أو افتح تذكرة.
+              </p>
+            </div>
+
             {/* Quick Stats */}
             <div className="grid grid-cols-3 gap-2">
               {[
@@ -153,6 +202,36 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
                   <p className="font-display text-2xl" style={{ color: s.color }}>{s.count}</p>
                   <p className="text-[9px] font-mono" style={{ color: "var(--gray)" }}>{s.label}</p>
                 </div>
+              ))}
+            </div>
+
+            {/* App Tour Guides — on-demand */}
+            <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+                <PlayCircle size={13} style={{ color: "var(--gold)" }} />
+                <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>APP TOUR GUIDES · جولات التطبيق</p>
+              </div>
+              {replayableTours.map((t, i, arr) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    if (currentUid) clearTourDone(currentUid, t.id);
+                    setReplayTourId(t.id);
+                  }}
+                  className="w-full flex items-center justify-between py-3 px-4 btn-press text-left"
+                  style={{ borderTop: i > 0 ? "1px solid var(--gray-light)" : "none" }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <PlayCircle size={15} style={{ color: "var(--teal-deep)" }} />
+                    <div className="min-w-0">
+                      <p className="text-[13px] truncate" style={{ color: "var(--navy)" }}>{t.titleEn}</p>
+                      <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{t.titleAr}</p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--gold)" }}>
+                    {t.kind}
+                  </span>
+                </button>
               ))}
             </div>
 

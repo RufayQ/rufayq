@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { ArrowLeft, ChevronRight, LogOut, Shield, AlertTriangle, Copy, Eye, EyeOff } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, ChevronRight, LogOut, Shield, AlertTriangle, Copy, Eye, EyeOff, Phone } from "lucide-react";
 import LogoMark from "@/components/LogoMark";
 import { toast } from "sonner";
 import MedicalHistorySheet from "@/components/MedicalHistorySheet";
 import ConsentsSheet from "@/components/ConsentsSheet";
 import RcmStatusPanel from "@/components/RcmStatusPanel";
+import EmergencyContactsSheet, { loadEmergencyContacts, CATEGORY_META, type EmergencyContact } from "@/components/EmergencyContactsSheet";
 import { usePendingClaimsCount } from "@/hooks/usePendingClaimsCount";
 import { useGuestMode } from "@/hooks/useGuestMode";
 
@@ -95,7 +96,11 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
   const [showPassport, setShowPassport] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showConsents, setShowConsents] = useState(false);
+  const [showEmergency, setShowEmergency] = useState(false);
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
   const { count: pendingClaims } = usePendingClaimsCount();
+
+  useEffect(() => { setEmergencyContacts(loadEmergencyContacts()); }, []);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard?.writeText(text);
@@ -148,6 +153,23 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
             <RcmStatusPanel />
           </div>
 
+          {/* Emergency contacts (registered users) */}
+          <div className="mt-4 mx-4">
+            <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>EMERGENCY CONTACTS · جهات الطوارئ</p>
+            <button onClick={() => setShowEmergency(true)} className="w-full rounded-xl px-4 py-3 flex items-center justify-between btn-press" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              <div className="flex items-center gap-3">
+                <Phone size={15} style={{ color: "#D94F4F" }} />
+                <div className="text-left">
+                  <p className="text-[13px]" style={{ color: "var(--navy)" }}>Manage emergency contacts</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>إدارة جهات الاتصال للطوارئ</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full" style={{ background: emergencyContacts.length ? "var(--teal-light)" : "var(--gray-light)", color: emergencyContacts.length ? "var(--teal-deep)" : "var(--gray)" }}>
+                {emergencyContacts.length || "0"} {emergencyContacts.length === 1 ? "contact" : "contacts"}
+              </span>
+            </button>
+          </div>
+
           <div className="mx-4 mt-6">
             <button onClick={onLogout} className="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 btn-press" style={{ background: "var(--white)", border: "1px solid var(--error)", color: "var(--error)" }}>
               <LogOut size={16} /> Sign Out · تسجيل الخروج
@@ -157,6 +179,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
 
         {showHistory && <MedicalHistorySheet onClose={() => setShowHistory(false)} />}
         {showConsents && <ConsentsSheet onClose={() => setShowConsents(false)} />}
+        {showEmergency && <EmergencyContactsSheet onClose={() => setShowEmergency(false)} onChange={setEmergencyContacts} />}
       </div>
     );
   }
@@ -253,23 +276,47 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
           </div>
         </div>
 
-        {/* Emergency Contact */}
+        {/* Emergency Contacts (categorized) */}
         <div className="mt-4 mx-4">
-          <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>EMERGENCY CONTACT</p>
-          <div className="rounded-xl p-4" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center font-arabic text-sm font-bold" style={{ background: "rgba(217,79,79,0.1)", color: "#D94F4F" }}>س</div>
-              <div className="flex-1">
-                <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{passportData.emergencyName}</p>
-                <p className="text-[11px]" style={{ color: "var(--gray)" }}>{passportData.emergencyRelation}</p>
-                <button onClick={() => copyToClipboard(passportData.emergencyPhone, "Phone")} className="font-mono text-[11px] flex items-center gap-1 btn-press" style={{ color: "var(--teal-deep)" }}>
-                  {passportData.emergencyPhone} <Copy size={10} style={{ opacity: 0.5 }} />
-                </button>
-              </div>
-              <button className="px-3 py-1.5 rounded-full text-[11px] font-bold text-white btn-press" style={{ background: "#D94F4F" }}>
-                Call · اتصل
+          <div className="flex items-center justify-between mb-1 px-1">
+            <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>EMERGENCY CONTACTS · جهات الطوارئ</p>
+            <button onClick={() => setShowEmergency(true)} className="text-[10px] font-bold btn-press" style={{ color: "var(--teal-deep)" }}>
+              {emergencyContacts.length ? "Manage →" : "+ Add"}
+            </button>
+          </div>
+          <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+            {emergencyContacts.length === 0 ? (
+              <button onClick={() => setShowEmergency(true)} className="w-full p-4 flex items-center gap-3 btn-press text-left">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(217,79,79,0.1)" }}>
+                  <Phone size={16} style={{ color: "#D94F4F" }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>Set up emergency contacts</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>أضف جهات اتصال للطوارئ</p>
+                </div>
+                <ChevronRight size={14} style={{ color: "var(--gray)" }} />
               </button>
-            </div>
+            ) : (
+              emergencyContacts.slice(0, 3).map((c, i) => {
+                const m = CATEGORY_META[c.category];
+                return (
+                  <div key={c.id} className="flex items-center gap-3 px-4 py-3" style={{ borderTop: i > 0 ? "1px solid var(--gray-light)" : "none" }}>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-base" style={{ background: "rgba(217,79,79,0.08)" }}>
+                      {m.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{c.name}</p>
+                      <p className="text-[10px]" style={{ color: m.color }}>
+                        {c.category === "custom" ? c.customLabel || m.en : m.en}
+                      </p>
+                    </div>
+                    <a href={`tel:${c.phone.replace(/\s+/g, "")}`} className="px-3 py-1.5 rounded-full text-[11px] font-bold text-white btn-press inline-flex items-center gap-1" style={{ background: "#D94F4F" }}>
+                      <Phone size={10} /> Call
+                    </a>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -384,6 +431,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
 
       {showHistory && <MedicalHistorySheet onClose={() => setShowHistory(false)} />}
       {showConsents && <ConsentsSheet onClose={() => setShowConsents(false)} />}
+      {showEmergency && <EmergencyContactsSheet onClose={() => setShowEmergency(false)} onChange={setEmergencyContacts} />}
     </div>
   );
 };
