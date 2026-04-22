@@ -301,16 +301,15 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
               })
             )}
 
-            {/* Contact Channels */}
+            {/* Contact Channels — email + WhatsApp only (mobile hidden per spec) */}
             <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
               <div className="px-4 pt-3 pb-2">
                 <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>CONTACT US · تواصل معنا</p>
                 <p className="text-[10px]" style={{ color: "var(--gray)" }}>Reach our team directly via your preferred channel</p>
               </div>
               {[
-                { emoji: "📧", label: "Email Support", labelAr: "البريد الإلكتروني", value: "support@rufayq.com", sub: "Reply within 24 hours", href: "mailto:support@rufayq.com?subject=RufayQ%20Support%20Request", color: "var(--teal-deep)" },
-                { emoji: "💬", label: "WhatsApp · Fast Support", labelAr: "واتساب", value: "+966 56 959 0418", sub: "Live · 8AM–10PM AST", href: "https://wa.me/966569590418?text=Hello%20RufayQ%20support%2C%20I%20need%20help%20with%3A", color: "var(--success)" },
-                { emoji: "📞", label: "Mobile (Direct)", labelAr: "اتصل بنا", value: "+966 56 959 0418", sub: "For urgent cases", href: "tel:+966569590418", color: "var(--gold)" },
+                { emoji: "📧", label: "Email Support", labelAr: "البريد الإلكتروني", value: "customersupport@rufayq.com", sub: "Opens your mail app · Reply within 24h", href: "mailto:customersupport@rufayq.com?subject=RufayQ%20Support%20Request&body=Hi%20RufayQ%20team%2C%0A%0AI%20need%20help%20with%3A%0A", color: "var(--teal-deep)" },
+                { emoji: "💬", label: "WhatsApp · Fast Support", labelAr: "واتساب", value: "Tap to message us", sub: "Live · 8AM–10PM AST", href: "https://wa.me/966569590418?text=Hello%20RufayQ%20support%2C%20I%20need%20help%20with%3A%20", color: "var(--success)" },
                 { emoji: "🌐", label: "Visit website", labelAr: "زيارة الموقع", value: "rufayq.com", sub: "FAQs · Privacy · Terms", href: "https://rufayq.com", color: "var(--teal-mid)" },
               ].map((c, i, arr) => (
                 <a key={c.label} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
@@ -343,17 +342,69 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
               <span className="text-[10px] font-mono" style={{ color: "var(--gold)" }}>RATE →</span>
             </button>
 
-            {/* Urgent banner */}
-            <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
+            {/* Urgent — categorized emergency contacts */}
+            <div className="rounded-xl overflow-hidden" style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}>
+              <div className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.1)" }}>
                   <RufayQLogo size={20} variant="light" />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold text-white">Need urgent medical help?</p>
                   <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>تحتاج مساعدة طبية عاجلة؟</p>
                   <p className="text-[10px] mt-1" style={{ color: "var(--gold)" }}>Call your local emergency number — RufayQ is not a medical service.</p>
                 </div>
+              </div>
+
+              {/* Categorized contacts grouped by category */}
+              <div className="p-3 pt-0">
+                {emergencyContacts.length === 0 ? (
+                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(255,255,255,0.06)", border: "1px dashed rgba(255,255,255,0.18)" }}>
+                    <p className="text-[11px] text-white">No emergency contacts saved yet.</p>
+                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>لا توجد جهات طوارئ محفوظة</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {(Object.keys(CATEGORY_META) as Array<keyof typeof CATEGORY_META>).map((cat) => {
+                      const list = emergencyContacts.filter((c) => c.category === cat);
+                      if (list.length === 0) return null;
+                      const m = CATEGORY_META[cat];
+                      return (
+                        <div key={cat} className="rounded-xl p-2.5" style={{ background: "rgba(255,255,255,0.06)" }}>
+                          <p className="font-mono text-[9px] tracking-widest mb-1.5 px-1" style={{ color: m.color }}>
+                            {m.emoji} {m.en.toUpperCase()} · <span className="font-arabic">{m.ar}</span>
+                          </p>
+                          <div className="space-y-1.5">
+                            {list.map((c) => (
+                              <a
+                                key={c.id}
+                                href={`tel:${c.phone.replace(/\s+/g, "")}`}
+                                className="flex items-center gap-2 px-2 py-2 rounded-lg btn-press"
+                                style={{ background: "rgba(255,255,255,0.08)" }}
+                              >
+                                <Phone size={12} style={{ color: "var(--gold)" }} />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[12px] font-semibold text-white truncate">{c.name}</p>
+                                  <p className="font-mono text-[10px] truncate" style={{ color: "rgba(255,255,255,0.6)" }}>
+                                    {c.category === "custom" && c.customLabel ? `${c.customLabel} · ` : ""}{c.phone}
+                                  </p>
+                                </div>
+                                <span className="text-[9px] font-mono" style={{ color: "var(--gold)" }}>CALL</span>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setShowEmergencySheet(true)}
+                  className="w-full mt-2 py-2.5 rounded-xl text-[12px] font-semibold flex items-center justify-center gap-1.5 btn-press"
+                  style={{ background: "var(--gold)", color: "var(--navy)" }}
+                >
+                  <Plus size={13} /> Manage emergency contacts · إدارة جهات الطوارئ
+                </button>
               </div>
             </div>
           </>
@@ -499,6 +550,23 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
           </>
         )}
       </div>
+
+      {/* Emergency contacts manager */}
+      {showEmergencySheet && (
+        <EmergencyContactsSheet
+          onClose={() => setShowEmergencySheet(false)}
+          onChange={(list) => setEmergencyContacts(list)}
+        />
+      )}
+
+      {/* On-demand tour replay */}
+      {activeReplayTour && (
+        <TourRunner
+          tour={activeReplayTour}
+          onFinish={() => setReplayTourId(null)}
+          allowSkip
+        />
+      )}
     </div>
   );
 };
