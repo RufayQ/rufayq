@@ -521,7 +521,7 @@ const AdminNews = () => {
                 </label>
               </div>
 
-              {/* Internal link picker */}
+              {/* Internal link picker — curated cluster suggestions + free search */}
               <div className="mt-4 pt-3 border-t border-slate-800">
                 <button
                   onClick={() => setShowLinkPicker((v) => !v)}
@@ -530,27 +530,87 @@ const AdminNews = () => {
                   <LinkIcon size={11} /> Insert internal link to another article
                 </button>
                 {showLinkPicker && (
-                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto p-1">
-                    {slugMap.filter((s) => s.id !== active.id).length === 0 ? (
-                      <p className="text-[11px] text-slate-500 col-span-2 p-2">No other articles to link to.</p>
-                    ) : (
-                      slugMap
-                        .filter((s) => s.id !== active.id)
-                        .map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => insertLink(s)}
-                            className="text-left px-2 py-1.5 rounded-md bg-slate-800/40 hover:bg-amber-500/10 hover:text-amber-300 text-[11px] text-slate-300 truncate"
-                            title={`/news/${s.slug}`}
-                          >
-                            <span className="opacity-60 font-mono">/{s.slug}</span>
-                            <span className="block truncate">{s.title}</span>
-                          </button>
-                        ))
-                    )}
+                  <div className="mt-3 space-y-3">
+                    {/* Curated cluster suggestions per SEO masterplan */}
+                    {(() => {
+                      const suggestions = getClusterSuggestions(resolvedSlug);
+                      if (suggestions.length === 0) return null;
+                      return (
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest text-amber-400 mb-1.5 flex items-center gap-1">
+                            <Sparkles size={10} /> Suggested anchors · SEO masterplan
+                          </p>
+                          <div className="space-y-1.5">
+                            {suggestions.map((sg) => {
+                              const targetTitle = slugMap.find((s) => s.slug === sg.toSlug)?.title || sg.toSlug;
+                              const anchor = editLang === "ar" ? sg.anchorAr : sg.anchorEn;
+                              return (
+                                <button
+                                  key={sg.toSlug}
+                                  onClick={() => insertLink({ slug: sg.toSlug, title: targetTitle }, anchor)}
+                                  dir={editLang === "ar" ? "rtl" : "ltr"}
+                                  className="w-full text-left px-2.5 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] text-amber-200"
+                                >
+                                  <span className="block truncate">{anchor}</span>
+                                  <span className="opacity-60 font-mono text-[9px] block mt-0.5">→ /{sg.toSlug}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* All articles (filterable) */}
+                    <div>
+                      <div className="relative mb-1.5">
+                        <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <input
+                          value={pickerQuery}
+                          onChange={(e) => setPickerQuery(e.target.value)}
+                          placeholder="Filter all articles…"
+                          className="w-full pl-7 pr-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-[11px] text-slate-200 outline-none focus:border-amber-500"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-44 overflow-y-auto p-1">
+                        {slugMap
+                          .filter((s) => s.id !== active.id)
+                          .filter((s) => {
+                            const q = pickerQuery.trim().toLowerCase();
+                            return !q || s.slug.includes(q) || s.title.toLowerCase().includes(q);
+                          })
+                          .map((s) => (
+                            <button
+                              key={s.id}
+                              onClick={() => insertLink(s)}
+                              className="text-left px-2 py-1.5 rounded-md bg-slate-800/40 hover:bg-amber-500/10 hover:text-amber-300 text-[11px] text-slate-300 truncate"
+                              title={`/news/${s.slug}`}
+                            >
+                              <span className="opacity-60 font-mono">/{s.slug}</span>
+                              <span className="block truncate">{s.title}</span>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* SEO preview panel (toggle via Globe in toolbar) */}
+            {showSeoPreview && (
+              <div className="p-4 border-b border-slate-800 bg-slate-950/40">
+                <ArticleSeoPreview
+                  slug={resolvedSlug}
+                  titleEn={active.titleEn}
+                  titleAr={active.titleAr}
+                  metaEn={active.meta}
+                  metaAr={active.metaAr}
+                  excerptEn={active.bodyEn.slice(0, 200)}
+                  excerptAr={active.bodyAr.slice(0, 200)}
+                />
+              </div>
+            )}
             </div>
 
             {/* Editor / preview */}
