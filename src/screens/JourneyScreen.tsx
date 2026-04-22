@@ -999,9 +999,9 @@ const StepsTab = ({
 
 /* ─── APPOINTMENTS TAB ─── */
 const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => void }) => {
-  const { isFresh } = useFreshStart();
+  const isGuest = useGuestMode();
   const [showAddAppt, setShowAddAppt] = useState(false);
-  const [localAppts, setLocalAppts] = useState<Appointment[]>(isFresh ? [] : appointments);
+  const [localAppts, setLocalAppts] = useState<Appointment[]>(isGuest ? appointments : []);
   const upcomingAppts = localAppts.filter(a => a.status === "upcoming");
   const pastAppts = localAppts.filter(a => a.status === "completed" || a.status === "cancelled");
 
