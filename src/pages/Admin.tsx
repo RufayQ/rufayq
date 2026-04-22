@@ -7,6 +7,7 @@ import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 import AdminReviews from "@/components/admin/AdminReviews";
 import AdminTickets from "@/components/admin/AdminTickets";
 import AdminPages from "@/components/admin/AdminPages";
+import AdminNews from "@/components/admin/AdminNews";
 import AdminOrganizations from "@/components/admin/AdminOrganizations";
 import AdminCreateUser from "@/components/admin/AdminCreateUser";
 import AdminAuditLog from "@/components/admin/AdminAuditLog";
@@ -19,7 +20,7 @@ import AdminRcmImports from "@/components/admin/AdminRcmImports";
 import AdminRcmBulkOps from "@/components/admin/AdminRcmBulkOps";
 import AdminVerificationAssist from "@/components/admin/AdminVerificationAssist";
 
-type Tab = "dashboard" | "users" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "reviews" | "tickets" | "pages" | "audit";
+type Tab = "dashboard" | "users" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "reviews" | "tickets" | "news" | "pages" | "audit";
 
 // Tabs are grouped: Users area first (Users → Create User → User Activations),
 // then Org/Provider area, then RCM, then ops.
@@ -38,6 +39,7 @@ const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boole
   { key: "subs", label: "Subscriptions", Icon: CreditCard, adminOnly: true },
   { key: "reviews", label: "Reviews", Icon: Star },
   { key: "tickets", label: "Tickets", Icon: MessageSquare },
+  { key: "news", label: "News & Articles", Icon: FileText },
   { key: "pages", label: "Site Pages", Icon: FileText },
   { key: "audit", label: "Audit Log", Icon: Activity },
 ];
@@ -126,6 +128,7 @@ const Admin = () => {
         {tab === "subs" && role === "admin" && <AdminSubscriptions />}
         {tab === "reviews" && <AdminReviews />}
         {tab === "tickets" && <AdminTickets />}
+        {tab === "news" && <AdminNews />}
         {tab === "pages" && <AdminPages />}
         {tab === "audit" && <AdminAuditLog />}
       </main>
