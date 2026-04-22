@@ -99,7 +99,7 @@ const Admin = () => {
             <LogOut size={14} /> Sign out
           </button>
         </div>
-        <div className="max-w-7xl mx-auto px-6 flex gap-1 overflow-x-auto">
+        <div className="max-w-7xl mx-auto px-6 flex flex-wrap gap-x-1 gap-y-0">
           {visibleTabs.map(({ key, label, Icon }) => (
             <button key={key} onClick={() => setTab(key)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2 whitespace-nowrap ${

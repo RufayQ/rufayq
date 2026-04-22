@@ -50,20 +50,15 @@ const Landing = () => {
     { en: "Features", ar: "المميزات", href: "#features" },
     { en: "How", ar: "كيف يعمل", href: "#how" },
     { en: "Pricing", ar: "الأسعار", href: isAr ? "/ar/pricing" : "/pricing", isRoute: true },
-    { en: "News", ar: "الأخبار", href: "#news" },
     { en: "FAQ", ar: "الأسئلة", href: "#faq" },
     { en: "Contact", ar: "تواصل", href: "#contact" },
   ];
 
   const goToApp = () => navigate("/app");
-  // Per product decision: the prominent gold CTA in the nav scrolls to the
-  // admin-managed News & Articles section so visitors discover fresh content
-  // first. The hero "Start free" button still routes to the app.
-  const goToNews = () => {
-    const el = document.getElementById("news");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    else window.location.hash = "#news";
-  };
+  // The prominent gold CTA in the nav routes to the dedicated News & Articles
+  // page (admin-managed via the Site Pages → landing-news slug). The hero
+  // "Start free" button still routes to the app.
+  const goToNews = () => navigate(isAr ? "/ar/news" : "/news");
 
   return (
     <>
