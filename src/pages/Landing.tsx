@@ -56,6 +56,14 @@ const Landing = () => {
   ];
 
   const goToApp = () => navigate("/app");
+  // Per product decision: the prominent gold CTA in the nav scrolls to the
+  // admin-managed News & Articles section so visitors discover fresh content
+  // first. The hero "Start free" button still routes to the app.
+  const goToNews = () => {
+    const el = document.getElementById("news");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    else window.location.hash = "#news";
+  };
 
   return (
     <>
@@ -111,8 +119,8 @@ const Landing = () => {
               <Link to="/auth" className="px-4 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105" style={{ border: `1px solid ${GOLD}`, color: GOLD }}>
                 {isAr ? "تسجيل الدخول" : "Sign in"}
               </Link>
-              <button onClick={goToApp} className="px-5 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg" style={{ background: GOLD, color: BG_DARK }}>
-                {isAr ? "افتح التطبيق ←" : "Open app →"}
+              <button onClick={goToNews} className="px-5 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg" style={{ background: GOLD, color: BG_DARK }}>
+                {isAr ? "الأخبار والمقالات ←" : "News & Articles →"}
               </button>
             </div>
 
@@ -147,8 +155,8 @@ const Landing = () => {
               <Link to="/auth" onClick={() => setMenuOpen(false)} className="block w-full py-3 rounded-full text-sm font-semibold mt-2 text-center" style={{ border: `1px solid ${GOLD}`, color: GOLD }}>
                 {isAr ? "تسجيل الدخول" : "Sign in"}
               </Link>
-              <button onClick={goToApp} className="w-full py-3 rounded-full text-sm font-semibold mt-2" style={{ background: GOLD, color: BG_DARK }}>
-                {isAr ? "افتح التطبيق" : "Open app →"}
+              <button onClick={() => { setMenuOpen(false); goToNews(); }} className="w-full py-3 rounded-full text-sm font-semibold mt-2" style={{ background: GOLD, color: BG_DARK }}>
+                {isAr ? "الأخبار والمقالات" : "News & Articles →"}
               </button>
             </div>
           )}

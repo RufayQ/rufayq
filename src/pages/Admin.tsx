@@ -38,7 +38,7 @@ const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boole
   { key: "subs", label: "Subscriptions", Icon: CreditCard, adminOnly: true },
   { key: "reviews", label: "Reviews", Icon: Star },
   { key: "tickets", label: "Tickets", Icon: MessageSquare },
-  { key: "pages", label: "Site Pages", Icon: FileText, adminOnly: true },
+  { key: "pages", label: "Site Pages", Icon: FileText },
   { key: "audit", label: "Audit Log", Icon: Activity },
 ];
 
@@ -126,7 +126,7 @@ const Admin = () => {
         {tab === "subs" && role === "admin" && <AdminSubscriptions />}
         {tab === "reviews" && <AdminReviews />}
         {tab === "tickets" && <AdminTickets />}
-        {tab === "pages" && role === "admin" && <AdminPages />}
+        {tab === "pages" && <AdminPages />}
         {tab === "audit" && <AdminAuditLog />}
       </main>
     </div>
