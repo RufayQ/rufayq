@@ -136,6 +136,8 @@ const AdminNews = () => {
   const [previewLang, setPreviewLang] = useState<Lang | "off">("off");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [showLinkPicker, setShowLinkPicker] = useState(false);
+  const [showSeoPreview, setShowSeoPreview] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -263,6 +265,11 @@ const AdminNews = () => {
   const save = async () => {
     if (slugConflicts.size > 0) {
       toast.error("Resolve duplicate slugs before publishing");
+      return;
+    }
+    if (unpairedArticles.length > 0) {
+      const names = unpairedArticles.map((a) => a.titleEn || a.titleAr || "Untitled").join(", ");
+      toast.error(`${unpairedArticles.length} article(s) missing EN↔AR pairing — fix to keep hreflang consistent: ${names}`);
       return;
     }
     setSaving(true);
