@@ -611,7 +611,6 @@ const AdminNews = () => {
                 />
               </div>
             )}
-            </div>
 
             {/* Editor / preview */}
             {previewLang === "off" ? (
