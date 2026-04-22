@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Clock, CheckCircle, AlertCircle, MessageCircle, ChevronDown, Star } from "lucide-react";
+import { ArrowLeft, Plus, Clock, CheckCircle, AlertCircle, MessageCircle, ChevronDown, Star, PlayCircle, Phone, Mail, MessageSquare } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import ReviewForm from "@/components/ReviewForm";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { TOURS, clearTourDone } from "@/lib/tours";
+import TourRunner from "@/components/TourRunner";
+import EmergencyContactsSheet, { loadEmergencyContacts, CATEGORY_META, type EmergencyContact } from "@/components/EmergencyContactsSheet";
 
 type TicketRow = {
   id: string;
@@ -47,6 +50,14 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedTicket, setSelectedTicket] = useState<TicketRow | null>(null);
+  const [patientName, setPatientName] = useState<string>("");
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
+  const [showEmergencySheet, setShowEmergencySheet] = useState(false);
+  const [replayTourId, setReplayTourId] = useState<string | null>(null);
+  const [currentUid, setCurrentUid] = useState<string | null>(null);
+
+  const replayableTours = useMemo(() => TOURS.filter((t) => t.steps.length > 0), []);
+  const activeReplayTour = replayTourId ? TOURS.find((t) => t.id === replayTourId) : null;
 
   // Form state
   const [title, setTitle] = useState("");
@@ -54,6 +65,30 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
   const [category, setCategory] = useState<string>("general");
   const [priority, setPriority] = useState<string>("medium");
   const [submitting, setSubmitting] = useState(false);
+
+  // Load patient greeting name (auth metadata > profile > device fallback)
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const uid = session?.user?.id || null;
+      setCurrentUid(uid);
+      const meta = (session?.user?.user_metadata || {}) as Record<string, string>;
+      let name = meta.full_name || meta.name || "";
+      if (!name) {
+        const did = getDeviceId();
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name_en, full_name_ar")
+          .eq("device_id", did)
+          .maybeSingle();
+        name = (prof?.full_name_en || prof?.full_name_ar || "").split(" ")[0] || "";
+      } else {
+        name = name.split(" ")[0];
+      }
+      setPatientName(name);
+    })();
+    setEmergencyContacts(loadEmergencyContacts());
+  }, []);
 
   const fetchTickets = async () => {
     setLoading(true);
