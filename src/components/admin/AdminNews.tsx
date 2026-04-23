@@ -470,7 +470,7 @@ const AdminNews = () => {
                     rows={2}
                     dir={editLang === "ar" ? "rtl" : "ltr"}
                     placeholder={editLang === "en" ? "150-160 char snippet for Google search results" : "وصف ميتا للمقال"}
-                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                    className="lang-keep w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
                   />
                   <p className="text-[10px] text-slate-600 mt-0.5">{(activeMeta.description || "").length}/160</p>
                 </label>
