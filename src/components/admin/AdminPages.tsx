@@ -63,8 +63,11 @@ const AdminPages = () => {
             <span className="truncate">{p.title}</span>
           </button>
         ))}
-        <p className="text-[10px] text-slate-600 px-2 mt-3">
-          New pages can be added from the database. Render them by their slug at /<code>{`{slug}`}</code>.
+        <p className="text-[10px] text-slate-600 px-2 mt-3 leading-relaxed">
+          <span className="text-amber-400">Landing Sections</span> controls the homepage section text
+          (Features, How, Pricing, FAQ, Contact, For Providers). Use the convention:
+          <br /><code className="text-amber-400">## features</code> → <code className="text-amber-400">### Title</code> / <code className="text-amber-400">### Subtitle</code>.
+          Fonts &amp; colors stay code-controlled.
         </p>
       </aside>
 
