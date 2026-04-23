@@ -5,7 +5,7 @@
  */
 import { useMemo } from "react";
 import type { ArticleMeta } from "@/lib/articleMeta";
-import { SITE_ORIGIN } from "@/seo/routes";
+import { resolveAuthor } from "@/lib/articleMeta";
 
 interface Props {
   slug: string;
@@ -52,7 +52,7 @@ const ArticleSeoPreview = ({ slug, titleEn, titleAr, metaEn, metaAr, excerptEn, 
       image: metaEn.image?.startsWith("http")
         ? metaEn.image
         : `${SITE_ORIGIN}${metaEn.image || "/og-image.jpg"}`,
-      author: { "@type": "Person", name: metaEn.author || "RufayQ Editorial" },
+      author: { "@type": "Person", name: resolveAuthor(metaEn.author, "en") },
       publisher: {
         "@type": "Organization",
         name: "RufayQ",

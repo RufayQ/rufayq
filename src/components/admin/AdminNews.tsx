@@ -18,11 +18,10 @@ import {
 } from "lucide-react";
 import {
   ArticleMeta,
-  DEFAULT_AUTHOR_AR,
+  DEFAULT_AUTHOR_AR as DEFAULT_AUTHOR_AR_FALLBACK,
   DEFAULT_AUTHOR_EN,
   estimateReadingTime,
   extractMeta,
-  resolveAuthor,
   resolveSlug,
   serializeMeta,
   slugify,
@@ -45,7 +44,7 @@ interface Article {
 const SEP = "\n\n";
 
 const DEFAULT_AUTHOR = DEFAULT_AUTHOR_EN;
-const DEFAULT_AUTHOR_AR = DEFAULT_AUTHOR_AR;
+const DEFAULT_AUTHOR_AR = DEFAULT_AUTHOR_AR_FALLBACK;
 
 const newArticle = (): Article => ({
   id: crypto.randomUUID(),
