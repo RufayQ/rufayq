@@ -18,12 +18,16 @@ export const useSyncLanguageWithRoute = () => {
 
   useEffect(() => {
     const pair = findRoutePair(location.pathname);
-    if (!pair) return; // app shell — leave user's preference intact
-    // Marketing route: lock to that route's language unless the user has manually
-    // toggled to "both" *on this same route* via the switcher (setMode persists it).
-    // We accept "both" only if it was already set by the user explicitly; otherwise
-    // we hard-set to the route's language to avoid layout-shift on hydration.
-    if (pair.lang === "ar" && mode === "en") setMode("ar");
-    if (pair.lang === "en" && mode === "ar") setMode("en");
+    // Dynamic news routes (/news/:slug, /ar/news/:slug) aren't in the static
+    // ROUTES table — detect them by prefix so language follows the URL when the
+    // user clicks the EN↔AR pair link inside an article.
+    let lang: "en" | "ar" | null = pair?.lang ?? null;
+    if (!lang) {
+      if (location.pathname === "/ar/news" || location.pathname.startsWith("/ar/news/")) lang = "ar";
+      else if (location.pathname === "/news" || location.pathname.startsWith("/news/")) lang = "en";
+    }
+    if (!lang) return; // app shell — leave user's preference intact
+    if (lang === "ar" && mode === "en") setMode("ar");
+    if (lang === "en" && mode === "ar") setMode("en");
   }, [location.pathname, mode, setMode]);
 };
