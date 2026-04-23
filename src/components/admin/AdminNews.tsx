@@ -348,7 +348,7 @@ const AdminNews = () => {
                 <span className="font-mono text-[10px] mt-0.5 opacity-60 shrink-0">{String(i + 1).padStart(2, "0")}</span>
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-[12px] leading-tight">{a.titleEn || "Untitled"}</p>
-                  <p dir="rtl" className="truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
+                  <p dir="rtl" className="lang-keep truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
                   <p className="truncate text-[9px] mt-1 font-mono opacity-50">/{slug}</p>
                 </div>
                 <div className="flex flex-col gap-1 items-end shrink-0">
@@ -413,7 +413,7 @@ const AdminNews = () => {
                   }
                   placeholder={editLang === "en" ? "Article title" : "عنوان المقال"}
                   dir={editLang === "ar" ? "rtl" : "ltr"}
-                  className="flex-1 bg-transparent text-base font-semibold text-slate-100 outline-none"
+                  className="lang-keep flex-1 bg-transparent text-base font-semibold text-slate-100 outline-none"
                 />
               </div>
               <div className="flex gap-2 items-center flex-wrap">
@@ -470,7 +470,7 @@ const AdminNews = () => {
                     rows={2}
                     dir={editLang === "ar" ? "rtl" : "ltr"}
                     placeholder={editLang === "en" ? "150-160 char snippet for Google search results" : "وصف ميتا للمقال"}
-                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                    className="lang-keep w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
                   />
                   <p className="text-[10px] text-slate-600 mt-0.5">{(activeMeta.description || "").length}/160</p>
                 </label>
@@ -514,7 +514,7 @@ const AdminNews = () => {
                     onChange={(e) => updateMeta(editLang, { keywords: e.target.value })}
                     placeholder="medical tourism saudi arabia, …"
                     dir={editLang === "ar" ? "rtl" : "ltr"}
-                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                    className="lang-keep w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
                   />
                 </label>
 
@@ -631,7 +631,7 @@ const AdminNews = () => {
                 dir={editLang === "ar" ? "rtl" : "ltr"}
                 rows={26}
                 spellCheck={false}
-                className="w-full p-5 bg-transparent text-sm font-mono text-slate-200 outline-none resize-none leading-relaxed"
+                className="lang-keep w-full p-5 bg-transparent text-sm font-mono text-slate-200 outline-none resize-none leading-relaxed"
                 placeholder={
                   editLang === "en"
                     ? "Write the article body in markdown…\n\n## Subheadings, **bold**, lists, [links](/news/other-article-slug) all supported."
@@ -639,7 +639,7 @@ const AdminNews = () => {
                 }
               />
             ) : (
-              <article dir={previewLang === "ar" ? "rtl" : "ltr"} className="prose prose-invert max-w-none p-6 min-h-[60vh]">
+              <article dir={previewLang === "ar" ? "rtl" : "ltr"} className="lang-keep prose prose-invert max-w-none p-6 min-h-[60vh]">
                 <p className="text-[10px] uppercase tracking-widest text-amber-400 mb-2 flex items-center gap-1">
                   <Globe size={10} /> Preview · {previewLang === "ar" ? "العربية" : "English"}
                 </p>
