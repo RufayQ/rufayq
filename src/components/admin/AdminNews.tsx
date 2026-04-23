@@ -284,11 +284,15 @@ const AdminNews = () => {
       return;
     }
     setSaving(true);
-    // Force the canonical author on every article so attribution stays consistent
-    // across EN and AR — overrides any manually entered byline.
-    const stamped = articles.map((a) =>
-      a.meta.author === DEFAULT_AUTHOR ? a : { ...a, meta: { ...a.meta, author: DEFAULT_AUTHOR } },
-    );
+    // Only default the author when left blank — preserve any custom byline the
+    // editor entered. EN defaults to "RufayQ Editorial Team", AR to the Arabic
+    // equivalent so the Arabic article doesn't show an English byline.
+    const stamped = articles.map((a) => {
+      const enAuthor = a.meta.author?.trim() ? a.meta.author : DEFAULT_AUTHOR;
+      const arAuthor = a.metaAr.author?.trim() ? a.metaAr.author : DEFAULT_AUTHOR_AR;
+      if (enAuthor === a.meta.author && arAuthor === a.metaAr.author) return a;
+      return { ...a, meta: { ...a.meta, author: enAuthor }, metaAr: { ...a.metaAr, author: arAuthor } };
+    });
     if (stamped.some((a, i) => a !== articles[i])) setArticles(stamped);
     const body_md = serialize(stamped, "en");
     const body_md_ar = serialize(stamped, "ar");
