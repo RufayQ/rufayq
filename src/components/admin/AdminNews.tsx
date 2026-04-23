@@ -348,7 +348,7 @@ const AdminNews = () => {
                 <span className="font-mono text-[10px] mt-0.5 opacity-60 shrink-0">{String(i + 1).padStart(2, "0")}</span>
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-[12px] leading-tight">{a.titleEn || "Untitled"}</p>
-                  <p dir="rtl" className="truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
+                  <p dir="rtl" className="lang-keep truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
                   <p className="truncate text-[9px] mt-1 font-mono opacity-50">/{slug}</p>
                 </div>
                 <div className="flex flex-col gap-1 items-end shrink-0">
