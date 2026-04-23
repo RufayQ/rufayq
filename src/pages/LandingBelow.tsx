@@ -8,6 +8,7 @@ import {
 import LazyOnView from "@/components/LazyOnView";
 import RufayQLogo from "@/components/RufayQLogo";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useLandingSections } from "@/hooks/useLandingSections";
 
 // Lazy-load social-proof + form components (each is its own chunk)
 const ApprovedReviews = lazy(() => import("@/components/ApprovedReviews"));
@@ -39,6 +40,13 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
   const isAr = mode === "ar";
   const isBoth = mode === "both";
   const { BG_DARK, BG_DARK_2, BORDER, TEXT, TEXT_MUTED, GOLD, TEAL } = theme;
+
+  // Admin-editable text overlay (Site Pages → "Landing Sections"). Falls back
+  // to the hardcoded defaults below when a field is left blank in the editor,
+  // so layout / fonts / colors / icons remain code-controlled.
+  const sections = useLandingSections();
+  const sec = (key: "features" | "how" | "pricing" | "faq" | "contact" | "providers") =>
+    isAr ? sections.ar[key] : sections.en[key];
 
   const features = [
     { icon: Plane, en: "Smart Journey", ar: "رحلة ذكية", descEn: "Track flights, hotels, and appointments — auto-built from a scan of your tickets.", descAr: "تتبّع الرحلات والفنادق والمواعيد — يُنشأ تلقائياً من مسح تذاكرك." },
@@ -76,12 +84,18 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
               {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>كل شيء في تطبيق واحد</span> : "EVERYTHING IN ONE APP"}
             </p>
             <h2 className="font-display text-4xl md:text-5xl mb-4 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-              {mode === "en" && (<>One companion for the <em style={{ color: GOLD }}>whole</em> journey</>)}
-              {mode === "ar" && (<span dir="rtl" className="font-arabic">رفيق واحد <em style={{ color: GOLD }}>لكل</em> الرحلة</span>)}
-              {isBoth && (<>One companion for the <em style={{ color: GOLD }}>whole</em> journey<span dir="rtl" className="font-arabic block text-2xl md:text-3xl mt-2" style={{ opacity: 0.85 }}>رفيق واحد لكل الرحلة</span></>)}
+              {sec("features").title ? sec("features").title : (
+                <>
+                  {mode === "en" && (<>One companion for the <em style={{ color: GOLD }}>whole</em> journey</>)}
+                  {mode === "ar" && (<span dir="rtl" className="font-arabic">رفيق واحد <em style={{ color: GOLD }}>لكل</em> الرحلة</span>)}
+                  {isBoth && (<>One companion for the <em style={{ color: GOLD }}>whole</em> journey<span dir="rtl" className="font-arabic block text-2xl md:text-3xl mt-2" style={{ opacity: 0.85 }}>رفيق واحد لكل الرحلة</span></>)}
+                </>
+              )}
             </h2>
             <p className="text-base max-w-xl mx-auto" style={{ color: TEXT_MUTED }}>
-              {isAr ? <span className="font-arabic">من حجز رحلتك إلى التعافي في المنزل — رُفَيِّق ينظّم كل تفصيل ويشرحه.</span> : "From booking your flight to recovering at home — RufayQ keeps every detail organized and explained."}
+              {sec("features").subtitle
+                ? sec("features").subtitle
+                : (isAr ? <span className="font-arabic">من حجز رحلتك إلى التعافي في المنزل — رُفَيِّق ينظّم كل تفصيل ويشرحه.</span> : "From booking your flight to recovering at home — RufayQ keeps every detail organized and explained.")}
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-4">
@@ -113,8 +127,9 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
               {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>كيف يعمل</span> : "HOW IT WORKS"}
             </p>
             <h2 className="font-display text-4xl md:text-5xl tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-              {isAr ? <span className="font-arabic">ثلاث خطوات نحو الوضوح</span> : "Three steps to clarity"}
+              {sec("how").title ? sec("how").title : (isAr ? <span className="font-arabic">ثلاث خطوات نحو الوضوح</span> : "Three steps to clarity")}
             </h2>
+            {sec("how").subtitle && <p className="text-sm mt-3" style={{ color: TEXT_MUTED }}>{sec("how").subtitle}</p>}
           </div>
           <div className="space-y-5">
             {[
@@ -203,12 +218,18 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
             {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>أسعار بسيطة</span> : "SIMPLE PRICING"}
           </p>
           <h2 className="font-display text-4xl md:text-5xl mb-5 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-            {mode === "en" && (<>Start free. <em style={{ color: GOLD }}>Upgrade</em> anytime.</>)}
-            {mode === "ar" && (<span dir="rtl" className="font-arabic">ابدأ مجاناً. <em style={{ color: GOLD }}>طوّر</em> اشتراكك في أي وقت.</span>)}
-            {isBoth && (<>Start free. <em style={{ color: GOLD }}>Upgrade</em> anytime.</>)}
+            {sec("pricing").title ? sec("pricing").title : (
+              <>
+                {mode === "en" && (<>Start free. <em style={{ color: GOLD }}>Upgrade</em> anytime.</>)}
+                {mode === "ar" && (<span dir="rtl" className="font-arabic">ابدأ مجاناً. <em style={{ color: GOLD }}>طوّر</em> اشتراكك في أي وقت.</span>)}
+                {isBoth && (<>Start free. <em style={{ color: GOLD }}>Upgrade</em> anytime.</>)}
+              </>
+            )}
           </h2>
           <p className="text-base mb-14" style={{ color: TEXT_MUTED }}>
-            {isAr ? <span className="font-arabic">مجاني للأبد لرحلة واحدة. طوّر اشتراكك للحصول على رحلات غير محدودة، ذكاء اصطناعي، وإضافات حسب الاستخدام.</span> : "Free forever for one trip. Upgrade for unlimited journeys, AI, and pay-as-you-go add-ons."}
+            {sec("pricing").subtitle
+              ? sec("pricing").subtitle
+              : (isAr ? <span className="font-arabic">مجاني للأبد لرحلة واحدة. طوّر اشتراكك للحصول على رحلات غير محدودة، ذكاء اصطناعي، وإضافات حسب الاستخدام.</span> : "Free forever for one trip. Upgrade for unlimited journeys, AI, and pay-as-you-go add-ons.")}
           </p>
           <div className="grid md:grid-cols-3 gap-4 text-left">
             {[
@@ -258,8 +279,9 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
               {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>الأسئلة الشائعة</span> : "FAQ"}
             </p>
             <h2 className="font-display text-4xl md:text-5xl tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-              {isAr ? <span className="font-arabic">أسئلة شائعة</span> : "Common questions"}
+              {sec("faq").title ? sec("faq").title : (isAr ? <span className="font-arabic">أسئلة شائعة</span> : "Common questions")}
             </h2>
+            {sec("faq").subtitle && <p className="text-sm mt-3" style={{ color: TEXT_MUTED }}>{sec("faq").subtitle}</p>}
           </div>
           <div className="space-y-3">
             {faqs.map((f, i) => (
@@ -309,12 +331,18 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
             {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>تواصل معنا</span> : "CONTACT US"}
           </p>
           <h2 className="font-display text-4xl md:text-5xl mb-4 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-            {mode === "en" && (<>We're here to <em style={{ color: GOLD }}>help</em>.</>)}
-            {mode === "ar" && (<span dir="rtl" className="font-arabic">نحن هنا <em style={{ color: GOLD }}>للمساعدة</em>.</span>)}
-            {isBoth && (<>We're here to <em style={{ color: GOLD }}>help</em>.</>)}
+            {sec("contact").title ? sec("contact").title : (
+              <>
+                {mode === "en" && (<>We're here to <em style={{ color: GOLD }}>help</em>.</>)}
+                {mode === "ar" && (<span dir="rtl" className="font-arabic">نحن هنا <em style={{ color: GOLD }}>للمساعدة</em>.</span>)}
+                {isBoth && (<>We're here to <em style={{ color: GOLD }}>help</em>.</>)}
+              </>
+            )}
           </h2>
           <p className="text-sm mb-10" style={{ color: TEXT_MUTED }}>
-            {isAr ? <span className="font-arabic">رد خلال 24 ساعة · واتساب للدعم العاجل</span> : "Reply within 24 hours · WhatsApp for urgent support"}
+            {sec("contact").subtitle
+              ? sec("contact").subtitle
+              : (isAr ? <span className="font-arabic">رد خلال 24 ساعة · واتساب للدعم العاجل</span> : "Reply within 24 hours · WhatsApp for urgent support")}
           </p>
           <div className="grid md:grid-cols-3 gap-4">
             {[
