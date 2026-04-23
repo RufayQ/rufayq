@@ -37,6 +37,7 @@ interface Article {
 const SEP = "\n\n";
 
 const DEFAULT_AUTHOR = "RufayQ Editorial Team";
+const DEFAULT_AUTHOR_AR = "فريق تحرير رُفَيِّق";
 
 const newArticle = (): Article => ({
   id: crypto.randomUUID(),
@@ -45,7 +46,7 @@ const newArticle = (): Article => ({
   bodyEn: "Write your article here…",
   bodyAr: "اكتب مقالك هنا…",
   meta: { author: DEFAULT_AUTHOR, publishedAt: new Date().toISOString().slice(0, 10) },
-  metaAr: {},
+  metaAr: { author: DEFAULT_AUTHOR_AR },
 });
 
 /** Split a markdown blob into Article shells, parsing each `<!--meta-->` block. */
@@ -283,11 +284,15 @@ const AdminNews = () => {
       return;
     }
     setSaving(true);
-    // Force the canonical author on every article so attribution stays consistent
-    // across EN and AR — overrides any manually entered byline.
-    const stamped = articles.map((a) =>
-      a.meta.author === DEFAULT_AUTHOR ? a : { ...a, meta: { ...a.meta, author: DEFAULT_AUTHOR } },
-    );
+    // Only default the author when left blank — preserve any custom byline the
+    // editor entered. EN defaults to "RufayQ Editorial Team", AR to the Arabic
+    // equivalent so the Arabic article doesn't show an English byline.
+    const stamped = articles.map((a) => {
+      const enAuthor = a.meta.author?.trim() ? a.meta.author : DEFAULT_AUTHOR;
+      const arAuthor = a.metaAr.author?.trim() ? a.metaAr.author : DEFAULT_AUTHOR_AR;
+      if (enAuthor === a.meta.author && arAuthor === a.metaAr.author) return a;
+      return { ...a, meta: { ...a.meta, author: enAuthor }, metaAr: { ...a.metaAr, author: arAuthor } };
+    });
     if (stamped.some((a, i) => a !== articles[i])) setArticles(stamped);
     const body_md = serialize(stamped, "en");
     const body_md_ar = serialize(stamped, "ar");
@@ -477,14 +482,15 @@ const AdminNews = () => {
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Author</span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Author ({editLang.toUpperCase()})</span>
                   <input
-                    value={active.meta.author || DEFAULT_AUTHOR}
-                    onChange={(e) => updateMeta("en", { author: e.target.value })}
-                    placeholder={DEFAULT_AUTHOR}
-                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                    value={activeMeta.author || ""}
+                    onChange={(e) => updateMeta(editLang, { author: e.target.value })}
+                    placeholder={editLang === "ar" ? DEFAULT_AUTHOR_AR : DEFAULT_AUTHOR}
+                    dir={editLang === "ar" ? "rtl" : "ltr"}
+                    className="lang-keep w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
                   />
-                  <p className="text-[10px] text-slate-600 mt-0.5">Defaults to <span className="text-amber-400">{DEFAULT_AUTHOR}</span> if left blank.</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5">Defaults to <span className="text-amber-400">{editLang === "ar" ? DEFAULT_AUTHOR_AR : DEFAULT_AUTHOR}</span> if left blank.</p>
                 </label>
 
                 <label className="block">
