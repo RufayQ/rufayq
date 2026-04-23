@@ -85,12 +85,18 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
               {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>كل شيء في تطبيق واحد</span> : "EVERYTHING IN ONE APP"}
             </p>
             <h2 className="font-display text-4xl md:text-5xl mb-4 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-              {mode === "en" && (<>One companion for the <em style={{ color: GOLD }}>whole</em> journey</>)}
-              {mode === "ar" && (<span dir="rtl" className="font-arabic">رفيق واحد <em style={{ color: GOLD }}>لكل</em> الرحلة</span>)}
-              {isBoth && (<>One companion for the <em style={{ color: GOLD }}>whole</em> journey<span dir="rtl" className="font-arabic block text-2xl md:text-3xl mt-2" style={{ opacity: 0.85 }}>رفيق واحد لكل الرحلة</span></>)}
+              {sec("features").title ? sec("features").title : (
+                <>
+                  {mode === "en" && (<>One companion for the <em style={{ color: GOLD }}>whole</em> journey</>)}
+                  {mode === "ar" && (<span dir="rtl" className="font-arabic">رفيق واحد <em style={{ color: GOLD }}>لكل</em> الرحلة</span>)}
+                  {isBoth && (<>One companion for the <em style={{ color: GOLD }}>whole</em> journey<span dir="rtl" className="font-arabic block text-2xl md:text-3xl mt-2" style={{ opacity: 0.85 }}>رفيق واحد لكل الرحلة</span></>)}
+                </>
+              )}
             </h2>
             <p className="text-base max-w-xl mx-auto" style={{ color: TEXT_MUTED }}>
-              {isAr ? <span className="font-arabic">من حجز رحلتك إلى التعافي في المنزل — رُفَيِّق ينظّم كل تفصيل ويشرحه.</span> : "From booking your flight to recovering at home — RufayQ keeps every detail organized and explained."}
+              {sec("features").subtitle
+                ? sec("features").subtitle
+                : (isAr ? <span className="font-arabic">من حجز رحلتك إلى التعافي في المنزل — رُفَيِّق ينظّم كل تفصيل ويشرحه.</span> : "From booking your flight to recovering at home — RufayQ keeps every detail organized and explained.")}
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-4">
@@ -122,9 +128,9 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
               {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>كيف يعمل</span> : "HOW IT WORKS"}
             </p>
             <h2 className="font-display text-4xl md:text-5xl tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-              {isAr ? <span className="font-arabic">ثلاث خطوات نحو الوضوح</span> : "Three steps to clarity"}
+              {sec("how").title ? sec("how").title : (isAr ? <span className="font-arabic">ثلاث خطوات نحو الوضوح</span> : "Three steps to clarity")}
             </h2>
-          </div>
+            {sec("how").subtitle && <p className="text-sm mt-3" style={{ color: TEXT_MUTED }}>{sec("how").subtitle}</p>}
           <div className="space-y-5">
             {[
               { n: "01", t: "Scan or add your documents", tAr: "امسح أو أضف وثائقك", d: "Snap a photo of your flight ticket, prescription, lab result, or discharge summary. RufayQ extracts the key info automatically.", dAr: "التقط صورة لتذكرة الطيران، الوصفة، نتيجة التحليل، أو تقرير الخروج. يستخلص رُفَيِّق المعلومات الأساسية تلقائياً." },
