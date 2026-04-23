@@ -17,7 +17,15 @@ import {
   Copy, Link as LinkIcon, AlertTriangle, Sparkles, Search,
 } from "lucide-react";
 import {
-  ArticleMeta, estimateReadingTime, extractMeta, resolveSlug, serializeMeta, slugify,
+  ArticleMeta,
+  DEFAULT_AUTHOR_AR,
+  DEFAULT_AUTHOR_EN,
+  estimateReadingTime,
+  extractMeta,
+  resolveAuthor,
+  resolveSlug,
+  serializeMeta,
+  slugify,
 } from "@/lib/articleMeta";
 import { getClusterSuggestions } from "@/lib/seoCluster";
 import ArticleSeoPreview from "./ArticleSeoPreview";
@@ -36,8 +44,8 @@ interface Article {
 
 const SEP = "\n\n";
 
-const DEFAULT_AUTHOR = "RufayQ Editorial Team";
-const DEFAULT_AUTHOR_AR = "فريق تحرير رُفَيِّق";
+const DEFAULT_AUTHOR = DEFAULT_AUTHOR_EN;
+const DEFAULT_AUTHOR_AR = DEFAULT_AUTHOR_AR;
 
 const newArticle = (): Article => ({
   id: crypto.randomUUID(),
