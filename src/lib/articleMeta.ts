@@ -31,6 +31,16 @@ export interface ArticleMeta {
   image?: string;         // path or URL
 }
 
+export const DEFAULT_AUTHOR_EN = "RufayQ Editorial Team";
+export const DEFAULT_AUTHOR_AR = "فريق تحرير رُفَيِّق";
+
+const LEGACY_AUTHOR_ALIASES = new Set([
+  "Dr. Abdelrahman Morsy",
+  "د. عبدالرحمن مرسي",
+  "عبدالرحمن مرسي",
+  "RufayQ Editorial",
+]);
+
 export const META_FIELDS: Array<keyof ArticleMeta> = [
   "slug", "description", "author", "publishedAt", "readingTime", "keywords", "image",
 ];
@@ -41,6 +51,20 @@ export const slugify = (s: string): string =>
     .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80) || "article";
+
+export const getDefaultAuthor = (lang: "en" | "ar"): string =>
+  lang === "ar" ? DEFAULT_AUTHOR_AR : DEFAULT_AUTHOR_EN;
+
+/**
+ * Normalizes stored bylines so legacy article metadata cannot surface outdated
+ * authors on the public site. Blank or known legacy values fall back to the
+ * localized RufayQ editorial team name.
+ */
+export const resolveAuthor = (author: string | undefined, lang: "en" | "ar"): string => {
+  const trimmed = author?.trim();
+  if (!trimmed || LEGACY_AUTHOR_ALIASES.has(trimmed)) return getDefaultAuthor(lang);
+  return trimmed;
+};
 
 /** Extract `<!--meta ... -->` from a body string. Returns meta + clean body. */
 export function extractMeta(body: string): { meta: ArticleMeta; body: string } {

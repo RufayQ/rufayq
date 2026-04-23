@@ -22,6 +22,7 @@ import {
   ArticleMeta,
   estimateReadingTime,
   extractMeta,
+  resolveAuthor,
   resolveSlug,
 } from "@/lib/articleMeta";
 
@@ -194,7 +195,7 @@ const News = () => {
       image: seoImage.startsWith("http") ? seoImage : `${SITE_ORIGIN}${seoImage}`,
       author: {
         "@type": "Person",
-        name: article.meta.author || "RufayQ Editorial",
+        name: resolveAuthor(article.meta.author, isAr ? "ar" : "en"),
       },
       publisher: {
         "@type": "Organization",
@@ -281,7 +282,7 @@ const News = () => {
             {/* Byline + meta */}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs mb-10" style={{ color: TEXT_MUTED }}>
               {article.meta.author && (
-                <span className="flex items-center gap-1.5"><User size={12} />{article.meta.author}</span>
+                <span className="flex items-center gap-1.5"><User size={12} />{resolveAuthor(article.meta.author, isAr ? "ar" : "en")}</span>
               )}
               {formattedPublished && (
                 <span className="flex items-center gap-1.5"><Calendar size={12} />{formattedPublished}</span>
