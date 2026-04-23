@@ -8,6 +8,7 @@ import {
 import LazyOnView from "@/components/LazyOnView";
 import RufayQLogo from "@/components/RufayQLogo";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useLandingSections } from "@/hooks/useLandingSections";
 
 // Lazy-load social-proof + form components (each is its own chunk)
 const ApprovedReviews = lazy(() => import("@/components/ApprovedReviews"));
@@ -39,6 +40,14 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
   const isAr = mode === "ar";
   const isBoth = mode === "both";
   const { BG_DARK, BG_DARK_2, BORDER, TEXT, TEXT_MUTED, GOLD, TEAL } = theme;
+
+  // Admin-editable text overlay (Site Pages → "Landing Sections"). Falls back
+  // to the hardcoded defaults below when a field is left blank in the editor,
+  // so layout / fonts / colors / icons remain code-controlled.
+  const sections = useLandingSections();
+  const t = (en: string, ar: string, override?: string) => override?.trim() || (isAr ? ar : en);
+  const sec = (key: "features" | "how" | "pricing" | "faq" | "contact" | "providers") =>
+    isAr ? sections.ar[key] : sections.en[key];
 
   const features = [
     { icon: Plane, en: "Smart Journey", ar: "رحلة ذكية", descEn: "Track flights, hotels, and appointments — auto-built from a scan of your tickets.", descAr: "تتبّع الرحلات والفنادق والمواعيد — يُنشأ تلقائياً من مسح تذاكرك." },
