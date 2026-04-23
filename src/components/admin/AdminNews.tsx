@@ -482,14 +482,15 @@ const AdminNews = () => {
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Author</span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Author ({editLang.toUpperCase()})</span>
                   <input
-                    value={active.meta.author || DEFAULT_AUTHOR}
-                    onChange={(e) => updateMeta("en", { author: e.target.value })}
-                    placeholder={DEFAULT_AUTHOR}
-                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                    value={activeMeta.author || ""}
+                    onChange={(e) => updateMeta(editLang, { author: e.target.value })}
+                    placeholder={editLang === "ar" ? DEFAULT_AUTHOR_AR : DEFAULT_AUTHOR}
+                    dir={editLang === "ar" ? "rtl" : "ltr"}
+                    className="lang-keep w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
                   />
-                  <p className="text-[10px] text-slate-600 mt-0.5">Defaults to <span className="text-amber-400">{DEFAULT_AUTHOR}</span> if left blank.</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5">Defaults to <span className="text-amber-400">{editLang === "ar" ? DEFAULT_AUTHOR_AR : DEFAULT_AUTHOR}</span> if left blank.</p>
                 </label>
 
                 <label className="block">
