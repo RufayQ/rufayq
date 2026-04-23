@@ -6,6 +6,7 @@
 import { useMemo } from "react";
 import type { ArticleMeta } from "@/lib/articleMeta";
 import { resolveAuthor } from "@/lib/articleMeta";
+import { SITE_ORIGIN } from "@/seo/routes";
 
 interface Props {
   slug: string;
