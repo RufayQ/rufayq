@@ -117,7 +117,7 @@ const AdminPages = () => {
               </article>
             )}
             {(preview === "ar" || preview === "both") && (
-              <article className="prose prose-invert max-w-none" dir="rtl">
+              <article className="lang-keep prose prose-invert max-w-none" dir="rtl">
                 {preview === "both" && <p className="text-[10px] uppercase tracking-wider text-amber-400 mb-2" dir="ltr">Arabic</p>}
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{draft.body_md_ar || "_فارغ_"}</ReactMarkdown>
               </article>
