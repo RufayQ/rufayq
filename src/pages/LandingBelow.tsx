@@ -45,7 +45,6 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
   // to the hardcoded defaults below when a field is left blank in the editor,
   // so layout / fonts / colors / icons remain code-controlled.
   const sections = useLandingSections();
-  const t = (en: string, ar: string, override?: string) => override?.trim() || (isAr ? ar : en);
   const sec = (key: "features" | "how" | "pricing" | "faq" | "contact" | "providers") =>
     isAr ? sections.ar[key] : sections.en[key];
 
