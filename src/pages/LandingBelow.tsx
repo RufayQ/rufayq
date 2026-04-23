@@ -219,12 +219,18 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
             {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>أسعار بسيطة</span> : "SIMPLE PRICING"}
           </p>
           <h2 className="font-display text-4xl md:text-5xl mb-5 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-            {mode === "en" && (<>Start free. <em style={{ color: GOLD }}>Upgrade</em> anytime.</>)}
-            {mode === "ar" && (<span dir="rtl" className="font-arabic">ابدأ مجاناً. <em style={{ color: GOLD }}>طوّر</em> اشتراكك في أي وقت.</span>)}
-            {isBoth && (<>Start free. <em style={{ color: GOLD }}>Upgrade</em> anytime.</>)}
+            {sec("pricing").title ? sec("pricing").title : (
+              <>
+                {mode === "en" && (<>Start free. <em style={{ color: GOLD }}>Upgrade</em> anytime.</>)}
+                {mode === "ar" && (<span dir="rtl" className="font-arabic">ابدأ مجاناً. <em style={{ color: GOLD }}>طوّر</em> اشتراكك في أي وقت.</span>)}
+                {isBoth && (<>Start free. <em style={{ color: GOLD }}>Upgrade</em> anytime.</>)}
+              </>
+            )}
           </h2>
           <p className="text-base mb-14" style={{ color: TEXT_MUTED }}>
-            {isAr ? <span className="font-arabic">مجاني للأبد لرحلة واحدة. طوّر اشتراكك للحصول على رحلات غير محدودة، ذكاء اصطناعي، وإضافات حسب الاستخدام.</span> : "Free forever for one trip. Upgrade for unlimited journeys, AI, and pay-as-you-go add-ons."}
+            {sec("pricing").subtitle
+              ? sec("pricing").subtitle
+              : (isAr ? <span className="font-arabic">مجاني للأبد لرحلة واحدة. طوّر اشتراكك للحصول على رحلات غير محدودة، ذكاء اصطناعي، وإضافات حسب الاستخدام.</span> : "Free forever for one trip. Upgrade for unlimited journeys, AI, and pay-as-you-go add-ons.")}
           </p>
           <div className="grid md:grid-cols-3 gap-4 text-left">
             {[
@@ -274,8 +280,9 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
               {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>الأسئلة الشائعة</span> : "FAQ"}
             </p>
             <h2 className="font-display text-4xl md:text-5xl tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-              {isAr ? <span className="font-arabic">أسئلة شائعة</span> : "Common questions"}
+              {sec("faq").title ? sec("faq").title : (isAr ? <span className="font-arabic">أسئلة شائعة</span> : "Common questions")}
             </h2>
+            {sec("faq").subtitle && <p className="text-sm mt-3" style={{ color: TEXT_MUTED }}>{sec("faq").subtitle}</p>}
           </div>
           <div className="space-y-3">
             {faqs.map((f, i) => (
@@ -325,12 +332,18 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
             {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>تواصل معنا</span> : "CONTACT US"}
           </p>
           <h2 className="font-display text-4xl md:text-5xl mb-4 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-            {mode === "en" && (<>We're here to <em style={{ color: GOLD }}>help</em>.</>)}
-            {mode === "ar" && (<span dir="rtl" className="font-arabic">نحن هنا <em style={{ color: GOLD }}>للمساعدة</em>.</span>)}
-            {isBoth && (<>We're here to <em style={{ color: GOLD }}>help</em>.</>)}
+            {sec("contact").title ? sec("contact").title : (
+              <>
+                {mode === "en" && (<>We're here to <em style={{ color: GOLD }}>help</em>.</>)}
+                {mode === "ar" && (<span dir="rtl" className="font-arabic">نحن هنا <em style={{ color: GOLD }}>للمساعدة</em>.</span>)}
+                {isBoth && (<>We're here to <em style={{ color: GOLD }}>help</em>.</>)}
+              </>
+            )}
           </h2>
           <p className="text-sm mb-10" style={{ color: TEXT_MUTED }}>
-            {isAr ? <span className="font-arabic">رد خلال 24 ساعة · واتساب للدعم العاجل</span> : "Reply within 24 hours · WhatsApp for urgent support"}
+            {sec("contact").subtitle
+              ? sec("contact").subtitle
+              : (isAr ? <span className="font-arabic">رد خلال 24 ساعة · واتساب للدعم العاجل</span> : "Reply within 24 hours · WhatsApp for urgent support")}
           </p>
           <div className="grid md:grid-cols-3 gap-4">
             {[
