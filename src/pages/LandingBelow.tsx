@@ -131,6 +131,7 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
               {sec("how").title ? sec("how").title : (isAr ? <span className="font-arabic">ثلاث خطوات نحو الوضوح</span> : "Three steps to clarity")}
             </h2>
             {sec("how").subtitle && <p className="text-sm mt-3" style={{ color: TEXT_MUTED }}>{sec("how").subtitle}</p>}
+          </div>
           <div className="space-y-5">
             {[
               { n: "01", t: "Scan or add your documents", tAr: "امسح أو أضف وثائقك", d: "Snap a photo of your flight ticket, prescription, lab result, or discharge summary. RufayQ extracts the key info automatically.", dAr: "التقط صورة لتذكرة الطيران، الوصفة، نتيجة التحليل، أو تقرير الخروج. يستخلص رُفَيِّق المعلومات الأساسية تلقائياً." },
