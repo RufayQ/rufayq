@@ -103,7 +103,7 @@ const AdminPages = () => {
             value={editLang === "en" ? draft.body_md : draft.body_md_ar}
             onChange={(e) => setDraft({ ...draft, [editLang === "en" ? "body_md" : "body_md_ar"]: e.target.value })}
             dir={editLang === "ar" ? "rtl" : "ltr"}
-            className="w-full p-4 bg-transparent text-sm font-mono text-slate-200 outline-none resize-none"
+            className="lang-keep w-full p-4 bg-transparent text-sm font-mono text-slate-200 outline-none resize-none"
             rows={28}
             spellCheck={false}
             placeholder={editLang === "en" ? "# Heading\n\nMarkdown body…" : "# عنوان\n\nمحتوى ماركداون…"}
