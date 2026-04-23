@@ -413,7 +413,7 @@ const AdminNews = () => {
                   }
                   placeholder={editLang === "en" ? "Article title" : "عنوان المقال"}
                   dir={editLang === "ar" ? "rtl" : "ltr"}
-                  className="flex-1 bg-transparent text-base font-semibold text-slate-100 outline-none"
+                  className="lang-keep flex-1 bg-transparent text-base font-semibold text-slate-100 outline-none"
                 />
               </div>
               <div className="flex gap-2 items-center flex-wrap">
