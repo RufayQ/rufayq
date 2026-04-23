@@ -639,7 +639,7 @@ const AdminNews = () => {
                 }
               />
             ) : (
-              <article dir={previewLang === "ar" ? "rtl" : "ltr"} className="prose prose-invert max-w-none p-6 min-h-[60vh]">
+              <article dir={previewLang === "ar" ? "rtl" : "ltr"} className="lang-keep prose prose-invert max-w-none p-6 min-h-[60vh]">
                 <p className="text-[10px] uppercase tracking-widest text-amber-400 mb-2 flex items-center gap-1">
                   <Globe size={10} /> Preview · {previewLang === "ar" ? "العربية" : "English"}
                 </p>
