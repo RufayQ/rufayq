@@ -283,9 +283,10 @@ const AdminNews = () => {
       return;
     }
     setSaving(true);
-    // Auto-stamp the canonical author on every article so attribution stays consistent.
+    // Force the canonical author on every article so attribution stays consistent
+    // across EN and AR — overrides any manually entered byline.
     const stamped = articles.map((a) =>
-      a.meta.author?.trim() ? a : { ...a, meta: { ...a.meta, author: DEFAULT_AUTHOR } },
+      a.meta.author === DEFAULT_AUTHOR ? a : { ...a, meta: { ...a.meta, author: DEFAULT_AUTHOR } },
     );
     if (stamped.some((a, i) => a !== articles[i])) setArticles(stamped);
     const body_md = serialize(stamped, "en");
