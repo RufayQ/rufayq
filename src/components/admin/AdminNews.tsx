@@ -631,7 +631,7 @@ const AdminNews = () => {
                 dir={editLang === "ar" ? "rtl" : "ltr"}
                 rows={26}
                 spellCheck={false}
-                className="w-full p-5 bg-transparent text-sm font-mono text-slate-200 outline-none resize-none leading-relaxed"
+                className="lang-keep w-full p-5 bg-transparent text-sm font-mono text-slate-200 outline-none resize-none leading-relaxed"
                 placeholder={
                   editLang === "en"
                     ? "Write the article body in markdown…\n\n## Subheadings, **bold**, lists, [links](/news/other-article-slug) all supported."
