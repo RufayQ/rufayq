@@ -37,6 +37,7 @@ interface Article {
 const SEP = "\n\n";
 
 const DEFAULT_AUTHOR = "RufayQ Editorial Team";
+const DEFAULT_AUTHOR_AR = "فريق تحرير رُفَيِّق";
 
 const newArticle = (): Article => ({
   id: crypto.randomUUID(),
@@ -45,7 +46,7 @@ const newArticle = (): Article => ({
   bodyEn: "Write your article here…",
   bodyAr: "اكتب مقالك هنا…",
   meta: { author: DEFAULT_AUTHOR, publishedAt: new Date().toISOString().slice(0, 10) },
-  metaAr: {},
+  metaAr: { author: DEFAULT_AUTHOR_AR },
 });
 
 /** Split a markdown blob into Article shells, parsing each `<!--meta-->` block. */
