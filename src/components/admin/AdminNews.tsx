@@ -36,13 +36,15 @@ interface Article {
 
 const SEP = "\n\n";
 
+const DEFAULT_AUTHOR = "RufayQ Editorial Team";
+
 const newArticle = (): Article => ({
   id: crypto.randomUUID(),
   titleEn: "Untitled article",
   titleAr: "مقال جديد",
   bodyEn: "Write your article here…",
   bodyAr: "اكتب مقالك هنا…",
-  meta: { author: "RufayQ Editorial", publishedAt: new Date().toISOString().slice(0, 10) },
+  meta: { author: DEFAULT_AUTHOR, publishedAt: new Date().toISOString().slice(0, 10) },
   metaAr: {},
 });
 
@@ -281,8 +283,13 @@ const AdminNews = () => {
       return;
     }
     setSaving(true);
-    const body_md = serialize(articles, "en");
-    const body_md_ar = serialize(articles, "ar");
+    // Auto-stamp the canonical author on every article so attribution stays consistent.
+    const stamped = articles.map((a) =>
+      a.meta.author?.trim() ? a : { ...a, meta: { ...a.meta, author: DEFAULT_AUTHOR } },
+    );
+    if (stamped.some((a, i) => a !== articles[i])) setArticles(stamped);
+    const body_md = serialize(stamped, "en");
+    const body_md_ar = serialize(stamped, "ar");
     const { error } = await supabase
       .from("site_pages")
       .update({ body_md, body_md_ar })
@@ -471,11 +478,12 @@ const AdminNews = () => {
                 <label className="block">
                   <span className="text-[10px] text-slate-500 uppercase tracking-wider">Author</span>
                   <input
-                    value={active.meta.author || ""}
+                    value={active.meta.author || DEFAULT_AUTHOR}
                     onChange={(e) => updateMeta("en", { author: e.target.value })}
-                    placeholder="Dr. Abdelrahman Morsy"
+                    placeholder={DEFAULT_AUTHOR}
                     className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
                   />
+                  <p className="text-[10px] text-slate-600 mt-0.5">Defaults to <span className="text-amber-400">{DEFAULT_AUTHOR}</span> if left blank.</p>
                 </label>
 
                 <label className="block">

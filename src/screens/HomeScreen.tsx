@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RufayQWordmark from "@/components/RufayQWordmark";
 import HeaderMenu, { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
 import NotificationBell from "@/components/NotificationBell";
@@ -6,6 +6,8 @@ import { CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { medications, appointments } from "@/constants/data";
 import { Plus, MapPin, Video, Building2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { getDeviceId } from "@/hooks/useDeviceId";
 
 interface HomeScreenProps {
   onNavigate: (tab: string, context?: string) => void;
@@ -18,6 +20,34 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
 
   const todayMeds = medications.filter((_, i) => i < 3);
   const dateStr = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }).toUpperCase();
+
+  // Resolve a friendly first name: auth metadata → profile → fallback.
+  const [patientName, setPatientName] = useState<string>("");
+  const [patientNameAr, setPatientNameAr] = useState<string>("");
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const meta = (session?.user?.user_metadata || {}) as Record<string, string>;
+      let en = (meta.full_name || meta.name || "").trim();
+      let ar = "";
+      if (!en) {
+        const did = getDeviceId();
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name_en, full_name_ar")
+          .eq("device_id", did)
+          .maybeSingle();
+        en = (prof?.full_name_en || "").trim();
+        ar = (prof?.full_name_ar || "").trim();
+      }
+      setPatientName(en ? en.split(" ")[0] : "");
+      setPatientNameAr(ar ? ar.split(" ")[0] : "");
+    })();
+  }, []);
+
+  const hour = new Date().getHours();
+  const greetEn = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greetAr = hour < 12 ? "صباح الخير" : hour < 18 ? "مساء الخير" : "مساء الخير";
 
   const homeMenuItems = [
     {
@@ -77,8 +107,12 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
             </div>
           </div>
           <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>{dateStr}</p>
-          <p className="font-display text-xl italic text-white" style={{ fontWeight: 300 }}>Good evening, Mohammed</p>
-          <p className="font-arabic text-sm mt-0.5" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>مساء الخير، محمد</p>
+          <p className="font-display text-xl italic text-white" style={{ fontWeight: 300 }}>
+            {patientName ? `${greetEn}, ${patientName}` : `${greetEn} 👋`}
+          </p>
+          <p className="font-arabic text-sm mt-0.5" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>
+            {patientNameAr || patientName ? `${greetAr}، ${patientNameAr || patientName}` : `${greetAr} 👋`}
+          </p>
         </div>
       </div>
 
