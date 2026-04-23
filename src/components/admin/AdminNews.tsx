@@ -514,7 +514,7 @@ const AdminNews = () => {
                     onChange={(e) => updateMeta(editLang, { keywords: e.target.value })}
                     placeholder="medical tourism saudi arabia, …"
                     dir={editLang === "ar" ? "rtl" : "ltr"}
-                    className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
+                    className="lang-keep w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
                   />
                 </label>
 
