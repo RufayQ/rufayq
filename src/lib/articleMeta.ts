@@ -25,11 +25,40 @@ export interface ArticleMeta {
   slug?: string;
   description?: string;
   author?: string;
-  publishedAt?: string;   // ISO date YYYY-MM-DD
+  /**
+   * Publish timestamp. Accepts either `YYYY-MM-DD` (legacy, treated as 00:00 local)
+   * or full ISO `YYYY-MM-DDTHH:mm` for scheduled posts. If this value is in the
+   * future, the article is considered scheduled and will not appear publicly
+   * until the timestamp passes.
+   */
+  publishedAt?: string;
   readingTime?: number;   // minutes
   keywords?: string;      // comma-separated
   image?: string;         // path or URL
 }
+
+/**
+ * Parses a `publishedAt` string into a Date. Returns null when the value is
+ * empty or unparseable. Bare `YYYY-MM-DD` strings are anchored to local
+ * midnight so the editor's date picker behaves predictably.
+ */
+export const parsePublishedAt = (value: string | undefined): Date | null => {
+  const v = value?.trim();
+  if (!v) return null;
+  // Date-only → local midnight (avoid UTC shift surprises)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    const [y, m, d] = v.split("-").map(Number);
+    return new Date(y, m - 1, d, 0, 0, 0, 0);
+  }
+  const parsed = new Date(v);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+/** True when the article's publish time is still in the future. */
+export const isScheduled = (meta: ArticleMeta, now: Date = new Date()): boolean => {
+  const dt = parsePublishedAt(meta.publishedAt);
+  return dt ? dt.getTime() > now.getTime() : false;
+};
 
 export const DEFAULT_AUTHOR_EN = "RufayQ Editorial Team";
 export const DEFAULT_AUTHOR_AR = "فريق تحرير رُفَيِّق";
