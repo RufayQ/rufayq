@@ -139,6 +139,18 @@ const serialize = (articles: Article[], lang: Lang): string =>
     .filter(Boolean)
     .join(SEP);
 
+const formatCountdown = (target: Date, now: Date): string => {
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return "live";
+  const mins = Math.floor(diff / 60000);
+  const days = Math.floor(mins / 1440);
+  const hrs = Math.floor((mins % 1440) / 60);
+  const m = mins % 60;
+  if (days > 0) return `${days}d ${hrs}h`;
+  if (hrs > 0) return `${hrs}h ${m}m`;
+  return `${m}m`;
+};
+
 const AdminNews = () => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,6 +162,12 @@ const AdminNews = () => {
   const [showLinkPicker, setShowLinkPicker] = useState(false);
   const [showSeoPreview, setShowSeoPreview] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
+  // Tick every 30s so scheduled-countdown badges in the sidebar stay fresh.
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const load = async () => {
     setLoading(true);
