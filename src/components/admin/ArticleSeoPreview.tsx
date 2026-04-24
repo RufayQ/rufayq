@@ -3,9 +3,9 @@
  * will render on /news/:slug. Mirrors the logic in src/pages/News.tsx so editors
  * can verify SEO without leaving the editor.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ArticleMeta } from "@/lib/articleMeta";
-import { resolveAuthor } from "@/lib/articleMeta";
+import { isDraft, parsePublishedAt, resolveAuthor } from "@/lib/articleMeta";
 import { SITE_ORIGIN } from "@/seo/routes";
 
 interface Props {
@@ -17,6 +17,20 @@ interface Props {
   excerptEn?: string;
   excerptAr?: string;
 }
+
+const formatCountdown = (target: Date, now: Date): string => {
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return "live now";
+  const mins = Math.floor(diff / 60000);
+  const days = Math.floor(mins / 1440);
+  const hrs = Math.floor((mins % 1440) / 60);
+  const m = mins % 60;
+  const s = Math.floor((diff % 60000) / 1000);
+  if (days > 0) return `${days}d ${hrs}h ${m}m`;
+  if (hrs > 0) return `${hrs}h ${m}m ${s}s`;
+  if (mins > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+};
 
 const Pill = ({ label, ok }: { label: string; ok: boolean }) => (
   <span
