@@ -35,7 +35,17 @@ export interface ArticleMeta {
   readingTime?: number;   // minutes
   keywords?: string;      // comma-separated
   image?: string;         // path or URL
+  /**
+   * When `"true"`, the article is treated as a draft and hidden from the public
+   * site regardless of `publishedAt`. Stored as a string so it round-trips
+   * cleanly through the `<!--meta-->` comment block.
+   */
+  draft?: string;
 }
+
+/** True when the article is explicitly marked as a draft. */
+export const isDraft = (meta: ArticleMeta): boolean =>
+  (meta.draft || "").toLowerCase() === "true";
 
 /**
  * Parses a `publishedAt` string into a Date. Returns null when the value is
@@ -71,7 +81,7 @@ const LEGACY_AUTHOR_ALIASES = new Set([
 ]);
 
 export const META_FIELDS: Array<keyof ArticleMeta> = [
-  "slug", "description", "author", "publishedAt", "readingTime", "keywords", "image",
+  "slug", "description", "author", "publishedAt", "readingTime", "keywords", "image", "draft",
 ];
 
 /** Convert "Some Title 123!" → "some-title-123". */

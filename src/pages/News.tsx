@@ -22,6 +22,7 @@ import {
   ArticleMeta,
   estimateReadingTime,
   extractMeta,
+  isDraft,
   isScheduled,
   resolveAuthor,
   resolveSlug,
@@ -139,13 +140,13 @@ const News = () => {
 
   const allArticlesEn = useMemo(() => parseArticles(bodyEn), [bodyEn]);
   const allArticlesAr = useMemo(() => parseArticles(bodyAr), [bodyAr]);
-  // Hide scheduled (future-dated) articles from the public site.
+  // Hide scheduled (future-dated) and draft articles from the public site.
   const articlesEn = useMemo(
-    () => allArticlesEn.filter((a) => !isScheduled(a.meta, now)),
+    () => allArticlesEn.filter((a) => !isScheduled(a.meta, now) && !isDraft(a.meta)),
     [allArticlesEn, now],
   );
   const articlesAr = useMemo(
-    () => allArticlesAr.filter((a) => !isScheduled(a.meta, now)),
+    () => allArticlesAr.filter((a) => !isScheduled(a.meta, now) && !isDraft(a.meta)),
     [allArticlesAr, now],
   );
   const articles = isAr ? articlesAr : articlesEn;

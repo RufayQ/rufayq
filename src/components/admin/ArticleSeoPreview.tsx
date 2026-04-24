@@ -3,9 +3,9 @@
  * will render on /news/:slug. Mirrors the logic in src/pages/News.tsx so editors
  * can verify SEO without leaving the editor.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ArticleMeta } from "@/lib/articleMeta";
-import { resolveAuthor } from "@/lib/articleMeta";
+import { isDraft, parsePublishedAt, resolveAuthor } from "@/lib/articleMeta";
 import { SITE_ORIGIN } from "@/seo/routes";
 
 interface Props {
@@ -17,6 +17,20 @@ interface Props {
   excerptEn?: string;
   excerptAr?: string;
 }
+
+const formatCountdown = (target: Date, now: Date): string => {
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return "live now";
+  const mins = Math.floor(diff / 60000);
+  const days = Math.floor(mins / 1440);
+  const hrs = Math.floor((mins % 1440) / 60);
+  const m = mins % 60;
+  const s = Math.floor((diff % 60000) / 1000);
+  if (days > 0) return `${days}d ${hrs}h ${m}m`;
+  if (hrs > 0) return `${hrs}h ${m}m ${s}s`;
+  if (mins > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+};
 
 const Pill = ({ label, ok }: { label: string; ok: boolean }) => (
   <span
@@ -90,6 +104,23 @@ const ArticleSeoPreview = ({ slug, titleEn, titleAr, metaEn, metaAr, excerptEn, 
     pair: !!titleEn.trim() && !!titleAr.trim(),
   };
 
+  // Live-ticking countdown so editors can verify scheduled publish timing
+  // without leaving the editor. Updates every second; only mounted when the
+  // SEO preview pane is open, so the cost is negligible.
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 1_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const publishAt = parsePublishedAt(metaEn.publishedAt);
+  const draft = isDraft(metaEn);
+  const scheduled = !draft && publishAt && publishAt.getTime() > now.getTime();
+  const status: "draft" | "scheduled" | "live" = draft
+    ? "draft"
+    : scheduled
+      ? "scheduled"
+      : "live";
+
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -102,6 +133,34 @@ const ArticleSeoPreview = ({ slug, titleEn, titleAr, metaEn, metaAr, excerptEn, 
           <Pill label="meta" ok={checks.descEn} />
           <Pill label="OG image" ok={checks.image} />
         </div>
+      </div>
+
+      <div
+        className={`rounded-md border p-3 ${
+          status === "draft"
+            ? "border-slate-700 bg-slate-800/40"
+            : status === "scheduled"
+              ? "border-amber-500/40 bg-amber-500/10"
+              : "border-emerald-500/40 bg-emerald-500/10"
+        }`}
+      >
+        <p className="text-[9px] uppercase tracking-wider text-slate-500">Publish status</p>
+        <p
+          className={`text-[13px] font-semibold mt-0.5 ${
+            status === "draft"
+              ? "text-slate-300"
+              : status === "scheduled"
+                ? "text-amber-300"
+                : "text-emerald-300"
+          }`}
+        >
+          {status === "draft" && "Draft — hidden from public"}
+          {status === "scheduled" && publishAt && `Scheduled · goes live in ${formatCountdown(publishAt, now)}`}
+          {status === "live" && (publishAt ? "Live — visible on /news" : "Live — no publish date set")}
+        </p>
+        {publishAt && status !== "draft" && (
+          <p className="text-[10px] text-slate-500 mt-0.5 font-mono">{publishAt.toLocaleString()}</p>
+        )}
       </div>
 
       <div className="rounded-md bg-slate-900/60 p-3 border border-slate-800">
