@@ -165,6 +165,8 @@ const AdminNews = () => {
   const [showLinkPicker, setShowLinkPicker] = useState(false);
   const [showSeoPreview, setShowSeoPreview] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("manual");
   // Tick every 30s so scheduled-countdown badges in the sidebar stay fresh.
   const [now, setNow] = useState<Date>(() => new Date());
   useEffect(() => {
