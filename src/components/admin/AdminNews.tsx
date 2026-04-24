@@ -370,6 +370,8 @@ const AdminNews = () => {
           articles.map((a, i) => {
             const slug = resolveSlug(a.titleEn || a.titleAr, a.meta);
             const conflict = slugConflicts.has(slug);
+            const scheduledAt = parsePublishedAt(a.meta.publishedAt);
+            const scheduled = scheduledAt && scheduledAt.getTime() > now.getTime();
             return (
               <button
                 key={a.id}
@@ -383,9 +385,20 @@ const AdminNews = () => {
                   <p className="truncate text-[12px] leading-tight">{a.titleEn || "Untitled"}</p>
                   <p dir="rtl" className="lang-keep truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
                   <p className="truncate text-[9px] mt-1 font-mono opacity-50">/{slug}</p>
+                  {scheduled && scheduledAt && (
+                    <p
+                      className="truncate text-[9px] mt-1 font-mono text-amber-400"
+                      title={`Goes live ${scheduledAt.toLocaleString()}`}
+                    >
+                      ⏱ in {formatCountdown(scheduledAt, now)}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1 items-end shrink-0">
                   {conflict && <AlertTriangle size={11} className="text-rose-400" />}
+                  {scheduled && (
+                    <span title="Scheduled — hidden from public until publish time" className="text-[8px] uppercase font-semibold text-amber-400/90">●</span>
+                  )}
                   {(!a.titleEn.trim() || !a.titleAr.trim() || !a.bodyEn.trim() || !a.bodyAr.trim()) && (
                     <span title="Missing EN/AR pair" className="text-[8px] uppercase font-semibold text-amber-500/80">½</span>
                   )}
