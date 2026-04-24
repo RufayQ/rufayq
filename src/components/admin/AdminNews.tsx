@@ -503,13 +503,21 @@ const AdminNews = () => {
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Published date</span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Publish date &amp; time
+                    {isScheduled(active.meta) && (
+                      <span className="ml-1.5 text-amber-400 normal-case tracking-normal">· scheduled</span>
+                    )}
+                  </span>
                   <input
-                    type="date"
-                    value={active.meta.publishedAt || ""}
-                    onChange={(e) => updateMeta("en", { publishedAt: e.target.value })}
+                    type="datetime-local"
+                    value={(active.meta.publishedAt || "").slice(0, 16)}
+                    onChange={(e) => updateMeta("en", { publishedAt: e.target.value || undefined })}
                     className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
                   />
+                  <p className="text-[10px] text-slate-600 mt-0.5">
+                    Future date &amp; time → article stays hidden until then.
+                  </p>
                 </label>
 
                 <label className="block">
