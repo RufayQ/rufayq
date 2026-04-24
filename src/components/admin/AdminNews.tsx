@@ -364,6 +364,51 @@ const AdminNews = () => {
           </button>
         </div>
 
+        {/* Status filter chips */}
+        <div className="flex gap-1 px-1 mb-1.5">
+          {([
+            { v: "all", label: "All", count: articles.length },
+            {
+              v: "live",
+              label: "Live",
+              count: articles.filter((a) => !isDraft(a.meta) && !isScheduled(a.meta, now)).length,
+            },
+            {
+              v: "scheduled",
+              label: "Scheduled",
+              count: articles.filter((a) => !isDraft(a.meta) && isScheduled(a.meta, now)).length,
+            },
+            { v: "draft", label: "Drafts", count: articles.filter((a) => isDraft(a.meta)).length },
+          ] as Array<{ v: StatusFilter; label: string; count: number }>).map((opt) => (
+            <button
+              key={opt.v}
+              onClick={() => setStatusFilter(opt.v)}
+              className={`flex-1 px-1.5 py-1 rounded-md text-[10px] font-semibold ${
+                statusFilter === opt.v
+                  ? "bg-amber-500 text-slate-950"
+                  : "bg-slate-800/60 text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {opt.label}
+              <span className="ml-1 opacity-70">{opt.count}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Sort selector */}
+        <div className="flex items-center gap-1.5 px-2 mb-2">
+          <ArrowUpDown size={10} className="text-slate-500" />
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            className="flex-1 bg-slate-800/60 border border-slate-700 rounded-md text-[10px] text-slate-300 px-1.5 py-1 outline-none focus:border-amber-500"
+          >
+            <option value="manual">Manual order</option>
+            <option value="soonest">Publish soonest first</option>
+            <option value="latest">Publish latest first</option>
+          </select>
+        </div>
+
         {articles.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-700 p-4 text-center">
             <p className="text-[11px] text-slate-500 mb-2">No articles yet.</p>
