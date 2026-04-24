@@ -81,7 +81,7 @@ const LEGACY_AUTHOR_ALIASES = new Set([
 ]);
 
 export const META_FIELDS: Array<keyof ArticleMeta> = [
-  "slug", "description", "author", "publishedAt", "readingTime", "keywords", "image",
+  "slug", "description", "author", "publishedAt", "readingTime", "keywords", "image", "draft",
 ];
 
 /** Convert "Some Title 123!" → "some-title-123". */
