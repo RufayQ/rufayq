@@ -548,8 +548,42 @@ const AdminNews = () => {
                   dir={editLang === "ar" ? "rtl" : "ltr"}
                   className="lang-keep flex-1 bg-transparent text-base font-semibold text-slate-100 outline-none"
                 />
+                {(() => {
+                  const draft = isDraft(active.meta);
+                  const sched = !draft && isScheduled(active.meta, now);
+                  const cls = draft
+                    ? "bg-slate-700 text-slate-200"
+                    : sched
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+                  const label = draft ? "Draft" : sched ? "Scheduled" : "Live";
+                  return (
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-bold shrink-0 ${cls}`}>
+                      {label}
+                    </span>
+                  );
+                })()}
               </div>
               <div className="flex gap-2 items-center flex-wrap">
+                {/* Draft / Publish toggle — saving as draft hides from public regardless of date */}
+                <div className="flex rounded-lg bg-slate-800 p-0.5" title="Draft hides article from public regardless of publish date">
+                  <button
+                    onClick={() => updateMeta("en", { draft: undefined })}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${
+                      !isDraft(active.meta) ? "bg-emerald-500 text-slate-950" : "text-slate-400"
+                    }`}
+                  >
+                    Publish
+                  </button>
+                  <button
+                    onClick={() => updateMeta("en", { draft: "true" })}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${
+                      isDraft(active.meta) ? "bg-slate-200 text-slate-900" : "text-slate-400"
+                    }`}
+                  >
+                    Draft
+                  </button>
+                </div>
                 <div className="flex rounded-lg bg-slate-800 p-0.5">
                   <button onClick={() => setEditLang("en")} className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${editLang === "en" ? "bg-amber-500 text-slate-950" : "text-slate-400"}`}>EN</button>
                   <button onClick={() => setEditLang("ar")} className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${editLang === "ar" ? "bg-amber-500 text-slate-950" : "text-slate-400"}`}>AR</button>
