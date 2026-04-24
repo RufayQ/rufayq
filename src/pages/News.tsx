@@ -109,6 +109,9 @@ const News = () => {
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [query, setQuery] = useState("");
+  // Tick once a minute so scheduled posts auto-appear when their time arrives,
+  // even if the visitor never refreshes the page.
+  const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
     let cancelled = false;
@@ -129,8 +132,22 @@ const News = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const articlesEn = useMemo(() => parseArticles(bodyEn), [bodyEn]);
-  const articlesAr = useMemo(() => parseArticles(bodyAr), [bodyAr]);
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const allArticlesEn = useMemo(() => parseArticles(bodyEn), [bodyEn]);
+  const allArticlesAr = useMemo(() => parseArticles(bodyAr), [bodyAr]);
+  // Hide scheduled (future-dated) articles from the public site.
+  const articlesEn = useMemo(
+    () => allArticlesEn.filter((a) => !isScheduled(a.meta, now)),
+    [allArticlesEn, now],
+  );
+  const articlesAr = useMemo(
+    () => allArticlesAr.filter((a) => !isScheduled(a.meta, now)),
+    [allArticlesAr, now],
+  );
   const articles = isAr ? articlesAr : articlesEn;
 
   const filtered = useMemo(() => {
