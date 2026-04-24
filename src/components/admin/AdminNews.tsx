@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Save, Plus, Trash2, ChevronUp, ChevronDown, Eye, FileText, Globe,
-  Copy, Link as LinkIcon, AlertTriangle, Sparkles, Search,
+  Copy, Link as LinkIcon, AlertTriangle, Sparkles, Search, ArrowUpDown,
 } from "lucide-react";
 import {
   ArticleMeta,
@@ -22,6 +22,7 @@ import {
   DEFAULT_AUTHOR_EN,
   estimateReadingTime,
   extractMeta,
+  isDraft,
   isScheduled,
   parsePublishedAt,
   resolveSlug,
@@ -32,6 +33,8 @@ import { getClusterSuggestions } from "@/lib/seoCluster";
 import ArticleSeoPreview from "./ArticleSeoPreview";
 
 type Lang = "en" | "ar";
+type StatusFilter = "all" | "live" | "scheduled" | "draft";
+type SortOrder = "soonest" | "latest" | "manual";
 
 interface Article {
   id: string;
