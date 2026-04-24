@@ -417,45 +417,82 @@ const AdminNews = () => {
             </button>
           </div>
         ) : (
-          articles.map((a, i) => {
-            const slug = resolveSlug(a.titleEn || a.titleAr, a.meta);
-            const conflict = slugConflicts.has(slug);
-            const scheduledAt = parsePublishedAt(a.meta.publishedAt);
-            const scheduled = scheduledAt && scheduledAt.getTime() > now.getTime();
-            return (
-              <button
-                key={a.id}
-                onClick={() => setActiveId(a.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-start gap-2 ${
-                  activeId === a.id ? "bg-amber-500/15 text-amber-300" : "text-slate-400 hover:bg-slate-800/50"
-                }`}
-              >
-                <span className="font-mono text-[10px] mt-0.5 opacity-60 shrink-0">{String(i + 1).padStart(2, "0")}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-[12px] leading-tight">{a.titleEn || "Untitled"}</p>
-                  <p dir="rtl" className="lang-keep truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
-                  <p className="truncate text-[9px] mt-1 font-mono opacity-50">/{slug}</p>
-                  {scheduled && scheduledAt && (
-                    <p
-                      className="truncate text-[9px] mt-1 font-mono text-amber-400"
-                      title={`Goes live ${scheduledAt.toLocaleString()}`}
-                    >
-                      ⏱ in {formatCountdown(scheduledAt, now)}
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1 items-end shrink-0">
-                  {conflict && <AlertTriangle size={11} className="text-rose-400" />}
-                  {scheduled && (
-                    <span title="Scheduled — hidden from public until publish time" className="text-[8px] uppercase font-semibold text-amber-400/90">●</span>
-                  )}
-                  {(!a.titleEn.trim() || !a.titleAr.trim() || !a.bodyEn.trim() || !a.bodyAr.trim()) && (
-                    <span title="Missing EN/AR pair" className="text-[8px] uppercase font-semibold text-amber-500/80">½</span>
-                  )}
-                </div>
-              </button>
-            );
-          })
+          (() => {
+            // Decorate with stable manual index, then filter + sort.
+            const decorated = articles.map((a, i) => ({
+              article: a,
+              manualIndex: i,
+              draft: isDraft(a.meta),
+              scheduledAt: parsePublishedAt(a.meta.publishedAt),
+            }));
+            const filtered = decorated.filter(({ article, draft, scheduledAt }) => {
+              if (statusFilter === "all") return true;
+              const isSched = !draft && !!scheduledAt && scheduledAt.getTime() > now.getTime();
+              if (statusFilter === "draft") return draft;
+              if (statusFilter === "scheduled") return isSched;
+              if (statusFilter === "live") return !draft && !isSched;
+              return true;
+            });
+            const sorted = [...filtered].sort((a, b) => {
+              if (sortOrder === "manual") return a.manualIndex - b.manualIndex;
+              const ta = a.scheduledAt?.getTime() ?? Number.POSITIVE_INFINITY;
+              const tb = b.scheduledAt?.getTime() ?? Number.POSITIVE_INFINITY;
+              return sortOrder === "soonest" ? ta - tb : tb - ta;
+            });
+            if (sorted.length === 0) {
+              return (
+                <p className="text-center text-[11px] text-slate-500 py-6">
+                  No articles match this filter.
+                </p>
+              );
+            }
+            return sorted.map(({ article: a, manualIndex, draft, scheduledAt }) => {
+              const slug = resolveSlug(a.titleEn || a.titleAr, a.meta);
+              const conflict = slugConflicts.has(slug);
+              const scheduled = !draft && scheduledAt && scheduledAt.getTime() > now.getTime();
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => setActiveId(a.id)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-start gap-2 ${
+                    activeId === a.id ? "bg-amber-500/15 text-amber-300" : "text-slate-400 hover:bg-slate-800/50"
+                  }`}
+                >
+                  <span className="font-mono text-[10px] mt-0.5 opacity-60 shrink-0">
+                    {String(manualIndex + 1).padStart(2, "0")}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-[12px] leading-tight">{a.titleEn || "Untitled"}</p>
+                    <p dir="rtl" className="lang-keep truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
+                    <p className="truncate text-[9px] mt-1 font-mono opacity-50">/{slug}</p>
+                    {draft && (
+                      <p className="truncate text-[9px] mt-1 font-mono text-slate-400">📝 draft</p>
+                    )}
+                    {scheduled && scheduledAt && (
+                      <p
+                        className="truncate text-[9px] mt-1 font-mono text-amber-400"
+                        title={`Goes live ${scheduledAt.toLocaleString()}`}
+                      >
+                        ⏱ in {formatCountdown(scheduledAt, now)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1 items-end shrink-0">
+                    {conflict && <AlertTriangle size={11} className="text-rose-400" />}
+                    {draft && (
+                      <span title="Draft — never publicly visible" className="text-[8px] uppercase font-semibold text-slate-400">D</span>
+                    )}
+                    {scheduled && (
+                      <span title="Scheduled — hidden from public until publish time" className="text-[8px] uppercase font-semibold text-amber-400/90">●</span>
+                    )}
+                    {(!a.titleEn.trim() || !a.titleAr.trim() || !a.bodyEn.trim() || !a.bodyAr.trim()) && (
+                      <span title="Missing EN/AR pair" className="text-[8px] uppercase font-semibold text-amber-500/80">½</span>
+                    )}
+                  </div>
+                </button>
+              );
+            });
+          })()
         )}
 
         <div className="mt-4 px-2">
