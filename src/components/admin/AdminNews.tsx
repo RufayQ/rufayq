@@ -22,6 +22,8 @@ import {
   DEFAULT_AUTHOR_EN,
   estimateReadingTime,
   extractMeta,
+  isScheduled,
+  parsePublishedAt,
   resolveSlug,
   serializeMeta,
   slugify,
@@ -137,6 +139,18 @@ const serialize = (articles: Article[], lang: Lang): string =>
     .filter(Boolean)
     .join(SEP);
 
+const formatCountdown = (target: Date, now: Date): string => {
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return "live";
+  const mins = Math.floor(diff / 60000);
+  const days = Math.floor(mins / 1440);
+  const hrs = Math.floor((mins % 1440) / 60);
+  const m = mins % 60;
+  if (days > 0) return `${days}d ${hrs}h`;
+  if (hrs > 0) return `${hrs}h ${m}m`;
+  return `${m}m`;
+};
+
 const AdminNews = () => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,6 +162,12 @@ const AdminNews = () => {
   const [showLinkPicker, setShowLinkPicker] = useState(false);
   const [showSeoPreview, setShowSeoPreview] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
+  // Tick every 30s so scheduled-countdown badges in the sidebar stay fresh.
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -350,6 +370,8 @@ const AdminNews = () => {
           articles.map((a, i) => {
             const slug = resolveSlug(a.titleEn || a.titleAr, a.meta);
             const conflict = slugConflicts.has(slug);
+            const scheduledAt = parsePublishedAt(a.meta.publishedAt);
+            const scheduled = scheduledAt && scheduledAt.getTime() > now.getTime();
             return (
               <button
                 key={a.id}
@@ -363,9 +385,20 @@ const AdminNews = () => {
                   <p className="truncate text-[12px] leading-tight">{a.titleEn || "Untitled"}</p>
                   <p dir="rtl" className="lang-keep truncate text-[10px] opacity-70 leading-tight mt-0.5">{a.titleAr || "—"}</p>
                   <p className="truncate text-[9px] mt-1 font-mono opacity-50">/{slug}</p>
+                  {scheduled && scheduledAt && (
+                    <p
+                      className="truncate text-[9px] mt-1 font-mono text-amber-400"
+                      title={`Goes live ${scheduledAt.toLocaleString()}`}
+                    >
+                      ⏱ in {formatCountdown(scheduledAt, now)}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1 items-end shrink-0">
                   {conflict && <AlertTriangle size={11} className="text-rose-400" />}
+                  {scheduled && (
+                    <span title="Scheduled — hidden from public until publish time" className="text-[8px] uppercase font-semibold text-amber-400/90">●</span>
+                  )}
                   {(!a.titleEn.trim() || !a.titleAr.trim() || !a.bodyEn.trim() || !a.bodyAr.trim()) && (
                     <span title="Missing EN/AR pair" className="text-[8px] uppercase font-semibold text-amber-500/80">½</span>
                   )}
@@ -501,13 +534,21 @@ const AdminNews = () => {
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Published date</span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Publish date &amp; time
+                    {isScheduled(active.meta) && (
+                      <span className="ml-1.5 text-amber-400 normal-case tracking-normal">· scheduled</span>
+                    )}
+                  </span>
                   <input
-                    type="date"
-                    value={active.meta.publishedAt || ""}
-                    onChange={(e) => updateMeta("en", { publishedAt: e.target.value })}
+                    type="datetime-local"
+                    value={(active.meta.publishedAt || "").slice(0, 16)}
+                    onChange={(e) => updateMeta("en", { publishedAt: e.target.value || undefined })}
                     className="w-full mt-1 px-2 py-1.5 rounded-md bg-slate-800/60 border border-slate-700 text-slate-200 outline-none focus:border-amber-500 text-[12px]"
                   />
+                  <p className="text-[10px] text-slate-600 mt-0.5">
+                    Future date &amp; time → article stays hidden until then.
+                  </p>
                 </label>
 
                 <label className="block">
