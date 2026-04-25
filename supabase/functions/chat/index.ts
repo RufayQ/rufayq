@@ -56,6 +56,55 @@ serve(async (req) => {
       });
     }
 
+    // ---- Daily AI credit limits per plan tier ----
+    const PLAN_LIMITS: Record<string, number> = {
+      trial: 5,
+      basic: 25,
+      companion: 50,
+      family: 100,
+      premium: 200,
+    };
+    const planKey = (trial.plan || "trial").toLowerCase();
+    const dailyLimit = PLAN_LIMITS[planKey] ?? 5;
+    const today = new Date().toISOString().slice(0, 10); // UTC YYYY-MM-DD
+
+    const { data: usage } = await adminClient
+      .from("ai_usage")
+      .select("id, count")
+      .eq("device_id", deviceId)
+      .eq("usage_day", today)
+      .maybeSingle();
+
+    const used = usage?.count ?? 0;
+    if (used >= dailyLimit) {
+      return new Response(JSON.stringify({
+        error: "Daily AI credit limit reached",
+        plan: planKey,
+        limit: dailyLimit,
+        used,
+        resets_at: new Date(Date.UTC(
+          new Date().getUTCFullYear(),
+          new Date().getUTCMonth(),
+          new Date().getUTCDate() + 1,
+        )).toISOString(),
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Increment usage BEFORE calling the model so concurrent requests don't bypass the cap.
+    if (usage) {
+      await adminClient
+        .from("ai_usage")
+        .update({ count: used + 1, last_prompt_at: new Date().toISOString() })
+        .eq("id", usage.id);
+    } else {
+      await adminClient
+        .from("ai_usage")
+        .insert({ device_id: deviceId, usage_day: today, count: 1 });
+    }
+
     const { messages, mode } = await req.json();
 
     // ---- Payload size guard (prevent oversized requests) ----
