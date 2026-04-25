@@ -24,7 +24,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
   const [medNotes, setMedNotes] = useState<Record<string, MedNote[]>>({});
   const [medReminders, setMedReminders] = useState<Record<string, number[]>>({});
-  const [allergies] = useState<string[]>(isGuest ? ["Penicillin", "Sulfa drugs", "Shellfish"] : []);
+  const [allergies] = useState<string[]>(showMedsDemo ? ["Penicillin", "Sulfa drugs", "Shellfish"] : []);
   const [extraMeds, setExtraMeds] = useState<Medication[]>([]);
   const [showAddMed, setShowAddMed] = useState(false);
   const { medUpdates } = useProviderFeed();
