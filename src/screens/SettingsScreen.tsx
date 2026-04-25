@@ -61,6 +61,8 @@ const RadioOption = ({
 const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const stored = JSON.parse(localStorage.getItem("rufayq_settings") || "{}");
   const { mode: langMode, setMode: setLangMode } = useLanguage();
+  const isGuest = useGuestMode();
+  const { categories: guestCats, setCategory: setGuestCat, resetAll: resetGuestCats } = useGuestCategories();
 
   const applyThemeNow = (t: string) => {
     const root = document.documentElement;
