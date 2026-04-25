@@ -131,8 +131,6 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           </div>
         </div>
 
-        </div>
-
         {/* Guest Mode — per-category demo data toggles */}
         {isGuest && (
           <div className="mx-4 mt-5">
