@@ -101,6 +101,17 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
 
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
+
+    // ---- Guest mode: enforce 5/day locally before hitting the network ----
+    if (isGuest) {
+      const ok = consumeGuestCredit();
+      if (!ok) {
+        setUpgradeCtx({ variant: "guest", resetsAt: guestResetsAt });
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     const userMsg: ChatMessage = {
       id: Date.now(),
       text: text.trim(),
@@ -135,7 +146,13 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
         if (resp.status === 429) {
-          toast.error("Rate limit exceeded · تم تجاوز الحد المسموح");
+          // Server-side daily AI cap — show upgrade prompt for subscribers.
+          setUpgradeCtx({
+            variant: isGuest ? "guest" : "subscriber",
+            plan: errData?.plan,
+            resetsAt: errData?.resets_at ?? null,
+          });
+          setShowUpgrade(true);
         } else if (resp.status === 402) {
           toast.error("AI credits exhausted · نفدت رصيد الذكاء الاصطناعي");
         } else {
