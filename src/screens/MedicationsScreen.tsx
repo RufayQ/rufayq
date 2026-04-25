@@ -8,6 +8,7 @@ import AddMedicationSheet from "@/components/AddMedicationSheet";
 import ProviderFeedCard from "@/components/ProviderFeedCard";
 import { useProviderFeed } from "@/hooks/useProviderFeed";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { useGuestCategories } from "@/hooks/useGuestCategories";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -16,7 +17,9 @@ interface MedicationsScreenProps {
 
 const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   const isGuest = useGuestMode();
-  const medications: Medication[] = isGuest ? demoMedications : [];
+  const { categories: guestCats } = useGuestCategories();
+  const showMedsDemo = isGuest && guestCats.meds;
+  const medications: Medication[] = showMedsDemo ? demoMedications : [];
   const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
   const [medNotes, setMedNotes] = useState<Record<string, MedNote[]>>({});
