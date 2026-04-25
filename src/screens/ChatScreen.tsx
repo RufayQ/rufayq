@@ -653,6 +653,15 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
           </div>
         </div>
       )}
+
+      <UpgradePrompt
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        onUpgrade={() => { setShowUpgrade(false); onUpgrade?.(); }}
+        variant={upgradeCtx.variant}
+        plan={upgradeCtx.plan}
+        resetsAt={upgradeCtx.resetsAt}
+      />
     </div>
   );
 };
