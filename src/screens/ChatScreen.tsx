@@ -354,6 +354,33 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
         </div>
       )}
 
+      {/* Guest credit chip */}
+      {isGuest && (
+        <button
+          onClick={() => {
+            if (guestExhausted) {
+              setUpgradeCtx({ variant: "guest", resetsAt: guestResetsAt });
+              setShowUpgrade(true);
+            } else {
+              onUpgrade?.();
+            }
+          }}
+          className="mx-3.5 mb-1 rounded-lg px-3 py-1.5 flex items-center gap-2 shrink-0 btn-press"
+          style={{
+            background: guestExhausted ? "rgba(217,79,79,0.08)" : "var(--teal-light)",
+            border: `1px solid ${guestExhausted ? "rgba(217,79,79,0.3)" : "rgba(0,77,91,0.18)"}`,
+          }}
+        >
+          <Sparkles size={12} style={{ color: guestExhausted ? "#D94F4F" : "var(--teal-deep)" }} />
+          <p className="text-[10px] flex-1 text-left" style={{ color: guestExhausted ? "#D94F4F" : "var(--teal-deep)" }}>
+            {guestExhausted
+              ? "Guest AI limit reached · انتهى الحد"
+              : `Guest AI · ${guestRemaining} of ${guestLimit} prompts left today`}
+          </p>
+          <span className="text-[10px] font-bold" style={{ color: "var(--gold)" }}>Upgrade</span>
+        </button>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-3.5 py-3 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         <div className="flex items-center gap-2 my-1">
