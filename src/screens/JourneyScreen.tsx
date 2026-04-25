@@ -68,13 +68,20 @@ const stayTypeOptions = [
 
 const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string) => void }) => {
   const isGuest = useGuestMode();
+  const { categories: guestCats } = useGuestCategories();
   const [expanded, setExpanded] = useState<number | null>(null);
   const [trips, setTrips] = useState<TripData[]>(isGuest ? [defaultTrip] : []);
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
-  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(isGuest ? defaultTransportSegments : []);
+  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(
+    isGuest ? defaultTransportSegments.filter((s) => {
+      const t = s.type;
+      if (t === "hotel" || t === "apartment" || t === "hospital") return guestCats.hotels;
+      return guestCats.tickets;
+    }) : []
+  );
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
   const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(isGuest ? defaultJourneySteps : []);
