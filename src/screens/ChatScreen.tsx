@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Paperclip, ChevronRight, X, Camera, Upload, Mic, Square, Trash2, Copy, Share2 } from "lucide-react";
+import { Send, Paperclip, ChevronRight, X, Camera, Upload, Mic, Square, Trash2, Copy, Share2, Sparkles } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
+import UpgradePrompt from "@/components/UpgradePrompt";
 import { quickPrompts } from "@/constants/data";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { useGuestMode } from "@/hooks/useGuestMode";
+import { useGuestCredits } from "@/hooks/useGuestCredits";
 
 interface ChatMessage {
   id: number;
@@ -30,7 +33,11 @@ const initialMessages: ChatMessage[] = [
   { id: 1, text: "مرحباً محمد 👋 أنا رُفَيِّق، رفيقك الذكي في رحلتك العلاجية.\n\nكيف يمكنني مساعدتك اليوم؟ يمكنني:\n• شرح أدويتك ونتائج تحاليلك\n• مساعدتك في فهم تقارير الخروج\n• الإجابة على أسئلتك الطبية\n• تنظيم مواعيدك ومتابعاتك", sender: "ai", time: "2:14 PM" },
 ];
 
-const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void }) => {
+const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void; onUpgrade?: () => void }) => {
+  const isGuest = useGuestMode();
+  const { remaining: guestRemaining, limit: guestLimit, isExhausted: guestExhausted, resetsAt: guestResetsAt, consume: consumeGuestCredit } = useGuestCredits();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeCtx, setUpgradeCtx] = useState<{ variant: "guest" | "subscriber"; plan?: string; resetsAt?: Date | string | null }>({ variant: "guest", resetsAt: null });
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [contextProcessed, setContextProcessed] = useState(false);
