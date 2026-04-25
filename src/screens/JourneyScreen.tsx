@@ -4,6 +4,7 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard } from "lucide-react";
 import { journeySteps as defaultJourneySteps, defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import EditTripSheet from "@/components/EditTripSheet";
@@ -76,11 +77,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
   const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(
-    isGuest ? defaultTransportSegments.filter((s) => {
-      const t = s.type;
-      if (t === "hotel" || t === "apartment" || t === "hospital") return guestCats.hotels;
-      return guestCats.tickets;
-    }) : []
+    isGuest ? defaultTransportSegments.filter((s) => guestCats.tickets) : []
   );
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
@@ -1007,8 +1004,9 @@ const StepsTab = ({
 /* ─── APPOINTMENTS TAB ─── */
 const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => void }) => {
   const isGuest = useGuestMode();
+  const { categories: guestCats } = useGuestCategories();
   const [showAddAppt, setShowAddAppt] = useState(false);
-  const [localAppts, setLocalAppts] = useState<Appointment[]>(isGuest ? appointments : []);
+  const [localAppts, setLocalAppts] = useState<Appointment[]>(isGuest && guestCats.appointments ? appointments : []);
   const upcomingAppts = localAppts.filter(a => a.status === "upcoming");
   const pastAppts = localAppts.filter(a => a.status === "completed" || a.status === "cancelled");
 
