@@ -131,6 +131,50 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           </div>
         </div>
 
+        </div>
+
+        {/* Guest Mode — per-category demo data toggles */}
+        {isGuest && (
+          <div className="mx-4 mt-5">
+            <div className="flex items-center justify-between mb-1.5 px-1">
+              <div className="flex items-center gap-2">
+                <Sparkles size={13} style={{ color: "var(--gold)" }} />
+                <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>GUEST DEMO DATA · بيانات تجريبية</p>
+              </div>
+              <button
+                onClick={() => { resetGuestCats(); toast.success("Demo data reset · أُعيد التعيين"); }}
+                className="flex items-center gap-1 text-[10px] btn-press"
+                style={{ color: "var(--teal-deep)" }}
+              >
+                <RotateCcw size={11} /> Reset
+              </button>
+            </div>
+            <p className="px-1 mb-2 text-[10px] leading-snug" style={{ color: "var(--gray)" }}>
+              Toggle dummy data per category. Affects guest mode only.
+              <span className="font-arabic block" dir="rtl">تفعيل/تعطيل البيانات التجريبية لكل فئة في وضع الضيف.</span>
+            </p>
+            <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              {([
+                { key: "appointments" as GuestCategory, icon: <CalendarClock size={15} style={{ color: "var(--teal-deep)" }} />, label: "Appointments", labelAr: "المواعيد" },
+                { key: "tickets" as GuestCategory, icon: <Plane size={15} style={{ color: "var(--teal-mid)" }} />, label: "Tickets (Flights/Trains)", labelAr: "التذاكر" },
+                { key: "hotels" as GuestCategory, icon: <Hotel size={15} style={{ color: "var(--gold)" }} />, label: "Hotel Stays", labelAr: "إقامات الفنادق" },
+                { key: "meds" as GuestCategory, icon: <Pill size={15} style={{ color: "var(--warning)" }} />, label: "Medications", labelAr: "الأدوية" },
+                { key: "radiology" as GuestCategory, icon: <Scan size={15} style={{ color: "var(--navy)" }} />, label: "Radiology / Imaging", labelAr: "الأشعة" },
+                { key: "lab" as GuestCategory, icon: <FlaskConical size={15} style={{ color: "var(--success)" }} />, label: "Lab Results", labelAr: "نتائج التحاليل" },
+              ]).map((row) => (
+                <ToggleRow
+                  key={row.key}
+                  icon={row.icon}
+                  label={row.label}
+                  labelAr={row.labelAr}
+                  on={guestCats[row.key]}
+                  onChange={(v) => { setGuestCat(row.key, v); toast(v ? `${row.label} demo enabled` : `${row.label} demo disabled`, { duration: 1500 }); }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Notifications */}
         <div className="mx-4 mt-5">
           <div className="flex items-center gap-2 mb-1.5 px-1">
