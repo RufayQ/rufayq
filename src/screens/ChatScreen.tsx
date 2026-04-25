@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Paperclip, ChevronRight, X, Camera, Upload, Mic, Square, Trash2, Copy, Share2 } from "lucide-react";
+import { Send, Paperclip, ChevronRight, X, Camera, Upload, Mic, Square, Trash2, Copy, Share2, Sparkles } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
+import UpgradePrompt from "@/components/UpgradePrompt";
 import { quickPrompts } from "@/constants/data";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { useGuestMode } from "@/hooks/useGuestMode";
+import { useGuestCredits } from "@/hooks/useGuestCredits";
 
 interface ChatMessage {
   id: number;
@@ -30,7 +33,11 @@ const initialMessages: ChatMessage[] = [
   { id: 1, text: "مرحباً محمد 👋 أنا رُفَيِّق، رفيقك الذكي في رحلتك العلاجية.\n\nكيف يمكنني مساعدتك اليوم؟ يمكنني:\n• شرح أدويتك ونتائج تحاليلك\n• مساعدتك في فهم تقارير الخروج\n• الإجابة على أسئلتك الطبية\n• تنظيم مواعيدك ومتابعاتك", sender: "ai", time: "2:14 PM" },
 ];
 
-const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void }) => {
+const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void; onUpgrade?: () => void }) => {
+  const isGuest = useGuestMode();
+  const { remaining: guestRemaining, limit: guestLimit, isExhausted: guestExhausted, resetsAt: guestResetsAt, consume: consumeGuestCredit } = useGuestCredits();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeCtx, setUpgradeCtx] = useState<{ variant: "guest" | "subscriber"; plan?: string; resetsAt?: Date | string | null }>({ variant: "guest", resetsAt: null });
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [contextProcessed, setContextProcessed] = useState(false);
@@ -94,6 +101,17 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
 
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
+
+    // ---- Guest mode: enforce 5/day locally before hitting the network ----
+    if (isGuest) {
+      const ok = consumeGuestCredit();
+      if (!ok) {
+        setUpgradeCtx({ variant: "guest", resetsAt: guestResetsAt });
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     const userMsg: ChatMessage = {
       id: Date.now(),
       text: text.trim(),
@@ -128,7 +146,13 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
         if (resp.status === 429) {
-          toast.error("Rate limit exceeded · تم تجاوز الحد المسموح");
+          // Server-side daily AI cap — show upgrade prompt for subscribers.
+          setUpgradeCtx({
+            variant: isGuest ? "guest" : "subscriber",
+            plan: errData?.plan,
+            resetsAt: errData?.resets_at ?? null,
+          });
+          setShowUpgrade(true);
         } else if (resp.status === 402) {
           toast.error("AI credits exhausted · نفدت رصيد الذكاء الاصطناعي");
         } else {
@@ -328,6 +352,33 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
           </p>
           <button onClick={() => setShowDisclaimer(false)}><X size={12} style={{ color: "var(--gold)" }} /></button>
         </div>
+      )}
+
+      {/* Guest credit chip */}
+      {isGuest && (
+        <button
+          onClick={() => {
+            if (guestExhausted) {
+              setUpgradeCtx({ variant: "guest", resetsAt: guestResetsAt });
+              setShowUpgrade(true);
+            } else {
+              onUpgrade?.();
+            }
+          }}
+          className="mx-3.5 mb-1 rounded-lg px-3 py-1.5 flex items-center gap-2 shrink-0 btn-press"
+          style={{
+            background: guestExhausted ? "rgba(217,79,79,0.08)" : "var(--teal-light)",
+            border: `1px solid ${guestExhausted ? "rgba(217,79,79,0.3)" : "rgba(0,77,91,0.18)"}`,
+          }}
+        >
+          <Sparkles size={12} style={{ color: guestExhausted ? "#D94F4F" : "var(--teal-deep)" }} />
+          <p className="text-[10px] flex-1 text-left" style={{ color: guestExhausted ? "#D94F4F" : "var(--teal-deep)" }}>
+            {guestExhausted
+              ? "Guest AI limit reached · انتهى الحد"
+              : `Guest AI · ${guestRemaining} of ${guestLimit} prompts left today`}
+          </p>
+          <span className="text-[10px] font-bold" style={{ color: "var(--gold)" }}>Upgrade</span>
+        </button>
       )}
 
       {/* Messages */}
@@ -602,6 +653,15 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext }: { onOpenS
           </div>
         </div>
       )}
+
+      <UpgradePrompt
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        onUpgrade={() => { setShowUpgrade(false); onUpgrade?.(); }}
+        variant={upgradeCtx.variant}
+        plan={upgradeCtx.plan}
+        resetsAt={upgradeCtx.resetsAt}
+      />
     </div>
   );
 };

@@ -53,6 +53,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_usage: {
+        Row: {
+          count: number
+          created_at: string
+          device_id: string
+          id: string
+          last_prompt_at: string
+          updated_at: string
+          usage_day: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          device_id: string
+          id?: string
+          last_prompt_at?: string
+          updated_at?: string
+          usage_day?: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          device_id?: string
+          id?: string
+          last_prompt_at?: string
+          updated_at?: string
+          usage_day?: string
+        }
+        Relationships: []
+      }
       app_reviews: {
         Row: {
           advice: string | null

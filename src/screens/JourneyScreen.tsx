@@ -4,6 +4,7 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard } from "lucide-react";
 import { journeySteps as defaultJourneySteps, defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import EditTripSheet from "@/components/EditTripSheet";
@@ -68,13 +69,16 @@ const stayTypeOptions = [
 
 const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string) => void }) => {
   const isGuest = useGuestMode();
+  const { categories: guestCats } = useGuestCategories();
   const [expanded, setExpanded] = useState<number | null>(null);
   const [trips, setTrips] = useState<TripData[]>(isGuest ? [defaultTrip] : []);
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
-  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(isGuest ? defaultTransportSegments : []);
+  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(
+    isGuest ? defaultTransportSegments.filter((s) => guestCats.tickets) : []
+  );
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
   const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(isGuest ? defaultJourneySteps : []);
@@ -1000,8 +1004,9 @@ const StepsTab = ({
 /* ─── APPOINTMENTS TAB ─── */
 const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => void }) => {
   const isGuest = useGuestMode();
+  const { categories: guestCats } = useGuestCategories();
   const [showAddAppt, setShowAddAppt] = useState(false);
-  const [localAppts, setLocalAppts] = useState<Appointment[]>(isGuest ? appointments : []);
+  const [localAppts, setLocalAppts] = useState<Appointment[]>(isGuest && guestCats.appointments ? appointments : []);
   const upcomingAppts = localAppts.filter(a => a.status === "upcoming");
   const pastAppts = localAppts.filter(a => a.status === "completed" || a.status === "cancelled");
 
