@@ -8,6 +8,7 @@ import AdminPayments from "@/components/admin/AdminPayments";
 import AdminReviews from "@/components/admin/AdminReviews";
 import AdminTickets from "@/components/admin/AdminTickets";
 import AdminPages from "@/components/admin/AdminPages";
+import AdminWebsiteCms from "@/components/admin/AdminWebsiteCms";
 import AdminNews from "@/components/admin/AdminNews";
 import AdminOrganizations from "@/components/admin/AdminOrganizations";
 import AdminCreateUser from "@/components/admin/AdminCreateUser";
@@ -23,7 +24,7 @@ import AdminVerificationAssist from "@/components/admin/AdminVerificationAssist"
 import AdminAiUsage from "@/components/admin/AdminAiUsage";
 import AdminUserSearch from "@/components/admin/AdminUserSearch";
 
-type Tab = "dashboard" | "users" | "user_search" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "payments" | "ai_usage" | "reviews" | "tickets" | "news" | "pages" | "audit";
+type Tab = "dashboard" | "users" | "user_search" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "payments" | "ai_usage" | "reviews" | "tickets" | "news" | "pages" | "website_cms" | "audit";
 
 // Tabs are grouped: Users area first (Users → Create User → User Activations),
 // then Org/Provider area, then RCM, then ops.
@@ -46,7 +47,8 @@ const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boole
   { key: "reviews", label: "Reviews", Icon: Star },
   { key: "tickets", label: "Tickets", Icon: MessageSquare },
   { key: "news", label: "News & Articles", Icon: FileText },
-  { key: "pages", label: "Site Pages", Icon: FileText },
+  { key: "pages", label: "Site Pages (legacy)", Icon: FileText },
+  { key: "website_cms", label: "Website CMS", Icon: FileText, adminOnly: true },
   { key: "audit", label: "Audit Log", Icon: Activity },
 ];
 
@@ -139,6 +141,7 @@ const Admin = () => {
         {tab === "tickets" && <AdminTickets />}
         {tab === "news" && <AdminNews />}
         {tab === "pages" && <AdminPages />}
+        {tab === "website_cms" && role === "admin" && <AdminWebsiteCms />}
         {tab === "audit" && <AdminAuditLog />}
       </main>
     </div>

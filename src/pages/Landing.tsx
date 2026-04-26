@@ -4,6 +4,7 @@ import LazyOnView from "@/components/LazyOnView";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCmsPage } from "@/hooks/useCmsPage";
 /**
  * SEO is mounted lazily (after first paint) so react-helmet-async (~17 kB)
  * never enters the LCP critical chain. Googlebot waits for hydrated content,
@@ -40,11 +41,27 @@ const Landing = () => {
   const isAr = mode === "ar";
   const isBoth = mode === "both";
 
-  const trustPoints = [
+  // ── CMS overrides (Phase 1: hero CTAs + trust badges) ───────────────
+  // Hardcoded defaults below remain as fallback when CMS is empty / loading.
+  const { getSection } = useCmsPage("home");
+  const heroCms = getSection<{
+    primaryCta?: { label?: string; link?: string };
+    secondaryCta?: { label?: string; link?: string };
+    badges?: { text: string }[];
+  }>("hero", isAr ? "ar" : "en");
+
+  const defaultTrust = [
     { Icon: LockIcon, en: "End-to-end encrypted", ar: "تشفير كامل" },
     { Icon: GlobeIcon, en: "Bilingual EN / AR", ar: "ثنائي اللغة عربي/إنجليزي" },
     { Icon: HeartIcon, en: "For Gulf & global patients", ar: "لمرضى الخليج والعالم" },
   ];
+  const trustPoints = (heroCms?.badges?.length ?? 0) > 0
+    ? heroCms!.badges!.map((b) => ({ Icon: LockIcon, en: b.text, ar: b.text }))
+    : defaultTrust;
+
+  const ctaPrimaryLabel = heroCms?.primaryCta?.label || (isAr ? "ابدأ مجاناً" : "Start free");
+  const ctaSecondaryLabel = heroCms?.secondaryCta?.label || (isAr ? "كيف يعمل" : "See how it works");
+  const ctaSecondaryLink = heroCms?.secondaryCta?.link || "#features";
 
   const navLinks: { en: string; ar: string; href: string; isRoute?: boolean }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
@@ -191,10 +208,10 @@ const Landing = () => {
 
               <div className="flex flex-col sm:flex-row gap-3 mt-4">
                 <button onClick={goToApp} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02]" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
-                  {isAr ? "ابدأ مجاناً" : "Start free"} <ArrowRightIcon size={15} />
+                  {ctaPrimaryLabel} <ArrowRightIcon size={15} />
                 </button>
-                <a href="#features" className="px-7 py-4 rounded-full font-semibold text-sm text-center transition-all hover:bg-white/10" style={{ background: "rgba(255,255,255,0.05)", color: TEXT, border: `1px solid ${BORDER}` }}>
-                  {isAr ? "كيف يعمل" : "See how it works"}
+                <a href={ctaSecondaryLink} className="px-7 py-4 rounded-full font-semibold text-sm text-center transition-all hover:bg-white/10" style={{ background: "rgba(255,255,255,0.05)", color: TEXT, border: `1px solid ${BORDER}` }}>
+                  {ctaSecondaryLabel}
                 </a>
               </div>
 

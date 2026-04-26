@@ -160,6 +160,331 @@ export type Database = {
           },
         ]
       }
+      cms_footer_items: {
+        Row: {
+          column_key: string
+          created_at: string
+          id: string
+          is_header: boolean
+          label_ar: string | null
+          label_en: string
+          link_type: Database["public"]["Enums"]["cms_nav_link_type"]
+          link_value: string
+          sort_order: number
+          updated_at: string
+          visible: boolean
+        }
+        Insert: {
+          column_key: string
+          created_at?: string
+          id?: string
+          is_header?: boolean
+          label_ar?: string | null
+          label_en: string
+          link_type?: Database["public"]["Enums"]["cms_nav_link_type"]
+          link_value: string
+          sort_order?: number
+          updated_at?: string
+          visible?: boolean
+        }
+        Update: {
+          column_key?: string
+          created_at?: string
+          id?: string
+          is_header?: boolean
+          label_ar?: string | null
+          label_en?: string
+          link_type?: Database["public"]["Enums"]["cms_nav_link_type"]
+          link_value?: string
+          sort_order?: number
+          updated_at?: string
+          visible?: boolean
+        }
+        Relationships: []
+      }
+      cms_global_settings: {
+        Row: {
+          accent_color: string
+          brand_name: string
+          brand_name_ar: string
+          copyright_ar: string | null
+          copyright_en: string | null
+          default_language: string
+          gold_color: string
+          id: string
+          is_singleton: boolean
+          language_toggle: boolean
+          navy_color: string
+          newsletter_subtitle_ar: string | null
+          newsletter_subtitle_en: string | null
+          newsletter_title_ar: string | null
+          newsletter_title_en: string | null
+          primary_color: string
+          sales_email: string | null
+          secondary_color: string
+          social_links: Json
+          sticky_header: boolean
+          support_email: string | null
+          support_whatsapp: string | null
+          tagline_ar: string | null
+          tagline_en: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          accent_color?: string
+          brand_name?: string
+          brand_name_ar?: string
+          copyright_ar?: string | null
+          copyright_en?: string | null
+          default_language?: string
+          gold_color?: string
+          id?: string
+          is_singleton?: boolean
+          language_toggle?: boolean
+          navy_color?: string
+          newsletter_subtitle_ar?: string | null
+          newsletter_subtitle_en?: string | null
+          newsletter_title_ar?: string | null
+          newsletter_title_en?: string | null
+          primary_color?: string
+          sales_email?: string | null
+          secondary_color?: string
+          social_links?: Json
+          sticky_header?: boolean
+          support_email?: string | null
+          support_whatsapp?: string | null
+          tagline_ar?: string | null
+          tagline_en?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          accent_color?: string
+          brand_name?: string
+          brand_name_ar?: string
+          copyright_ar?: string | null
+          copyright_en?: string | null
+          default_language?: string
+          gold_color?: string
+          id?: string
+          is_singleton?: boolean
+          language_toggle?: boolean
+          navy_color?: string
+          newsletter_subtitle_ar?: string | null
+          newsletter_subtitle_en?: string | null
+          newsletter_title_ar?: string | null
+          newsletter_title_en?: string | null
+          primary_color?: string
+          sales_email?: string | null
+          secondary_color?: string
+          social_links?: Json
+          sticky_header?: boolean
+          support_email?: string | null
+          support_whatsapp?: string | null
+          tagline_ar?: string | null
+          tagline_en?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      cms_nav_items: {
+        Row: {
+          created_at: string
+          id: string
+          label_ar: string | null
+          label_en: string
+          link_type: Database["public"]["Enums"]["cms_nav_link_type"]
+          link_value: string
+          location: string
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+          visible: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label_ar?: string | null
+          label_en: string
+          link_type?: Database["public"]["Enums"]["cms_nav_link_type"]
+          link_value: string
+          location?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          visible?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label_ar?: string | null
+          label_en?: string
+          link_type?: Database["public"]["Enums"]["cms_nav_link_type"]
+          link_value?: string
+          location?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          visible?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_nav_items_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "cms_nav_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_pages: {
+        Row: {
+          canonical_url: string | null
+          created_at: string
+          id: string
+          include_sitemap: boolean
+          index_in_search: boolean
+          is_system: boolean
+          og_image_url: string | null
+          scheduled_at: string | null
+          seo_desc_ar: string | null
+          seo_desc_en: string | null
+          seo_title_ar: string | null
+          seo_title_en: string | null
+          slug: string
+          status: Database["public"]["Enums"]["cms_page_status"]
+          title_ar: string | null
+          title_en: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          canonical_url?: string | null
+          created_at?: string
+          id?: string
+          include_sitemap?: boolean
+          index_in_search?: boolean
+          is_system?: boolean
+          og_image_url?: string | null
+          scheduled_at?: string | null
+          seo_desc_ar?: string | null
+          seo_desc_en?: string | null
+          seo_title_ar?: string | null
+          seo_title_en?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["cms_page_status"]
+          title_ar?: string | null
+          title_en: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          canonical_url?: string | null
+          created_at?: string
+          id?: string
+          include_sitemap?: boolean
+          index_in_search?: boolean
+          is_system?: boolean
+          og_image_url?: string | null
+          scheduled_at?: string | null
+          seo_desc_ar?: string | null
+          seo_desc_en?: string | null
+          seo_title_ar?: string | null
+          seo_title_en?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["cms_page_status"]
+          title_ar?: string | null
+          title_en?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      cms_sections: {
+        Row: {
+          config: Json
+          content_ar: Json
+          content_en: Json
+          created_at: string
+          id: string
+          page_id: string
+          scheduled_at: string | null
+          sort_order: number
+          type: Database["public"]["Enums"]["cms_section_type"]
+          updated_at: string
+          updated_by: string | null
+          visible: boolean
+        }
+        Insert: {
+          config?: Json
+          content_ar?: Json
+          content_en?: Json
+          created_at?: string
+          id?: string
+          page_id: string
+          scheduled_at?: string | null
+          sort_order?: number
+          type: Database["public"]["Enums"]["cms_section_type"]
+          updated_at?: string
+          updated_by?: string | null
+          visible?: boolean
+        }
+        Update: {
+          config?: Json
+          content_ar?: Json
+          content_en?: Json
+          created_at?: string
+          id?: string
+          page_id?: string
+          scheduled_at?: string | null
+          sort_order?: number
+          type?: Database["public"]["Enums"]["cms_section_type"]
+          updated_at?: string
+          updated_by?: string | null
+          visible?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_sections_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "cms_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_versions: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          snapshot: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          snapshot: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          snapshot?: Json
+        }
+        Relationships: []
+      }
       family_invites: {
         Row: {
           accepted_at: string | null
@@ -4664,6 +4989,27 @@ export type Database = {
         | "approved"
         | "rejected"
         | "revoked"
+      cms_nav_link_type: "page" | "anchor" | "external"
+      cms_page_status: "draft" | "published" | "scheduled" | "archived"
+      cms_section_type:
+        | "hero"
+        | "features"
+        | "how"
+        | "pricing"
+        | "faq"
+        | "cta"
+        | "rich_text"
+        | "testimonials"
+        | "trust_logos"
+        | "providers"
+        | "contact_form"
+        | "comparison"
+        | "timeline"
+        | "video"
+        | "stats"
+        | "text_image"
+        | "footer_cta"
+        | "team"
       consent_section:
         | "records"
         | "labs"
@@ -5050,6 +5396,28 @@ export const Constants = {
         "approved",
         "rejected",
         "revoked",
+      ],
+      cms_nav_link_type: ["page", "anchor", "external"],
+      cms_page_status: ["draft", "published", "scheduled", "archived"],
+      cms_section_type: [
+        "hero",
+        "features",
+        "how",
+        "pricing",
+        "faq",
+        "cta",
+        "rich_text",
+        "testimonials",
+        "trust_logos",
+        "providers",
+        "contact_form",
+        "comparison",
+        "timeline",
+        "video",
+        "stats",
+        "text_image",
+        "footer_cta",
+        "team",
       ],
       consent_section: [
         "records",
