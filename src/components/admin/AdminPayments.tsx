@@ -87,11 +87,11 @@ const AdminPayments = () => {
       if (error) toast.error(error.message); else setReceipts((data || []) as Receipt[]);
     } else {
       const { data, error } = await supabase
-        .from("subscription_addons")
+        .from("user_subscription_addons")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(500);
-      if (error) toast.error(error.message); else setAddons((data || []) as Addon[]);
+      if (error) toast.error(error.message); else setAddons((data || []) as unknown as Addon[]);
     }
     setLoading(false);
   };
@@ -204,7 +204,7 @@ const AdminPayments = () => {
     const label = prompt("Display label:") || key;
     const qty = Number(prompt("Quantity:", "1") || "1");
     const price = Number(prompt("Unit price (SAR):", "0") || "0");
-    const { error } = await supabase.from("subscription_addons").insert({
+    const { error } = await supabase.from("user_subscription_addons").insert({
       subscription_id: subId, addon_key: key, addon_label: label,
       quantity: qty, unit_price: price, currency: "SAR",
     });
@@ -215,7 +215,7 @@ const AdminPayments = () => {
 
   const removeAddon = async (id: string) => {
     if (!confirm("Remove add-on?")) return;
-    const { error } = await supabase.from("subscription_addons").delete().eq("id", id);
+    const { error } = await supabase.from("user_subscription_addons").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Removed");
     load();
@@ -244,11 +244,11 @@ const AdminPayments = () => {
       {/* Tabs */}
       <div className="flex flex-wrap gap-1.5 border-b border-slate-800 pb-1">
         {([
-          { k: "subs", label: "Subscriptions", Icon: CreditCard },
-          { k: "receipts", label: "Receipts", Icon: FileText, badge: pendingCount },
-          { k: "addons", label: "Add-ons", Icon: Sparkles },
-        ] as const).map(({ k, label, Icon, badge }) => (
-          <button key={k} onClick={() => { setTab(k as Tab); setStatusFilter("all"); }}
+          { k: "subs" as Tab, label: "Subscriptions", Icon: CreditCard, badge: 0 },
+          { k: "receipts" as Tab, label: "Receipts", Icon: FileText, badge: pendingCount },
+          { k: "addons" as Tab, label: "Add-ons", Icon: Sparkles, badge: 0 },
+        ]).map(({ k, label, Icon, badge }) => (
+          <button key={k} onClick={() => { setTab(k); setStatusFilter("all"); }}
             className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 ${tab === k ? "bg-amber-500/20 text-amber-300 border border-amber-500/40" : "text-slate-400 border border-transparent hover:text-slate-200"}`}>
             <Icon size={12} />{label}
             {badge ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-500/30 text-rose-100">{badge}</span> : null}
