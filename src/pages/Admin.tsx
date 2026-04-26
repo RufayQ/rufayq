@@ -8,6 +8,7 @@ import AdminPayments from "@/components/admin/AdminPayments";
 import AdminReviews from "@/components/admin/AdminReviews";
 import AdminTickets from "@/components/admin/AdminTickets";
 import AdminPages from "@/components/admin/AdminPages";
+import AdminWebsiteCms from "@/components/admin/AdminWebsiteCms";
 import AdminNews from "@/components/admin/AdminNews";
 import AdminOrganizations from "@/components/admin/AdminOrganizations";
 import AdminCreateUser from "@/components/admin/AdminCreateUser";
