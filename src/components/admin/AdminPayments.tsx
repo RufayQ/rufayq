@@ -34,6 +34,10 @@ interface Receipt {
   amount: number; currency: string; payment_method: string;
   reference_no: string | null; receipt_file_path: string | null;
   payer_name: string | null; payer_phone: string | null;
+  payment_reference: string | null;
+  submission_channel: string; bank_name: string | null;
+  transfer_date: string | null;
+  patient_message: string | null; internal_note: string | null;
   status: string; reviewer_notes: string | null;
   reviewed_at: string | null; created_at: string;
 }
@@ -179,16 +183,47 @@ const AdminPayments = () => {
   };
 
   const rejectReceipt = async (r: Receipt) => {
-    const notes = prompt("Reason for rejection?") || "Rejected by admin";
+    const patientMsg = prompt("Message shown to the patient (English/Arabic):") || "Your payment could not be verified.";
+    const internalNote = prompt("Internal note (admins only, optional):") || "";
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("payment_receipts").update({
       status: "rejected",
       reviewer_id: user?.id ?? null,
-      reviewer_notes: notes,
+      reviewer_notes: patientMsg,
+      patient_message: patientMsg,
+      internal_note: internalNote || null,
       reviewed_at: new Date().toISOString(),
     }).eq("id", r.id);
     if (error) return toast.error(error.message);
     toast.success("Rejected");
+    load();
+  };
+
+  const markUnderReview = async (r: Receipt) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("payment_receipts").update({
+      status: "under_review",
+      reviewer_id: user?.id ?? null,
+    }).eq("id", r.id);
+    if (error) return toast.error(error.message);
+    toast.success("Marked under review");
+    load();
+  };
+
+  const requestMoreInfo = async (r: Receipt) => {
+    const patientMsg = prompt("What does the patient need to provide? (shown to them)")
+      || "Please re-upload a clearer receipt.";
+    const internalNote = prompt("Internal note (optional):") || "";
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("payment_receipts").update({
+      status: "needs_more_info",
+      reviewer_id: user?.id ?? null,
+      patient_message: patientMsg,
+      internal_note: internalNote || null,
+      reviewed_at: new Date().toISOString(),
+    }).eq("id", r.id);
+    if (error) return toast.error(error.message);
+    toast.success("Asked patient for more info");
     load();
   };
 
