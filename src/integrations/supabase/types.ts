@@ -640,6 +640,77 @@ export type Database = {
           },
         ]
       }
+      payment_receipts: {
+        Row: {
+          amount: number
+          billing_cycle: string
+          created_at: string
+          currency: string
+          device_id: string
+          id: string
+          payer_name: string | null
+          payer_phone: string | null
+          payment_method: string
+          receipt_file_path: string | null
+          reference_no: string | null
+          requested_plan: string
+          reviewed_at: string | null
+          reviewer_id: string | null
+          reviewer_notes: string | null
+          status: string
+          subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          billing_cycle?: string
+          created_at?: string
+          currency?: string
+          device_id: string
+          id?: string
+          payer_name?: string | null
+          payer_phone?: string | null
+          payment_method: string
+          receipt_file_path?: string | null
+          reference_no?: string | null
+          requested_plan: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          billing_cycle?: string
+          created_at?: string
+          currency?: string
+          device_id?: string
+          id?: string
+          payer_name?: string | null
+          payer_phone?: string | null
+          payment_method?: string
+          receipt_file_path?: string | null
+          reference_no?: string | null
+          requested_plan?: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_receipts_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -4201,6 +4272,66 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          amount: number | null
+          billing_cycle: string
+          cancelled_at: string | null
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          current_period_start: string | null
+          device_id: string
+          id: string
+          notes: string | null
+          plan: string
+          provider: string
+          provider_subscription_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          amount?: number | null
+          billing_cycle?: string
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          device_id: string
+          id?: string
+          notes?: string | null
+          plan: string
+          provider?: string
+          provider_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          amount?: number | null
+          billing_cycle?: string
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          device_id?: string
+          id?: string
+          notes?: string | null
+          plan?: string
+          provider?: string
+          provider_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_trials: {
         Row: {
           created_at: string
@@ -4311,6 +4442,15 @@ export type Database = {
           new_7d: number
           provider_type: string
           total: number
+        }[]
+      }
+      consume_ai_credit: {
+        Args: { _daily_limit: number; _device_id: string }
+        Returns: {
+          allowed: boolean
+          daily_limit: number
+          new_count: number
+          resets_at: string
         }[]
       }
       consume_manual_otp: {
