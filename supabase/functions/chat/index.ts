@@ -68,41 +68,29 @@ serve(async (req) => {
     const dailyLimit = PLAN_LIMITS[planKey] ?? 5;
     const today = new Date().toISOString().slice(0, 10); // UTC YYYY-MM-DD
 
-    const { data: usage } = await adminClient
-      .from("ai_usage")
-      .select("id, count")
-      .eq("device_id", deviceId)
-      .eq("usage_day", today)
-      .maybeSingle();
-
-    const used = usage?.count ?? 0;
-    if (used >= dailyLimit) {
+    // Atomic upsert+increment via RPC. Prevents race conditions where N parallel
+    // requests could each read count<limit and bypass the cap.
+    const { data: rpcRows, error: rpcErr } = await adminClient.rpc("consume_ai_credit", {
+      _device_id: deviceId,
+      _daily_limit: dailyLimit,
+    });
+    if (rpcErr) {
+      console.error("consume_ai_credit error:", rpcErr);
+      return new Response(JSON.stringify({ error: "Credit check failed" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const row = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+    if (!row?.allowed) {
       return new Response(JSON.stringify({
         error: "Daily AI credit limit reached",
         plan: planKey,
         limit: dailyLimit,
-        used,
-        resets_at: new Date(Date.UTC(
-          new Date().getUTCFullYear(),
-          new Date().getUTCMonth(),
-          new Date().getUTCDate() + 1,
-        )).toISOString(),
+        used: row?.new_count ?? dailyLimit,
+        resets_at: row?.resets_at ?? null,
       }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
-
-    // Increment usage BEFORE calling the model so concurrent requests don't bypass the cap.
-    if (usage) {
-      await adminClient
-        .from("ai_usage")
-        .update({ count: used + 1, last_prompt_at: new Date().toISOString() })
-        .eq("id", usage.id);
-    } else {
-      await adminClient
-        .from("ai_usage")
-        .insert({ device_id: deviceId, usage_day: today, count: 1 });
     }
 
     const { messages, mode } = await req.json();
