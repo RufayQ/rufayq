@@ -34,6 +34,10 @@ interface Receipt {
   amount: number; currency: string; payment_method: string;
   reference_no: string | null; receipt_file_path: string | null;
   payer_name: string | null; payer_phone: string | null;
+  payment_reference: string | null;
+  submission_channel: string; bank_name: string | null;
+  transfer_date: string | null;
+  patient_message: string | null; internal_note: string | null;
   status: string; reviewer_notes: string | null;
   reviewed_at: string | null; created_at: string;
 }
@@ -179,16 +183,47 @@ const AdminPayments = () => {
   };
 
   const rejectReceipt = async (r: Receipt) => {
-    const notes = prompt("Reason for rejection?") || "Rejected by admin";
+    const patientMsg = prompt("Message shown to the patient (English/Arabic):") || "Your payment could not be verified.";
+    const internalNote = prompt("Internal note (admins only, optional):") || "";
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("payment_receipts").update({
       status: "rejected",
       reviewer_id: user?.id ?? null,
-      reviewer_notes: notes,
+      reviewer_notes: patientMsg,
+      patient_message: patientMsg,
+      internal_note: internalNote || null,
       reviewed_at: new Date().toISOString(),
     }).eq("id", r.id);
     if (error) return toast.error(error.message);
     toast.success("Rejected");
+    load();
+  };
+
+  const markUnderReview = async (r: Receipt) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("payment_receipts").update({
+      status: "under_review",
+      reviewer_id: user?.id ?? null,
+    }).eq("id", r.id);
+    if (error) return toast.error(error.message);
+    toast.success("Marked under review");
+    load();
+  };
+
+  const requestMoreInfo = async (r: Receipt) => {
+    const patientMsg = prompt("What does the patient need to provide? (shown to them)")
+      || "Please re-upload a clearer receipt.";
+    const internalNote = prompt("Internal note (optional):") || "";
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("payment_receipts").update({
+      status: "needs_more_info",
+      reviewer_id: user?.id ?? null,
+      patient_message: patientMsg,
+      internal_note: internalNote || null,
+      reviewed_at: new Date().toISOString(),
+    }).eq("id", r.id);
+    if (error) return toast.error(error.message);
+    toast.success("Asked patient for more info");
     load();
   };
 
@@ -237,7 +272,7 @@ const AdminPayments = () => {
       || (r.reference_no || "").toLowerCase().includes(q);
   }), [receipts, search, statusFilter]);
 
-  const pendingCount = receipts.filter(r => r.status === "pending").length;
+  const pendingCount = receipts.filter(r => ["pending","under_review","needs_more_info"].includes(r.status)).length;
 
   return (
     <div className="space-y-4">
@@ -267,7 +302,7 @@ const AdminPayments = () => {
           className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
           <option value="all">All statuses</option>
           {tab === "subs" && ["active", "pending_receipt", "expired", "cancelled", "rejected"].map(s => <option key={s} value={s}>{s}</option>)}
-          {tab === "receipts" && ["pending", "verified", "rejected"].map(s => <option key={s} value={s}>{s}</option>)}
+          {tab === "receipts" && ["pending", "under_review", "needs_more_info", "verified", "rejected"].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <button onClick={load} className="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs flex items-center gap-1.5">
           <RefreshCw size={12} />Refresh
@@ -352,13 +387,19 @@ const AdminPayments = () => {
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">{r.payment_method}</span>
                   </div>
                   <p className="text-[10px] text-slate-500 font-mono">device: {r.device_id.slice(0, 18)}…</p>
+                  {r.payment_reference && (
+                    <p className="text-[10px] text-amber-300 font-mono">ref · {r.payment_reference}</p>
+                  )}
                   <p className="text-[10px] text-slate-500">
                     {new Date(r.created_at).toLocaleString()}
-                    {r.reference_no && ` · ref ${r.reference_no}`}
+                    {r.submission_channel && ` · via ${r.submission_channel}`}
+                    {r.reference_no && ` · txn ${r.reference_no}`}
                     {r.payer_name && ` · ${r.payer_name}`}
-                    {r.payer_phone && ` · ${r.payer_phone}`}
+                    {r.bank_name && ` · ${r.bank_name}`}
+                    {r.transfer_date && ` · transferred ${r.transfer_date}`}
                   </p>
-                  {r.reviewer_notes && <p className="text-[11px] text-slate-300 italic mt-1">"{r.reviewer_notes}"</p>}
+                  {r.patient_message && <p className="text-[11px] text-slate-200 mt-1">📨 {r.patient_message}</p>}
+                  {r.internal_note && <p className="text-[11px] text-amber-300/80 italic mt-0.5">🗒 {r.internal_note}</p>}
                 </div>
                 <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
                   {r.receipt_file_path && (
@@ -367,11 +408,21 @@ const AdminPayments = () => {
                       <Eye size={11} />View receipt
                     </button>
                   )}
-                  {r.status === "pending" && (
+                  {(r.status === "pending" || r.status === "under_review" || r.status === "needs_more_info") && (
                     <>
+                      {r.status === "pending" && (
+                        <button onClick={() => markUnderReview(r)}
+                          className="px-3 py-1 rounded bg-blue-500/20 text-blue-300 text-[11px] flex items-center gap-1">
+                          <RefreshCw size={11} />Take review
+                        </button>
+                      )}
                       <button onClick={() => verifyReceipt(r)}
                         className="px-3 py-1 rounded bg-emerald-500/20 text-emerald-300 text-[11px] flex items-center gap-1">
-                        <Check size={11} />Verify & activate
+                        <Check size={11} />Approve & activate
+                      </button>
+                      <button onClick={() => requestMoreInfo(r)}
+                        className="px-3 py-1 rounded bg-amber-500/20 text-amber-300 text-[11px] flex items-center gap-1">
+                        <FileText size={11} />Need more info
                       </button>
                       <button onClick={() => rejectReceipt(r)}
                         className="px-3 py-1 rounded bg-rose-500/15 text-rose-300 text-[11px] flex items-center gap-1">
