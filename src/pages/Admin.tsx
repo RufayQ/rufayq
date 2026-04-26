@@ -20,6 +20,7 @@ import AdminRcmActivations from "@/components/admin/AdminRcmActivations";
 import AdminRcmImports from "@/components/admin/AdminRcmImports";
 import AdminRcmBulkOps from "@/components/admin/AdminRcmBulkOps";
 import AdminVerificationAssist from "@/components/admin/AdminVerificationAssist";
+import AdminAiUsage from "@/components/admin/AdminAiUsage";
 
 type Tab = "dashboard" | "users" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "payments" | "reviews" | "tickets" | "news" | "pages" | "audit";
 
