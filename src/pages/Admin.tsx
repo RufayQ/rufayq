@@ -21,14 +21,16 @@ import AdminRcmImports from "@/components/admin/AdminRcmImports";
 import AdminRcmBulkOps from "@/components/admin/AdminRcmBulkOps";
 import AdminVerificationAssist from "@/components/admin/AdminVerificationAssist";
 import AdminAiUsage from "@/components/admin/AdminAiUsage";
+import AdminUserSearch from "@/components/admin/AdminUserSearch";
 
-type Tab = "dashboard" | "users" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "payments" | "ai_usage" | "reviews" | "tickets" | "news" | "pages" | "audit";
+type Tab = "dashboard" | "users" | "user_search" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "payments" | "ai_usage" | "reviews" | "tickets" | "news" | "pages" | "audit";
 
 // Tabs are grouped: Users area first (Users → Create User → User Activations),
 // then Org/Provider area, then RCM, then ops.
 const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boolean }[] = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { key: "users", label: "Users", Icon: Users },
+  { key: "user_search", label: "User Search & Assign", Icon: Users, adminOnly: true },
   { key: "create", label: "Create User", Icon: UserPlus, adminOnly: true },
   { key: "verify_assist", label: "User Activations", Icon: Shield },
   { key: "orgs", label: "Organizations", Icon: Building2 },
@@ -120,6 +122,7 @@ const Admin = () => {
       <main className="max-w-7xl mx-auto px-6 py-8">
         {tab === "dashboard" && <AdminDashboard />}
         {tab === "users" && <AdminUsers />}
+        {tab === "user_search" && role === "admin" && <AdminUserSearch />}
         {tab === "create" && role === "admin" && <AdminCreateUser />}
         {tab === "verify_assist" && <AdminVerificationAssist />}
         {tab === "orgs" && <AdminOrganizations />}
