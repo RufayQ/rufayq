@@ -20,8 +20,9 @@ import AdminRcmActivations from "@/components/admin/AdminRcmActivations";
 import AdminRcmImports from "@/components/admin/AdminRcmImports";
 import AdminRcmBulkOps from "@/components/admin/AdminRcmBulkOps";
 import AdminVerificationAssist from "@/components/admin/AdminVerificationAssist";
+import AdminAiUsage from "@/components/admin/AdminAiUsage";
 
-type Tab = "dashboard" | "users" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "payments" | "reviews" | "tickets" | "news" | "pages" | "audit";
+type Tab = "dashboard" | "users" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "payments" | "ai_usage" | "reviews" | "tickets" | "news" | "pages" | "audit";
 
 // Tabs are grouped: Users area first (Users → Create User → User Activations),
 // then Org/Provider area, then RCM, then ops.
@@ -39,6 +40,7 @@ const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boole
   { key: "rcm_bulk", label: "RCM Bulk Ops", Icon: FileText, adminOnly: true },
   { key: "subs", label: "Subscriptions", Icon: CreditCard, adminOnly: true },
   { key: "payments", label: "Payments", Icon: CreditCard, adminOnly: true },
+  { key: "ai_usage", label: "AI Usage", Icon: Activity, adminOnly: true },
   { key: "reviews", label: "Reviews", Icon: Star },
   { key: "tickets", label: "Tickets", Icon: MessageSquare },
   { key: "news", label: "News & Articles", Icon: FileText },
@@ -129,6 +131,7 @@ const Admin = () => {
         {tab === "rcm_bulk" && role === "admin" && <AdminRcmBulkOps />}
         {tab === "subs" && role === "admin" && <AdminSubscriptions />}
         {tab === "payments" && role === "admin" && <AdminPayments />}
+        {tab === "ai_usage" && role === "admin" && <AdminAiUsage />}
         {tab === "reviews" && <AdminReviews />}
         {tab === "tickets" && <AdminTickets />}
         {tab === "news" && <AdminNews />}

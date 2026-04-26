@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Zap, Shield, Crown, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Check, Zap, Shield, Crown, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
 import { ADDON_META, type AddOnId } from "@/data/currencyMaster";
+import UpgradeCTA from "@/components/UpgradeCTA";
+import { useSubscription } from "@/hooks/useSubscription";
+
+type UpgradePlan = "basic" | "companion" | "family" | "premium";
+const PLAN_TO_UPGRADE: Record<string, UpgradePlan> = { free: "basic", pro: "companion", enterprise: "premium" };
 
 interface PricingScreenProps {
   onBack: () => void;
@@ -138,7 +143,9 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
   const [showAddOns, setShowAddOns] = useState(false);
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [upgradePlan, setUpgradePlan] = useState<UpgradePlan | null>(null);
   const { getPrice, getAddon, format, currency } = useCurrency();
+  const { subscription, pendingReceipt, refresh } = useSubscription();
 
   const handleSelectPlan = (planId: string) => {
     if (planId === "free") return;
@@ -146,11 +153,9 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
       toast("Contact Sales · تواصل مع المبيعات", {
         description: "Our team will reach out within 24 hours · سيتواصل فريقنا خلال ٢٤ ساعة",
       });
-    } else {
-      toast.success("Upgrade initiated · بدء الترقية", {
-        description: "You'll be redirected to payment · ستتم إعادة توجيهك للدفع",
-      });
+      return;
     }
+    setUpgradePlan(PLAN_TO_UPGRADE[planId] || "companion");
   };
 
   const toggleAddOn = (id: string) => {
@@ -199,6 +204,29 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-6" style={{ background: "var(--off-white)" }}>
+        {/* Current plan banner */}
+        {(subscription || pendingReceipt) && (
+          <div className="mt-3 rounded-xl p-3 flex items-center gap-2"
+            style={{
+              background: pendingReceipt ? "var(--gold-pale)" : "var(--teal-light)",
+              border: `1px solid ${pendingReceipt ? "var(--gold)" : "var(--teal-deep)"}`,
+            }}>
+            {pendingReceipt ? <Clock size={14} color="var(--gold)" /> : <Check size={14} color="var(--teal-deep)" />}
+            <div className="flex-1">
+              <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+                {pendingReceipt
+                  ? "Receipt under review · إيصال قيد المراجعة"
+                  : `Active plan: ${subscription?.plan} · ${subscription?.status}`}
+              </p>
+              {subscription?.current_period_end && !pendingReceipt && (
+                <p className="text-[10px]" style={{ color: "var(--gray)" }}>
+                  Renews {new Date(subscription.current_period_end).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Plans */}
         <div className="space-y-3 mt-3">
           {plans.map((plan) => (
@@ -388,6 +416,13 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
           <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>Not satisfied? Get a full refund, no questions asked.</p>
         </div>
       </div>
+
+      <UpgradeCTA
+        open={!!upgradePlan}
+        onClose={() => setUpgradePlan(null)}
+        onSuccess={() => { setUpgradePlan(null); refresh(); }}
+        defaultPlan={upgradePlan || "companion"}
+      />
     </div>
   );
 };
