@@ -143,7 +143,9 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
   const [showAddOns, setShowAddOns] = useState(false);
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [upgradePlan, setUpgradePlan] = useState<UpgradePlan | null>(null);
   const { getPrice, getAddon, format, currency } = useCurrency();
+  const { subscription, pendingReceipt, refresh } = useSubscription();
 
   const handleSelectPlan = (planId: string) => {
     if (planId === "free") return;
@@ -151,11 +153,9 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
       toast("Contact Sales · تواصل مع المبيعات", {
         description: "Our team will reach out within 24 hours · سيتواصل فريقنا خلال ٢٤ ساعة",
       });
-    } else {
-      toast.success("Upgrade initiated · بدء الترقية", {
-        description: "You'll be redirected to payment · ستتم إعادة توجيهك للدفع",
-      });
+      return;
     }
+    setUpgradePlan(PLAN_TO_UPGRADE[planId] || "companion");
   };
 
   const toggleAddOn = (id: string) => {
