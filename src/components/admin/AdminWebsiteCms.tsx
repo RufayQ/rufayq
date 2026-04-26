@@ -206,15 +206,15 @@ const PageEditor = ({ pageId, onBack }: { pageId: string; onBack: () => void }) 
     const { en, ar } = emptyContent(type);
     const sort_order = (sections[sections.length - 1]?.sort_order ?? 0) + 10;
     const { data } = await supabase.from("cms_sections").insert({
-      page_id: page.id, type, sort_order, content_en: en, content_ar: ar,
-    }).select().single();
+      page_id: page.id, type, sort_order, content_en: en as never, content_ar: ar as never,
+    } as never).select().single();
     if (data) { setSections([...sections, data as unknown as CmsSection]); setExpanded((data as { id: string }).id); }
     setAdding(false);
   };
 
   const updateSection = async (id: string, patch: Partial<CmsSection>) => {
     setSections(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
-    await supabase.from("cms_sections").update(patch).eq("id", id);
+    await supabase.from("cms_sections").update(patch as never).eq("id", id);
   };
 
   const removeSection = async (id: string) => {
@@ -226,8 +226,8 @@ const PageEditor = ({ pageId, onBack }: { pageId: string; onBack: () => void }) 
   const duplicateSection = async (s: CmsSection) => {
     const { data } = await supabase.from("cms_sections").insert({
       page_id: s.page_id, type: s.type, sort_order: s.sort_order + 5,
-      visible: s.visible, content_en: s.content_en, content_ar: s.content_ar, config: s.config,
-    }).select().single();
+      visible: s.visible, content_en: s.content_en as never, content_ar: s.content_ar as never, config: s.config as never,
+    } as never).select().single();
     if (data) load();
   };
 
