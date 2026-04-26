@@ -416,6 +416,13 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
           <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>Not satisfied? Get a full refund, no questions asked.</p>
         </div>
       </div>
+
+      <UpgradeCTA
+        open={!!upgradePlan}
+        onClose={() => setUpgradePlan(null)}
+        onSuccess={() => { setUpgradePlan(null); refresh(); }}
+        defaultPlan={upgradePlan || "companion"}
+      />
     </div>
   );
 };
