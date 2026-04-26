@@ -4272,6 +4272,59 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscription_addons: {
+        Row: {
+          active_from: string
+          active_until: string | null
+          addon_key: string
+          addon_label: string
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          quantity: number
+          subscription_id: string
+          unit_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          active_from?: string
+          active_until?: string | null
+          addon_key: string
+          addon_label: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          quantity?: number
+          subscription_id: string
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active_from?: string
+          active_until?: string | null
+          addon_key?: string
+          addon_label?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          quantity?: number
+          subscription_id?: string
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscription_addons_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_subscriptions: {
         Row: {
           activated_at: string | null
