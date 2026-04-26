@@ -643,14 +643,18 @@ export type Database = {
       payment_receipts: {
         Row: {
           amount: number
+          bank_name: string | null
           billing_cycle: string
           created_at: string
           currency: string
           device_id: string
           id: string
+          internal_note: string | null
+          patient_message: string | null
           payer_name: string | null
           payer_phone: string | null
           payment_method: string
+          payment_reference: string | null
           receipt_file_path: string | null
           reference_no: string | null
           requested_plan: string
@@ -658,19 +662,25 @@ export type Database = {
           reviewer_id: string | null
           reviewer_notes: string | null
           status: string
+          submission_channel: string
           subscription_id: string | null
+          transfer_date: string | null
           updated_at: string
         }
         Insert: {
           amount: number
+          bank_name?: string | null
           billing_cycle?: string
           created_at?: string
           currency?: string
           device_id: string
           id?: string
+          internal_note?: string | null
+          patient_message?: string | null
           payer_name?: string | null
           payer_phone?: string | null
           payment_method: string
+          payment_reference?: string | null
           receipt_file_path?: string | null
           reference_no?: string | null
           requested_plan: string
@@ -678,19 +688,25 @@ export type Database = {
           reviewer_id?: string | null
           reviewer_notes?: string | null
           status?: string
+          submission_channel?: string
           subscription_id?: string | null
+          transfer_date?: string | null
           updated_at?: string
         }
         Update: {
           amount?: number
+          bank_name?: string | null
           billing_cycle?: string
           created_at?: string
           currency?: string
           device_id?: string
           id?: string
+          internal_note?: string | null
+          patient_message?: string | null
           payer_name?: string | null
           payer_phone?: string | null
           payment_method?: string
+          payment_reference?: string | null
           receipt_file_path?: string | null
           reference_no?: string | null
           requested_plan?: string
@@ -698,7 +714,9 @@ export type Database = {
           reviewer_id?: string | null
           reviewer_notes?: string | null
           status?: string
+          submission_channel?: string
           subscription_id?: string | null
+          transfer_date?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4112,6 +4130,66 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_events: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          created_at: string
+          details: Json | null
+          device_id: string
+          event_type: string
+          from_value: string | null
+          id: string
+          notes: string | null
+          receipt_id: string | null
+          subscription_id: string | null
+          to_value: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          details?: Json | null
+          device_id: string
+          event_type: string
+          from_value?: string | null
+          id?: string
+          notes?: string | null
+          receipt_id?: string | null
+          subscription_id?: string | null
+          to_value?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          details?: Json | null
+          device_id?: string
+          event_type?: string
+          from_value?: string | null
+          id?: string
+          notes?: string | null
+          receipt_id?: string | null
+          subscription_id?: string | null
+          to_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "payment_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
             referencedColumns: ["id"]
           },
         ]
