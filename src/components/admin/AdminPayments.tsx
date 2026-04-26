@@ -272,7 +272,7 @@ const AdminPayments = () => {
       || (r.reference_no || "").toLowerCase().includes(q);
   }), [receipts, search, statusFilter]);
 
-  const pendingCount = receipts.filter(r => r.status === "pending").length;
+  const pendingCount = receipts.filter(r => ["pending","under_review","needs_more_info"].includes(r.status)).length;
 
   return (
     <div className="space-y-4">
