@@ -4471,7 +4471,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ai_usage_audit: {
+        Row: {
+          count: number | null
+          daily_limit: number | null
+          device_id: string | null
+          last_prompt_at: string | null
+          plan: string | null
+          resets_at: string | null
+          usage_day: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_create_user_role: {
