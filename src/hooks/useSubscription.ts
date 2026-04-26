@@ -8,7 +8,9 @@ import { getDeviceId } from "@/hooks/useDeviceId";
 
 export interface Subscription {
   id: string;
-  plan: "trial" | "basic" | "companion" | "family" | "premium";
+  /** Stored as TEXT in the DB. Spec values: FREE | STARTER | COMPANION | FAMILY.
+   *  Older rows may still hold lowercase basic/pro/companion etc. — UI normalises. */
+  plan: string;
   status: "active" | "pending_receipt" | "expired" | "cancelled" | "rejected";
   billing_cycle: "monthly" | "quarterly" | "yearly";
   current_period_end: string | null;
