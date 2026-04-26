@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Zap, Shield, Crown, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Check, Zap, Shield, Crown, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
 import { ADDON_META, type AddOnId } from "@/data/currencyMaster";
+import UpgradeCTA from "@/components/UpgradeCTA";
+import { useSubscription } from "@/hooks/useSubscription";
+
+type UpgradePlan = "basic" | "companion" | "family" | "premium";
+const PLAN_TO_UPGRADE: Record<string, UpgradePlan> = { free: "basic", pro: "companion", enterprise: "premium" };
 
 interface PricingScreenProps {
   onBack: () => void;
