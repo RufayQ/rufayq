@@ -387,13 +387,19 @@ const AdminPayments = () => {
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">{r.payment_method}</span>
                   </div>
                   <p className="text-[10px] text-slate-500 font-mono">device: {r.device_id.slice(0, 18)}…</p>
+                  {r.payment_reference && (
+                    <p className="text-[10px] text-amber-300 font-mono">ref · {r.payment_reference}</p>
+                  )}
                   <p className="text-[10px] text-slate-500">
                     {new Date(r.created_at).toLocaleString()}
-                    {r.reference_no && ` · ref ${r.reference_no}`}
+                    {r.submission_channel && ` · via ${r.submission_channel}`}
+                    {r.reference_no && ` · txn ${r.reference_no}`}
                     {r.payer_name && ` · ${r.payer_name}`}
-                    {r.payer_phone && ` · ${r.payer_phone}`}
+                    {r.bank_name && ` · ${r.bank_name}`}
+                    {r.transfer_date && ` · transferred ${r.transfer_date}`}
                   </p>
-                  {r.reviewer_notes && <p className="text-[11px] text-slate-300 italic mt-1">"{r.reviewer_notes}"</p>}
+                  {r.patient_message && <p className="text-[11px] text-slate-200 mt-1">📨 {r.patient_message}</p>}
+                  {r.internal_note && <p className="text-[11px] text-amber-300/80 italic mt-0.5">🗒 {r.internal_note}</p>}
                 </div>
                 <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
                   {r.receipt_file_path && (
@@ -402,11 +408,21 @@ const AdminPayments = () => {
                       <Eye size={11} />View receipt
                     </button>
                   )}
-                  {r.status === "pending" && (
+                  {(r.status === "pending" || r.status === "under_review" || r.status === "needs_more_info") && (
                     <>
+                      {r.status === "pending" && (
+                        <button onClick={() => markUnderReview(r)}
+                          className="px-3 py-1 rounded bg-blue-500/20 text-blue-300 text-[11px] flex items-center gap-1">
+                          <RefreshCw size={11} />Take review
+                        </button>
+                      )}
                       <button onClick={() => verifyReceipt(r)}
                         className="px-3 py-1 rounded bg-emerald-500/20 text-emerald-300 text-[11px] flex items-center gap-1">
-                        <Check size={11} />Verify & activate
+                        <Check size={11} />Approve & activate
+                      </button>
+                      <button onClick={() => requestMoreInfo(r)}
+                        className="px-3 py-1 rounded bg-amber-500/20 text-amber-300 text-[11px] flex items-center gap-1">
+                        <FileText size={11} />Need more info
                       </button>
                       <button onClick={() => rejectReceipt(r)}
                         className="px-3 py-1 rounded bg-rose-500/15 text-rose-300 text-[11px] flex items-center gap-1">
