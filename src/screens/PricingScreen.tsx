@@ -204,6 +204,29 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-6" style={{ background: "var(--off-white)" }}>
+        {/* Current plan banner */}
+        {(subscription || pendingReceipt) && (
+          <div className="mt-3 rounded-xl p-3 flex items-center gap-2"
+            style={{
+              background: pendingReceipt ? "var(--gold-pale)" : "var(--teal-light)",
+              border: `1px solid ${pendingReceipt ? "var(--gold)" : "var(--teal-deep)"}`,
+            }}>
+            {pendingReceipt ? <Clock size={14} color="var(--gold)" /> : <Check size={14} color="var(--teal-deep)" />}
+            <div className="flex-1">
+              <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+                {pendingReceipt
+                  ? "Receipt under review · إيصال قيد المراجعة"
+                  : `Active plan: ${subscription?.plan} · ${subscription?.status}`}
+              </p>
+              {subscription?.current_period_end && !pendingReceipt && (
+                <p className="text-[10px]" style={{ color: "var(--gray)" }}>
+                  Renews {new Date(subscription.current_period_end).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Plans */}
         <div className="space-y-3 mt-3">
           {plans.map((plan) => (
