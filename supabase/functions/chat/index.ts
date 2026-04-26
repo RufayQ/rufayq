@@ -66,7 +66,7 @@ serve(async (req) => {
     };
     const planKey = (trial.plan || "trial").toLowerCase();
     const dailyLimit = PLAN_LIMITS[planKey] ?? 5;
-    const today = new Date().toISOString().slice(0, 10); // UTC YYYY-MM-DD
+    
 
     // Atomic upsert+increment via RPC. Prevents race conditions where N parallel
     // requests could each read count<limit and bypass the cap.
