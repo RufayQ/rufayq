@@ -131,6 +131,7 @@ const Admin = () => {
         {tab === "rcm_bulk" && role === "admin" && <AdminRcmBulkOps />}
         {tab === "subs" && role === "admin" && <AdminSubscriptions />}
         {tab === "payments" && role === "admin" && <AdminPayments />}
+        {tab === "ai_usage" && role === "admin" && <AdminAiUsage />}
         {tab === "reviews" && <AdminReviews />}
         {tab === "tickets" && <AdminTickets />}
         {tab === "news" && <AdminNews />}
