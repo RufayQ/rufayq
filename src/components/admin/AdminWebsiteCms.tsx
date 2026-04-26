@@ -369,7 +369,7 @@ const NavEditor = ({ location }: { location: "header" | "footer" }) => {
 
   const update = async (id: string, patch: Partial<NavRow>) => {
     setRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
-    await supabase.from("cms_nav_items").update(patch).eq("id", id);
+    await supabase.from("cms_nav_items").update(patch as never).eq("id", id);
   };
   const add = async () => {
     const sort_order = (rows[rows.length - 1]?.sort_order ?? 0) + 10;
@@ -414,7 +414,7 @@ const FooterEditor = () => {
 
   const update = async (id: string, patch: Partial<FooterRow>) => {
     setRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
-    await supabase.from("cms_footer_items").update(patch).eq("id", id);
+    await supabase.from("cms_footer_items").update(patch as never).eq("id", id);
   };
   const add = async (col: string) => {
     const colRows = rows.filter(r => r.column_key === col);
