@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Shield, Star, MessageSquare, Users, LogOut, CreditCard, FileText, Building2, UserPlus, Activity, LayoutDashboard, Briefcase } from "lucide-react";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
+import AdminPayments from "@/components/admin/AdminPayments";
 import AdminReviews from "@/components/admin/AdminReviews";
 import AdminTickets from "@/components/admin/AdminTickets";
 import AdminPages from "@/components/admin/AdminPages";
@@ -20,7 +21,7 @@ import AdminRcmImports from "@/components/admin/AdminRcmImports";
 import AdminRcmBulkOps from "@/components/admin/AdminRcmBulkOps";
 import AdminVerificationAssist from "@/components/admin/AdminVerificationAssist";
 
-type Tab = "dashboard" | "users" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "reviews" | "tickets" | "news" | "pages" | "audit";
+type Tab = "dashboard" | "users" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "payments" | "reviews" | "tickets" | "news" | "pages" | "audit";
 
 // Tabs are grouped: Users area first (Users → Create User → User Activations),
 // then Org/Provider area, then RCM, then ops.
@@ -37,6 +38,7 @@ const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boole
   { key: "rcm_imports", label: "RCM Imports", Icon: FileText, adminOnly: true },
   { key: "rcm_bulk", label: "RCM Bulk Ops", Icon: FileText, adminOnly: true },
   { key: "subs", label: "Subscriptions", Icon: CreditCard, adminOnly: true },
+  { key: "payments", label: "Payments", Icon: CreditCard, adminOnly: true },
   { key: "reviews", label: "Reviews", Icon: Star },
   { key: "tickets", label: "Tickets", Icon: MessageSquare },
   { key: "news", label: "News & Articles", Icon: FileText },
@@ -126,6 +128,7 @@ const Admin = () => {
         {tab === "rcm_imports" && role === "admin" && <AdminRcmImports />}
         {tab === "rcm_bulk" && role === "admin" && <AdminRcmBulkOps />}
         {tab === "subs" && role === "admin" && <AdminSubscriptions />}
+        {tab === "payments" && role === "admin" && <AdminPayments />}
         {tab === "reviews" && <AdminReviews />}
         {tab === "tickets" && <AdminTickets />}
         {tab === "news" && <AdminNews />}
