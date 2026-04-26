@@ -748,6 +748,7 @@ export type Database = {
           phone: string | null
           privacy_accepted_at: string | null
           provider_type: Database["public"]["Enums"]["provider_type"]
+          rufayq_id: string | null
           saudi_id: string | null
           terms_accepted_at: string | null
           updated_at: string
@@ -770,6 +771,7 @@ export type Database = {
           phone?: string | null
           privacy_accepted_at?: string | null
           provider_type?: Database["public"]["Enums"]["provider_type"]
+          rufayq_id?: string | null
           saudi_id?: string | null
           terms_accepted_at?: string | null
           updated_at?: string
@@ -792,6 +794,7 @@ export type Database = {
           phone?: string | null
           privacy_accepted_at?: string | null
           provider_type?: Database["public"]["Enums"]["provider_type"]
+          rufayq_id?: string | null
           saudi_id?: string | null
           terms_accepted_at?: string | null
           updated_at?: string
