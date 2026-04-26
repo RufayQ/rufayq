@@ -40,6 +40,7 @@ const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boole
   { key: "rcm_bulk", label: "RCM Bulk Ops", Icon: FileText, adminOnly: true },
   { key: "subs", label: "Subscriptions", Icon: CreditCard, adminOnly: true },
   { key: "payments", label: "Payments", Icon: CreditCard, adminOnly: true },
+  { key: "ai_usage", label: "AI Usage", Icon: Activity, adminOnly: true },
   { key: "reviews", label: "Reviews", Icon: Star },
   { key: "tickets", label: "Tickets", Icon: MessageSquare },
   { key: "news", label: "News & Articles", Icon: FileText },
