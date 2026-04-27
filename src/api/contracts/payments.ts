@@ -13,6 +13,7 @@ export const KNOWN_PAYMENT_STATUSES = [
   "needs_more_info",
   "verified",
   "rejected",
+  "code_expired",
 ] as const;
 
 export const PaymentStatusSchema = z.string().min(1);
