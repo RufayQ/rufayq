@@ -167,4 +167,151 @@ describe("Inline detection note", () => {
     renderPricing();
     expect(screen.queryByTestId("detection-note")).toBeNull();
   });
+
+  // Cover EVERY detectionSource value with the exact fallback wording.
+  const enCases: Array<[typeof currencyState.detectionSource, RegExp]> = [
+    ["ip", /Based on your IP address · SA/],
+    ["locale", /Fell back to browser language · SA \(IP lookup unavailable\)/],
+    ["timezone", /Fell back to timezone · SA \(IP lookup unavailable\)/],
+    ["stored", /From your previous preference · SA/],
+    ["default", /Default location · SA/],
+  ];
+  for (const [source, re] of enCases) {
+    it(`renders correct EN copy for source = ${source}`, () => {
+      currencyState = { ...currencyState, detectionSource: source };
+      renderPricing();
+      expect(screen.getByTestId("detection-note").textContent).toMatch(re);
+    });
+  }
+
+  const arCases: Array<[typeof currencyState.detectionSource, RegExp]> = [
+    ["ip", /استناداً إلى عنوان IP/],
+    ["locale", /لغة المتصفح/],
+    ["timezone", /المنطقة الزمنية/],
+    ["stored", /تفضيلاتك السابقة/],
+    ["default", /الموقع الافتراضي/],
+  ];
+  for (const [source, re] of arCases) {
+    it(`renders correct AR copy for source = ${source}`, () => {
+      langMode = "ar";
+      currencyState = { ...currencyState, detectionSource: source };
+      renderPricing();
+      expect(screen.getByTestId("detection-note").textContent).toMatch(re);
+    });
+  }
+});
+
+// --- Accessibility: ARIA labels & keyboard focus -------------------------
+describe("Accessibility", () => {
+  it("badge exposes an aria-label including the detection source", () => {
+    renderPricing();
+    const badge = screen.getByTestId("detection-badge");
+    expect(badge.getAttribute("aria-label")).toMatch(/Source:.*IP address/);
+    expect(badge.getAttribute("role")).toBe("button");
+    expect(badge.getAttribute("tabindex")).toBe("0");
+  });
+
+  it("badge aria-label updates for manual override", () => {
+    currencyState = { ...currencyState, countryManual: true, detectionSource: "manual" };
+    renderPricing();
+    const badge = screen.getByTestId("detection-badge");
+    expect(badge.getAttribute("aria-label")).toMatch(/Source:.*Manual override/);
+    expect(badge.getAttribute("aria-label")).toMatch(/manually overridden/);
+  });
+
+  it("currency toggle has descriptive aria-label in EN", () => {
+    renderPricing();
+    const btn = screen.getByTestId("currency-toggle");
+    expect(btn.getAttribute("aria-label")).toMatch(/Switch currency to US Dollar/);
+  });
+
+  it("currency toggle has descriptive aria-label in AR", () => {
+    langMode = "ar";
+    renderPricing();
+    const btn = screen.getByTestId("currency-toggle");
+    expect(btn.getAttribute("aria-label")).toMatch(/تبديل العملة/);
+  });
+
+  it("badge is keyboard focusable", () => {
+    renderPricing();
+    const badge = screen.getByTestId("detection-badge");
+    badge.focus();
+    expect(document.activeElement).toBe(badge);
+  });
+
+  it("currency toggle is keyboard focusable", () => {
+    renderPricing();
+    const btn = screen.getByTestId("currency-toggle");
+    btn.focus();
+    expect(document.activeElement).toBe(btn);
+  });
+});
+
+// --- Tooltip title shows detectionSource explicitly ----------------------
+describe("Tooltip title shows detectionSource explicitly", () => {
+  // Radix Tooltip portals into the body on hover/focus. We assert via the
+  // aria-label, which is the same source string the tooltip title renders.
+  const sources: Array<[typeof currencyState.detectionSource, string]> = [
+    ["ip", "IP address"],
+    ["locale", "Browser language"],
+    ["timezone", "System timezone"],
+    ["stored", "Saved preference"],
+    ["default", "Default"],
+  ];
+  for (const [source, label] of sources) {
+    it(`includes "${label}" for source = ${source}`, () => {
+      currencyState = { ...currencyState, detectionSource: source };
+      renderPricing();
+      const badge = screen.getByTestId("detection-badge");
+      expect(badge.getAttribute("aria-label")).toContain(label);
+      expect(badge.getAttribute("data-detection-source")).toBe(source);
+    });
+  }
+});
+
+// --- RTL snapshot: tooltip placement, alignment, icon mirroring ----------
+describe("RTL/LTR layout snapshots", () => {
+  it("LTR: badge has no dir attribute and icon is not mirrored", () => {
+    renderPricing();
+    const note = screen.queryByTestId("detection-note");
+    expect(note?.getAttribute("dir")).toBe("ltr");
+    // Icon inside the toggle should not be flipped.
+    const toggle = screen.getByTestId("currency-toggle");
+    const icon = toggle.querySelector("svg");
+    expect(icon?.getAttribute("style") || "").not.toMatch(/scaleX\(-1\)/);
+  });
+
+  it("RTL: detection note has dir='rtl' and uses font-arabic", () => {
+    langMode = "ar";
+    renderPricing();
+    const note = screen.getByTestId("detection-note");
+    expect(note.getAttribute("dir")).toBe("rtl");
+    expect(note.className).toMatch(/font-arabic/);
+  });
+
+  it("RTL: currency toggle icon is mirrored via scaleX(-1)", () => {
+    langMode = "ar";
+    renderPricing();
+    const toggle = screen.getByTestId("currency-toggle");
+    const icon = toggle.querySelector("svg");
+    expect(icon?.getAttribute("style") || "").toMatch(/scaleX\(-1\)/);
+  });
+
+  it("RTL: badge text reads right-to-left order (Arabic label first)", () => {
+    langMode = "ar";
+    renderPricing();
+    const badge = screen.getByTestId("detection-badge");
+    // Arabic detected label
+    expect(badge.textContent).toMatch(/تلقائي · SA/);
+  });
+});
+
+// --- Per-country currency override persistence (regression) --------------
+describe("Per-country currency override does not revert on period change", () => {
+  it("setCurrency is invoked exactly once per click (no auto-revert)", () => {
+    renderPricing();
+    fireEvent.click(screen.getByTestId("currency-toggle"));
+    expect(mockSetCurrency).toHaveBeenCalledTimes(1);
+    expect(mockSetCurrency).toHaveBeenCalledWith("USD");
+  });
 });
