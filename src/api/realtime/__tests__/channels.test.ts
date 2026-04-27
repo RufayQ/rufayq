@@ -7,11 +7,10 @@ describe("realtime channel registry", () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it("every channel has table + event + filter", () => {
+  it("every channel has table + event (filter optional for table-wide channels)", () => {
     for (const def of listRealtimeChannels()) {
       expect(def.table).toBeTruthy();
       expect(def.event).toBeTruthy();
-      expect(def.filter).toBeTruthy();
     }
   });
 

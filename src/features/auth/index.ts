@@ -9,5 +9,9 @@ export { useDeviceId, getDeviceId } from "@/hooks/useDeviceId";
 // Domain logic (added in Phase 1)
 export * from "./logic/permissions";
 
+// Permission UI gating
+export { Can } from "./Can";
+export { usePermissions } from "./usePermissions";
+
 // Types
 export type { AppRole, AppUser, UserRoleRow } from "@/shared/types/user";

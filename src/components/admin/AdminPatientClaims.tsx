@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, X, Search } from "lucide-react";
+import { Check, X, Search, Activity } from "lucide-react";
 import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
+import { useRealtimeChannel } from "@/api";
+import { Can, usePermissions } from "@/features/auth";
 
 interface Claim {
   id: string;
@@ -21,6 +23,8 @@ const AdminPatientClaims = () => {
   const [loading, setLoading] = useState(true);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [filter, setFilter] = useState<string>("pending_admin");
+  const { ready, can } = usePermissions();
+  const canDecide = can("claim.decide");
   useQuickCreateSignal("claims", () => toast.info("Patient claims are submitted by hospitals/insurers. Filter ‘Pending’ to triage incoming requests."));
 
   const load = async () => {
@@ -35,6 +39,9 @@ const AdminPatientClaims = () => {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Live refresh — pending-admin queue updates instantly as new claims arrive.
+  useRealtimeChannel("patientClaimsPending", () => load());
 
   const decide = async (id: string, approve: boolean) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -57,6 +64,9 @@ const AdminPatientClaims = () => {
     <div>
       <div className="flex items-center gap-3 mb-4">
         <h2 className="text-xl font-semibold">Patient Claims</h2>
+        <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
+          <Activity size={10} className="text-emerald-400 animate-pulse" />live
+        </span>
         <select value={filter} onChange={(e) => setFilter(e.target.value)}
           className="ml-auto bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm">
           <option value="pending_admin">Pending admin</option>
@@ -66,6 +76,12 @@ const AdminPatientClaims = () => {
           <option value="all">All</option>
         </select>
       </div>
+
+      {ready && !canDecide && (
+        <p className="mb-3 text-[11px] text-amber-400/80 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+          Read-only view — your role can review claims but cannot approve or reject them.
+        </p>
+      )}
 
       {loading && <p className="text-slate-400">Loading…</p>}
 
@@ -97,19 +113,28 @@ const AdminPatientClaims = () => {
             </div>
 
             {c.status === "pending_admin" && (
-              <div className="flex gap-2 mt-3">
-                <button onClick={() => decide(c.id, true)} disabled={!c.matched_device_id}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed">
-                  <Check size={14} /> Approve → Patient
-                </button>
-                <button onClick={() => decide(c.id, false)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-rose-600 hover:bg-rose-500">
-                  <X size={14} /> Reject
-                </button>
-                {!c.matched_device_id && (
-                  <span className="text-[10px] text-amber-400 self-center">Patient not registered yet — wait for signup</span>
-                )}
-              </div>
+              <Can
+                action="claim.decide"
+                fallback={
+                  <p className="mt-3 text-[10px] text-slate-500 italic">
+                    You don't have permission to decide on this claim.
+                  </p>
+                }
+              >
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => decide(c.id, true)} disabled={!c.matched_device_id || !canDecide}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <Check size={14} /> Approve → Patient
+                  </button>
+                  <button onClick={() => decide(c.id, false)} disabled={!canDecide}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <X size={14} /> Reject
+                  </button>
+                  {!c.matched_device_id && (
+                    <span className="text-[10px] text-amber-400 self-center">Patient not registered yet — wait for signup</span>
+                  )}
+                </div>
+              </Can>
             )}
           </div>
         ))}
