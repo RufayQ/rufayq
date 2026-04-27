@@ -245,6 +245,12 @@ const AdminNews = () => {
     setActiveId(a.id);
   };
 
+  // Auto-trigger "New Article" if user clicked + New → Article in the admin shell.
+  useQuickCreateSignal("news", () => {
+    if (!loading) addArticle();
+    else setTimeout(() => addArticle(), 400);
+  });
+
   const duplicateActive = () => {
     if (!active) return;
     const copy: Article = {
