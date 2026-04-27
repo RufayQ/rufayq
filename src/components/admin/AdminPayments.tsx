@@ -441,6 +441,13 @@ const AdminPayments = () => {
                           <Eye size={11} />View receipt
                         </button>
                       )}
+                      <button
+                        onClick={() => setAuditOpenId((cur) => (cur === r.id ? null : r.id))}
+                        className="px-2.5 py-1 rounded bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1"
+                        title="Audit trail"
+                      >
+                        <Activity size={11} />{auditOpenId === r.id ? "Hide trail" : "Audit trail"}
+                      </button>
                       {(r.status === "pending" || r.status === "under_review" || r.status === "needs_more_info") && (
                         <>
                           {r.status === "pending" && (
