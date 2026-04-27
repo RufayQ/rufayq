@@ -1,18 +1,26 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pause, Play, Ban, Trash2, KeyRound, Search, Copy, MessageCircle, Mail, Edit3, Save, X, RotateCw, Shuffle } from "lucide-react";
+import { Pause, Play, Ban, Trash2, KeyRound, Search, Copy, MessageCircle, Mail, Edit3, Save, X, RotateCw, Shuffle, Crown } from "lucide-react";
+import SubscriptionDrawer from "@/features/subscriptions/admin/ui/SubscriptionDrawer";
+import { statusTone, normalizePlanCode } from "@/features/subscriptions/logic/statusMachine";
 
 interface Profile {
   id: string; device_id: string; full_name_en: string | null; phone: string | null;
   email: string | null; nationality: string | null; created_at: string;
   deleted_at?: string | null; deleted_reason?: string | null;
   provider_type?: string | null; organization_id?: string | null;
+  rufayq_id?: string | null;
 }
 interface UserStatus {
   user_id: string; status: "active" | "on_hold" | "suspended"; reason: string | null;
 }
 interface Org { id: string; name: string; org_type: string }
+interface SubSummary {
+  device_id: string; plan: string; status: string;
+  current_period_end: string | null;
+}
+interface ReceiptSummary { device_id: string; status: string; }
 
 const PROVIDER_TYPES = ["patient","hospital","physician","vendor","insurance","internal"];
 const TYPE_BADGE: Record<string, string> = {
@@ -37,13 +45,22 @@ const AdminUsers = () => {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterOrg, setFilterOrg] = useState<string>("all");
+  const [subsByDevice, setSubsByDevice] = useState<Record<string, SubSummary>>({});
+  const [latestReceiptByDevice, setLatestReceiptByDevice] = useState<Record<string, ReceiptSummary>>({});
+  const [drawerUser, setDrawerUser] = useState<Profile | null>(null);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: p, error: pErr }, { data: s }, { data: o }] = await Promise.all([
+    const [{ data: p, error: pErr }, { data: s }, { data: o }, { data: subs }, { data: recs }] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("user_status").select("*"),
       supabase.from("organizations").select("id,name,org_type").order("name"),
+      supabase.from("user_subscriptions")
+        .select("device_id,plan,status,current_period_end")
+        .order("created_at", { ascending: false }),
+      supabase.from("payment_receipts")
+        .select("device_id,status")
+        .order("created_at", { ascending: false }),
     ]);
     if (pErr) toast.error(pErr.message);
     setProfiles((p || []) as Profile[]);
@@ -51,6 +68,20 @@ const AdminUsers = () => {
     const map: Record<string, UserStatus> = {};
     (s || []).forEach((x: any) => { map[x.user_id] = x; });
     setStatuses(map);
+    // Pick the most relevant subscription per device: prefer active, else latest
+    const subMap: Record<string, SubSummary> = {};
+    (subs || []).forEach((row: any) => {
+      const cur = subMap[row.device_id];
+      if (!cur || (row.status === "active" && cur.status !== "active")) {
+        subMap[row.device_id] = row as SubSummary;
+      }
+    });
+    setSubsByDevice(subMap);
+    const recMap: Record<string, ReceiptSummary> = {};
+    (recs || []).forEach((row: any) => {
+      if (!recMap[row.device_id]) recMap[row.device_id] = row as ReceiptSummary;
+    });
+    setLatestReceiptByDevice(recMap);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -196,6 +227,13 @@ const AdminUsers = () => {
         const isDeleted = !!p.deleted_at;
         const recipient = p.email || (p.phone?.startsWith("+") ? p.phone : p.phone ? `+966${p.phone.replace(/^0+/, "")}` : "");
         const isEditing = editing === p.id;
+        const sub = subsByDevice[p.device_id];
+        const planCode = normalizePlanCode(sub?.plan) || "FREE";
+        const subStatus = sub?.status;
+        const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end) : null;
+        const daysLeft = periodEnd ? Math.ceil((periodEnd.getTime() - Date.now()) / 86_400_000) : null;
+        const expiringSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7 && subStatus === "active";
+        const latestRec = latestReceiptByDevice[p.device_id];
         return (
           <div key={p.id} className={`rounded-xl border p-4 ${isDeleted ? "border-rose-900/40 bg-rose-950/20 opacity-70" : "border-slate-800 bg-slate-900/50"}`}>
             <div className="flex items-start justify-between gap-3 mb-2">
@@ -222,6 +260,28 @@ const AdminUsers = () => {
                         : "bg-rose-500/15 text-rose-300"
                       }`}>{status}</span>}
                       {isDeleted && <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300">DELETED</span>}
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+                        planCode === "FREE" ? "bg-slate-700/60 text-slate-300"
+                        : planCode === "STARTER" ? "bg-sky-500/15 text-sky-300"
+                        : planCode === "COMPANION" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        : "bg-violet-500/15 text-violet-300"
+                      }`}>{planCode}</span>
+                      {subStatus && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${statusTone(subStatus)}`}>
+                          {expiringSoon ? "EXPIRING" : subStatus.toUpperCase()}
+                        </span>
+                      )}
+                      {latestRec && (latestRec.status === "pending" || latestRec.status === "under_review") && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-mono">
+                          PAY: {latestRec.status.toUpperCase()}
+                        </span>
+                      )}
+                      {latestRec?.status === "rejected" && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 font-mono">PAY: REJECTED</span>
+                      )}
+                      {daysLeft !== null && daysLeft >= 0 && subStatus === "active" && (
+                        <span className="text-[10px] text-slate-500">· {daysLeft}d left</span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400">
                       {p.phone || "no phone"} · {p.email || "no email"} · {p.nationality || "—"}
@@ -250,6 +310,11 @@ const AdminUsers = () => {
                     <button onClick={() => resetPassword(p, "manual")} disabled={!auth_id || isDeleted}
                       className="px-2.5 py-1 rounded bg-violet-500/15 text-violet-300 text-[11px] flex items-center gap-1 disabled:opacity-30" title="Set a specific password">
                       <RotateCw size={11}/>Set pwd
+                    </button>
+                    <button onClick={() => setDrawerUser(p)} disabled={isDeleted}
+                      title="Open subscription management"
+                      className="px-2.5 py-1 rounded bg-gradient-to-r from-amber-500/30 to-amber-600/20 text-amber-200 border border-amber-500/40 text-[11px] flex items-center gap-1 disabled:opacity-30 hover:from-amber-500/40 hover:to-amber-600/30 transition-colors">
+                      <Crown size={11}/>Subscription
                     </button>
                     <button onClick={() => startEdit(p)} disabled={isDeleted}
                       className="px-2.5 py-1 rounded bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1 disabled:opacity-30"><Edit3 size={11}/>Edit</button>
@@ -318,6 +383,20 @@ const AdminUsers = () => {
             <button onClick={() => setPwdModal(null)} className="w-full py-2 text-xs text-slate-400">Close</button>
           </div>
         </div>
+      )}
+
+      {drawerUser && (
+        <SubscriptionDrawer
+          user={{
+            id: drawerUser.id,
+            device_id: drawerUser.device_id,
+            full_name_en: drawerUser.full_name_en,
+            email: drawerUser.email,
+            phone: drawerUser.phone,
+            rufayq_id: drawerUser.rufayq_id ?? null,
+          }}
+          onClose={() => { setDrawerUser(null); load(); }}
+        />
       )}
     </div>
   );
