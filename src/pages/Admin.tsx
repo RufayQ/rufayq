@@ -210,34 +210,38 @@ const Admin = () => {
 
         <main className="flex-1 px-6 py-6 overflow-y-auto">
           {(() => {
+            // Permission-driven gating. Server RLS remains the source of truth;
+            // these checks only hide/disable UI we know the user can't action.
+            const isAdmin = role === "admin";
+            const gate = (allowed: boolean, title: string, hint = "Admin role required.") =>
+              allowed ? null : <ComingSoon title={title} hint={hint} />;
+
             if (leaf === "settings_general") return <AdminSettingsGeneral />;
-            if (leaf === "settings_team") return role === "admin"
-              ? <AdminSettingsTeam />
-              : <ComingSoon title="Team & Roles" hint="Admin role required to view this screen." />;
+            if (leaf === "settings_team") return gate(isAdmin, "Team & Roles", "Admin role required to view this screen.") ?? <AdminSettingsTeam />;
             switch (leaf) {
               case "dashboard": return <AdminDashboard />;
               case "users": return <AdminUsers />;
-              case "user_search": return role === "admin" ? <AdminUserSearch /> : <ComingSoon title="Search & Assign" hint="Admin role required." />;
-              case "create": return role === "admin" ? <AdminCreateUser /> : <ComingSoon title="Create User" hint="Admin role required." />;
+              case "user_search": return gate(isAdmin, "Search & Assign") ?? <AdminUserSearch />;
+              case "create": return gate(isAdmin, "Create User") ?? <AdminCreateUser />;
               case "verify_assist": return <AdminVerificationAssist />;
               case "orgs": return <AdminOrganizations />;
               case "applications": return <AdminProviderApplications />;
               case "claims": return <AdminPatientClaims />;
-              case "rcm": return role === "admin" ? <AdminRcmMasters /> : <ComingSoon title="RCM Masters" hint="Admin role required." />;
-              case "rcm_activations": return role === "admin" ? <AdminRcmActivations /> : <ComingSoon title="RCM Activations" hint="Admin role required." />;
-              case "rcm_imports": return role === "admin" ? <AdminRcmImports /> : <ComingSoon title="RCM Imports" hint="Admin role required." />;
-              case "rcm_bulk": return role === "admin" ? <AdminRcmBulkOps /> : <ComingSoon title="RCM Bulk Ops" hint="Admin role required." />;
-              case "subs": return role === "admin" ? <AdminSubscriptions /> : <ComingSoon title="Subscriptions" hint="Admin role required." />;
-              case "payments": return role === "admin" ? <AdminPayments /> : <ComingSoon title="Payments & Receipts" hint="Admin role required." />;
-              case "ai_usage": return role === "admin" ? <AdminAiUsage /> : <ComingSoon title="AI Usage" hint="Admin role required." />;
+              case "rcm": return gate(isAdmin, "RCM Masters") ?? <AdminRcmMasters />;
+              case "rcm_activations": return gate(isAdmin, "RCM Activations") ?? <AdminRcmActivations />;
+              case "rcm_imports": return gate(isAdmin, "RCM Imports") ?? <AdminRcmImports />;
+              case "rcm_bulk": return gate(isAdmin, "RCM Bulk Ops") ?? <AdminRcmBulkOps />;
+              case "subs": return gate(isAdmin, "Subscriptions") ?? <AdminSubscriptions />;
+              case "payments": return gate(isAdmin, "Payments & Receipts") ?? <AdminPayments />;
+              case "ai_usage": return gate(isAdmin, "AI Usage") ?? <AdminAiUsage />;
               case "reviews": return <AdminReviews />;
               case "tickets": return <AdminTickets />;
               case "news": return <AdminNews />;
               case "pages": return <AdminPages />;
-              case "website_cms": return role === "admin" ? <AdminWebsiteCms /> : <ComingSoon title="Website CMS" hint="Admin role required." />;
-              case "cms_seo": return role === "admin" ? <AdminCmsSeo /> : <ComingSoon title="SEO Manager" hint="Admin role required." />;
-              case "cms_media": return role === "admin" ? <AdminCmsMedia /> : <ComingSoon title="Media Library" hint="Admin role required." />;
-              case "cms_blog_cats": return role === "admin" ? <AdminCmsBlogCategories /> : <ComingSoon title="Blog Categories" hint="Admin role required." />;
+              case "website_cms": return gate(isAdmin, "Website CMS") ?? <AdminWebsiteCms />;
+              case "cms_seo": return gate(isAdmin, "SEO Manager") ?? <AdminCmsSeo />;
+              case "cms_media": return gate(isAdmin, "Media Library") ?? <AdminCmsMedia />;
+              case "cms_blog_cats": return gate(isAdmin, "Blog Categories") ?? <AdminCmsBlogCategories />;
               case "audit": return <AdminAuditLog />;
               default: return <ComingSoon title="Coming soon" />;
             }

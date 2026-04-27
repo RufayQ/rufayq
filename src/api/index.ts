@@ -15,7 +15,11 @@ export * from "./contracts/auth";
 
 // Clients
 export { subscriptionsClient, type ApiResult } from "./clients/subscriptions.client";
-export { paymentsClient } from "./clients/payments.client";
+export {
+  paymentsClient,
+  type SubscriptionRow,
+  type AddonRow,
+} from "./clients/payments.client";
 export { cmsClient } from "./clients/cms.client";
 export { ticketsClient } from "./clients/tickets.client";
 export { reviewsClient } from "./clients/reviews.client";

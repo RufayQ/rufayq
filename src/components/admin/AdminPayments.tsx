@@ -11,43 +11,22 @@
  *  • Add-ons       — extras attached to a subscription
  */
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 import {
   CreditCard, FileText, Sparkles, Search, Check, X, RefreshCw,
-  Plus, Calendar, DownloadCloud, Eye, Trash2,
+  Plus, Eye, Trash2,
 } from "lucide-react";
+import {
+  paymentsClient,
+  useRealtimeChannel,
+  type PaymentReceipt,
+  type SubscriptionRow as Sub,
+  type AddonRow as Addon,
+} from "@/api";
 
 type Tab = "subs" | "receipts" | "addons";
-
-interface Sub {
-  id: string; device_id: string; plan: string; status: string;
-  billing_cycle: string; amount: number | null; currency: string;
-  current_period_start: string | null; current_period_end: string | null;
-  activated_by: string | null; activated_at: string | null;
-  notes: string | null; provider: string;
-  created_at: string;
-}
-interface Receipt {
-  id: string; device_id: string; subscription_id: string | null;
-  requested_plan: string; billing_cycle: string;
-  amount: number; currency: string; payment_method: string;
-  reference_no: string | null; receipt_file_path: string | null;
-  payer_name: string | null; payer_phone: string | null;
-  payment_reference: string | null;
-  submission_channel: string; bank_name: string | null;
-  transfer_date: string | null;
-  patient_message: string | null; internal_note: string | null;
-  status: string; reviewer_notes: string | null;
-  reviewed_at: string | null; created_at: string;
-}
-interface Addon {
-  id: string; subscription_id: string; addon_key: string; addon_label: string;
-  quantity: number; unit_price: number | null; currency: string;
-  active_from: string; active_until: string | null; is_active: boolean;
-  created_at: string;
-}
+type Receipt = PaymentReceipt;
 
 import { receiptTone, isPendingReceipt } from "@/features/payments/logic/receipts";
 import { statusTone } from "@/features/subscriptions/logic/statusMachine";
@@ -81,108 +60,49 @@ const AdminPayments = () => {
   const load = async () => {
     setLoading(true);
     if (tab === "subs") {
-      const { data, error } = await supabase
-        .from("user_subscriptions")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) toast.error(error.message); else setSubs((data || []) as Sub[]);
+      const res = await paymentsClient.listSubscriptions();
+      if (res.error) toast.error(res.error.message); else setSubs(res.data ?? []);
     } else if (tab === "receipts") {
-      const { data, error } = await supabase
-        .from("payment_receipts")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) toast.error(error.message); else setReceipts((data || []) as Receipt[]);
+      const res = await paymentsClient.list();
+      if (res.error) toast.error(res.error.message); else setReceipts(res.data ?? []);
     } else {
-      const { data, error } = await supabase
-        .from("user_subscription_addons")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) toast.error(error.message); else setAddons((data || []) as unknown as Addon[]);
+      const res = await paymentsClient.listAddons();
+      if (res.error) toast.error(res.error.message); else setAddons(res.data ?? []);
     }
     setLoading(false);
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [tab]);
 
+  // Live refresh — pending receipts coming in trigger a reload while moderator is viewing.
+  useRealtimeChannel("paymentsPending", () => { if (tab === "receipts") load(); });
+
   // --- Subscription actions ---
   const activateSub = async (s: Sub) => {
-    const days = PERIOD_DAYS[s.billing_cycle] ?? 30;
-    const start = new Date();
-    const end = new Date(Date.now() + days * 86400000);
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("user_subscriptions").update({
-      status: "active",
-      current_period_start: start.toISOString(),
-      current_period_end: end.toISOString(),
-      activated_by: user?.id ?? null,
-      activated_at: start.toISOString(),
-    }).eq("id", s.id);
-    if (error) return toast.error(error.message);
-    toast.success(`Activated ${s.plan} until ${end.toLocaleDateString()}`);
+    const res = await paymentsClient.activateSubscription(s);
+    if (res.error) return toast.error(res.error.message);
+    toast.success(`Activated ${s.plan} until ${res.data!.end.toLocaleDateString()}`);
     load();
   };
 
   const cancelSub = async (s: Sub) => {
     if (!confirm(`Cancel ${s.plan} subscription for device ${s.device_id.slice(0, 12)}…?`)) return;
-    const { error } = await supabase.from("user_subscriptions").update({
-      status: "cancelled",
-      cancelled_at: new Date().toISOString(),
-    }).eq("id", s.id);
-    if (error) return toast.error(error.message);
+    const res = await paymentsClient.cancelSubscription(s.id);
+    if (res.error) return toast.error(res.error.message);
     toast.success("Cancelled");
     load();
   };
 
   const extendSub = async (s: Sub, days: number) => {
-    const base = s.current_period_end ? new Date(s.current_period_end) : new Date();
-    const newEnd = new Date(Math.max(base.getTime(), Date.now()) + days * 86400000);
-    const { error } = await supabase.from("user_subscriptions").update({
-      current_period_end: newEnd.toISOString(),
-    }).eq("id", s.id);
-    if (error) return toast.error(error.message);
-    toast.success(`+${days}d → ${newEnd.toLocaleDateString()}`);
+    const res = await paymentsClient.extendSubscription(s, days);
+    if (res.error) return toast.error(res.error.message);
+    toast.success(`+${days}d → ${res.data!.end.toLocaleDateString()}`);
     load();
   };
 
   // --- Receipt actions ---
   const verifyReceipt = async (r: Receipt) => {
-    // 1. Create or upsert subscription
-    const days = PERIOD_DAYS[r.billing_cycle] ?? 30;
-    const start = new Date();
-    const end = new Date(Date.now() + days * 86400000);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Cancel any existing active sub for this device first to avoid uq constraint conflict
-    await supabase.from("user_subscriptions")
-      .update({ status: "expired" })
-      .eq("device_id", r.device_id).eq("status", "active");
-
-    const { data: subRow, error: subErr } = await supabase.from("user_subscriptions").insert({
-      device_id: r.device_id,
-      plan: r.requested_plan,
-      status: "active",
-      billing_cycle: r.billing_cycle,
-      amount: r.amount,
-      currency: r.currency,
-      current_period_start: start.toISOString(),
-      current_period_end: end.toISOString(),
-      activated_by: user?.id ?? null,
-      activated_at: start.toISOString(),
-      provider: "manual",
-      notes: `Verified from receipt ${r.id.slice(0, 8)}`,
-    }).select().single();
-    if (subErr) return toast.error(subErr.message);
-
-    // 2. Mark receipt verified, link subscription
-    const { error: rErr } = await supabase.from("payment_receipts").update({
-      status: "verified",
-      subscription_id: subRow.id,
-      reviewer_id: user?.id ?? null,
-      reviewed_at: new Date().toISOString(),
-    }).eq("id", r.id);
-    if (rErr) return toast.error(rErr.message);
+    const res = await paymentsClient.verifyAndActivate(r);
+    if (res.error) return toast.error(res.error.message);
     toast.success("Receipt verified · plan activated");
     load();
   };
@@ -190,27 +110,15 @@ const AdminPayments = () => {
   const rejectReceipt = async (r: Receipt) => {
     const patientMsg = prompt("Message shown to the patient (English/Arabic):") || "Your payment could not be verified.";
     const internalNote = prompt("Internal note (admins only, optional):") || "";
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("payment_receipts").update({
-      status: "rejected",
-      reviewer_id: user?.id ?? null,
-      reviewer_notes: patientMsg,
-      patient_message: patientMsg,
-      internal_note: internalNote || null,
-      reviewed_at: new Date().toISOString(),
-    }).eq("id", r.id);
-    if (error) return toast.error(error.message);
+    const res = await paymentsClient.reject(r.id, patientMsg, internalNote);
+    if (res.error) return toast.error(res.error.message);
     toast.success("Rejected");
     load();
   };
 
   const markUnderReview = async (r: Receipt) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("payment_receipts").update({
-      status: "under_review",
-      reviewer_id: user?.id ?? null,
-    }).eq("id", r.id);
-    if (error) return toast.error(error.message);
+    const res = await paymentsClient.markUnderReview(r.id);
+    if (res.error) return toast.error(res.error.message);
     toast.success("Marked under review");
     load();
   };
@@ -219,23 +127,16 @@ const AdminPayments = () => {
     const patientMsg = prompt("What does the patient need to provide? (shown to them)")
       || "Please re-upload a clearer receipt.";
     const internalNote = prompt("Internal note (optional):") || "";
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("payment_receipts").update({
-      status: "needs_more_info",
-      reviewer_id: user?.id ?? null,
-      patient_message: patientMsg,
-      internal_note: internalNote || null,
-      reviewed_at: new Date().toISOString(),
-    }).eq("id", r.id);
-    if (error) return toast.error(error.message);
+    const res = await paymentsClient.requestMoreInfo(r.id, patientMsg, internalNote);
+    if (res.error) return toast.error(res.error.message);
     toast.success("Asked patient for more info");
     load();
   };
 
   const viewReceiptFile = async (path: string) => {
-    const { data, error } = await supabase.storage.from("payment-receipts").createSignedUrl(path, 60);
-    if (error) return toast.error(error.message);
-    window.open(data.signedUrl, "_blank");
+    const res = await paymentsClient.getSignedReceiptUrl(path, 60);
+    if (res.error || !res.data) return toast.error(res.error?.message ?? "Could not open receipt");
+    window.open(res.data, "_blank");
   };
 
   // --- Addon actions ---
@@ -244,19 +145,19 @@ const AdminPayments = () => {
     const label = prompt("Display label:") || key;
     const qty = Number(prompt("Quantity:", "1") || "1");
     const price = Number(prompt("Unit price (SAR):", "0") || "0");
-    const { error } = await supabase.from("user_subscription_addons").insert({
+    const res = await paymentsClient.addAddon({
       subscription_id: subId, addon_key: key, addon_label: label,
-      quantity: qty, unit_price: price, currency: "SAR",
+      quantity: qty, unit_price: price,
     });
-    if (error) return toast.error(error.message);
+    if (res.error) return toast.error(res.error.message);
     toast.success("Add-on attached");
     load();
   };
 
   const removeAddon = async (id: string) => {
     if (!confirm("Remove add-on?")) return;
-    const { error } = await supabase.from("user_subscription_addons").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    const res = await paymentsClient.removeAddon(id);
+    if (res.error) return toast.error(res.error.message);
     toast.success("Removed");
     load();
   };
