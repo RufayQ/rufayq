@@ -50,7 +50,7 @@ const AdminCmsSeo = () => {
     setSavingId(r.id);
     const { id, slug: _slug, title_en: _t, ...patch } = r;
     void _slug; void _t;
-    await supabase.from("cms_pages").update(patch).eq("id", id);
+    await supabase.from("cms_pages").update(patch as never).eq("id", id);
     setSavingId(null);
     setSavedId(id);
     setTimeout(() => setSavedId((s) => (s === id ? null : s)), 2000);
