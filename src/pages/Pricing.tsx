@@ -398,7 +398,7 @@ const Pricing = () => {
       </section>
 
       <footer className="border-t py-6 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
-        © 2026 RufayQ · <Link to="/privacy" style={{ color: GOLD }}>Privacy</Link> · <Link to="/terms" style={{ color: GOLD }}>Terms</Link>
+        © 2026 RufayQ · <Link to={isAr ? "/ar/privacy" : "/privacy"} style={{ color: GOLD }}>{isAr ? "الخصوصية" : "Privacy"}</Link> · <Link to={isAr ? "/ar/terms" : "/terms"} style={{ color: GOLD }}>{isAr ? "الشروط" : "Terms"}</Link>
       </footer>
     </div>
   );
