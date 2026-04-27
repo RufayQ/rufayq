@@ -32,7 +32,7 @@ export const REALTIME_CHANNELS = {
     name: "patient_claims:pending",
     table: "patient_claims",
     event: "*",
-    filter: "status=eq.pending",
+    filter: "status=eq.pending_admin",
   },
   cmsPagesPublished: {
     name: "cms_pages:published",
