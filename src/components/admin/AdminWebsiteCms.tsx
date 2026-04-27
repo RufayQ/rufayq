@@ -261,110 +261,117 @@ const PageEditor = ({ pageId, onBack }: { pageId: string; onBack: () => void }) 
           <button className={btnGhost} onClick={() => setLocale(l => l === "en" ? "ar" : "en")}>
             <Languages size={14} /> {locale === "en" ? "Editing English" : "تعديل العربية"}
           </button>
-          <a className={btnGhost} target="_blank" rel="noreferrer" href={page.slug === "home" ? "/" : `/${page.slug}`}><Eye size={14} /> Preview</a>
+          <a className={btnGhost} target="_blank" rel="noreferrer" href={page.slug === "home" ? "/" : `/${page.slug}`}><Eye size={14} /> Open public</a>
         </div>
       </div>
 
-      {/* Page meta */}
-      <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 space-y-3">
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <span className="block text-xs text-slate-400 mb-1">Slug</span>
-            <input className={inputCls} value={page.slug} disabled={page.is_system} onChange={(e) => savePage({ slug: e.target.value })} />
-          </div>
-          <div>
-            <span className="block text-xs text-slate-400 mb-1">Title (EN)</span>
-            <input className={inputCls} value={page.title_en} onChange={(e) => savePage({ title_en: e.target.value })} />
-          </div>
-          <div>
-            <span className="block text-xs text-slate-400 mb-1">العنوان (AR)</span>
-            <input className={inputCls} dir="rtl" value={page.title_ar ?? ""} onChange={(e) => savePage({ title_ar: e.target.value })} />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <span className="block text-xs text-slate-400 mb-1">SEO title (EN)</span>
-            <input className={inputCls} value={page.seo_title_en ?? ""} onChange={(e) => savePage({ seo_title_en: e.target.value })} />
-          </div>
-          <div>
-            <span className="block text-xs text-slate-400 mb-1">SEO description (EN)</span>
-            <input className={inputCls} value={page.seo_desc_en ?? ""} onChange={(e) => savePage({ seo_desc_en: e.target.value })} />
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <label className="flex items-center gap-2 text-xs text-slate-300">
-            <input type="checkbox" checked={page.index_in_search} onChange={(e) => savePage({ index_in_search: e.target.checked })} />
-            Index in search engines
-          </label>
-          <label className="flex items-center gap-2 text-xs text-slate-300">
-            <input type="checkbox" checked={page.include_sitemap} onChange={(e) => savePage({ include_sitemap: e.target.checked })} />
-            Include in sitemap
-          </label>
-          <div>
-            <span className="block text-xs text-slate-400 mb-1">Status</span>
-            <select className={inputCls} value={page.status} onChange={async (e) => {
-              const next = e.target.value as PageStatus;
-              const res = await cmsClient.publish(page as never, { status: next, scheduled_at: page.scheduled_at ?? null });
-              if (res.error) { toast.error(res.error.message); return; }
-              setPage({ ...page, status: next });
-              toast.success(`Status → ${next}`);
-            }}>
-              <option value="draft">Draft</option><option value="published">Published</option>
-              <option value="scheduled">Scheduled</option><option value="archived">Archived</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Sections list */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Sections ({sections.length})</h3>
-          {!adding ? (
-            <button className={btnPrimary} onClick={() => setAdding(true)}><Plus size={14} /> Add section</button>
-          ) : (
-            <div className="flex gap-2 items-center">
-              <select className={inputCls + " w-56"} onChange={(e) => addSection(e.target.value as SectionType)} defaultValue="">
-                <option value="" disabled>Choose section type…</option>
-                {Object.entries(SECTION_LABELS).map(([k, label]) => (
-                  <option key={k} value={k}>{label}</option>
-                ))}
-              </select>
-              <button className={btnGhost} onClick={() => setAdding(false)}>Cancel</button>
-            </div>
-          )}
-        </div>
-
-        {sections.map((s, idx) => {
-          const Editor = editorFor(s.type);
-          const open = expanded === s.id;
-          const content = locale === "en" ? s.content_en : s.content_ar;
-          return (
-            <div key={s.id} className="rounded-lg border border-slate-800 bg-slate-900/40">
-              <div className="flex items-center gap-2 p-3">
-                <span className="text-xs font-mono text-amber-300 w-8">{s.sort_order}</span>
-                <button onClick={() => setExpanded(open ? null : s.id)} className="flex-1 text-left">
-                  <div className="text-sm font-semibold text-white">{SECTION_LABELS[s.type]}</div>
-                  <div className="text-[11px] text-slate-500 font-mono">{s.type}</div>
-                </button>
-                <button className={btnGhost} title={s.visible ? "Hide" : "Show"} onClick={() => updateSection(s.id, { visible: !s.visible })}>
-                  {s.visible ? <Eye size={12} /> : <EyeOff size={12} />}
-                </button>
-                <button className={btnGhost} disabled={idx === 0} onClick={() => move(s, -1)}><ChevronUp size={12} /></button>
-                <button className={btnGhost} disabled={idx === sections.length - 1} onClick={() => move(s, 1)}><ChevronDown size={12} /></button>
-                <button className={btnGhost} onClick={() => duplicateSection(s)} title="Duplicate"><Copy size={12} /></button>
-                <button className={btnDanger} onClick={() => removeSection(s.id)}><Trash2 size={12} /></button>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] gap-4">
+        <div className="space-y-4 min-w-0">
+          {/* Page meta */}
+          <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <span className="block text-xs text-slate-400 mb-1">Slug</span>
+                <input className={inputCls} value={page.slug} disabled={page.is_system} onChange={(e) => savePage({ slug: e.target.value })} />
               </div>
-              {open && (
-                <div className="border-t border-slate-800 p-4">
-                  {/* eslint-disable @typescript-eslint/no-explicit-any */}
-                  <Editor content={content as any} onChange={(v: any) => updateSection(s.id, locale === "en" ? { content_en: v } : { content_ar: v })} />
+              <div>
+                <span className="block text-xs text-slate-400 mb-1">Title (EN)</span>
+                <input className={inputCls} value={page.title_en} onChange={(e) => savePage({ title_en: e.target.value })} />
+              </div>
+              <div>
+                <span className="block text-xs text-slate-400 mb-1">العنوان (AR)</span>
+                <input className={inputCls} dir="rtl" value={page.title_ar ?? ""} onChange={(e) => savePage({ title_ar: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="block text-xs text-slate-400 mb-1">SEO title (EN)</span>
+                <input className={inputCls} value={page.seo_title_en ?? ""} onChange={(e) => savePage({ seo_title_en: e.target.value })} />
+              </div>
+              <div>
+                <span className="block text-xs text-slate-400 mb-1">SEO description (EN)</span>
+                <input className={inputCls} value={page.seo_desc_en ?? ""} onChange={(e) => savePage({ seo_desc_en: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <label className="flex items-center gap-2 text-xs text-slate-300">
+                <input type="checkbox" checked={page.index_in_search} onChange={(e) => savePage({ index_in_search: e.target.checked })} />
+                Index in search engines
+              </label>
+              <label className="flex items-center gap-2 text-xs text-slate-300">
+                <input type="checkbox" checked={page.include_sitemap} onChange={(e) => savePage({ include_sitemap: e.target.checked })} />
+                Include in sitemap
+              </label>
+              <div>
+                <span className="block text-xs text-slate-400 mb-1">Status</span>
+                <select className={inputCls} value={page.status} onChange={async (e) => {
+                  const next = e.target.value as PageStatus;
+                  const res = await cmsClient.publish(page as never, { status: next, scheduled_at: page.scheduled_at ?? null });
+                  if (res.error) { toast.error(res.error.message); return; }
+                  setPage({ ...page, status: next });
+                  toast.success(`Status → ${next}`);
+                }}>
+                  <option value="draft">Draft</option><option value="published">Published</option>
+                  <option value="scheduled">Scheduled</option><option value="archived">Archived</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Sections list */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">Sections ({sections.length})</h3>
+              {!adding ? (
+                <button className={btnPrimary} onClick={() => setAdding(true)}><Plus size={14} /> Add section</button>
+              ) : (
+                <div className="flex gap-2 items-center">
+                  <select className={inputCls + " w-56"} onChange={(e) => addSection(e.target.value as SectionType)} defaultValue="">
+                    <option value="" disabled>Choose section type…</option>
+                    {Object.entries(SECTION_LABELS).map(([k, label]) => (
+                      <option key={k} value={k}>{label}</option>
+                    ))}
+                  </select>
+                  <button className={btnGhost} onClick={() => setAdding(false)}>Cancel</button>
                 </div>
               )}
             </div>
-          );
-        })}
-        {sections.length === 0 && <div className="text-center text-slate-500 text-sm py-8 border border-dashed border-slate-800 rounded-lg">No sections yet — add one above.</div>}
+
+            {sections.map((s, idx) => {
+              const Editor = editorFor(s.type);
+              const open = expanded === s.id;
+              const content = locale === "en" ? s.content_en : s.content_ar;
+              return (
+                <div key={s.id} className="rounded-lg border border-slate-800 bg-slate-900/40">
+                  <div className="flex items-center gap-2 p-3">
+                    <span className="text-xs font-mono text-amber-300 w-8">{s.sort_order}</span>
+                    <button onClick={() => setExpanded(open ? null : s.id)} className="flex-1 text-left">
+                      <div className="text-sm font-semibold text-white">{SECTION_LABELS[s.type]}</div>
+                      <div className="text-[11px] text-slate-500 font-mono">{s.type}</div>
+                    </button>
+                    <button className={btnGhost} title={s.visible ? "Hide" : "Show"} onClick={() => updateSection(s.id, { visible: !s.visible })}>
+                      {s.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+                    </button>
+                    <button className={btnGhost} disabled={idx === 0} onClick={() => move(s, -1)}><ChevronUp size={12} /></button>
+                    <button className={btnGhost} disabled={idx === sections.length - 1} onClick={() => move(s, 1)}><ChevronDown size={12} /></button>
+                    <button className={btnGhost} onClick={() => duplicateSection(s)} title="Duplicate"><Copy size={12} /></button>
+                    <button className={btnDanger} onClick={() => removeSection(s.id)}><Trash2 size={12} /></button>
+                  </div>
+                  {open && (
+                    <div className="border-t border-slate-800 p-4">
+                      {/* eslint-disable @typescript-eslint/no-explicit-any */}
+                      <Editor content={content as any} onChange={(v: any) => updateSection(s.id, locale === "en" ? { content_en: v } : { content_ar: v })} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {sections.length === 0 && <div className="text-center text-slate-500 text-sm py-8 border border-dashed border-slate-800 rounded-lg">No sections yet — add one above.</div>}
+          </div>
+        </div>
+
+        {/* Live preview side panel */}
+        <CmsLivePreview page={page} sections={sections} locale={locale} onExternalChange={load} />
       </div>
     </div>
   );
