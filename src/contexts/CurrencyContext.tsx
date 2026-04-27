@@ -203,8 +203,8 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const isGccPegged = country ? GCC_PEGGED_COUNTRIES.has(country) : false;
 
   const value = useMemo<Ctx>(
-    () => ({ currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual }),
-    [currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual],
+    () => ({ currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual, detectionSource }),
+    [currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual, detectionSource],
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
