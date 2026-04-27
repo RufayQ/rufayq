@@ -25,6 +25,7 @@ import {
   type AddonRow as Addon,
 } from "@/api";
 import { Can } from "@/features/auth";
+import AdminAddReceiptPanel from "@/components/admin/AdminAddReceiptPanel";
 
 type Tab = "subs" | "receipts" | "addons";
 type Receipt = PaymentReceipt;
@@ -60,6 +61,7 @@ const AdminPayments = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [receiptView, setReceiptView] = useState<ReceiptView>("table");
   const [pulseId, setPulseId] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -220,11 +222,19 @@ const AdminPayments = () => {
           className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
           <option value="all">All statuses</option>
           {tab === "subs" && ["active", "pending_receipt", "expired", "cancelled", "rejected"].map(s => <option key={s} value={s}>{s}</option>)}
-          {tab === "receipts" && ["pending", "under_review", "needs_more_info", "verified", "rejected"].map(s => <option key={s} value={s}>{s}</option>)}
+          {tab === "receipts" && ["pending", "under_review", "needs_more_info", "verified", "rejected", "code_expired"].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <button onClick={load} className="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs flex items-center gap-1.5">
           <RefreshCw size={12} />Refresh
         </button>
+        {tab === "receipts" && (
+          <Can action="payment.verify">
+            <button onClick={() => setAddOpen(true)}
+              className="px-3 py-2 rounded-lg bg-amber-500 text-slate-900 text-xs font-semibold flex items-center gap-1.5">
+              <Plus size={12} />New Receipt
+            </button>
+          </Can>
+        )}
       </div>
 
       {loading && <p className="text-slate-400 text-sm">Loading…</p>}
