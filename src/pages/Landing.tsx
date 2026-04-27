@@ -191,14 +191,14 @@ const Landing = () => {
                   </a>
                 )
               ))}
-              <Link to="/providers" onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
+              <Link to={lp("/providers")} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
                 {isAr ? "للمزوّدين" : "For Providers"}
               </Link>
               <p className="pt-2 pb-1 text-[10px] uppercase tracking-wider" style={{ color: GOLD }}>{isAr ? "الخصوصية" : "Privacy"}</p>
-              <Link to="/privacy" onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "سياسة الخصوصية" : "Privacy Policy"}</Link>
-              <Link to="/terms" onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "شروط الخدمة" : "Terms of Service"}</Link>
-              <Link to="/security" onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "الأمان والامتثال" : "Security & Compliance"}</Link>
-              <Link to="/auth" onClick={() => setMenuOpen(false)} className="block w-full py-3 rounded-full text-sm font-semibold mt-2 text-center" style={{ border: `1px solid ${GOLD}`, color: GOLD }}>
+              <Link to={lp("/privacy")} onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "سياسة الخصوصية" : "Privacy Policy"}</Link>
+              <Link to={lp("/terms")} onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "شروط الخدمة" : "Terms of Service"}</Link>
+              <Link to={lp("/security")} onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "الأمان والامتثال" : "Security & Compliance"}</Link>
+              <Link to={lp("/auth")} onClick={() => setMenuOpen(false)} className="block w-full py-3 rounded-full text-sm font-semibold mt-2 text-center" style={{ border: `1px solid ${GOLD}`, color: GOLD }}>
                 {isAr ? "تسجيل الدخول" : "Sign in"}
               </Link>
               <button onClick={() => { setMenuOpen(false); goToNews(); }} className="w-full py-3 rounded-full text-sm font-semibold mt-2" style={{ background: GOLD, color: BG_DARK }}>
