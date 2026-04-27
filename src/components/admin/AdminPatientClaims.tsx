@@ -64,6 +64,9 @@ const AdminPatientClaims = () => {
     <div>
       <div className="flex items-center gap-3 mb-4">
         <h2 className="text-xl font-semibold">Patient Claims</h2>
+        <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
+          <Activity size={10} className="text-emerald-400 animate-pulse" />live
+        </span>
         <select value={filter} onChange={(e) => setFilter(e.target.value)}
           className="ml-auto bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm">
           <option value="pending_admin">Pending admin</option>
@@ -73,6 +76,12 @@ const AdminPatientClaims = () => {
           <option value="all">All</option>
         </select>
       </div>
+
+      {ready && !canDecide && (
+        <p className="mb-3 text-[11px] text-amber-400/80 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+          Read-only view — your role can review claims but cannot approve or reject them.
+        </p>
+      )}
 
       {loading && <p className="text-slate-400">Loading…</p>}
 
