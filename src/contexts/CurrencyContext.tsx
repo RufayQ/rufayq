@@ -8,6 +8,21 @@ const STORAGE_KEY = "rufayq_currency";
 const COUNTRY_KEY = "rufayq_country";
 const COUNTRY_OVERRIDE_KEY = "rufayq_country_manual";
 const CURRENCY_OVERRIDE_KEY = "rufayq_currency_manual";
+/** Per-country currency override map: { "SA": "USD", "AE": "USD" } so that
+ * a manual currency choice survives unrelated state changes (e.g. flipping
+ * the monthly/annual billing toggle) without leaking across countries. */
+const CURRENCY_OVERRIDE_BY_COUNTRY_KEY = "rufayq_currency_override_by_country";
+
+function readCurrencyOverrideMap(): Record<string, CurrencyCode> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(CURRENCY_OVERRIDE_BY_COUNTRY_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+function writeCurrencyOverrideMap(map: Record<string, CurrencyCode>) {
+  try { localStorage.setItem(CURRENCY_OVERRIDE_BY_COUNTRY_KEY, JSON.stringify(map)); } catch { /* */ }
+}
 
 interface Ctx {
   currency: CurrencyCode;
