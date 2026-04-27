@@ -295,68 +295,168 @@ const AdminPayments = () => {
 
       {/* === RECEIPTS === */}
       {tab === "receipts" && !loading && (
-        <div className="space-y-2">
-          {filteredReceipts.length === 0 && <p className="text-slate-500 text-sm">No receipts.</p>}
-          {filteredReceipts.map(r => (
-            <div key={r.id} className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-sm font-semibold text-white capitalize">{r.requested_plan}</span>
-                    <StatusBadge s={r.status} />
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">{r.billing_cycle}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">{r.currency} {Number(r.amount).toLocaleString()}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">{r.payment_method}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-mono">device: {r.device_id.slice(0, 18)}…</p>
-                  {r.payment_reference && (
-                    <p className="text-[10px] text-amber-300 font-mono">ref · {r.payment_reference}</p>
+        <>
+          {/* View toggle */}
+          <div className="flex items-center gap-1.5 -mt-2">
+            <button
+              onClick={() => setReceiptView("table")}
+              className={`px-2.5 py-1 rounded-md text-[11px] flex items-center gap-1 border ${receiptView === "table" ? "bg-amber-500/15 text-amber-300 border-amber-500/40" : "border-slate-800 text-slate-400 hover:text-slate-200"}`}
+              title="Compact realtime table"
+            >
+              <List size={11} />Table
+            </button>
+            <button
+              onClick={() => setReceiptView("cards")}
+              className={`px-2.5 py-1 rounded-md text-[11px] flex items-center gap-1 border ${receiptView === "cards" ? "bg-amber-500/15 text-amber-300 border-amber-500/40" : "border-slate-800 text-slate-400 hover:text-slate-200"}`}
+              title="Detailed card view"
+            >
+              <LayoutGrid size={11} />Cards
+            </button>
+            <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-slate-500">
+              <Activity size={10} className="text-emerald-400 animate-pulse" />live
+            </span>
+          </div>
+
+          {receiptView === "table" && (
+            <div className="overflow-x-auto rounded-xl border border-slate-800">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-900/60">
+                  <tr className="text-left text-slate-400">
+                    <th className="px-3 py-2 font-medium">Submitted</th>
+                    <th className="px-3 py-2 font-medium">Plan</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
+                    <th className="px-3 py-2 font-medium">Amount</th>
+                    <th className="px-3 py-2 font-medium">Method</th>
+                    <th className="px-3 py-2 font-medium">Device</th>
+                    <th className="px-3 py-2 font-medium">Reference</th>
+                    <th className="px-3 py-2 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredReceipts.length === 0 && (
+                    <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">No receipts.</td></tr>
                   )}
-                  <p className="text-[10px] text-slate-500">
-                    {new Date(r.created_at).toLocaleString()}
-                    {r.submission_channel && ` · via ${r.submission_channel}`}
-                    {r.reference_no && ` · txn ${r.reference_no}`}
-                    {r.payer_name && ` · ${r.payer_name}`}
-                    {r.bank_name && ` · ${r.bank_name}`}
-                    {r.transfer_date && ` · transferred ${r.transfer_date}`}
-                  </p>
-                  {r.patient_message && <p className="text-[11px] text-slate-200 mt-1">📨 {r.patient_message}</p>}
-                  {r.internal_note && <p className="text-[11px] text-amber-300/80 italic mt-0.5">🗒 {r.internal_note}</p>}
-                </div>
-                <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
-                  {r.receipt_file_path && (
-                    <button onClick={() => viewReceiptFile(r.receipt_file_path!)}
-                      className="px-2.5 py-1 rounded bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1">
-                      <Eye size={11} />View receipt
-                    </button>
-                  )}
-                  {(r.status === "pending" || r.status === "under_review" || r.status === "needs_more_info") && (
-                    <>
-                      {r.status === "pending" && (
-                        <button onClick={() => markUnderReview(r)}
-                          className="px-3 py-1 rounded bg-blue-500/20 text-blue-300 text-[11px] flex items-center gap-1">
-                          <RefreshCw size={11} />Take review
+                  {filteredReceipts.map((r) => {
+                    const pulse = pulseId === r.id;
+                    return (
+                      <tr key={r.id}
+                        className={`border-t border-slate-800 transition-colors ${pulse ? "bg-amber-500/10" : "hover:bg-slate-900/30"}`}>
+                        <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
+                        <td className="px-3 py-2 capitalize text-slate-200">{r.requested_plan} <span className="text-slate-500">· {r.billing_cycle}</span></td>
+                        <td className="px-3 py-2"><StatusBadge s={r.status} /></td>
+                        <td className="px-3 py-2 text-slate-300">{r.currency} {Number(r.amount).toLocaleString()}</td>
+                        <td className="px-3 py-2 text-slate-400">{r.payment_method}</td>
+                        <td className="px-3 py-2 font-mono text-[10px] text-slate-500">{r.device_id.slice(0, 14)}…</td>
+                        <td className="px-3 py-2 font-mono text-[10px] text-amber-300/80">{r.reference_no || r.payment_reference || "—"}</td>
+                        <td className="px-3 py-2 text-right">
+                          <div className="inline-flex gap-1">
+                            {r.receipt_file_path && (
+                              <button onClick={() => viewReceiptFile(r.receipt_file_path!)}
+                                title="View receipt"
+                                className="px-1.5 py-1 rounded bg-slate-700 text-slate-200 text-[10px]">
+                                <Eye size={10} />
+                              </button>
+                            )}
+                            {(r.status === "pending" || r.status === "under_review" || r.status === "needs_more_info") && (
+                              <>
+                                <Can action="payment.verify">
+                                  <button onClick={() => verifyReceipt(r)} title="Approve"
+                                    className="px-1.5 py-1 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">
+                                    <Check size={10} />
+                                  </button>
+                                </Can>
+                                <Can action="payment.reject">
+                                  <button onClick={() => rejectReceipt(r)} title="Reject"
+                                    className="px-1.5 py-1 rounded bg-rose-500/15 text-rose-300 text-[10px]">
+                                    <X size={10} />
+                                  </button>
+                                </Can>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {receiptView === "cards" && (
+            <div className="space-y-2">
+              {filteredReceipts.length === 0 && <p className="text-slate-500 text-sm">No receipts.</p>}
+              {filteredReceipts.map(r => {
+                const pulse = pulseId === r.id;
+                return (
+                <div key={r.id} className={`rounded-xl border p-4 transition-colors ${pulse ? "border-amber-500/60 bg-amber-500/5" : "border-slate-800 bg-slate-900/40"}`}>
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-sm font-semibold text-white capitalize">{r.requested_plan}</span>
+                        <StatusBadge s={r.status} />
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">{r.billing_cycle}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">{r.currency} {Number(r.amount).toLocaleString()}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">{r.payment_method}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono">device: {r.device_id.slice(0, 18)}…</p>
+                      {r.payment_reference && (
+                        <p className="text-[10px] text-amber-300 font-mono">ref · {r.payment_reference}</p>
+                      )}
+                      <p className="text-[10px] text-slate-500">
+                        {new Date(r.created_at).toLocaleString()}
+                        {r.submission_channel && ` · via ${r.submission_channel}`}
+                        {r.reference_no && ` · txn ${r.reference_no}`}
+                        {r.payer_name && ` · ${r.payer_name}`}
+                        {r.bank_name && ` · ${r.bank_name}`}
+                        {r.transfer_date && ` · transferred ${r.transfer_date}`}
+                      </p>
+                      {r.patient_message && <p className="text-[11px] text-slate-200 mt-1">📨 {r.patient_message}</p>}
+                      {r.internal_note && <p className="text-[11px] text-amber-300/80 italic mt-0.5">🗒 {r.internal_note}</p>}
+                    </div>
+                    <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
+                      {r.receipt_file_path && (
+                        <button onClick={() => viewReceiptFile(r.receipt_file_path!)}
+                          className="px-2.5 py-1 rounded bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1">
+                          <Eye size={11} />View receipt
                         </button>
                       )}
-                      <button onClick={() => verifyReceipt(r)}
-                        className="px-3 py-1 rounded bg-emerald-500/20 text-emerald-300 text-[11px] flex items-center gap-1">
-                        <Check size={11} />Approve & activate
-                      </button>
-                      <button onClick={() => requestMoreInfo(r)}
-                        className="px-3 py-1 rounded bg-amber-500/20 text-amber-300 text-[11px] flex items-center gap-1">
-                        <FileText size={11} />Need more info
-                      </button>
-                      <button onClick={() => rejectReceipt(r)}
-                        className="px-3 py-1 rounded bg-rose-500/15 text-rose-300 text-[11px] flex items-center gap-1">
-                        <X size={11} />Reject
-                      </button>
-                    </>
-                  )}
+                      {(r.status === "pending" || r.status === "under_review" || r.status === "needs_more_info") && (
+                        <>
+                          {r.status === "pending" && (
+                            <Can action="payment.verify">
+                              <button onClick={() => markUnderReview(r)}
+                                className="px-3 py-1 rounded bg-blue-500/20 text-blue-300 text-[11px] flex items-center gap-1">
+                                <RefreshCw size={11} />Take review
+                              </button>
+                            </Can>
+                          )}
+                          <Can action="payment.verify">
+                            <button onClick={() => verifyReceipt(r)}
+                              className="px-3 py-1 rounded bg-emerald-500/20 text-emerald-300 text-[11px] flex items-center gap-1">
+                              <Check size={11} />Approve & activate
+                            </button>
+                            <button onClick={() => requestMoreInfo(r)}
+                              className="px-3 py-1 rounded bg-amber-500/20 text-amber-300 text-[11px] flex items-center gap-1">
+                              <FileText size={11} />Need more info
+                            </button>
+                          </Can>
+                          <Can action="payment.reject">
+                            <button onClick={() => rejectReceipt(r)}
+                              className="px-3 py-1 rounded bg-rose-500/15 text-rose-300 text-[11px] flex items-center gap-1">
+                              <X size={11} />Reject
+                            </button>
+                          </Can>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {/* === ADDONS === */}
