@@ -27,6 +27,9 @@ import AdminUserSearch from "@/components/admin/AdminUserSearch";
 import AdminSettingsGeneral from "@/components/admin/AdminSettingsGeneral";
 import AdminSettingsTeam from "@/components/admin/AdminSettingsTeam";
 import ComingSoon from "@/components/admin/shell/ComingSoon";
+import AdminCmsSeo from "@/components/admin/AdminCmsSeo";
+import AdminCmsMedia from "@/components/admin/AdminCmsMedia";
+import AdminCmsBlogCategories from "@/components/admin/AdminCmsBlogCategories";
 
 import { NAV_MODULES, ALL_LEAVES, findGroupForLeaf, type LeafKey } from "@/components/admin/shell/adminNav";
 import { useAdminBadges } from "@/components/admin/shell/useAdminBadges";
@@ -232,6 +235,9 @@ const Admin = () => {
               case "news": return <AdminNews />;
               case "pages": return <AdminPages />;
               case "website_cms": return role === "admin" ? <AdminWebsiteCms /> : <ComingSoon title="Website CMS" hint="Admin role required." />;
+              case "cms_seo": return role === "admin" ? <AdminCmsSeo /> : <ComingSoon title="SEO Manager" hint="Admin role required." />;
+              case "cms_media": return role === "admin" ? <AdminCmsMedia /> : <ComingSoon title="Media Library" hint="Admin role required." />;
+              case "cms_blog_cats": return role === "admin" ? <AdminCmsBlogCategories /> : <ComingSoon title="Blog Categories" hint="Admin role required." />;
               case "audit": return <AdminAuditLog />;
               default: return <ComingSoon title="Coming soon" />;
             }

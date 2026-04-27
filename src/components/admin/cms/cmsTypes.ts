@@ -63,6 +63,22 @@ export interface RichTextContent {
   body?: string;  // markdown / plain
 }
 
+/** Contact section: free-form contact card editable per locale.
+ *  Section type is `contact_form` for backwards-compat with existing rows. */
+export interface ContactContent {
+  title?: string;
+  subtitle?: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  address?: string;
+  hours?: string;
+  mapEmbedUrl?: string;
+  /** Optional override CTA shown next to the contact details. */
+  ctaLabel?: string;
+  ctaLink?: string;
+}
+
 export interface CmsSection {
   id: string;
   page_id: string;
@@ -106,7 +122,7 @@ export const SECTION_LABELS: Record<SectionType, string> = {
   testimonials: "Testimonials",
   trust_logos: "Trust Logos",
   providers: "Provider Showcase",
-  contact_form: "Contact Form",
+  contact_form: "Contact Info",
   comparison: "Comparison Table",
   timeline: "Timeline",
   video: "Video Section",
@@ -139,6 +155,21 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
       return { en: { title: "Pricing", subtitle: "" }, ar: { title: "", subtitle: "" } };
     case "rich_text":
       return { en: { title: "", body: "" }, ar: { title: "", body: "" } };
+    case "contact_form":
+      return {
+        en: {
+          title: "Contact us", subtitle: "We're here to help.",
+          email: "support@rufayq.com", phone: "", whatsapp: "",
+          address: "", hours: "Sun – Thu · 9:00 – 18:00 AST",
+          mapEmbedUrl: "", ctaLabel: "Send a message", ctaLink: "mailto:support@rufayq.com",
+        },
+        ar: {
+          title: "تواصل معنا", subtitle: "نحن هنا لمساعدتك.",
+          email: "support@rufayq.com", phone: "", whatsapp: "",
+          address: "", hours: "الأحد – الخميس · ٩:٠٠ – ١٨:٠٠ بتوقيت السعودية",
+          mapEmbedUrl: "", ctaLabel: "أرسل رسالة", ctaLink: "mailto:support@rufayq.com",
+        },
+      };
     default:
       return { en: {}, ar: {} };
   }
