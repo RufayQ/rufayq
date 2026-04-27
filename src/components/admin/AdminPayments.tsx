@@ -344,7 +344,15 @@ const AdminPayments = () => {
                 </thead>
                 <tbody>
                   {filteredReceipts.length === 0 && (
-                    <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">No receipts.</td></tr>
+                    <tr><td colSpan={8} className="px-3 py-10 text-center">
+                      <p className="text-slate-300 text-sm">No receipts yet</p>
+                      <p className="text-slate-500 text-[11px] mt-1">Receipts appear when patients submit bank-transfer proofs, or you can add one manually.</p>
+                      <Can action="payment.verify">
+                        <button onClick={() => setAddOpen(true)} className="mt-3 px-3 py-1.5 rounded-md bg-amber-500 text-slate-900 text-xs font-semibold inline-flex items-center gap-1.5">
+                          <Plus size={12} />Add Receipt Manually
+                        </button>
+                      </Can>
+                    </td></tr>
                   )}
                   {filteredReceipts.map((r) => {
                     const pulse = pulseId === r.id;
@@ -496,6 +504,7 @@ const AdminPayments = () => {
           ))}
         </div>
       )}
+      <AdminAddReceiptPanel open={addOpen} onClose={() => setAddOpen(false)} onCreated={load} />
     </div>
   );
 };
