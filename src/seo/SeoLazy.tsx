@@ -1,21 +1,9 @@
-import { lazy, Suspense, forwardRef, type ComponentProps } from "react";
+import { Seo } from "./Seo";
 
 /**
- * Defers loading of react-helmet-async (~17 kB) until after first paint.
- * Head tags are appended once the chunk arrives — Google still picks them up,
- * because Googlebot waits for JS-rendered content. FCP/LCP no longer pay the cost.
- *
- * forwardRef wrapper avoids "Function components cannot be given refs" warnings
- * when a parent forwards a ref through SeoLazy.
+ * Previously lazy-loaded react-helmet-async to defer ~17 kB.
+ * Switched to a direct re-export to avoid stale-chunk "Failed to fetch
+ * dynamically imported module" errors after HMR / redeploys. The cost is
+ * negligible compared to the blank-screen risk.
  */
-const SeoInner = lazy(() => import("./Seo").then((m) => ({ default: m.Seo })));
-
-type Props = ComponentProps<typeof SeoInner>;
-
-export const SeoLazy = forwardRef<unknown, Props>((props, _ref) => (
-  <Suspense fallback={null}>
-    <SeoInner {...props} />
-  </Suspense>
-));
-
-SeoLazy.displayName = "SeoLazy";
+export const SeoLazy = Seo;
