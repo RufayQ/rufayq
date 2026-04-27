@@ -8,6 +8,21 @@ const STORAGE_KEY = "rufayq_currency";
 const COUNTRY_KEY = "rufayq_country";
 const COUNTRY_OVERRIDE_KEY = "rufayq_country_manual";
 const CURRENCY_OVERRIDE_KEY = "rufayq_currency_manual";
+/** Per-country currency override map: { "SA": "USD", "AE": "USD" } so that
+ * a manual currency choice survives unrelated state changes (e.g. flipping
+ * the monthly/annual billing toggle) without leaking across countries. */
+const CURRENCY_OVERRIDE_BY_COUNTRY_KEY = "rufayq_currency_override_by_country";
+
+function readCurrencyOverrideMap(): Record<string, CurrencyCode> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(CURRENCY_OVERRIDE_BY_COUNTRY_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+function writeCurrencyOverrideMap(map: Record<string, CurrencyCode>) {
+  try { localStorage.setItem(CURRENCY_OVERRIDE_BY_COUNTRY_KEY, JSON.stringify(map)); } catch { /* */ }
+}
 
 interface Ctx {
   currency: CurrencyCode;
@@ -110,6 +125,13 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
 
   const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
     if (typeof window === "undefined") return "SAR";
+    // Per-country override wins so flipping monthly/annual (or any unrelated
+    // state) doesn't snap us back to geo-detected pricing.
+    if (initial.code) {
+      const map = readCurrencyOverrideMap();
+      const perCountry = map[initial.code];
+      if (perCountry && currencyMaster[perCountry]) return perCountry;
+    }
     const manualCur = localStorage.getItem(CURRENCY_OVERRIDE_KEY) as CurrencyCode | null;
     if (manualCur && currencyMaster[manualCur]) return manualCur;
     const stored = localStorage.getItem(STORAGE_KEY) as CurrencyCode | null;
@@ -129,8 +151,13 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         setCountryState(ipCountry);
         setDetectionSource("ip");
         try { localStorage.setItem(COUNTRY_KEY, ipCountry); } catch { /* */ }
-        // If user hasn't manually picked a currency, snap to detected one.
-        if (!localStorage.getItem(CURRENCY_OVERRIDE_KEY)) {
+        // If user hasn't manually picked a currency for this country, snap.
+        const map = readCurrencyOverrideMap();
+        const perCountry = map[ipCountry];
+        if (perCountry && currencyMaster[perCountry]) {
+          setCurrencyState(perCountry);
+          try { localStorage.setItem(STORAGE_KEY, perCountry); } catch { /* */ }
+        } else if (!localStorage.getItem(CURRENCY_OVERRIDE_KEY)) {
           const cur = currencyForCountry(ipCountry);
           setCurrencyState(cur);
           try { localStorage.setItem(STORAGE_KEY, cur); } catch { /* */ }
@@ -149,6 +176,14 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     try {
       localStorage.setItem(STORAGE_KEY, c);
       localStorage.setItem(CURRENCY_OVERRIDE_KEY, c);
+      // Remember this choice for the current country so unrelated state
+      // changes (period toggles, navigations) don't revert it.
+      const currentCountry = (typeof window !== "undefined" && localStorage.getItem(COUNTRY_KEY)) || null;
+      if (currentCountry) {
+        const map = readCurrencyOverrideMap();
+        map[currentCountry] = c;
+        writeCurrencyOverrideMap(map);
+      }
       window.dispatchEvent(new CustomEvent("currencyChanged", { detail: { currency: c } }));
     } catch { /* ignore */ }
   }, []);
@@ -162,12 +197,12 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem(COUNTRY_KEY, upper);
       localStorage.setItem(COUNTRY_OVERRIDE_KEY, upper);
     } catch { /* */ }
-    // Snap currency to the country's preferred unless user already locked one this session.
-    const cur = currencyForCountry(upper);
+    // Restore per-country currency override if present, else snap to country default.
+    const map = readCurrencyOverrideMap();
+    const cur = (map[upper] && currencyMaster[map[upper]]) ? map[upper] : currencyForCountry(upper);
     setCurrencyState(cur);
     try {
       localStorage.setItem(STORAGE_KEY, cur);
-      // Manual country implies currency follows; clear stale currency override.
       localStorage.removeItem(CURRENCY_OVERRIDE_KEY);
     } catch { /* */ }
   }, []);
