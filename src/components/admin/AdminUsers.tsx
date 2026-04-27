@@ -227,6 +227,13 @@ const AdminUsers = () => {
         const isDeleted = !!p.deleted_at;
         const recipient = p.email || (p.phone?.startsWith("+") ? p.phone : p.phone ? `+966${p.phone.replace(/^0+/, "")}` : "");
         const isEditing = editing === p.id;
+        const sub = subsByDevice[p.device_id];
+        const planCode = normalizePlanCode(sub?.plan) || "FREE";
+        const subStatus = sub?.status;
+        const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end) : null;
+        const daysLeft = periodEnd ? Math.ceil((periodEnd.getTime() - Date.now()) / 86_400_000) : null;
+        const expiringSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7 && subStatus === "active";
+        const latestRec = latestReceiptByDevice[p.device_id];
         return (
           <div key={p.id} className={`rounded-xl border p-4 ${isDeleted ? "border-rose-900/40 bg-rose-950/20 opacity-70" : "border-slate-800 bg-slate-900/50"}`}>
             <div className="flex items-start justify-between gap-3 mb-2">
