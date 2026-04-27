@@ -6,10 +6,9 @@
  * Bilingual EN + AR. Bank-transfer-only checkout (no live payment gateway).
  */
 import { useState } from "react";
-import { ArrowLeft, Check, Star, Clock, CheckCircle2, Receipt as ReceiptIcon } from "lucide-react";
+import { ArrowLeft, Check, Star, Clock, CheckCircle2 } from "lucide-react";
 import { PLANS, planPrice, type BillingCycle, type PlanCode } from "@/data/subscriptionPlans";
 import BankTransferCheckout from "@/features/payments/patient/ui/BankTransferCheckout";
-import MyReceiptsList from "@/features/payments/patient/ui/MyReceiptsList";
 import { useSubscription } from "@/hooks/useSubscription";
 
 interface PricingScreenProps { onBack: () => void; }
@@ -17,10 +16,7 @@ interface PricingScreenProps { onBack: () => void; }
 const PricingScreen = ({ onBack }: PricingScreenProps) => {
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [checkoutPlan, setCheckoutPlan] = useState<PlanCode | null>(null);
-  const [showReceipts, setShowReceipts] = useState(false);
   const { subscription, pendingReceipt, refresh } = useSubscription();
-
-  if (showReceipts) return <MyReceiptsList onBack={() => setShowReceipts(false)} />;
 
   const currentPlan = (subscription?.plan?.toUpperCase?.() || "FREE") as PlanCode;
 
@@ -31,12 +27,7 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
         <div className="flex items-center justify-between mb-3">
           <button onClick={onBack} className="btn-press"><ArrowLeft size={20} color="white" /></button>
           <p className="font-display text-lg text-white">Plans · <span className="font-arabic">الباقات</span></p>
-          <button onClick={() => setShowReceipts(true)}
-            className="btn-press text-white/90 flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1"
-            style={{ background: "rgba(255,255,255,0.12)" }}
-            aria-label="My receipts">
-            <ReceiptIcon size={13} /> Receipts
-          </button>
+          <div className="w-5" />
         </div>
         <div className="flex justify-center">
           <div className="flex rounded-full p-0.5" style={{ background: "rgba(255,255,255,0.1)" }}>

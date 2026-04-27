@@ -15,6 +15,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { X, Search, Loader2, Upload, CheckCircle2, User as UserIcon, FileText, AlertCircle, Eye } from "lucide-react";
+import { FileUploadPreview } from "@/shared/ui";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { paymentsClient } from "@/api";
@@ -329,20 +330,8 @@ const AdminAddReceiptPanel = ({ open, onClose, onCreated }: Props) => {
                   </p>
                 )}
 
-                {file && previewUrl && (
-                  <div className="rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
-                    <img src={previewUrl} alt="Receipt preview" className="w-full max-h-56 object-contain" />
-                  </div>
-                )}
-                {file && !previewUrl && file.type === "application/pdf" && (
-                  <a
-                    href={URL.createObjectURL(file)}
-                    target="_blank" rel="noreferrer"
-                    className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-[11px] text-slate-300 flex items-center gap-2 hover:border-amber-500/40"
-                  >
-                    <FileText size={12} className="text-rose-300" />
-                    PDF ready · <span className="underline flex items-center gap-1">open preview <Eye size={10} /></span>
-                  </a>
+                {file && (
+                  <FileUploadPreview file={file} onRemove={() => { setFile(null); setFileError(null); }} lang="en" maxHeight={220} />
                 )}
 
                 <label className="flex items-center gap-2 text-[11px] text-slate-400">

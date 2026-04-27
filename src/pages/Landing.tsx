@@ -87,7 +87,9 @@ const Landing = () => {
     { en: "Contact", ar: "تواصل", href: "#contact" },
   ];
 
-  const goToApp = () => navigate("/app");
+  // Localize internal route links so visitors on /ar/* stay on /ar/*.
+  const lp = (en: string) => (isAr ? `/ar${en}` : en);
+  const goToApp = () => navigate(lp("/app"));
   // The prominent gold CTA in the nav routes to the dedicated News & Articles
   // page (admin-managed via the Site Pages → landing-news slug). The hero
   // "Start free" button still routes to the app.
@@ -143,7 +145,7 @@ const Landing = () => {
                   </a>
                 )
               ))}
-              <Link to="/providers" className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group" style={{ color: TEXT_MUTED }}>
+              <Link to={lp("/providers")} className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group" style={{ color: TEXT_MUTED }}>
                 {isAr ? "للمزوّدين" : "For Providers"}
                 <span aria-hidden className="absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" style={{ background: GOLD }} />
               </Link>
@@ -153,14 +155,14 @@ const Landing = () => {
                 </button>
                 <div className="absolute right-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="rounded-xl py-2 min-w-[240px]" style={{ background: BG_DARK_2, border: `1px solid ${BORDER}`, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
-                    <Link to="/privacy" className="block px-4 py-2 text-[13px] hover:bg-white/5" style={{ color: TEXT }}>{isAr ? "سياسة الخصوصية" : "Privacy Policy"}</Link>
-                    <Link to="/terms" className="block px-4 py-2 text-[13px] hover:bg-white/5" style={{ color: TEXT }}>{isAr ? "شروط الخدمة" : "Terms of Service"}</Link>
-                    <Link to="/security" className="block px-4 py-2 text-[13px] hover:bg-white/5" style={{ color: TEXT }}>{isAr ? "الأمان والامتثال" : "Security & Compliance"}</Link>
+                    <Link to={lp("/privacy")} className="block px-4 py-2 text-[13px] hover:bg-white/5" style={{ color: TEXT }}>{isAr ? "سياسة الخصوصية" : "Privacy Policy"}</Link>
+                    <Link to={lp("/terms")} className="block px-4 py-2 text-[13px] hover:bg-white/5" style={{ color: TEXT }}>{isAr ? "شروط الخدمة" : "Terms of Service"}</Link>
+                    <Link to={lp("/security")} className="block px-4 py-2 text-[13px] hover:bg-white/5" style={{ color: TEXT }}>{isAr ? "الأمان والامتثال" : "Security & Compliance"}</Link>
                   </div>
                 </div>
               </div>
               <LanguageSwitcher />
-              <Link to="/auth" className="px-4 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105" style={{ border: `1px solid ${GOLD}`, color: GOLD }}>
+              <Link to={lp("/auth")} className="px-4 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105" style={{ border: `1px solid ${GOLD}`, color: GOLD }}>
                 {isAr ? "تسجيل الدخول" : "Sign in"}
               </Link>
               <button onClick={goToNews} className="px-5 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg" style={{ background: GOLD, color: BG_DARK }}>
@@ -189,14 +191,14 @@ const Landing = () => {
                   </a>
                 )
               ))}
-              <Link to="/providers" onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
+              <Link to={lp("/providers")} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
                 {isAr ? "للمزوّدين" : "For Providers"}
               </Link>
               <p className="pt-2 pb-1 text-[10px] uppercase tracking-wider" style={{ color: GOLD }}>{isAr ? "الخصوصية" : "Privacy"}</p>
-              <Link to="/privacy" onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "سياسة الخصوصية" : "Privacy Policy"}</Link>
-              <Link to="/terms" onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "شروط الخدمة" : "Terms of Service"}</Link>
-              <Link to="/security" onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "الأمان والامتثال" : "Security & Compliance"}</Link>
-              <Link to="/auth" onClick={() => setMenuOpen(false)} className="block w-full py-3 rounded-full text-sm font-semibold mt-2 text-center" style={{ border: `1px solid ${GOLD}`, color: GOLD }}>
+              <Link to={lp("/privacy")} onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "سياسة الخصوصية" : "Privacy Policy"}</Link>
+              <Link to={lp("/terms")} onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "شروط الخدمة" : "Terms of Service"}</Link>
+              <Link to={lp("/security")} onClick={() => setMenuOpen(false)} className="block py-1.5 text-sm pl-3" style={{ color: TEXT_MUTED }}>{isAr ? "الأمان والامتثال" : "Security & Compliance"}</Link>
+              <Link to={lp("/auth")} onClick={() => setMenuOpen(false)} className="block w-full py-3 rounded-full text-sm font-semibold mt-2 text-center" style={{ border: `1px solid ${GOLD}`, color: GOLD }}>
                 {isAr ? "تسجيل الدخول" : "Sign in"}
               </Link>
               <button onClick={() => { setMenuOpen(false); goToNews(); }} className="w-full py-3 rounded-full text-sm font-semibold mt-2" style={{ background: GOLD, color: BG_DARK }}>

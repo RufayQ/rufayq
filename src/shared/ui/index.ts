@@ -30,3 +30,5 @@ export {
   SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 export { Toaster } from "@/components/ui/sonner";
+export { default as FileUploadPreview } from "@/shared/ui/FileUploadPreview";
+export type { FileUploadPreviewProps } from "@/shared/ui/FileUploadPreview";

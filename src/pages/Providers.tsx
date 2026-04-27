@@ -155,7 +155,7 @@ const Providers = () => {
           {showEn && <p className="text-sm mb-2" style={{ color: MUTED }}>{t.reviewMsg.en}</p>}
           {showAr && <p className="font-arabic text-xs mb-6" dir="rtl" style={{ color: MUTED }}>{t.reviewMsg.ar}</p>}
           <p className="text-[11px] font-mono mb-6" style={{ color: GOLD }}>REF · {refId.slice(0, 8).toUpperCase()}</p>
-          <Link to="/" className="inline-block px-6 py-2.5 rounded-full text-sm font-semibold" style={{ background: GOLD, color: "#06101A" }}>
+          <Link to={mode === "ar" ? "/ar" : "/"} className="inline-block px-6 py-2.5 rounded-full text-sm font-semibold" style={{ background: GOLD, color: "#06101A" }}>
             {tx("backHome")}
           </Link>
         </div>
@@ -167,14 +167,14 @@ const Providers = () => {
     <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }} dir={mode === "ar" ? "rtl" : "ltr"}>
       <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.85)", borderBottom: `1px solid ${BORDER}` }}>
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to={mode === "ar" ? "/ar" : "/"} className="flex items-center gap-2.5">
             <ArrowLeft size={16} color={TEXT} />
             <RufayQLogo size={28} variant="light" />
             <span className="font-display text-lg"><span style={{ color: TEXT }}>Rufay</span><span className="font-bold" style={{ color: GOLD }}>Q</span></span>
           </Link>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
-            <Link to="/" className="text-xs hidden sm:block" style={{ color: MUTED }}>{tx("back")}</Link>
+            <Link to={mode === "ar" ? "/ar" : "/"} className="text-xs hidden sm:block" style={{ color: MUTED }}>{tx("back")}</Link>
           </div>
         </div>
       </nav>
