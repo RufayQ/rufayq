@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 import {
   CreditCard, FileText, Sparkles, Search, Check, X, RefreshCw,
   Plus, Calendar, DownloadCloud, Eye, Trash2,
