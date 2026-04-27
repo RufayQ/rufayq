@@ -17,6 +17,7 @@ import { X, Upload, Loader2, CheckCircle2, Clock, Copy, FileText, AlertTriangle,
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { paymentsClient } from "@/api";
 import { BANK_DETAILS, PLAN_BY_CODE, planPrice, type BillingCycle, type PlanCode } from "@/data/subscriptionPlans";
 
 interface Props {
@@ -30,7 +31,7 @@ interface Props {
 
 interface ReceiptRow {
   id: string;
-  status: "pending" | "under_review" | "verified" | "rejected" | "needs_more_info";
+  status: "pending" | "under_review" | "verified" | "rejected" | "needs_more_info" | "code_expired";
   payment_reference: string | null;
   reviewer_notes: string | null;
   patient_message: string | null;
@@ -38,6 +39,7 @@ interface ReceiptRow {
   reviewed_at: string | null;
   amount: number;
   requested_plan: string;
+  code_expires_at?: string | null;
 }
 
 const STATUS_META: Record<ReceiptRow["status"], { en: string; ar: string; tone: string; icon: any }> = {
@@ -46,6 +48,7 @@ const STATUS_META: Record<ReceiptRow["status"], { en: string; ar: string; tone: 
   needs_more_info: { en: "More info needed",      ar: "مطلوب معلومات إضافية", tone: "var(--gold)",       icon: AlertTriangle },
   verified:        { en: "Approved & active",     ar: "تمت الموافقة",        tone: "var(--success)",    icon: CheckCircle2 },
   rejected:        { en: "Rejected",              ar: "مرفوض",              tone: "var(--danger)",     icon: X },
+  code_expired:    { en: "Reference code expired",ar: "انتهت صلاحية المرجع",  tone: "var(--danger)",     icon: AlertTriangle },
 };
 
 const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaultCycle = "monthly", onSuccess, rufayqId }: Props) => {
