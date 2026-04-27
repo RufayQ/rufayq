@@ -6,11 +6,9 @@ import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal
 
 interface Org { id: string; name: string; org_type: string }
 
-const ROLES = [
-  { value: "user", label: "External user (patient/provider/vendor)" },
-  { value: "moderator", label: "Customer Service Agent (internal)" },
-  { value: "admin", label: "Admin (internal)" },
-];
+// This screen provisions PATIENT and PROVIDER accounts only.
+// Internal/admin/customer-service users are created from the Customer Service screen.
+const ROLES = [{ value: "user", label: "External user (patient / provider / vendor)" }];
 
 const PROVIDER_TYPES = [
   { value: "patient",   label: "Patient / End user" },
@@ -18,7 +16,6 @@ const PROVIDER_TYPES = [
   { value: "physician", label: "Physician" },
   { value: "vendor",    label: "Vendor" },
   { value: "insurance", label: "Insurance company" },
-  { value: "internal",  label: "Internal staff" },
 ];
 
 // Compact list — most common nationalities for the GCC + medical-travel corridor.
