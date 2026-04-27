@@ -31,6 +31,7 @@ import {
 } from "@/lib/articleMeta";
 import { getClusterSuggestions } from "@/lib/seoCluster";
 import ArticleSeoPreview from "./ArticleSeoPreview";
+import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 
 type Lang = "en" | "ar";
 type StatusFilter = "all" | "live" | "scheduled" | "draft";
