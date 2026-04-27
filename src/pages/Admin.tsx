@@ -13,6 +13,7 @@ import AdminWebsiteCms from "@/components/admin/AdminWebsiteCms";
 import AdminNews from "@/components/admin/AdminNews";
 import AdminOrganizations from "@/components/admin/AdminOrganizations";
 import AdminCreateUser from "@/components/admin/AdminCreateUser";
+import AdminCustomerService from "@/components/admin/AdminCustomerService";
 import AdminAuditLog from "@/components/admin/AdminAuditLog";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminProviderApplications from "@/components/admin/AdminProviderApplications";
@@ -223,6 +224,7 @@ const Admin = () => {
               case "users": return <AdminUsers />;
               case "user_search": return gate(isAdmin, "Search & Assign") ?? <AdminUserSearch />;
               case "create": return gate(isAdmin, "Create User") ?? <AdminCreateUser />;
+              case "cs_users": return gate(isAdmin, "Customer Service") ?? <AdminCustomerService />;
               case "verify_assist": return <AdminVerificationAssist />;
               case "orgs": return <AdminOrganizations />;
               case "applications": return <AdminProviderApplications />;

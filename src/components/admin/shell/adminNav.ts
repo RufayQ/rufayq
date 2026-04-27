@@ -1,12 +1,12 @@
 import {
   LayoutDashboard, Users, Building2, Briefcase, Activity, Shield, FileText,
-  CreditCard, MessageSquare, Star, UserPlus, Globe, Settings, Sparkles,
+  CreditCard, MessageSquare, Star, UserPlus, Globe, Settings, Sparkles, Headphones,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type LeafKey =
   | "dashboard"
-  | "users" | "user_search" | "create" | "verify_assist"
+  | "users" | "user_search" | "create" | "verify_assist" | "cs_users"
   | "orgs" | "applications"
   | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk"
   | "subs" | "payments" | "ai_usage"
@@ -47,12 +47,13 @@ export const NAV_MODULES: NavGroup[] = [
   {
     key: "users", label: "Users", icon: Users,
     hint: "People & access",
-    sections: ["Directory", "Onboarding"],
+    sections: ["Directory", "Onboarding", "Internal staff"],
     leaves: [
       { key: "users",        label: "All Users",       icon: Users,    section: "Directory" },
       { key: "user_search",  label: "Search & Assign", icon: Sparkles, section: "Directory", adminOnly: true, pillTone: "new" },
       { key: "create",       label: "Create User",     icon: UserPlus, section: "Onboarding", adminOnly: true },
       { key: "verify_assist", label: "Activations",    icon: Shield,   section: "Onboarding" },
+      { key: "cs_users",     label: "Customer Service", icon: Headphones, section: "Internal staff", adminOnly: true, pillTone: "new" },
     ],
   },
   {
