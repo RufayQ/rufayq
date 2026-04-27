@@ -94,20 +94,13 @@ const SecondaryPanel = ({ group, activeLeaf, onPick, badges, collapsed, onToggle
   };
 
   return (
-    <aside
-      className={`relative border-r border-slate-800 bg-slate-900/40 transition-all duration-300 ease-out flex-shrink-0 ${collapsed ? "w-0" : "w-64"}`}
-      aria-label="Module submenu"
-    >
-      <button
-        onClick={onToggleCollapsed}
-        className="absolute -right-3 top-6 z-10 w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-slate-300 flex items-center justify-center hover:bg-slate-700 transition"
-        aria-label={collapsed ? "Expand submenu" : "Collapse submenu"}
-        title={collapsed ? "Expand" : "Collapse"}
+    <div className="relative flex-shrink-0 flex">
+      <aside
+        className={`relative border-r border-slate-800 bg-slate-900/40 transition-[width] duration-300 ease-out overflow-hidden ${collapsed ? "w-0 border-r-0" : "w-64"}`}
+        aria-label="Module submenu"
+        aria-hidden={collapsed}
       >
-        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-      </button>
-
-      <div className={`overflow-hidden transition-opacity duration-200 ${collapsed ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+        <div className={`w-64 transition-opacity duration-200 ${collapsed ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
         {group && (
           <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -155,8 +148,18 @@ const SecondaryPanel = ({ group, activeLeaf, onPick, badges, collapsed, onToggle
             )}
           </div>
         )}
-      </div>
-    </aside>
+        </div>
+      </aside>
+      <button
+        onClick={onToggleCollapsed}
+        className="absolute top-6 z-20 w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-slate-300 flex items-center justify-center hover:bg-slate-700"
+        style={{ left: collapsed ? "-12px" : "calc(16rem - 12px)", transition: "left 300ms ease-out" }}
+        aria-label={collapsed ? "Expand submenu" : "Collapse submenu"}
+        title={collapsed ? "Expand" : "Collapse"}
+      >
+        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+      </button>
+    </div>
   );
 };
 

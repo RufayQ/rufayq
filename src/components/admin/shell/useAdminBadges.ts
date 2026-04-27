@@ -25,10 +25,10 @@ export const useAdminBadges = (enabled: boolean): AdminBadges => {
         } catch { return 0; }
       };
       const [tickets, receipts, apps, claims] = await Promise.all([
-        safeCount("support_tickets",      (q) => q.in("status", ["open", "in_progress"])),
-        safeCount("payment_receipts",     (q) => q.eq("status", "pending")),
+        safeCount("support_tickets", (q) => q.in("status", ["open", "in_progress", "pending_admin", "pending_patient"])),
+        safeCount("payment_receipts", (q) => q.eq("status", "pending")),
         safeCount("provider_applications", (q) => q.eq("status", "pending")),
-        safeCount("patient_claims",       (q) => q.in("status", ["pending_admin", "pending_patient"])),
+        safeCount("patient_claims", (q) => q.in("status", ["pending_patient", "pending_review"])),
       ]);
       if (alive) setBadges({ open_tickets: tickets, pending_receipts: receipts, pending_apps: apps, pending_claims: claims });
     };

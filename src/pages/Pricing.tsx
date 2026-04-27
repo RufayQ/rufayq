@@ -81,7 +81,7 @@ const FAQ_AR = [
 const Pricing = () => {
   const isAr = useLocation().pathname.startsWith("/ar");
   const { mode } = useLanguage();
-  const { format, getPrice, getAddon, currency } = useCurrency();
+  const { format, getPrice, getAddon, currency, country } = useCurrency();
   const [period, setPeriod] = useState<"monthly" | "annual">("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [familyOpen, setFamilyOpen] = useState(false);
@@ -144,9 +144,14 @@ const Pricing = () => {
             </button>
           ))}
         </div>
-        <span className="text-[11px] inline-flex items-center gap-1" style={{ color: MUTED }}>
+        <span className="text-[11px] inline-flex items-center gap-1 flex-wrap justify-center" style={{ color: MUTED }}>
           {showAr ? `الأسعار بـ ${currency} — ` : `Prices shown in ${currency} — `}
           <CurrencySwitcher variant="inline" />
+          {country && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider" style={{ background: "rgba(197,150,90,0.12)", color: GOLD, border: `1px solid ${BORDER}` }}>
+              {showAr ? `موقع تلقائي · ${country}` : `Auto-detected · ${country}`}
+            </span>
+          )}
         </span>
       </header>
 

@@ -63,10 +63,11 @@ const Landing = () => {
   const ctaSecondaryLabel = heroCms?.secondaryCta?.label || (isAr ? "كيف يعمل" : "See how it works");
   const ctaSecondaryLink = heroCms?.secondaryCta?.link || "#features";
 
-  const navLinks: { en: string; ar: string; href: string; isRoute?: boolean }[] = [
+  const navLinks: { en: string; ar: string; href: string; isRoute?: boolean; anchorId?: string }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
     { en: "How", ar: "كيف يعمل", href: "#how" },
-    { en: "Pricing", ar: "الأسعار", href: isAr ? "/ar/pricing" : "/pricing", isRoute: true },
+    // Pricing: prefer in-page #pricing anchor when present (faster, no nav), fall back to /pricing route.
+    { en: "Pricing", ar: "الأسعار", href: isAr ? "/ar/pricing" : "/pricing", isRoute: true, anchorId: "pricing" },
     { en: "FAQ", ar: "الأسئلة", href: "#faq" },
     { en: "Contact", ar: "تواصل", href: "#contact" },
   ];
@@ -100,7 +101,23 @@ const Landing = () => {
             <div className="hidden md:flex items-center gap-6">
               {navLinks.map((l) => (
                 l.isRoute ? (
-                  <Link key={l.href} to={l.href} className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group" style={{ color: TEXT_MUTED }}>
+                  <Link
+                    key={l.href}
+                    to={l.href}
+                    onClick={(e) => {
+                      // If the section is mounted on this page, prefer smooth-scroll over a route swap.
+                      if (l.anchorId) {
+                        const el = document.getElementById(l.anchorId);
+                        if (el) {
+                          e.preventDefault();
+                          el.scrollIntoView({ behavior: "smooth", block: "start" });
+                          history.replaceState(null, "", `#${l.anchorId}`);
+                        }
+                      }
+                    }}
+                    className="text-[13px] font-medium relative transition-all duration-200 hover:text-white group"
+                    style={{ color: TEXT_MUTED }}
+                  >
                     {isAr ? l.ar : l.en}
                     <span aria-hidden className="absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full" style={{ background: GOLD }} />
                   </Link>

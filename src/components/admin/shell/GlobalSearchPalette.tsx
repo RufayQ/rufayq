@@ -85,42 +85,18 @@ const GlobalSearchPalette = ({ open, onClose, onPick }: Props) => {
       };
       const sb: any = supabase;
       const [users, claims, payments, pages] = await Promise.all([
-        safe<any>(() => sb.from("profiles").select("id,full_name_en,full_name_ar,email,phone,rufayq_id")
-          .or(`email.ilike.${like},full_name_en.ilike.${like},full_name_ar.ilike.${like},phone.ilike.${like},rufayq_id.ilike.${like}`).limit(5)),
-        safe<any>(() => sb.from("patient_claims").select("id,search_value,search_type,status")
-          .or(`search_value.ilike.${like}`).limit(5)),
-        safe<any>(() => sb.from("payment_receipts").select("id,payer_name,reference_no,payment_reference,amount,currency,status")
-          .or(`payer_name.ilike.${like},reference_no.ilike.${like},payment_reference.ilike.${like}`).limit(5)),
-        safe<any>(() => sb.from("cms_pages").select("id,slug,title_en,title_ar,status")
-          .or(`slug.ilike.${like},title_en.ilike.${like},title_ar.ilike.${like}`).limit(5)),
+        safe<any>(() => sb.from("profiles").select("id,full_name,email,phone").or(`email.ilike.${like},full_name.ilike.${like},phone.ilike.${like}`).limit(5)),
+        safe<any>(() => sb.from("patient_claims").select("id,patient_name,status,claim_no").or(`patient_name.ilike.${like},claim_no.ilike.${like}`).limit(5)),
+        safe<any>(() => sb.from("payment_receipts").select("id,payer_name,reference_no,amount,currency").or(`payer_name.ilike.${like},reference_no.ilike.${like}`).limit(5)),
+        safe<any>(() => sb.from("cms_pages").select("id,slug,title").or(`slug.ilike.${like},title.ilike.${like}`).limit(5)),
       ]);
       if (cancelled) return;
       const out: Result[] = [
         ...navResults,
-        ...users.map((u: any) => ({
-          id: `u:${u.id}`, kind: "user" as const,
-          title: u.full_name_en || u.full_name_ar || u.email || u.rufayq_id || "(unnamed)",
-          subtitle: [u.email, u.phone, u.rufayq_id].filter(Boolean).join(" · "),
-          leaf: "users" as LeafKey, payload: { id: u.id },
-        })),
-        ...claims.map((c: any) => ({
-          id: `c:${c.id}`, kind: "claim" as const,
-          title: c.search_value || c.id.slice(0, 8),
-          subtitle: `${c.search_type || "claim"} · ${c.status}`,
-          leaf: "claims" as LeafKey, payload: { id: c.id },
-        })),
-        ...payments.map((p: any) => ({
-          id: `p:${p.id}`, kind: "payment" as const,
-          title: p.payer_name || p.reference_no || p.payment_reference || p.id.slice(0, 8),
-          subtitle: `${p.currency || ""} ${p.amount ?? ""} · ${p.status}`.trim(),
-          leaf: "payments" as LeafKey, payload: { id: p.id },
-        })),
-        ...pages.map((pg: any) => ({
-          id: `pg:${pg.id}`, kind: "page" as const,
-          title: pg.title_en || pg.title_ar || pg.slug,
-          subtitle: `/${pg.slug} · ${pg.status || "draft"}`,
-          leaf: "website_cms" as LeafKey, payload: { id: pg.id },
-        })),
+        ...users.map((u: any) => ({ id: `u:${u.id}`, kind: "user" as const, title: u.full_name || u.email || "(unnamed)", subtitle: [u.email, u.phone].filter(Boolean).join(" · "), leaf: "users" as LeafKey, payload: { id: u.id } })),
+        ...claims.map((c: any) => ({ id: `c:${c.id}`, kind: "claim" as const, title: c.patient_name || c.claim_no || c.id.slice(0, 8), subtitle: `Status: ${c.status}`, leaf: "claims" as LeafKey, payload: { id: c.id } })),
+        ...payments.map((p: any) => ({ id: `p:${p.id}`, kind: "payment" as const, title: p.payer_name || p.reference_no || p.id.slice(0, 8), subtitle: `${p.currency || ""} ${p.amount ?? ""}`.trim(), leaf: "payments" as LeafKey, payload: { id: p.id } })),
+        ...pages.map((pg: any) => ({ id: `pg:${pg.id}`, kind: "page" as const, title: pg.title || pg.slug, subtitle: `/${pg.slug}`, leaf: "website_cms" as LeafKey, payload: { id: pg.id } })),
       ];
       setResults(out);
       setActive(0);
