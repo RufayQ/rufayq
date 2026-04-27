@@ -65,6 +65,8 @@ const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaul
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // Field-level validation: keys map to field names; values are bilingual.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [pollReceipt, setPollReceipt] = useState<ReceiptRow | null>(null);
   // Pending row created on mount / when plan or cycle changes — gives the
   // patient a real `payment_reference` (set by DB trigger) before they pay.
