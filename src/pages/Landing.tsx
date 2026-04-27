@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import LazyOnView from "@/components/LazyOnView";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
