@@ -13,6 +13,8 @@ const AdminTickets = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(false);
 
+  useQuickCreateSignal("tickets", () => toast.info("Open a customer ticket from the user profile or via the support reply panel."));
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase.from("support_tickets").select("*").order("created_at", { ascending: false });
