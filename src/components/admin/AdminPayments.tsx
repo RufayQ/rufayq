@@ -58,6 +58,8 @@ const AdminPayments = () => {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [receiptView, setReceiptView] = useState<ReceiptView>("table");
+  const [pulseId, setPulseId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
