@@ -23,6 +23,10 @@ const AdminSettingsTeam = () => {
     | null
   >(null);
   const [busy, setBusy] = useState(false);
+  const [typed, setTyped] = useState("");
+
+  // Reset typed-confirmation field whenever the modal opens/closes.
+  useEffect(() => { setTyped(""); }, [confirm]);
 
   const load = async () => {
     setLoading(true);
