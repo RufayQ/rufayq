@@ -24,6 +24,9 @@ import AdminRcmBulkOps from "@/components/admin/AdminRcmBulkOps";
 import AdminVerificationAssist from "@/components/admin/AdminVerificationAssist";
 import AdminAiUsage from "@/components/admin/AdminAiUsage";
 import AdminUserSearch from "@/components/admin/AdminUserSearch";
+import AdminSettingsGeneral from "@/components/admin/AdminSettingsGeneral";
+import AdminSettingsTeam from "@/components/admin/AdminSettingsTeam";
+import ComingSoon from "@/components/admin/shell/ComingSoon";
 
 import { NAV_MODULES, ALL_LEAVES, findGroupForLeaf, type LeafKey } from "@/components/admin/shell/adminNav";
 import { useAdminBadges } from "@/components/admin/shell/useAdminBadges";
