@@ -125,6 +125,13 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
 
   const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
     if (typeof window === "undefined") return "SAR";
+    // Per-country override wins so flipping monthly/annual (or any unrelated
+    // state) doesn't snap us back to geo-detected pricing.
+    if (initial.code) {
+      const map = readCurrencyOverrideMap();
+      const perCountry = map[initial.code];
+      if (perCountry && currencyMaster[perCountry]) return perCountry;
+    }
     const manualCur = localStorage.getItem(CURRENCY_OVERRIDE_KEY) as CurrencyCode | null;
     if (manualCur && currencyMaster[manualCur]) return manualCur;
     const stored = localStorage.getItem(STORAGE_KEY) as CurrencyCode | null;
@@ -144,8 +151,13 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         setCountryState(ipCountry);
         setDetectionSource("ip");
         try { localStorage.setItem(COUNTRY_KEY, ipCountry); } catch { /* */ }
-        // If user hasn't manually picked a currency, snap to detected one.
-        if (!localStorage.getItem(CURRENCY_OVERRIDE_KEY)) {
+        // If user hasn't manually picked a currency for this country, snap.
+        const map = readCurrencyOverrideMap();
+        const perCountry = map[ipCountry];
+        if (perCountry && currencyMaster[perCountry]) {
+          setCurrencyState(perCountry);
+          try { localStorage.setItem(STORAGE_KEY, perCountry); } catch { /* */ }
+        } else if (!localStorage.getItem(CURRENCY_OVERRIDE_KEY)) {
           const cur = currencyForCountry(ipCountry);
           setCurrencyState(cur);
           try { localStorage.setItem(STORAGE_KEY, cur); } catch { /* */ }
@@ -164,6 +176,14 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     try {
       localStorage.setItem(STORAGE_KEY, c);
       localStorage.setItem(CURRENCY_OVERRIDE_KEY, c);
+      // Remember this choice for the current country so unrelated state
+      // changes (period toggles, navigations) don't revert it.
+      const currentCountry = (typeof window !== "undefined" && localStorage.getItem(COUNTRY_KEY)) || null;
+      if (currentCountry) {
+        const map = readCurrencyOverrideMap();
+        map[currentCountry] = c;
+        writeCurrencyOverrideMap(map);
+      }
       window.dispatchEvent(new CustomEvent("currencyChanged", { detail: { currency: c } }));
     } catch { /* ignore */ }
   }, []);
