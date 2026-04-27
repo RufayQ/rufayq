@@ -20,7 +20,7 @@ const labelCls = "block text-xs uppercase tracking-wide text-slate-400 mb-1";
 const sectionCls = "rounded-lg border border-slate-800 bg-slate-900/60 p-4 space-y-3";
 const subBtn = "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-slate-700 text-slate-200 hover:border-amber-400";
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+const Field = ({ label, children }: { label: React.ReactNode; children: React.ReactNode }) => (
   <label className="block">
     <span className={labelCls}>{label}</span>
     {children}
