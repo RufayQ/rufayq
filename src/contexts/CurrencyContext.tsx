@@ -26,24 +26,28 @@ interface Ctx {
   country: string | null;
   /** Whether the country was manually overridden by the user. */
   countryManual: boolean;
+  /** How the current country was determined. */
+  detectionSource: "manual" | "ip" | "locale" | "timezone" | "stored" | "default";
 }
+
+export type DetectionSource = Ctx["detectionSource"];
 
 const CurrencyContext = createContext<Ctx | null>(null);
 
 /** Locale + timezone country detection (sync, free, instant). */
-function detectCountrySync(): string | null {
-  if (typeof window === "undefined") return null;
+function detectCountrySyncWithSource(): { code: string | null; source: DetectionSource } {
+  if (typeof window === "undefined") return { code: null, source: "default" };
 
   const manual = localStorage.getItem(COUNTRY_OVERRIDE_KEY);
-  if (manual) return manual;
+  if (manual) return { code: manual, source: "manual" };
 
   const stored = localStorage.getItem(COUNTRY_KEY);
-  if (stored) return stored;
+  if (stored) return { code: stored, source: "stored" };
 
   const langs = navigator.languages?.length ? navigator.languages : [navigator.language];
   for (const lang of langs) {
     const m = lang?.match(/-([A-Z]{2})$/i);
-    if (m) return m[1].toUpperCase();
+    if (m) return { code: m[1].toUpperCase(), source: "locale" };
   }
 
   try {
@@ -57,9 +61,13 @@ function detectCountrySync(): string | null {
       "Europe/Madrid": "ES", "Europe/Amsterdam": "NL", "Europe/Vienna": "AT",
       "Europe/Brussels": "BE", "Europe/Dublin": "IE", "Europe/Lisbon": "PT",
     };
-    if (tzMap[tz]) return tzMap[tz];
+    if (tzMap[tz]) return { code: tzMap[tz], source: "timezone" };
   } catch { /* ignore */ }
-  return null;
+  return { code: null, source: "default" };
+}
+
+function detectCountrySync(): string | null {
+  return detectCountrySyncWithSource().code;
 }
 
 /** Async IP-based country detection. Free, no key. ~50–150ms. */
@@ -91,7 +99,11 @@ function currencyForCountry(country: string | null): CurrencyCode {
 }
 
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
-  const [country, setCountryState] = useState<string | null>(() => detectCountrySync());
+  const initial = (typeof window !== "undefined")
+    ? detectCountrySyncWithSource()
+    : { code: null as string | null, source: "default" as DetectionSource };
+  const [country, setCountryState] = useState<string | null>(initial.code);
+  const [detectionSource, setDetectionSource] = useState<DetectionSource>(initial.source);
   const [countryManual, setCountryManual] = useState<boolean>(() =>
     typeof window !== "undefined" && !!localStorage.getItem(COUNTRY_OVERRIDE_KEY),
   );
@@ -115,6 +127,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
       // Only update if it differs from what we have.
       if (ipCountry !== country) {
         setCountryState(ipCountry);
+        setDetectionSource("ip");
         try { localStorage.setItem(COUNTRY_KEY, ipCountry); } catch { /* */ }
         // If user hasn't manually picked a currency, snap to detected one.
         if (!localStorage.getItem(CURRENCY_OVERRIDE_KEY)) {
@@ -122,6 +135,9 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
           setCurrencyState(cur);
           try { localStorage.setItem(STORAGE_KEY, cur); } catch { /* */ }
         }
+      } else {
+        // Same country — promote source to ip for clarity.
+        setDetectionSource((s) => (s === "manual" ? s : "ip"));
       }
     });
     return () => { alive = false; };
@@ -141,6 +157,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     const upper = code.toUpperCase();
     setCountryState(upper);
     setCountryManual(true);
+    setDetectionSource("manual");
     try {
       localStorage.setItem(COUNTRY_KEY, upper);
       localStorage.setItem(COUNTRY_OVERRIDE_KEY, upper);
@@ -186,8 +203,8 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const isGccPegged = country ? GCC_PEGGED_COUNTRIES.has(country) : false;
 
   const value = useMemo<Ctx>(
-    () => ({ currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual }),
-    [currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual],
+    () => ({ currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual, detectionSource }),
+    [currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual, detectionSource],
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
@@ -206,6 +223,7 @@ export const useCurrency = (): Ctx => {
       isGccPegged: false,
       country: null,
       countryManual: false,
+      detectionSource: "default",
     };
   }
   return ctx;
