@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, Check, Star, ChevronDown, ChevronUp, Globe2, MapPin } from "lucide-react";
+import { ArrowLeft, Check, Star, ChevronDown, ChevronUp, Globe2, MapPin, Bug } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import { Seo } from "@/seo/Seo";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -83,10 +83,11 @@ const FAQ_AR = [
 const Pricing = () => {
   const isAr = useLocation().pathname.startsWith("/ar");
   const { mode } = useLanguage();
-  const { format, getPrice, getAddon, currency, setCurrency, country, countryManual, detectionSource } = useCurrency();
+  const { format, getPrice, getAddon, currency, setCurrency, country, countryManual, detectionSource, geoLoading, debug } = useCurrency();
   const [period, setPeriod] = useState<"monthly" | "annual">("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [familyOpen, setFamilyOpen] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
 
   const showAr = mode === "ar";
   const showEn = mode !== "ar";
@@ -96,6 +97,10 @@ const Pricing = () => {
     const p = getPrice(id, period);
     return format(p);
   };
+
+  // Show skeletons for paid prices and the detection note while async geo
+  // resolves, so the UI doesn't flash a wrong currency or shift layout.
+  const showPriceSkeleton = geoLoading && !countryManual;
 
   return (
     <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }}>
@@ -146,7 +151,9 @@ const Pricing = () => {
             </button>
           ))}
         </div>
-        <TooltipProvider delayDuration={150}>
+        {/* delayDuration prevents accidental tooltip popups on touch/mobile —
+            the badge & toggle live in a tight horizontal row, easy to brush. */}
+        <TooltipProvider delayDuration={700} skipDelayDuration={300}>
           <div className="text-[11px] flex items-center gap-2 flex-wrap justify-center" style={{ color: MUTED }} dir={showAr ? "rtl" : "ltr"}>
             <span>{showAr ? `الأسعار بـ ${currency}` : `Prices shown in ${currency}`}</span>
             <CurrencySwitcher variant="inline" />
@@ -234,6 +241,14 @@ const Pricing = () => {
             )}
           </div>
           {/* Inline note: explains how location was determined and any fallback used */}
+          {showPriceSkeleton && !country && (
+            <div
+              data-testid="detection-note-skeleton"
+              aria-hidden="true"
+              className="mt-2 mx-auto h-3 w-56 rounded-full animate-pulse"
+              style={{ background: "rgba(232,236,240,0.08)" }}
+            />
+          )}
           {country && !countryManual && (
             <p
               data-testid="detection-note"
@@ -263,6 +278,57 @@ const Pricing = () => {
               })()}
             </p>
           )}
+
+          {/* Detection debug — surfaces every raw signal used so issues can be
+              triaged without opening devtools. Hidden behind a small link. */}
+          <div className="mt-2 flex justify-center">
+            <button
+              type="button"
+              data-testid="detection-debug-toggle"
+              onClick={() => setDebugOpen((v) => !v)}
+              aria-expanded={debugOpen}
+              aria-controls="detection-debug-panel"
+              className="text-[10px] inline-flex items-center gap-1 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent rounded"
+              style={{ color: MUTED }}
+            >
+              <Bug size={10} aria-hidden="true" />
+              {showAr ? (debugOpen ? "إخفاء معلومات الكشف" : "معلومات الكشف") : (debugOpen ? "Hide detection debug" : "Detection debug")}
+            </button>
+          </div>
+          {debugOpen && (
+            <div
+              id="detection-debug-panel"
+              data-testid="detection-debug-panel"
+              role="region"
+              aria-label={showAr ? "معلومات كشف الموقع" : "Location detection debug"}
+              dir="ltr"
+              className="mt-2 mx-auto max-w-md rounded-lg p-3 text-left font-mono text-[10px] leading-relaxed"
+              style={{ background: BG2, border: `1px solid ${BORDER}`, color: TEXT }}
+            >
+              {([
+                ["source", detectionSource],
+                ["country", country ?? "—"],
+                ["countryManual", String(countryManual)],
+                ["currency", currency],
+                ["geoLoading", String(geoLoading)],
+                ["debug.ipCountry", debug.ipCountry ?? "—"],
+                ["debug.localeCountry", debug.localeCountry ?? "—"],
+                ["debug.timezone", debug.timezone ?? "—"],
+                ["debug.timezoneCountry", debug.timezoneCountry ?? "—"],
+                ["debug.storedCountry", debug.storedCountry ?? "—"],
+                ["debug.storedCurrency", debug.storedCurrency ?? "—"],
+                ["debug.manualCountry", debug.manualCountry ?? "—"],
+                ["debug.manualCurrency", debug.manualCurrency ?? "—"],
+                ["debug.perCountryOverride", debug.perCountryOverride ?? "—"],
+                ["debug.languages", debug.languages.join(", ") || "—"],
+              ] as const).map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-3">
+                  <span style={{ color: MUTED }}>{k}</span>
+                  <span data-debug-key={k}>{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </TooltipProvider>
       </header>
 
@@ -289,7 +355,16 @@ const Pricing = () => {
               <h3 className="font-display text-2xl mb-1" style={{ color: TEXT }}>{showAr ? t.nameAr : t.nameEn}</h3>
               <p className="text-xs mb-4" style={{ color: MUTED, minHeight: 32 }}>{showAr ? t.descAr : t.descEn}</p>
               <div className="mb-5">
-                <span className="font-display text-3xl font-semibold" style={{ color: TEXT }}>{tierPrice(t.id)}</span>
+                {showPriceSkeleton && t.id !== "free" ? (
+                  <span
+                    data-testid={`price-skeleton-${t.id}`}
+                    aria-hidden="true"
+                    className="inline-block h-8 w-24 rounded-md align-middle animate-pulse"
+                    style={{ background: "rgba(232,236,240,0.08)" }}
+                  />
+                ) : (
+                  <span className="font-display text-3xl font-semibold" style={{ color: TEXT }}>{tierPrice(t.id)}</span>
+                )}
                 {t.id !== "free" && (
                   <span className="text-xs ms-1" style={{ color: MUTED }}>
                     {period === "monthly" ? (showAr ? "/ شهر" : "/ month") : (showAr ? "/ سنة" : "/ year")}
