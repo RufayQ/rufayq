@@ -224,6 +224,7 @@ const Admin = () => {
               case "users": return <AdminUsers />;
               case "user_search": return gate(isAdmin, "Search & Assign") ?? <AdminUserSearch />;
               case "create": return gate(isAdmin, "Create User") ?? <AdminCreateUser />;
+              case "cs_users": return gate(isAdmin, "Customer Service") ?? <AdminCustomerService />;
               case "verify_assist": return <AdminVerificationAssist />;
               case "orgs": return <AdminOrganizations />;
               case "applications": return <AdminProviderApplications />;
