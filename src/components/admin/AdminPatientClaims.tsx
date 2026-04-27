@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, X, Search } from "lucide-react";
+import { Check, X, Search, Activity } from "lucide-react";
 import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
+import { useRealtimeChannel } from "@/api";
+import { Can, usePermissions } from "@/features/auth";
 
 interface Claim {
   id: string;
