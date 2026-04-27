@@ -40,13 +40,15 @@ const ContentPage = ({
   const showEn = mode !== "ar";
   const showAr = mode !== "en";
   const both = mode === "both";
+  const isAr = mode === "ar";
+  const lp = (p: string) => (isAr ? `/ar${p === "/" ? "" : p}` || "/ar" : p);
 
   return (
     <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }}>
       {/* Top nav */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.85)", borderBottom: `1px solid ${BORDER}` }}>
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to={lp("/")} className="flex items-center gap-2.5">
             <ArrowLeft size={16} color={TEXT} />
             <RufayQLogo size={28} variant="light" />
             <span className="font-display text-lg">
@@ -54,7 +56,7 @@ const ContentPage = ({
               <span className="font-bold" style={{ color: GOLD }}>Q</span>
             </span>
           </Link>
-          <Link to={ctaTo} className="text-xs font-semibold px-4 py-2 rounded-full transition-all hover:scale-105"
+          <Link to={lp(ctaTo)} className="text-xs font-semibold px-4 py-2 rounded-full transition-all hover:scale-105"
             style={{ background: GOLD, color: "#06101A" }}>
             {showEn ? ctaLabelEn : ctaLabelAr}
           </Link>
@@ -119,7 +121,7 @@ const ContentPage = ({
           {showAr && <h3 dir="rtl" className="font-arabic text-xl md:text-2xl mb-3" style={{ color: GOLD }}>جاهز للتخطيط لعلاجك بثقة؟</h3>}
           {showEn && <p className="mb-6" style={{ color: MUTED }}>Free to start. Bilingual from day one. Built for Gulf patients.</p>}
           {showAr && <p dir="rtl" className="font-arabic mb-6" style={{ color: MUTED }}>مجاني للبدء. ثنائي اللغة من اليوم الأول. مصمم لمرضى الخليج.</p>}
-          <Link to={ctaTo} className="inline-block px-8 py-3 rounded-full font-semibold text-sm transition-all hover:scale-105"
+          <Link to={lp(ctaTo)} className="inline-block px-8 py-3 rounded-full font-semibold text-sm transition-all hover:scale-105"
             style={{ background: GOLD, color: "#06101A" }}>
             {showEn ? ctaLabelEn : ctaLabelAr}
           </Link>
@@ -127,7 +129,7 @@ const ContentPage = ({
       </main>
 
       <footer className="border-t py-8 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
-        © 2026 RufayQ · <Link to="/privacy" style={{ color: GOLD }}>Privacy</Link> · <Link to="/terms" style={{ color: GOLD }}>Terms</Link>
+        © 2026 RufayQ · <Link to={lp("/privacy")} style={{ color: GOLD }}>Privacy</Link> · <Link to={lp("/terms")} style={{ color: GOLD }}>Terms</Link>
       </footer>
     </div>
   );

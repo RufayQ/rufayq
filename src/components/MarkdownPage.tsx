@@ -57,7 +57,7 @@ const MarkdownPage = ({ slug, defaultTitle, defaultTitleAr, fallback, otherLink 
     <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }}>
       <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.85)", borderBottom: `1px solid ${BORDER}` }}>
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to={mode === "ar" ? "/ar" : "/"} className="flex items-center gap-2.5">
             <ArrowLeft size={16} color={TEXT} />
             <RufayQLogo size={28} variant="light" />
             <span className="font-display text-lg"><span style={{ color: TEXT }}>Rufay</span><span className="font-bold" style={{ color: GOLD }}>Q</span></span>
@@ -136,7 +136,7 @@ const MarkdownPage = ({ slug, defaultTitle, defaultTitleAr, fallback, otherLink 
         )}
 
         <p className="text-center text-xs mt-12" style={{ color: MUTED }}>
-          © 2026 RufayQ · <Link to="/" style={{ color: GOLD }}>Back to home</Link>
+          © 2026 RufayQ · <Link to={mode === "ar" ? "/ar" : "/"} style={{ color: GOLD }}>Back to home</Link>
         </p>
       </main>
     </div>
