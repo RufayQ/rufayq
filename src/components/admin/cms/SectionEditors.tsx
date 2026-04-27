@@ -202,6 +202,74 @@ export const RichTextEditor = ({ content, onChange }: { content: RichTextContent
   </div>
 );
 
+// ============== CONTACT INFO ==============
+// Replaces the JSON fallback for `contact_form` so admins can directly edit
+// the email, phone, WhatsApp, address, hours, and map embed for the site's
+// Contact section — per locale.
+export const ContactInfoEditor = ({ content, onChange }: { content: ContactContent; onChange: (v: ContactContent) => void }) => {
+  const set = (patch: Partial<ContactContent>) => onChange({ ...content, ...patch });
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Section title">
+          <input className={inputCls} value={content.title ?? ""} onChange={(e) => set({ title: e.target.value })} />
+        </Field>
+        <Field label="Subtitle">
+          <input className={inputCls} value={content.subtitle ?? ""} onChange={(e) => set({ subtitle: e.target.value })} />
+        </Field>
+      </div>
+
+      <div className={sectionCls}>
+        <div className="text-[11px] font-semibold text-amber-300">Contact channels</div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={<span className="inline-flex items-center gap-1"><Mail size={11} /> Email</span> as unknown as string}>
+            <input className={inputCls} type="email" placeholder="support@example.com"
+              value={content.email ?? ""} onChange={(e) => set({ email: e.target.value })} />
+          </Field>
+          <Field label={<span className="inline-flex items-center gap-1"><Phone size={11} /> Phone</span> as unknown as string}>
+            <input className={inputCls} type="tel" placeholder="+966 5X XXX XXXX"
+              value={content.phone ?? ""} onChange={(e) => set({ phone: e.target.value })} />
+          </Field>
+          <Field label={<span className="inline-flex items-center gap-1"><MessageCircle size={11} /> WhatsApp</span> as unknown as string}>
+            <input className={inputCls} placeholder="+966 5X XXX XXXX or wa.me link"
+              value={content.whatsapp ?? ""} onChange={(e) => set({ whatsapp: e.target.value })} />
+          </Field>
+          <Field label={<span className="inline-flex items-center gap-1"><Clock size={11} /> Business hours</span> as unknown as string}>
+            <input className={inputCls} placeholder="Sun – Thu · 9:00 – 18:00 AST"
+              value={content.hours ?? ""} onChange={(e) => set({ hours: e.target.value })} />
+          </Field>
+        </div>
+      </div>
+
+      <div className={sectionCls}>
+        <div className="text-[11px] font-semibold text-amber-300">Location</div>
+        <Field label={<span className="inline-flex items-center gap-1"><MapPin size={11} /> Address</span> as unknown as string}>
+          <textarea rows={2} className={inputCls} placeholder="Street, City, Country"
+            value={content.address ?? ""} onChange={(e) => set({ address: e.target.value })} />
+        </Field>
+        <Field label={<span className="inline-flex items-center gap-1"><MapIcon size={11} /> Map embed URL (Google Maps iframe src)</span> as unknown as string}>
+          <input className={inputCls} placeholder="https://www.google.com/maps/embed?pb=…"
+            value={content.mapEmbedUrl ?? ""} onChange={(e) => set({ mapEmbedUrl: e.target.value })} />
+        </Field>
+      </div>
+
+      <div className={sectionCls}>
+        <div className="text-[11px] font-semibold text-amber-300">Optional CTA</div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="CTA label">
+            <input className={inputCls} value={content.ctaLabel ?? ""} onChange={(e) => set({ ctaLabel: e.target.value })} />
+          </Field>
+          <Field label="CTA link">
+            <input className={inputCls} placeholder="mailto:… or /contact"
+              value={content.ctaLink ?? ""} onChange={(e) => set({ ctaLink: e.target.value })} />
+          </Field>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // ============== GENERIC JSON FALLBACK ==============
 export const JsonEditor = ({ content, onChange }: { content: AnyContent; onChange: (v: AnyContent) => void }) => {
   const text = JSON.stringify(content, null, 2);
