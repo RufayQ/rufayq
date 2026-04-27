@@ -26,6 +26,7 @@ import {
 } from "@/api";
 import { Can } from "@/features/auth";
 import AdminAddReceiptPanel from "@/components/admin/AdminAddReceiptPanel";
+import ReceiptAuditLog from "@/components/admin/ReceiptAuditLog";
 
 type Tab = "subs" | "receipts" | "addons";
 type Receipt = PaymentReceipt;
@@ -62,6 +63,7 @@ const AdminPayments = () => {
   const [receiptView, setReceiptView] = useState<ReceiptView>("table");
   const [pulseId, setPulseId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [auditOpenId, setAuditOpenId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
