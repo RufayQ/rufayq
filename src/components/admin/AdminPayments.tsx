@@ -476,10 +476,12 @@ const AdminPayments = () => {
                 </div>
                 <p className="text-[10px] text-slate-500 font-mono mt-1">sub: {a.subscription_id.slice(0, 14)}… · since {new Date(a.active_from).toLocaleDateString()}</p>
               </div>
-              <button onClick={() => removeAddon(a.id)}
-                className="px-2 py-1 rounded bg-rose-500/15 text-rose-300 text-[10px] flex items-center gap-1">
-                <Trash2 size={10} />Remove
-              </button>
+              <Can action="subscription.modify">
+                <button onClick={() => removeAddon(a.id)}
+                  className="px-2 py-1 rounded bg-rose-500/15 text-rose-300 text-[10px] flex items-center gap-1">
+                  <Trash2 size={10} />Remove
+                </button>
+              </Can>
             </div>
           ))}
         </div>
