@@ -2,13 +2,13 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import SecondaryPanel from "./SecondaryPanel";
-import { ADMIN_NAV } from "./adminNav";
+import { NAV_MODULES } from "./adminNav";
 
 const baseBadges = { open_tickets: 5, pending_receipts: 0, pending_apps: 0, pending_claims: 2 };
 
 describe("SecondaryPanel", () => {
   it("renders the active group's leaves and shows a badge when count > 0", () => {
-    const group = ADMIN_NAV[0];
+    const group = NAV_MODULES[0];
     render(
       <SecondaryPanel
         group={group}
@@ -25,7 +25,7 @@ describe("SecondaryPanel", () => {
   });
 
   it("collapses to width 0 and exposes the toggle when collapsed", () => {
-    const group = ADMIN_NAV[0];
+    const group = NAV_MODULES[0];
     const onToggle = vi.fn();
     const { container } = render(
       <SecondaryPanel
@@ -49,8 +49,8 @@ describe("SecondaryPanel", () => {
     const onPick = vi.fn();
     const { rerender } = render(
       <SecondaryPanel
-        group={ADMIN_NAV[0]}
-        activeLeaf={ADMIN_NAV[0].leaves[0].key}
+        group={NAV_MODULES[0]}
+        activeLeaf={NAV_MODULES[0].leaves[0].key}
         onPick={onPick}
         badges={baseBadges as any}
         collapsed={false}
@@ -60,7 +60,7 @@ describe("SecondaryPanel", () => {
     );
     // Simulate rapid switches between groups + badge updates.
     for (let i = 0; i < 5; i++) {
-      const g = ADMIN_NAV[i % ADMIN_NAV.length];
+      const g = NAV_MODULES[i % NAV_MODULES.length];
       rerender(
         <SecondaryPanel
           group={g}
@@ -74,7 +74,7 @@ describe("SecondaryPanel", () => {
       );
     }
     // No throw + final group's first leaf must be visible
-    const last = ADMIN_NAV[4 % ADMIN_NAV.length];
+    const last = NAV_MODULES[4 % NAV_MODULES.length];
     expect(screen.getByText(last.leaves[0].label)).toBeDefined();
   });
 });
