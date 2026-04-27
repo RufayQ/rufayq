@@ -6,10 +6,14 @@ import {
 
 const STORAGE_KEY = "rufayq_currency";
 const COUNTRY_KEY = "rufayq_country";
+const COUNTRY_OVERRIDE_KEY = "rufayq_country_manual";
+const CURRENCY_OVERRIDE_KEY = "rufayq_currency_manual";
 
 interface Ctx {
   currency: CurrencyCode;
   setCurrency: (c: CurrencyCode) => void;
+  /** Override detected country and re-map currency. */
+  setCountry: (code: string) => void;
   /** Get raw price for tier+period. */
   getPrice: (tier: TierId, period: "monthly" | "annual") => number;
   /** Get raw price for an add-on. */
@@ -18,33 +22,30 @@ interface Ctx {
   format: (n: number) => string;
   /** True if the user is in a GCC country pegged to SAR (KW/QA/BH/OM). */
   isGccPegged: boolean;
-  /** Detected country code (e.g. "SA") if available. */
+  /** Detected/selected country code (e.g. "SA") if available. */
   country: string | null;
+  /** Whether the country was manually overridden by the user. */
+  countryManual: boolean;
 }
 
 const CurrencyContext = createContext<Ctx | null>(null);
 
-/**
- * Browser-locale + timezone-based currency detection (no API, instant, free).
- * Returns ISO-3166 country code or null. Order:
- *   1. Stored country (manual override)
- *   2. Intl.Locale region from navigator.language (e.g. "ar-SA" → "SA")
- *   3. Timezone heuristic (e.g. "Asia/Riyadh" → "SA")
- */
-function detectCountry(): string | null {
+/** Locale + timezone country detection (sync, free, instant). */
+function detectCountrySync(): string | null {
   if (typeof window === "undefined") return null;
+
+  const manual = localStorage.getItem(COUNTRY_OVERRIDE_KEY);
+  if (manual) return manual;
 
   const stored = localStorage.getItem(COUNTRY_KEY);
   if (stored) return stored;
 
-  // navigator.language → "ar-SA", "en-US", etc.
   const langs = navigator.languages?.length ? navigator.languages : [navigator.language];
   for (const lang of langs) {
     const m = lang?.match(/-([A-Z]{2})$/i);
     if (m) return m[1].toUpperCase();
   }
 
-  // Timezone fallback
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const tzMap: Record<string, string> = {
@@ -57,36 +58,101 @@ function detectCountry(): string | null {
       "Europe/Brussels": "BE", "Europe/Dublin": "IE", "Europe/Lisbon": "PT",
     };
     if (tzMap[tz]) return tzMap[tz];
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   return null;
 }
 
-function detectCurrency(country: string | null): CurrencyCode {
+/** Async IP-based country detection. Free, no key. ~50–150ms. */
+async function detectCountryFromIp(): Promise<string | null> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2500);
+    // ipwho.is is a free, no-key, CORS-enabled service. Fallback chain.
+    const tryEndpoint = async (url: string, field: string) => {
+      const r = await fetch(url, { signal: ctrl.signal });
+      if (!r.ok) throw new Error(String(r.status));
+      const j = await r.json();
+      const code = (j?.[field] || "").toString().toUpperCase();
+      return code && /^[A-Z]{2}$/.test(code) ? code : null;
+    };
+    let code: string | null = null;
+    try { code = await tryEndpoint("https://ipwho.is/?fields=country_code", "country_code"); } catch { /* */ }
+    if (!code) {
+      try { code = await tryEndpoint("https://ipapi.co/json/", "country_code"); } catch { /* */ }
+    }
+    clearTimeout(t);
+    return code;
+  } catch { return null; }
+}
+
+function currencyForCountry(country: string | null): CurrencyCode {
   if (country && COUNTRY_CURRENCY[country]) return COUNTRY_CURRENCY[country];
   return "USD";
 }
 
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
-  const [country] = useState<string | null>(() => detectCountry());
+  const [country, setCountryState] = useState<string | null>(() => detectCountrySync());
+  const [countryManual, setCountryManual] = useState<boolean>(() =>
+    typeof window !== "undefined" && !!localStorage.getItem(COUNTRY_OVERRIDE_KEY),
+  );
 
   const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
     if (typeof window === "undefined") return "SAR";
+    const manualCur = localStorage.getItem(CURRENCY_OVERRIDE_KEY) as CurrencyCode | null;
+    if (manualCur && currencyMaster[manualCur]) return manualCur;
     const stored = localStorage.getItem(STORAGE_KEY) as CurrencyCode | null;
     if (stored && currencyMaster[stored]) return stored;
-    return detectCurrency(country);
+    return currencyForCountry(detectCountrySync());
   });
+
+  // Async geo-IP refinement on first load (only if user hasn't manually overridden).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem(COUNTRY_OVERRIDE_KEY)) return;
+    let alive = true;
+    detectCountryFromIp().then((ipCountry) => {
+      if (!alive || !ipCountry) return;
+      // Only update if it differs from what we have.
+      if (ipCountry !== country) {
+        setCountryState(ipCountry);
+        try { localStorage.setItem(COUNTRY_KEY, ipCountry); } catch { /* */ }
+        // If user hasn't manually picked a currency, snap to detected one.
+        if (!localStorage.getItem(CURRENCY_OVERRIDE_KEY)) {
+          const cur = currencyForCountry(ipCountry);
+          setCurrencyState(cur);
+          try { localStorage.setItem(STORAGE_KEY, cur); } catch { /* */ }
+        }
+      }
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setCurrency = useCallback((c: CurrencyCode) => {
     setCurrencyState(c);
     try {
       localStorage.setItem(STORAGE_KEY, c);
-      // Track manual choice (analytics hook point)
+      localStorage.setItem(CURRENCY_OVERRIDE_KEY, c);
       window.dispatchEvent(new CustomEvent("currencyChanged", { detail: { currency: c } }));
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
+  }, []);
+
+  const setCountry = useCallback((code: string) => {
+    const upper = code.toUpperCase();
+    setCountryState(upper);
+    setCountryManual(true);
+    try {
+      localStorage.setItem(COUNTRY_KEY, upper);
+      localStorage.setItem(COUNTRY_OVERRIDE_KEY, upper);
+    } catch { /* */ }
+    // Snap currency to the country's preferred unless user already locked one this session.
+    const cur = currencyForCountry(upper);
+    setCurrencyState(cur);
+    try {
+      localStorage.setItem(STORAGE_KEY, cur);
+      // Manual country implies currency follows; clear stale currency override.
+      localStorage.removeItem(CURRENCY_OVERRIDE_KEY);
+    } catch { /* */ }
   }, []);
 
   useEffect(() => {
@@ -120,8 +186,8 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const isGccPegged = country ? GCC_PEGGED_COUNTRIES.has(country) : false;
 
   const value = useMemo<Ctx>(
-    () => ({ currency, setCurrency, getPrice, getAddon, format, isGccPegged, country }),
-    [currency, setCurrency, getPrice, getAddon, format, isGccPegged, country],
+    () => ({ currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual }),
+    [currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual],
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
@@ -130,15 +196,16 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
 export const useCurrency = (): Ctx => {
   const ctx = useContext(CurrencyContext);
   if (!ctx) {
-    // SSR / outside-provider fallback — read-only SAR.
     return {
       currency: "SAR",
       setCurrency: () => {},
+      setCountry: () => {},
       getPrice: (t, p) => currencyMaster.SAR.tiers[t][p],
       getAddon: (a) => currencyMaster.SAR.addons[a],
       format: (n) => `SAR ${Math.round(n).toLocaleString("en-US")}`,
       isGccPegged: false,
       country: null,
+      countryManual: false,
     };
   }
   return ctx;
