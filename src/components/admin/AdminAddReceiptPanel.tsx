@@ -103,7 +103,7 @@ const AdminAddReceiptPanel = ({ open, onClose, onCreated }: Props) => {
     setPlan("COMPANION"); setCycle("monthly"); setCurrency("SAR");
     setAmount(planPrice("COMPANION", "monthly"));
     setChannel("whatsapp"); setBankName(""); setReferenceNo("");
-    setInternalNote(""); setPatientMessage(""); setNoImage(false); setFile(null);
+    setInternalNote(""); setPatientMessage(""); setNoImage(false); setFile(null); setFileError(null);
   }, [open]);
 
   // Auto-fill amount when plan/cycle changes
@@ -306,17 +306,47 @@ const AdminAddReceiptPanel = ({ open, onClose, onCreated }: Props) => {
               <section className="space-y-2">
                 <p className="text-[10px] font-mono tracking-widest text-slate-400">3 · RECEIPT IMAGE</p>
                 <label className={`block rounded-lg border-2 border-dashed p-3 text-center cursor-pointer ${noImage ? "opacity-40 pointer-events-none" : ""}`}
-                  style={{ borderColor: file ? "rgba(16,185,129,0.5)" : "rgb(30,41,59)" }}>
-                  <input type="file" accept="image/*,application/pdf" className="hidden"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                  style={{ borderColor: file ? "rgba(16,185,129,0.5)" : fileError ? "rgba(244,63,94,0.5)" : "rgb(30,41,59)" }}>
+                  <input type="file" accept={ACCEPTED_TYPES.join(",")} className="hidden"
+                    onChange={(e) => onPickFile(e.target.files?.[0] || null)} />
                   {file ? (
-                    <p className="text-xs text-emerald-300 flex items-center justify-center gap-1"><CheckCircle2 size={12} />{file.name}</p>
+                    <div className="space-y-1">
+                      <p className="text-xs text-emerald-300 flex items-center justify-center gap-1">
+                        <CheckCircle2 size={12} />{file.name}
+                      </p>
+                      <p className="text-[10px] text-slate-500">{formatBytes(file.size)} · {file.type || "unknown"}</p>
+                    </div>
                   ) : (
-                    <p className="text-xs text-slate-400 flex items-center justify-center gap-1"><Upload size={12} />Click to upload (JPG / PNG / PDF, ≤5MB)</p>
+                    <p className="text-xs text-slate-400 flex items-center justify-center gap-1">
+                      <Upload size={12} />Click to upload (JPG / PNG / WebP / PDF, ≤5MB)
+                    </p>
                   )}
                 </label>
+
+                {fileError && (
+                  <p className="text-[11px] text-rose-300 flex items-start gap-1">
+                    <AlertCircle size={11} className="mt-0.5 shrink-0" />{fileError}
+                  </p>
+                )}
+
+                {file && previewUrl && (
+                  <div className="rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
+                    <img src={previewUrl} alt="Receipt preview" className="w-full max-h-56 object-contain" />
+                  </div>
+                )}
+                {file && !previewUrl && file.type === "application/pdf" && (
+                  <a
+                    href={URL.createObjectURL(file)}
+                    target="_blank" rel="noreferrer"
+                    className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-[11px] text-slate-300 flex items-center gap-2 hover:border-amber-500/40"
+                  >
+                    <FileText size={12} className="text-rose-300" />
+                    PDF ready · <span className="underline flex items-center gap-1">open preview <Eye size={10} /></span>
+                  </a>
+                )}
+
                 <label className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <input type="checkbox" checked={noImage} onChange={(e) => { setNoImage(e.target.checked); if (e.target.checked) setFile(null); }} />
+                  <input type="checkbox" checked={noImage} onChange={(e) => { setNoImage(e.target.checked); if (e.target.checked) { setFile(null); setFileError(null); } }} />
                   Image not available (e.g. WhatsApp without screenshot)
                 </label>
               </section>
