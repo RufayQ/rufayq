@@ -499,7 +499,7 @@ const GlobalSettingsEditor = () => {
     if (!row) return;
     setSaving(true);
     const { id, ...patch } = row;
-    await supabase.from("cms_global_settings").update(patch).eq("id", id);
+    await supabase.from("cms_global_settings").update(patch as never).eq("id", id);
     setSaving(false);
     setSavedAt(new Date().toLocaleTimeString());
   };
