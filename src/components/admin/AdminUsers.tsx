@@ -260,6 +260,28 @@ const AdminUsers = () => {
                         : "bg-rose-500/15 text-rose-300"
                       }`}>{status}</span>}
                       {isDeleted && <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300">DELETED</span>}
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+                        planCode === "FREE" ? "bg-slate-700/60 text-slate-300"
+                        : planCode === "STARTER" ? "bg-sky-500/15 text-sky-300"
+                        : planCode === "COMPANION" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        : "bg-violet-500/15 text-violet-300"
+                      }`}>{planCode}</span>
+                      {subStatus && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${statusTone(subStatus)}`}>
+                          {expiringSoon ? "EXPIRING" : subStatus.toUpperCase()}
+                        </span>
+                      )}
+                      {latestRec && (latestRec.status === "pending" || latestRec.status === "under_review") && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-mono">
+                          PAY: {latestRec.status.toUpperCase()}
+                        </span>
+                      )}
+                      {latestRec?.status === "rejected" && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 font-mono">PAY: REJECTED</span>
+                      )}
+                      {daysLeft !== null && daysLeft >= 0 && subStatus === "active" && (
+                        <span className="text-[10px] text-slate-500">· {daysLeft}d left</span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400">
                       {p.phone || "no phone"} · {p.email || "no email"} · {p.nationality || "—"}
