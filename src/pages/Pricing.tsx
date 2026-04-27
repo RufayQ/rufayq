@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, Check, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Check, Star, ChevronDown, ChevronUp, Globe2, MapPin } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import { Seo } from "@/seo/Seo";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -9,6 +9,7 @@ import CurrencySwitcher from "@/components/CurrencySwitcher";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import CountryPicker from "@/components/CountryPicker";
 import FamilySetupModal from "@/components/FamilySetupModal";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ADDON_META, COUNTRY_CURRENCY, type AddOnId, type TierId } from "@/data/currencyMaster";
 import { faqSchema, breadcrumbSchema } from "@/seo/schema";
 
