@@ -32,16 +32,34 @@ const useDebounced = <T,>(value: T, ms = 220) => {
   return v;
 };
 
+const RECENT_KEY = "admin.search.recent";
+const readRecent = (): string[] => {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
+};
+const pushRecent = (term: string) => {
+  const t = term.trim(); if (!t) return;
+  try {
+    const cur: string[] = readRecent().filter((x) => x.toLowerCase() !== t.toLowerCase());
+    cur.unshift(t);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(cur.slice(0, 6)));
+  } catch { /* noop */ }
+};
+
 const GlobalSearchPalette = ({ open, onClose, onPick }: Props) => {
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
+  const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounced = useDebounced(q, 220);
 
   useEffect(() => {
-    if (open) { setQ(""); setActive(0); setResults([]); setTimeout(() => inputRef.current?.focus(), 30); }
+    if (open) {
+      setQ(""); setActive(0); setResults([]);
+      setRecent(readRecent());
+      setTimeout(() => inputRef.current?.focus(), 30);
+    }
   }, [open]);
 
   // Build nav results immediately (synchronous).
