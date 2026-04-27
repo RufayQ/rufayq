@@ -72,8 +72,8 @@ const AdminCustomerService = () => {
     );
   }, [users, search]);
 
-  const setStatus = async (u: CsUser, next: string) => {
-    const { error } = await supabase.from("user_status").upsert({ user_id: u.user_id, status: next }, { onConflict: "user_id" });
+  const setStatus = async (u: CsUser, next: "active" | "suspended") => {
+    const { error } = await (supabase.from("user_status") as any).upsert({ user_id: u.user_id, status: next }, { onConflict: "user_id" });
     if (error) { toast.error(error.message); return; }
     await supabase.rpc("log_audit_event", {
       _action: `cs_user_${next}`, _target_type: "user", _target_id: u.user_id, _details: { email: u.email, role: u.role },
