@@ -472,6 +472,10 @@ type GlobalRow = {
   primary_color: string; secondary_color: string; accent_color: string;
   gold_color: string; navy_color: string;
   support_email: string | null; support_whatsapp: string | null; sales_email: string | null;
+  support_phone: string | null;
+  address_en: string | null; address_ar: string | null;
+  business_hours_en: string | null; business_hours_ar: string | null;
+  map_embed_url: string | null;
   default_language: string; language_toggle: boolean; sticky_header: boolean;
   newsletter_title_en: string | null; newsletter_title_ar: string | null;
   newsletter_subtitle_en: string | null; newsletter_subtitle_ar: string | null;
