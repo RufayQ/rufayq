@@ -96,11 +96,14 @@ export const NAV_MODULES: NavGroup[] = [
   {
     key: "cms", label: "Website CMS", icon: Globe,
     hint: "Marketing site & content",
-    sections: ["Structure", "Editorial"],
+    sections: ["Structure", "Editorial", "Assets"],
     leaves: [
-      { key: "website_cms", label: "Pages & Sections",   icon: Globe,    adminOnly: true, section: "Structure", pillTone: "live" },
-      { key: "news",        label: "News & Articles",    icon: FileText, section: "Editorial" },
-      { key: "pages",       label: "Site Pages (legacy)", icon: FileText, section: "Editorial" },
+      { key: "website_cms",   label: "Pages & Sections",    icon: Globe,    adminOnly: true, section: "Structure", pillTone: "live" },
+      { key: "cms_seo",       label: "SEO Manager",         icon: Sparkles, adminOnly: true, section: "Structure", pillTone: "new" },
+      { key: "news",          label: "News & Articles",     icon: FileText, section: "Editorial" },
+      { key: "cms_blog_cats", label: "Blog Categories",     icon: FileText, adminOnly: true, section: "Editorial", pillTone: "new" },
+      { key: "pages",         label: "Site Pages (legacy)", icon: FileText, section: "Editorial" },
+      { key: "cms_media",     label: "Media Library",       icon: FileText, adminOnly: true, section: "Assets",    pillTone: "new" },
     ],
   },
   {
