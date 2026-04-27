@@ -60,6 +60,7 @@ const AdminCreateUser = () => {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [busy, setBusy] = useState(false);
   const [showAr, setShowAr] = useState(false);
+  useQuickCreateSignal("create", () => toast.info("Fill the form below to provision a new user."));
 
   const [form, setForm] = useState({
     email: "", password: "", full_name: "", full_name_ar: "", phone: "", phoneCountry: "SA",
