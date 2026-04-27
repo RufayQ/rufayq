@@ -155,6 +155,21 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
       return { en: { title: "Pricing", subtitle: "" }, ar: { title: "", subtitle: "" } };
     case "rich_text":
       return { en: { title: "", body: "" }, ar: { title: "", body: "" } };
+    case "contact_form":
+      return {
+        en: {
+          title: "Contact us", subtitle: "We're here to help.",
+          email: "support@rufayq.com", phone: "", whatsapp: "",
+          address: "", hours: "Sun – Thu · 9:00 – 18:00 AST",
+          mapEmbedUrl: "", ctaLabel: "Send a message", ctaLink: "mailto:support@rufayq.com",
+        },
+        ar: {
+          title: "تواصل معنا", subtitle: "نحن هنا لمساعدتك.",
+          email: "support@rufayq.com", phone: "", whatsapp: "",
+          address: "", hours: "الأحد – الخميس · ٩:٠٠ – ١٨:٠٠ بتوقيت السعودية",
+          mapEmbedUrl: "", ctaLabel: "أرسل رسالة", ctaLink: "mailto:support@rufayq.com",
+        },
+      };
     default:
       return { en: {}, ar: {} };
   }
