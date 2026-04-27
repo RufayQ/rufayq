@@ -517,6 +517,21 @@ Please verify and activate my subscription.`;
   );
 };
 
+/**
+ * Field — wraps an input and renders a bilingual error message below it
+ * when validation has flagged this field. Keeps the form markup readable.
+ */
+const Field = ({ children, error, fieldKey }: { children: React.ReactNode; error?: string; fieldKey: string }) => (
+  <div>
+    {children}
+    {error && (
+      <p role="alert" id={`err-${fieldKey}`} className="text-[11px] mt-1" style={{ color: "var(--danger)" }}>
+        {error}
+      </p>
+    )}
+  </div>
+);
+
 const Row = ({ label, value, mono, onCopy }: { label: string; value: string; mono?: boolean; onCopy?: () => void }) => (
   <div className="flex items-center justify-between gap-2">
     <span style={{ color: "var(--gray)" }}>{label}:</span>
