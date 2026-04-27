@@ -112,6 +112,7 @@ const sectionLabels: Record<string, string> = {
 const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
   const [step, setStep] = useState(1);
   const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(null);
+  const [realFile, setRealFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(preselectedCategory || null);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +138,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
     const file = e.target.files?.[0];
     if (file) {
       setCapturedFile({ name: file.name, type: file.type, size: `${(file.size / 1024).toFixed(1)} KB` });
+      setRealFile(file);
       setStep(2);
     }
   };
@@ -166,7 +168,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
       <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
         {step === 1 && <Step1Capture onCapture={handleFileCapture} />}
         {step === 2 && capturedFile && (
-          <Step2Review file={capturedFile} onRetake={() => setStep(1)} onConfirm={() => {
+          <Step2Review file={capturedFile} realFile={realFile} onRetake={() => { setStep(1); setRealFile(null); }} onConfirm={() => {
             if (preselectedCategory) setSelectedCategory(preselectedCategory);
             setStep(3);
           }} />
@@ -318,13 +320,17 @@ const Step1Capture = ({ onCapture }: { onCapture: (accept: string) => void }) =>
 };
 
 /* ─── STEP 2: REVIEW ─── */
-const Step2Review = ({ file, onRetake, onConfirm }: { file: { name: string; type: string; size: string }; onRetake: () => void; onConfirm: () => void }) => {
+const Step2Review = ({ file, realFile, onRetake, onConfirm }: { file: { name: string; type: string; size: string }; realFile?: File | null; onRetake: () => void; onConfirm: () => void }) => {
   const isImage = file.type.startsWith("image");
 
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--scanner-bg)" }}>
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
-        {isImage ? (
+        {realFile ? (
+          <div className="w-full">
+            <FileUploadPreview file={realFile} lang="both" maxHeight={360} />
+          </div>
+        ) : isImage ? (
           <div className="w-full rounded-2xl overflow-hidden relative" style={{ aspectRatio: "3/4", background: "rgba(255,255,255,0.05)", border: "2px solid var(--gold)" }}>
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-6xl">📄</span>
