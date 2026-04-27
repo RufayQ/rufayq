@@ -451,33 +451,57 @@ Please verify and activate my subscription.`;
             )}
           </div>
 
-          {/* Form fields */}
-          <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Transaction reference · رقم المرجع البنكي"
-            className="w-full rounded-lg px-3 py-2 text-sm" style={{ border: "1px solid var(--gray-light)" }} />
-          <input value={payerName} onChange={(e) => setPayerName(e.target.value)} placeholder="Sender account name · اسم المرسل"
-            className="w-full rounded-lg px-3 py-2 text-sm" style={{ border: "1px solid var(--gray-light)" }} />
+          {/* Form fields — each input renders a red border + helper text when
+              its key is present in fieldErrors so the user knows exactly which
+              control failed validation. */}
+          <Field error={fieldErrors.reference} fieldKey="reference">
+            <input value={reference} onChange={(e) => { setReference(e.target.value); if (fieldErrors.reference) setFieldErrors((p) => ({ ...p, reference: "" })); }}
+              placeholder="Transaction reference · رقم المرجع البنكي"
+              data-field="reference" aria-invalid={!!fieldErrors.reference}
+              className="w-full rounded-lg px-3 py-2 text-sm"
+              style={{ border: `1px solid ${fieldErrors.reference ? "var(--danger)" : "var(--gray-light)"}` }} />
+          </Field>
+          <Field error={fieldErrors.payerName} fieldKey="payerName">
+            <input value={payerName} onChange={(e) => { setPayerName(e.target.value); if (fieldErrors.payerName) setFieldErrors((p) => ({ ...p, payerName: "" })); }}
+              placeholder="Sender account name · اسم المرسل"
+              data-field="payerName" aria-invalid={!!fieldErrors.payerName}
+              className="w-full rounded-lg px-3 py-2 text-sm"
+              style={{ border: `1px solid ${fieldErrors.payerName ? "var(--danger)" : "var(--gray-light)"}` }} />
+          </Field>
           <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Sending bank (optional) · البنك المُرسل"
             className="w-full rounded-lg px-3 py-2 text-sm" style={{ border: "1px solid var(--gray-light)" }} />
           <div className="grid grid-cols-2 gap-2">
-            <input value={payerPhone} onChange={(e) => setPayerPhone(e.target.value)} placeholder="Phone (opt.) · جوال"
-              className="rounded-lg px-3 py-2 text-sm" style={{ border: "1px solid var(--gray-light)" }} />
-            <input type="date" value={transferDate} onChange={(e) => setTransferDate(e.target.value)}
-              className="rounded-lg px-3 py-2 text-sm" style={{ border: "1px solid var(--gray-light)" }} />
+            <Field error={fieldErrors.payerPhone} fieldKey="payerPhone">
+              <input value={payerPhone} onChange={(e) => { setPayerPhone(e.target.value); if (fieldErrors.payerPhone) setFieldErrors((p) => ({ ...p, payerPhone: "" })); }}
+                placeholder="Phone (opt.) · جوال"
+                data-field="payerPhone" aria-invalid={!!fieldErrors.payerPhone}
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ border: `1px solid ${fieldErrors.payerPhone ? "var(--danger)" : "var(--gray-light)"}` }} />
+            </Field>
+            <Field error={fieldErrors.transferDate} fieldKey="transferDate">
+              <input type="date" value={transferDate} onChange={(e) => { setTransferDate(e.target.value); if (fieldErrors.transferDate) setFieldErrors((p) => ({ ...p, transferDate: "" })); }}
+                data-field="transferDate" aria-invalid={!!fieldErrors.transferDate}
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ border: `1px solid ${fieldErrors.transferDate ? "var(--danger)" : "var(--gray-light)"}` }} />
+            </Field>
           </div>
 
           {/* File upload */}
           {channel === "app" && (
-            <label className="block">
+            <label className="block" data-field="file">
               <p className="text-[10px] font-mono tracking-widest mb-2" style={{ color: "var(--gray)" }}>RECEIPT (image or PDF) · الإيصال</p>
               <div className="rounded-xl border-2 border-dashed p-4 text-center cursor-pointer"
-                style={{ borderColor: file ? "var(--teal-deep)" : "var(--gray-light)" }}>
+                style={{ borderColor: fieldErrors.file ? "var(--danger)" : file ? "var(--teal-deep)" : "var(--gray-light)" }}>
                 <input type="file" accept="image/*,application/pdf" className="hidden"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                <Upload size={20} className="mx-auto mb-1" color={file ? "var(--teal-deep)" : "var(--gray)"} />
-                <p className="text-xs" style={{ color: file ? "var(--teal-deep)" : "var(--gray)" }}>
+                  onChange={(e) => { setFile(e.target.files?.[0] || null); if (fieldErrors.file) setFieldErrors((p) => ({ ...p, file: "" })); }} />
+                <Upload size={20} className="mx-auto mb-1" color={fieldErrors.file ? "var(--danger)" : file ? "var(--teal-deep)" : "var(--gray)"} />
+                <p className="text-xs" style={{ color: fieldErrors.file ? "var(--danger)" : file ? "var(--teal-deep)" : "var(--gray)" }}>
                   {file ? file.name : "Tap to choose file · اختر ملف"}
                 </p>
               </div>
+              {fieldErrors.file && (
+                <p role="alert" className="text-[11px] mt-1" style={{ color: "var(--danger)" }}>{fieldErrors.file}</p>
+              )}
             </label>
           )}
 
