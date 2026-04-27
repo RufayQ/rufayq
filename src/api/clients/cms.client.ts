@@ -58,7 +58,11 @@ export const cmsClient = {
     const parsed = PublishRequestSchema.safeParse(request);
     if (!parsed.success) return fail("invalid_input", parsed.error.message);
     const { status, scheduled_at = null } = parsed.data;
-    const validation = validatePublish(page, status, scheduled_at ?? null);
+    const validation = validatePublish(
+      { status: page.status, scheduled_at: page.scheduled_at, title_en: page.title_en },
+      status,
+      scheduled_at ?? null,
+    );
     if (!validation.ok) return fail("validation_failed", validation.error || "Invalid transition");
 
     const patch: { status: PageStatus; scheduled_at?: string | null } = { status };

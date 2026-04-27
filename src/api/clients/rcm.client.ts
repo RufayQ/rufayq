@@ -18,7 +18,7 @@ export const rcmClient = {
     const { data, error } = await supabase
       .from("patient_claims")
       .select("id, organization_id, matched_device_id, search_type, status, notes, created_at, updated_at")
-      .eq("status", "pending")
+      .eq("status", "pending_admin")
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error) return fail("query_failed", error.message);
@@ -29,7 +29,7 @@ export const rcmClient = {
 
   async pendingCount(): Promise<ApiResult<number>> {
     const { count, error } = await supabase
-      .from("patient_claims").select("id", { count: "exact", head: true }).eq("status", "pending");
+      .from("patient_claims").select("id", { count: "exact", head: true }).eq("status", "pending_admin");
     if (error) return fail("query_failed", error.message);
     return ok(count ?? 0);
   },
