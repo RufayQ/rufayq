@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { paymentsClient } from "@/api";
 import { BANK_DETAILS, PLAN_BY_CODE, planPrice, type BillingCycle, type PlanCode } from "@/data/subscriptionPlans";
+import ReceiptStatusTimeline from "@/features/payments/patient/ui/ReceiptStatusTimeline";
 
 interface Props {
   open: boolean;
@@ -256,7 +257,7 @@ Please verify and activate my subscription.`;
             )}
 
             {/* Timeline */}
-            <Timeline receipt={pollReceipt} />
+            <ReceiptStatusTimeline receipt={pollReceipt} />
 
             <button onClick={onClose} className="w-full py-3 rounded-xl font-semibold text-white btn-press"
               style={{ background: "var(--teal-deep)" }}>
@@ -467,49 +468,5 @@ const Row = ({ label, value, mono, onCopy }: { label: string; value: string; mon
     )}
   </div>
 );
-
-const STEPS = [
-  { key: "submitted",  en: "Submitted",      ar: "تم الإرسال" },
-  { key: "review",     en: "Under review",   ar: "قيد المراجعة" },
-  { key: "decision",   en: "Decision",       ar: "القرار" },
-];
-
-const Timeline = ({ receipt }: { receipt: ReceiptRow }) => {
-  const stage = receipt.status === "pending" ? 1
-    : receipt.status === "under_review" || receipt.status === "needs_more_info" ? 2
-    : 3;
-  return (
-    <div className="space-y-2">
-      <p className="text-[10px] font-mono tracking-widest" style={{ color: "var(--gray)" }}>TIMELINE · الخط الزمني</p>
-      <div className="space-y-2">
-        {STEPS.map((s, i) => {
-          const reached = i < stage;
-          const isCurrent = i === stage - 1;
-          let label = s.en;
-          let ar = s.ar;
-          if (i === 2 && stage >= 3) {
-            label = receipt.status === "verified" ? "Approved" : receipt.status === "rejected" ? "Rejected" : "More info needed";
-            ar = receipt.status === "verified" ? "تمت الموافقة" : receipt.status === "rejected" ? "مرفوض" : "مطلوب معلومات";
-          }
-          const tone = i === 2
-            ? (receipt.status === "verified" ? "var(--success)" : receipt.status === "rejected" ? "var(--danger)" : "var(--gold)")
-            : reached ? "var(--teal-deep)" : "var(--gray-light)";
-          return (
-            <div key={s.key} className="flex items-center gap-3">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                   style={{ background: tone }}>
-                {reached ? "✓" : i + 1}
-              </div>
-              <div className="flex-1">
-                <p className="text-[12px] font-semibold" style={{ color: isCurrent ? tone : "var(--navy)" }}>{label}</p>
-                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{ar}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
 
 export default BankTransferCheckout;
