@@ -26,7 +26,7 @@ const AdminSettingsTeam = () => {
       const ids = Array.from(new Set((roles ?? []).map((r: any) => r.user_id)));
       let profiles: any[] = [];
       if (ids.length) {
-        const r = await (supabase as any).from("profiles").select("id, email, full_name").in("id", ids);
+        const r = await (supabase as any).from("profiles").select("id, email, full_name_en, full_name_ar, rufayq_id").in("id", ids);
         profiles = r.data ?? [];
       }
       const out: StaffRow[] = (roles ?? []).map((r: any) => {
@@ -34,7 +34,8 @@ const AdminSettingsTeam = () => {
         return {
           user_id: r.user_id,
           email: p?.email ?? null,
-          full_name: p?.full_name ?? null,
+          full_name: p?.full_name_en ?? p?.full_name_ar ?? null,
+          rufayq_id: p?.rufayq_id ?? null,
           role: r.role,
         };
       });
