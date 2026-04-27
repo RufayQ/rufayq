@@ -122,7 +122,7 @@ export const SECTION_LABELS: Record<SectionType, string> = {
   testimonials: "Testimonials",
   trust_logos: "Trust Logos",
   providers: "Provider Showcase",
-  contact_form: "Contact Form",
+  contact_form: "Contact Info",
   comparison: "Comparison Table",
   timeline: "Timeline",
   video: "Video Section",
