@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { editorFor } from "./cms/SectionEditors";
 import { SECTION_LABELS, emptyContent, type CmsPage, type CmsSection,
   type PageStatus, type SectionType } from "./cms/cmsTypes";
+import { CmsLivePreview } from "./cms/CmsLivePreview";
 import { cmsClient, useRealtimeChannel } from "@/api";
 import { toast } from "sonner";
 
