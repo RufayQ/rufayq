@@ -41,10 +41,10 @@ const AdminCustomerService = () => {
     const ids = [...new Set((roles || []).map((r: any) => r.user_id))];
     if (ids.length === 0) { setUsers([]); setLoading(false); return; }
 
-    const profilesRes = await supabase.from("profiles").select("user_id, email, full_name, phone, country, created_at").in("user_id", ids);
-    const statusRes = await supabase.from("user_status").select("user_id, status").in("user_id", ids);
-    const profiles = (profilesRes.data || []) as any[];
-    const status = (statusRes.data || []) as any[];
+    const profilesRes: any = await (supabase.from("profiles") as any).select("user_id, email, full_name, phone, country, created_at").in("user_id", ids);
+    const statusRes: any = await (supabase.from("user_status") as any).select("user_id, status").in("user_id", ids);
+    const profiles: any[] = profilesRes.data || [];
+    const status: any[] = statusRes.data || [];
 
     const map = new Map<string, CsUser>();
     (roles || []).forEach((r: any) => {
