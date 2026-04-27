@@ -6,7 +6,7 @@ import type { LucideIcon } from "lucide-react";
 
 export type LeafKey =
   | "dashboard"
-  | "users" | "user_search" | "create" | "verify_assist"
+  | "users" | "user_search" | "create" | "verify_assist" | "cs_users"
   | "orgs" | "applications"
   | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk"
   | "subs" | "payments" | "ai_usage"
