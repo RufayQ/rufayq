@@ -241,6 +241,14 @@ const Pricing = () => {
             )}
           </div>
           {/* Inline note: explains how location was determined and any fallback used */}
+          {showPriceSkeleton && !country && (
+            <div
+              data-testid="detection-note-skeleton"
+              aria-hidden="true"
+              className="mt-2 mx-auto h-3 w-56 rounded-full animate-pulse"
+              style={{ background: "rgba(232,236,240,0.08)" }}
+            />
+          )}
           {country && !countryManual && (
             <p
               data-testid="detection-note"
@@ -269,6 +277,57 @@ const Pricing = () => {
                 }
               })()}
             </p>
+          )}
+
+          {/* Detection debug — surfaces every raw signal used so issues can be
+              triaged without opening devtools. Hidden behind a small link. */}
+          <div className="mt-2 flex justify-center">
+            <button
+              type="button"
+              data-testid="detection-debug-toggle"
+              onClick={() => setDebugOpen((v) => !v)}
+              aria-expanded={debugOpen}
+              aria-controls="detection-debug-panel"
+              className="text-[10px] inline-flex items-center gap-1 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent rounded"
+              style={{ color: MUTED }}
+            >
+              <Bug size={10} aria-hidden="true" />
+              {showAr ? (debugOpen ? "إخفاء معلومات الكشف" : "معلومات الكشف") : (debugOpen ? "Hide detection debug" : "Detection debug")}
+            </button>
+          </div>
+          {debugOpen && (
+            <div
+              id="detection-debug-panel"
+              data-testid="detection-debug-panel"
+              role="region"
+              aria-label={showAr ? "معلومات كشف الموقع" : "Location detection debug"}
+              dir="ltr"
+              className="mt-2 mx-auto max-w-md rounded-lg p-3 text-left font-mono text-[10px] leading-relaxed"
+              style={{ background: BG2, border: `1px solid ${BORDER}`, color: TEXT }}
+            >
+              {([
+                ["source", detectionSource],
+                ["country", country ?? "—"],
+                ["countryManual", String(countryManual)],
+                ["currency", currency],
+                ["geoLoading", String(geoLoading)],
+                ["debug.ipCountry", debug.ipCountry ?? "—"],
+                ["debug.localeCountry", debug.localeCountry ?? "—"],
+                ["debug.timezone", debug.timezone ?? "—"],
+                ["debug.timezoneCountry", debug.timezoneCountry ?? "—"],
+                ["debug.storedCountry", debug.storedCountry ?? "—"],
+                ["debug.storedCurrency", debug.storedCurrency ?? "—"],
+                ["debug.manualCountry", debug.manualCountry ?? "—"],
+                ["debug.manualCurrency", debug.manualCurrency ?? "—"],
+                ["debug.perCountryOverride", debug.perCountryOverride ?? "—"],
+                ["debug.languages", debug.languages.join(", ") || "—"],
+              ] as const).map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-3">
+                  <span style={{ color: MUTED }}>{k}</span>
+                  <span data-debug-key={k}>{v}</span>
+                </div>
+              ))}
+            </div>
           )}
         </TooltipProvider>
       </header>
