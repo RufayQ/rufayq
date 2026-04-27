@@ -45,13 +45,22 @@ const AdminUsers = () => {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterOrg, setFilterOrg] = useState<string>("all");
+  const [subsByDevice, setSubsByDevice] = useState<Record<string, SubSummary>>({});
+  const [latestReceiptByDevice, setLatestReceiptByDevice] = useState<Record<string, ReceiptSummary>>({});
+  const [drawerUser, setDrawerUser] = useState<Profile | null>(null);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: p, error: pErr }, { data: s }, { data: o }] = await Promise.all([
+    const [{ data: p, error: pErr }, { data: s }, { data: o }, { data: subs }, { data: recs }] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("user_status").select("*"),
       supabase.from("organizations").select("id,name,org_type").order("name"),
+      supabase.from("user_subscriptions")
+        .select("device_id,plan,status,current_period_end")
+        .order("created_at", { ascending: false }),
+      supabase.from("payment_receipts")
+        .select("device_id,status")
+        .order("created_at", { ascending: false }),
     ]);
     if (pErr) toast.error(pErr.message);
     setProfiles((p || []) as Profile[]);
@@ -59,6 +68,20 @@ const AdminUsers = () => {
     const map: Record<string, UserStatus> = {};
     (s || []).forEach((x: any) => { map[x.user_id] = x; });
     setStatuses(map);
+    // Pick the most relevant subscription per device: prefer active, else latest
+    const subMap: Record<string, SubSummary> = {};
+    (subs || []).forEach((row: any) => {
+      const cur = subMap[row.device_id];
+      if (!cur || (row.status === "active" && cur.status !== "active")) {
+        subMap[row.device_id] = row as SubSummary;
+      }
+    });
+    setSubsByDevice(subMap);
+    const recMap: Record<string, ReceiptSummary> = {};
+    (recs || []).forEach((row: any) => {
+      if (!recMap[row.device_id]) recMap[row.device_id] = row as ReceiptSummary;
+    });
+    setLatestReceiptByDevice(recMap);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
