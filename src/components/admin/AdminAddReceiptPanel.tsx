@@ -14,7 +14,7 @@
  *      refreshes the queue automatically.
  */
 import { useEffect, useMemo, useState } from "react";
-import { X, Search, Loader2, Upload, CheckCircle2, User as UserIcon } from "lucide-react";
+import { X, Search, Loader2, Upload, CheckCircle2, User as UserIcon, FileText, AlertCircle, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { paymentsClient } from "@/api";
@@ -38,6 +38,14 @@ interface Props {
 
 const CHANNELS = ["whatsapp", "email", "app", "other"] as const;
 const CURRENCIES = ["SAR", "EGP", "USD"] as const;
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"] as const;
+const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+
+const formatBytes = (n: number): string => {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+};
 
 const AdminAddReceiptPanel = ({ open, onClose, onCreated }: Props) => {
   const [q, setQ] = useState("");
@@ -57,7 +65,36 @@ const AdminAddReceiptPanel = ({ open, onClose, onCreated }: Props) => {
   const [patientMessage, setPatientMessage] = useState("");
   const [noImage, setNoImage] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Manage object URL lifetime for preview images
+  useEffect(() => {
+    if (!file) { setPreviewUrl(null); return; }
+    if (file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setPreviewUrl(null);
+  }, [file]);
+
+  const onPickFile = (f: File | null) => {
+    setFileError(null);
+    if (!f) { setFile(null); return; }
+    if (!(ACCEPTED_TYPES as readonly string[]).includes(f.type)) {
+      setFileError(`Unsupported file type "${f.type || "unknown"}". Use JPG, PNG, WebP or PDF.`);
+      setFile(null);
+      return;
+    }
+    if (f.size > MAX_BYTES) {
+      setFileError(`File too large (${formatBytes(f.size)}). Max ${formatBytes(MAX_BYTES)}.`);
+      setFile(null);
+      return;
+    }
+    setFile(f);
+  };
 
   // Reset on close
   useEffect(() => {
