@@ -184,7 +184,7 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
       update.current_period_start = new Date().toISOString();
     }
     const { error } = await supabase.from("user_subscriptions")
-      .update(update).eq("id", s.id);
+      .update(update as never).eq("id", s.id);
     if (error) { toast.error(error.message); setBusy(false); return; }
     await audit("SUBSCRIPTION_PLAN_CHANGED", s.id,
       { from_plan: s.plan, to_plan: newPlan, immediate, device_id: s.device_id });
