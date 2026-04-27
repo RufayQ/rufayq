@@ -65,16 +65,60 @@ const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaul
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [pollReceipt, setPollReceipt] = useState<ReceiptRow | null>(null);
+  // Pending row created on mount / when plan or cycle changes — gives the
+  // patient a real `payment_reference` (set by DB trigger) before they pay.
+  const [pendingReceipt, setPendingReceipt] = useState<ReceiptRow | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   // Reset state when modal closes
   useEffect(() => {
     if (!open) {
       setSubmitted(false);
       setPollReceipt(null);
+      setPendingReceipt(null);
       setFile(null);
       setReference(""); setPayerName(""); setPayerPhone(""); setBankName("");
     }
   }, [open]);
+
+  const planDef = PLAN_BY_CODE[plan];
+  const amount = planPrice(plan, cycle);
+
+  // Pre-create pending receipt whenever the modal opens or plan/cycle changes.
+  // This gives the patient the canonical RFQ-PAY-... reference up front.
+  const generatePending = async () => {
+    setGenerating(true);
+    const res = await paymentsClient.createPendingReceipt({
+      device_id: getDeviceId(),
+      requested_plan: plan,
+      billing_cycle: cycle,
+      currency: "SAR",
+      amount,
+      payment_method: "bank_transfer",
+      submission_channel: "web",
+    });
+    if (res.error || !res.data) {
+      toast.error(res.error?.message || "Could not generate reference code");
+      setGenerating(false);
+      return;
+    }
+    setPendingReceipt(res.data as ReceiptRow);
+    setGenerating(false);
+  };
+
+  useEffect(() => {
+    if (!open || submitted) return;
+    generatePending();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, plan, cycle]);
+
+  // Tick every 30s for countdown rendering.
+  useEffect(() => {
+    if (!open || submitted) return;
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, [open, submitted]);
 
   // Poll latest receipt for live status updates while open
   useEffect(() => {
@@ -83,7 +127,7 @@ const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaul
     const tick = async () => {
       const { data } = await supabase
         .from("payment_receipts")
-        .select("id,status,payment_reference,reviewer_notes,patient_message,created_at,reviewed_at,amount,requested_plan")
+        .select("id,status,payment_reference,reviewer_notes,patient_message,created_at,reviewed_at,amount,requested_plan,code_expires_at")
         .eq("id", id)
         .maybeSingle();
       if (data) {
@@ -95,15 +139,18 @@ const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaul
     return () => clearInterval(t);
   }, [open, submitted, pollReceipt?.id]);
 
-  const planDef = PLAN_BY_CODE[plan];
-  const amount = planPrice(plan, cycle);
-
-  // Live RFQ-PAY reference shown to user before submission (final one is regenerated server-side).
-  const previewRef = useMemo(() => {
-    const d = new Date();
-    const ymd = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`;
-    return `RFQ-PAY-${ymd}-XXXXX`;
-  }, [open]);
+  // Expiry derivation
+  const expiresAt = pendingReceipt?.code_expires_at ? new Date(pendingReceipt.code_expires_at).getTime() : null;
+  const msLeft = expiresAt ? expiresAt - now : null;
+  const isExpired = msLeft !== null && msLeft <= 0;
+  const expiryTone = msLeft === null ? "var(--gray)"
+    : msLeft < 30 * 60_000 ? "var(--danger)"
+    : msLeft < 2 * 60 * 60_000 ? "var(--gold)"
+    : "var(--success)";
+  const expiryLabel = msLeft === null ? ""
+    : msLeft <= 0 ? "Code expired · انتهت الصلاحية"
+    : msLeft > 60 * 60_000 ? `Valid for ${Math.floor(msLeft / 3_600_000)}h ${Math.floor((msLeft % 3_600_000) / 60_000)}m`
+    : `Valid for ${Math.max(1, Math.floor(msLeft / 60_000))}m`;
 
   if (!open) return null;
 
@@ -112,12 +159,14 @@ const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaul
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied · تم النسخ`);
   };
+  const refForCopy = pendingReceipt?.payment_reference || "[reference code]";
   const whatsappCopy = `Hello RufayQ Support,
 I have transferred the subscription payment.
 RufayQ ID: ${rufayqId || "[your RufayQ ID]"}
 Plan: ${planDef.nameEn} (${cycle})
 Amount: SAR ${amount}
-Transfer Reference: ${reference || "[transfer reference]"}
+RufayQ reference: ${refForCopy}
+Bank transfer reference: ${reference || "[transfer reference]"}
 Please verify and activate my subscription.`;
   const emailCopy = whatsappCopy;
   const arabicCopy = `مرحباً فريق رُفَيْق،
@@ -125,11 +174,14 @@ Please verify and activate my subscription.`;
 رقم رُفَيْق: ${rufayqId || "[رقم رُفَيْق الخاص بك]"}
 الباقة: ${planDef.nameAr} (${cycle === "monthly" ? "شهري" : "سنوي"})
 المبلغ: ${amount} ر.س
-رقم المرجع: ${reference || "[رقم المرجع]"}
+مرجع رُفَيْق: ${refForCopy}
+رقم المرجع البنكي: ${reference || "[رقم المرجع]"}
 نرجو التحقق وتفعيل الاشتراك.`;
 
   // === Submit ===
   const submit = async () => {
+    if (!pendingReceipt) return toast.error("Please wait for the reference code");
+    if (isExpired) return toast.error("Reference code expired — please regenerate");
     if (channel === "app" && !file) return toast.error("Upload the receipt image or PDF · أرفق الإيصال");
     if (!reference.trim()) return toast.error("Bank transfer reference required · رقم المرجع مطلوب");
     if (!payerName.trim()) return toast.error("Sender name required · اسم المرسل مطلوب");
@@ -144,25 +196,24 @@ Please verify and activate my subscription.`;
         const { error: upErr } = await supabase.storage.from("payment-receipts").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
       }
-      const { data: row, error: insErr } = await supabase.from("payment_receipts").insert({
-        device_id: deviceId,
-        requested_plan: plan,
-        billing_cycle: cycle,
-        amount,
-        currency: "SAR",
-        payment_method: "bank_transfer",
+      const upd = await paymentsClient.attachAndSubmit(pendingReceipt.id, {
+        receipt_file_path: path,
         submission_channel: channel,
-        reference_no: reference.trim(),
         bank_name: bankName.trim() || null,
+        transfer_date: transferDate || null,
+        reference_no: reference.trim(),
         payer_name: payerName.trim(),
         payer_phone: payerPhone.trim() || null,
-        transfer_date: transferDate || null,
-        receipt_file_path: path,
-        status: "pending",
-      }).select().single();
-      if (insErr) throw insErr;
+      });
+      if (upd.error) throw new Error(upd.error.message);
 
-      setPollReceipt(row as ReceiptRow);
+      // Re-fetch the row so the timeline shows the latest server state
+      const { data: row } = await supabase
+        .from("payment_receipts")
+        .select("id,status,payment_reference,reviewer_notes,patient_message,created_at,reviewed_at,amount,requested_plan,code_expires_at")
+        .eq("id", pendingReceipt.id)
+        .maybeSingle();
+      setPollReceipt((row as ReceiptRow) || pendingReceipt);
       setSubmitted(true);
       toast.success("Receipt submitted · تم استلام الإيصال");
     } catch (e: any) {
