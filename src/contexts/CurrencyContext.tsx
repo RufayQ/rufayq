@@ -223,6 +223,7 @@ export const useCurrency = (): Ctx => {
       isGccPegged: false,
       country: null,
       countryManual: false,
+      detectionSource: "default",
     };
   }
   return ctx;
