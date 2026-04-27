@@ -35,8 +35,19 @@ const LanguageSwitcher = forwardRef<HTMLDivElement, Props>(({
   ];
 
   const handleClick = (target: LangMode) => {
-    if (target === "both") { setMode("both"); return; }
+    // Snapshot scroll so we can restore after route swap (RTL flip can otherwise jump us to top)
+    const y = typeof window !== "undefined" ? window.scrollY : 0;
+    const restore = () => {
+      // Two RAFs: first lets the new route mount, second lets layout settle in RTL/LTR
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        try { window.scrollTo({ top: y, behavior: "auto" }); } catch { /* noop */ }
+      }));
+    };
+
+    if (target === "both") { setMode("both"); restore(); return; }
     const path = location.pathname;
+    const search = location.search || "";
+    const hash = location.hash || "";
     // Dynamic news pair (not in ROUTES table)
     const isArNews = path === "/ar/news" || path.startsWith("/ar/news/");
     const isEnNews = path === "/news" || path.startsWith("/news/");
@@ -44,15 +55,16 @@ const LanguageSwitcher = forwardRef<HTMLDivElement, Props>(({
       const pairPath = target === "ar"
         ? (isArNews ? path : "/ar" + path)
         : (isEnNews ? path : path.replace(/^\/ar/, "") || "/");
-      if (pairPath !== path) { navigate(pairPath); return; }
+      if (pairPath !== path) { navigate(pairPath + search + hash); restore(); return; }
     } else {
       const pair = findRoutePair(path);
       if (pair) {
         const targetUrl = target === "ar" ? pair.ar : pair.en;
-        if (targetUrl !== path) { navigate(targetUrl); return; }
+        if (targetUrl !== path) { navigate(targetUrl + search + hash); restore(); return; }
       }
     }
     setMode(target);
+    restore();
   };
 
   return (
