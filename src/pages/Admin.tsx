@@ -206,27 +206,36 @@ const Admin = () => {
         </header>
 
         <main className="flex-1 px-6 py-6 overflow-y-auto">
-          {leaf === "dashboard" && <AdminDashboard />}
-          {leaf === "users" && <AdminUsers />}
-          {leaf === "user_search" && role === "admin" && <AdminUserSearch />}
-          {leaf === "create" && role === "admin" && <AdminCreateUser />}
-          {leaf === "verify_assist" && <AdminVerificationAssist />}
-          {leaf === "orgs" && <AdminOrganizations />}
-          {leaf === "applications" && <AdminProviderApplications />}
-          {leaf === "claims" && <AdminPatientClaims />}
-          {leaf === "rcm" && role === "admin" && <AdminRcmMasters />}
-          {leaf === "rcm_activations" && role === "admin" && <AdminRcmActivations />}
-          {leaf === "rcm_imports" && role === "admin" && <AdminRcmImports />}
-          {leaf === "rcm_bulk" && role === "admin" && <AdminRcmBulkOps />}
-          {leaf === "subs" && role === "admin" && <AdminSubscriptions />}
-          {leaf === "payments" && role === "admin" && <AdminPayments />}
-          {leaf === "ai_usage" && role === "admin" && <AdminAiUsage />}
-          {leaf === "reviews" && <AdminReviews />}
-          {leaf === "tickets" && <AdminTickets />}
-          {leaf === "news" && <AdminNews />}
-          {leaf === "pages" && <AdminPages />}
-          {leaf === "website_cms" && role === "admin" && <AdminWebsiteCms />}
-          {leaf === "audit" && <AdminAuditLog />}
+          {(() => {
+            if (leaf === "settings_general") return <AdminSettingsGeneral />;
+            if (leaf === "settings_team") return role === "admin"
+              ? <AdminSettingsTeam />
+              : <ComingSoon title="Team & Roles" hint="Admin role required to view this screen." />;
+            switch (leaf) {
+              case "dashboard": return <AdminDashboard />;
+              case "users": return <AdminUsers />;
+              case "user_search": return role === "admin" ? <AdminUserSearch /> : <ComingSoon title="Search & Assign" hint="Admin role required." />;
+              case "create": return role === "admin" ? <AdminCreateUser /> : <ComingSoon title="Create User" hint="Admin role required." />;
+              case "verify_assist": return <AdminVerificationAssist />;
+              case "orgs": return <AdminOrganizations />;
+              case "applications": return <AdminProviderApplications />;
+              case "claims": return <AdminPatientClaims />;
+              case "rcm": return role === "admin" ? <AdminRcmMasters /> : <ComingSoon title="RCM Masters" hint="Admin role required." />;
+              case "rcm_activations": return role === "admin" ? <AdminRcmActivations /> : <ComingSoon title="RCM Activations" hint="Admin role required." />;
+              case "rcm_imports": return role === "admin" ? <AdminRcmImports /> : <ComingSoon title="RCM Imports" hint="Admin role required." />;
+              case "rcm_bulk": return role === "admin" ? <AdminRcmBulkOps /> : <ComingSoon title="RCM Bulk Ops" hint="Admin role required." />;
+              case "subs": return role === "admin" ? <AdminSubscriptions /> : <ComingSoon title="Subscriptions" hint="Admin role required." />;
+              case "payments": return role === "admin" ? <AdminPayments /> : <ComingSoon title="Payments & Receipts" hint="Admin role required." />;
+              case "ai_usage": return role === "admin" ? <AdminAiUsage /> : <ComingSoon title="AI Usage" hint="Admin role required." />;
+              case "reviews": return <AdminReviews />;
+              case "tickets": return <AdminTickets />;
+              case "news": return <AdminNews />;
+              case "pages": return <AdminPages />;
+              case "website_cms": return role === "admin" ? <AdminWebsiteCms /> : <ComingSoon title="Website CMS" hint="Admin role required." />;
+              case "audit": return <AdminAuditLog />;
+              default: return <ComingSoon title="Coming soon" />;
+            }
+          })()}
         </main>
       </div>
 
