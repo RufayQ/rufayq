@@ -153,41 +153,75 @@ const Pricing = () => {
             <span style={{ color: MUTED }}>·</span>
             <CountryPicker />
             {/* Detected vs Manual source badge — confirms where the price comes from */}
-            {country && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    data-testid="detection-badge"
-                    className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold inline-flex items-center gap-1 cursor-help"
-                    style={countryManual
-                      ? { background: "rgba(197,150,90,0.18)", color: GOLD, border: `1px solid ${GOLD}55` }
-                      : { background: "rgba(94,229,176,0.12)", color: "#5EE5B0", border: "1px solid rgba(94,229,176,0.35)" }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: countryManual ? GOLD : "#5EE5B0" }} />
-                    {countryManual
-                      ? (showAr ? `يدوي · ${country}` : `Manual · ${country}`)
-                      : (showAr ? `تلقائي · ${country}` : `Detected · ${country}`)}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" align={showAr ? "end" : "start"} dir={showAr ? "rtl" : "ltr"} className={showAr ? "font-arabic text-right" : "text-left"}>
-                  {countryManual
-                    ? (showAr ? "تم اختيار الدولة يدوياً" : "Country was manually overridden")
-                    : (showAr ? "تم اكتشاف موقعك تلقائياً" : "Detected automatically from your location")}
-                </TooltipContent>
-              </Tooltip>
-            )}
+            {country && (() => {
+              const sourceLabelEn: Record<typeof detectionSource, string> = {
+                manual: "Manual override",
+                ip: "IP address",
+                locale: "Browser language",
+                timezone: "System timezone",
+                stored: "Saved preference",
+                default: "Default",
+              };
+              const sourceLabelAr: Record<typeof detectionSource, string> = {
+                manual: "اختيار يدوي",
+                ip: "عنوان IP",
+                locale: "لغة المتصفح",
+                timezone: "المنطقة الزمنية",
+                stored: "تفضيل محفوظ",
+                default: "افتراضي",
+              };
+              const sourceLabel = showAr ? sourceLabelAr[detectionSource] : sourceLabelEn[detectionSource];
+              const tooltipTitle = countryManual
+                ? (showAr ? `المصدر: ${sourceLabel}` : `Source: ${sourceLabel}`)
+                : (showAr ? `المصدر: ${sourceLabel}` : `Source: ${sourceLabel}`);
+              const tooltipDetail = countryManual
+                ? (showAr ? "تم اختيار الدولة يدوياً" : "Country was manually overridden")
+                : (showAr ? "تم اكتشاف موقعك تلقائياً" : "Detected automatically from your location");
+              const ariaLabel = `${tooltipTitle} — ${tooltipDetail}`;
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      data-testid="detection-badge"
+                      data-detection-source={detectionSource}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={ariaLabel}
+                      className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold inline-flex items-center gap-1 cursor-help focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent"
+                      style={countryManual
+                        ? { background: "rgba(197,150,90,0.18)", color: GOLD, border: `1px solid ${GOLD}55` }
+                        : { background: "rgba(94,229,176,0.12)", color: "#5EE5B0", border: "1px solid rgba(94,229,176,0.35)" }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: countryManual ? GOLD : "#5EE5B0" }} />
+                      {countryManual
+                        ? (showAr ? `يدوي · ${country}` : `Manual · ${country}`)
+                        : (showAr ? `تلقائي · ${country}` : `Detected · ${country}`)}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align={showAr ? "end" : "start"} dir={showAr ? "rtl" : "ltr"} className={showAr ? "font-arabic text-right" : "text-left"}>
+                    <div data-testid="detection-tooltip-title" className="font-semibold">{tooltipTitle}</div>
+                    <div className="opacity-80 text-[11px]">{tooltipDetail}</div>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })()}
             {/* Quick local↔USD toggle — lets visitors flip between their local currency and USD without opening the picker */}
             {country && COUNTRY_CURRENCY[country] && COUNTRY_CURRENCY[country] !== "USD" && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     data-testid="currency-toggle"
+                    type="button"
                     onClick={() => setCurrency(currency === "USD" ? COUNTRY_CURRENCY[country]! : "USD")}
-                    className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold transition-all hover:scale-105 inline-flex items-center gap-1"
+                    className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold transition-all hover:scale-105 inline-flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent"
                     style={{ background: "transparent", color: TEXT, border: `1px solid ${BORDER}` }}
-                    aria-label={showAr ? "تبديل العملة" : "Toggle currency"}
+                    aria-label={
+                      currency === "USD"
+                        ? (showAr ? `تبديل العملة إلى ${COUNTRY_CURRENCY[country]}` : `Switch currency to ${COUNTRY_CURRENCY[country]}`)
+                        : (showAr ? "تبديل العملة إلى الدولار الأمريكي" : "Switch currency to US Dollar")
+                    }
                   >
-                    <Globe2 size={10} style={{ transform: showAr ? "scaleX(-1)" : undefined }} />
+                    <Globe2 size={10} aria-hidden="true" style={{ transform: showAr ? "scaleX(-1)" : undefined }} />
                     {currency === "USD"
                       ? (showAr ? `عرض بـ ${COUNTRY_CURRENCY[country]}` : `Show in ${COUNTRY_CURRENCY[country]}`)
                       : (showAr ? "عرض بالدولار" : "Show in USD")}
