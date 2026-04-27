@@ -7,6 +7,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import CountryPicker from "@/components/CountryPicker";
 import FamilySetupModal from "@/components/FamilySetupModal";
 import { ADDON_META, type AddOnId, type TierId } from "@/data/currencyMaster";
 import { faqSchema, breadcrumbSchema } from "@/seo/schema";
@@ -81,7 +82,7 @@ const FAQ_AR = [
 const Pricing = () => {
   const isAr = useLocation().pathname.startsWith("/ar");
   const { mode } = useLanguage();
-  const { format, getPrice, getAddon, currency, country } = useCurrency();
+  const { format, getPrice, getAddon, currency, country, countryManual } = useCurrency();
   const [period, setPeriod] = useState<"monthly" | "annual">("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [familyOpen, setFamilyOpen] = useState(false);
@@ -115,7 +116,7 @@ const Pricing = () => {
       {/* Nav */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.85)", borderBottom: `1px solid ${BORDER}` }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
-          <Link to={isAr ? "/ar" : "/"} className="flex items-center gap-2.5">
+          <Link to={isAr ? "/ar#pricing" : "/#pricing"} className="flex items-center gap-2.5">
             <ArrowLeft size={16} color={TEXT} style={{ transform: isAr ? "scaleX(-1)" : undefined }} />
             <RufayQLogo size={28} variant="light" />
             <span className="font-display text-lg"><span style={{ color: TEXT }}>Rufay</span><span className="font-bold" style={{ color: GOLD }}>Q</span></span>
@@ -144,15 +145,17 @@ const Pricing = () => {
             </button>
           ))}
         </div>
-        <span className="text-[11px] inline-flex items-center gap-1 flex-wrap justify-center" style={{ color: MUTED }}>
-          {showAr ? `الأسعار بـ ${currency} — ` : `Prices shown in ${currency} — `}
+        <div className="text-[11px] flex items-center gap-2 flex-wrap justify-center" style={{ color: MUTED }}>
+          <span>{showAr ? `الأسعار بـ ${currency}` : `Prices shown in ${currency}`}</span>
           <CurrencySwitcher variant="inline" />
+          <span style={{ color: MUTED }}>·</span>
+          <CountryPicker />
           {country && (
-            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider" style={{ background: "rgba(197,150,90,0.12)", color: GOLD, border: `1px solid ${BORDER}` }}>
-              {showAr ? `موقع تلقائي · ${country}` : `Auto-detected · ${country}`}
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider" style={{ background: "rgba(197,150,90,0.12)", color: GOLD, border: `1px solid ${BORDER}` }}>
+              {countryManual ? (showAr ? `محدد يدوياً · ${country}` : `Manual · ${country}`) : (showAr ? `موقع تلقائي · ${country}` : `Auto-detected · ${country}`)}
             </span>
           )}
-        </span>
+        </div>
       </header>
 
       {/* Tier cards */}

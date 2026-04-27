@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import LazyOnView from "@/components/LazyOnView";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -27,6 +27,21 @@ const Landing = () => {
   const navigate = useNavigate();
   const { mode } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Honor incoming hash (e.g. /#pricing from the back arrow on /pricing).
+  // LandingBelow is lazy, so poll briefly until the section mounts.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+    let attempts = 0;
+    const tick = () => {
+      const el = document.getElementById(hash);
+      if (el) { el.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+      if (attempts++ < 30) setTimeout(tick, 120);
+    };
+    tick();
+  }, []);
 
   // ELITE DARK THEME — single source of truth shared with LandingBelow.
   const BG_DARK = "#06101A";

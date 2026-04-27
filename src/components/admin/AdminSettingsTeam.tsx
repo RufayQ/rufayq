@@ -23,6 +23,10 @@ const AdminSettingsTeam = () => {
     | null
   >(null);
   const [busy, setBusy] = useState(false);
+  const [typed, setTyped] = useState("");
+
+  // Reset typed-confirmation field whenever the modal opens/closes.
+  useEffect(() => { setTyped(""); }, [confirm]);
 
   const load = async () => {
     setLoading(true);
@@ -231,39 +235,76 @@ const AdminSettingsTeam = () => {
         }}
       />
 
-      {confirm && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4" onClick={() => !busy && setConfirm(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between mb-3">
-              <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                <AlertTriangle size={16} className="text-amber-400" />
-                {confirm.kind === "promote" && "Promote to Admin?"}
-                {confirm.kind === "demote" && "Demote to Moderator?"}
-                {confirm.kind === "revoke" && "Revoke staff access?"}
-              </h3>
-              <button onClick={() => !busy && setConfirm(null)} className="text-slate-500 hover:text-slate-300"><X size={16} /></button>
-            </div>
-            <p className="text-xs text-slate-400 mb-1">{confirm.row.full_name || "(no name)"} · <span className="text-slate-500">{confirm.row.email}</span></p>
-            <p className="text-xs text-slate-300 mb-4">
-              {confirm.kind === "promote" && "This grants full admin powers including the ability to manage other staff and roles."}
-              {confirm.kind === "demote" && "Their admin powers will be removed. They will keep moderator access."}
-              {confirm.kind === "revoke" && "All staff access will be removed. They will lose the admin portal entirely."}
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirm(null)} disabled={busy} className="px-3 py-1.5 text-xs rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 transition">Cancel</button>
-              <button
-                onClick={performChange}
-                disabled={busy}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md text-slate-950 transition ${
-                  confirm.kind === "revoke" ? "bg-rose-400 hover:bg-rose-300" : "bg-amber-400 hover:bg-amber-300"
-                } disabled:opacity-60`}
-              >
-                {busy ? "Working…" : "Confirm"}
-              </button>
+      {confirm && (() => {
+        const fromRole = confirm.row.role;
+        const toRole =
+          confirm.kind === "promote" ? "admin" :
+          confirm.kind === "demote" ? "moderator" :
+          "(no access)";
+        const requireType = confirm.kind === "revoke";
+        const expected = (confirm.row.email || confirm.row.user_id.slice(0, 8)).trim();
+        return (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4" onClick={() => !busy && setConfirm(null)}>
+            <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                  <AlertTriangle size={16} className={confirm.kind === "revoke" ? "text-rose-400" : "text-amber-400"} />
+                  {confirm.kind === "promote" && "Promote to Admin?"}
+                  {confirm.kind === "demote" && "Demote to Moderator?"}
+                  {confirm.kind === "revoke" && "Revoke staff access?"}
+                </h3>
+                <button onClick={() => !busy && setConfirm(null)} className="text-slate-500 hover:text-slate-300"><X size={16} /></button>
+              </div>
+
+              <div className="rounded-lg bg-slate-950/50 border border-slate-800 p-3 mb-3">
+                <div className="text-xs text-slate-400 mb-2">{confirm.row.full_name || "(no name)"} · <span className="text-slate-500">{confirm.row.email || confirm.row.user_id.slice(0, 8) + "…"}</span></div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 uppercase tracking-wide font-semibold">{fromRole}</span>
+                  <span className="text-slate-500">→</span>
+                  <span className={`px-2 py-0.5 rounded-md uppercase tracking-wide font-semibold ${
+                    confirm.kind === "promote" ? "bg-amber-500/20 text-amber-300" :
+                    confirm.kind === "demote" ? "bg-sky-500/20 text-sky-300" :
+                    "bg-rose-500/20 text-rose-300"
+                  }`}>{toRole}</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-300 mb-3">
+                {confirm.kind === "promote" && "This grants full admin powers including the ability to manage other staff and roles."}
+                {confirm.kind === "demote" && "Their admin powers will be removed. They will keep moderator access."}
+                {confirm.kind === "revoke" && "All staff access will be removed. They will lose the admin portal entirely."}
+              </p>
+
+              {requireType && (
+                <div className="mb-4">
+                  <label className="text-[11px] text-slate-400 block mb-1">
+                    Type <code className="text-rose-300">{expected}</code> to confirm
+                  </label>
+                  <input
+                    autoFocus
+                    value={typed}
+                    onChange={(e) => setTyped(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs rounded-md bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-rose-500/60"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setConfirm(null)} disabled={busy} className="px-3 py-1.5 text-xs rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 transition">Cancel</button>
+                <button
+                  onClick={performChange}
+                  disabled={busy || (requireType && typed.trim() !== expected)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md text-slate-950 transition ${
+                    confirm.kind === "revoke" ? "bg-rose-400 hover:bg-rose-300" : "bg-amber-400 hover:bg-amber-300"
+                  } disabled:opacity-40 disabled:cursor-not-allowed`}
+                >
+                  {busy ? "Working…" : confirm.kind === "promote" ? "Promote" : confirm.kind === "demote" ? "Demote" : "Revoke"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
