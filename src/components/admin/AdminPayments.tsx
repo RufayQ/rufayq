@@ -49,18 +49,21 @@ interface Addon {
   created_at: string;
 }
 
+import { receiptTone, isPendingReceipt } from "@/features/payments/logic/receipts";
+import { statusTone } from "@/features/subscriptions/logic/statusMachine";
+
 const PLAN_OPTIONS = ["basic", "companion", "family", "premium"] as const;
-const STATUS_COLORS: Record<string, string> = {
-  active: "bg-emerald-500/15 text-emerald-300",
-  pending_receipt: "bg-amber-500/15 text-amber-300",
-  pending: "bg-amber-500/15 text-amber-300",
-  verified: "bg-emerald-500/15 text-emerald-300",
-  rejected: "bg-rose-500/15 text-rose-300",
-  expired: "bg-rose-500/15 text-rose-300",
-  cancelled: "bg-slate-700 text-slate-300",
+
+/** Receipts use receipt tones; subscription rows use the subscription tones.
+ *  We pick whichever is defined first to keep one badge component. */
+const tone = (s: string): string => {
+  const r = receiptTone(s);
+  if (r !== "bg-slate-700 text-slate-300") return r;
+  return statusTone(s);
 };
+
 const StatusBadge = ({ s }: { s: string }) => (
-  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${STATUS_COLORS[s] || "bg-slate-700 text-slate-300"}`}>{s}</span>
+  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${tone(s)}`}>{s}</span>
 );
 
 const PERIOD_DAYS: Record<string, number> = { monthly: 30, quarterly: 90, yearly: 365 };
@@ -274,7 +277,7 @@ const AdminPayments = () => {
       || (r.reference_no || "").toLowerCase().includes(q);
   }), [receipts, search, statusFilter]);
 
-  const pendingCount = receipts.filter(r => ["pending","under_review","needs_more_info"].includes(r.status)).length;
+  const pendingCount = receipts.filter(r => isPendingReceipt(r.status)).length;
 
   return (
     <div className="space-y-4">
