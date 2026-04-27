@@ -22,6 +22,7 @@ const ProviderLogin = lazy(() => import("./pages/ProviderLogin.tsx"));
 const ProviderDashboard = lazy(() => import("./pages/ProviderDashboard.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin.tsx"));
+const AdminApiDocs = lazy(() => import("./pages/AdminApiDocs.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const SitemapPreview = lazy(() => import("./pages/SitemapPreview.tsx"));
@@ -94,6 +95,7 @@ const App = () => (
             <Route path="/provider" element={<Shelled><ProviderDashboard /></Shelled>} />
             <Route path="/admin" element={<Shelled><Admin /></Shelled>} />
             <Route path="/admin/login" element={<Shelled><AdminLogin /></Shelled>} />
+            <Route path="/admin/api-docs" element={<Shelled><AdminApiDocs /></Shelled>} />
             <Route path="/auth" element={<Shelled><Auth /></Shelled>} />
 
             {/* SEO QA tools (no /ar mirror — internal use only) */}
