@@ -41,16 +41,17 @@ export function useRealtimeChannel<T = Record<string, unknown>>(
   useEffect(() => {
     if (!enabled) return;
     const def = REALTIME_CHANNELS[key];
+    const filterCfg: Record<string, unknown> = {
+      event: def.event === "*" ? "*" : def.event,
+      schema: "public",
+      table: def.table,
+    };
+    if (def.filter) filterCfg.filter = def.filter;
     const channel = supabase
       .channel(`rt:${def.name}`)
       .on(
         "postgres_changes" as never,
-        {
-          event: def.event === "*" ? "*" : def.event,
-          schema: "public",
-          table: def.table,
-          filter: def.filter,
-        },
+        filterCfg as never,
         (payload: unknown) => handlerRef.current(payload as RealtimePayload<T>),
       )
       .subscribe();
