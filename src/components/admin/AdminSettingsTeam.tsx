@@ -7,6 +7,7 @@ interface StaffRow {
   user_id: string;
   email: string | null;
   full_name: string | null;
+  rufayq_id: string | null;
   role: "admin" | "moderator";
 }
 
