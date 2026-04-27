@@ -11,6 +11,7 @@ export const RECEIPT_STATUS_TONE: Record<PaymentStatus, string> = {
   needs_more_info: "bg-orange-500/15 text-orange-300",
   verified: "bg-emerald-500/15 text-emerald-300",
   rejected: "bg-rose-500/15 text-rose-300",
+  code_expired: "bg-orange-600/20 text-orange-400",
 };
 
 export const receiptTone = (s: string): string =>

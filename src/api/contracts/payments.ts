@@ -44,6 +44,7 @@ export const PaymentReceiptSchema = z.object({
   status: PaymentStatusSchema,
   reviewer_notes: z.string().nullable(),
   reviewed_at: z.string().nullable(),
+  code_expires_at: z.string().nullable().optional(),
   created_at: z.string(),
 });
 
