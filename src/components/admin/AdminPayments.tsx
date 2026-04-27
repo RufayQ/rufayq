@@ -77,8 +77,16 @@ const AdminPayments = () => {
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [tab]);
 
-  // Live refresh — pending receipts coming in trigger a reload while moderator is viewing.
-  useRealtimeChannel("paymentsPending", () => { if (tab === "receipts") load(); });
+  // Live refresh — any receipt change (insert/update/delete, any status) flows
+  // into the table so verifications, rejections and incoming pendings all
+  // appear instantly. Pulse the affected row briefly to draw the eye.
+  useRealtimeChannel<Receipt>("paymentsAny", (payload) => {
+    if (tab !== "receipts") return;
+    const id = (payload.new?.id ?? payload.old?.id) as string | undefined;
+    if (id) setPulseId(id);
+    load();
+    if (id) setTimeout(() => setPulseId((cur) => (cur === id ? null : cur)), 1800);
+  });
 
   // --- Subscription actions ---
   const activateSub = async (s: Sub) => {
