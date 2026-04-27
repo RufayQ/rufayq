@@ -384,6 +384,20 @@ const AdminUsers = () => {
           </div>
         </div>
       )}
+
+      {drawerUser && (
+        <SubscriptionDrawer
+          user={{
+            id: drawerUser.id,
+            device_id: drawerUser.device_id,
+            full_name_en: drawerUser.full_name_en,
+            email: drawerUser.email,
+            phone: drawerUser.phone,
+            rufayq_id: drawerUser.rufayq_id ?? null,
+          }}
+          onClose={() => { setDrawerUser(null); load(); }}
+        />
+      )}
     </div>
   );
 };
