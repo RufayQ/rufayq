@@ -75,8 +75,8 @@ describe("subscription statusMachine", () => {
       expect(next).not.toContain("active");
     });
 
-    it("nextStatuses from cancelled is empty (terminal)", () => {
-      expect(nextStatuses("cancelled")).toEqual([]);
+    it("nextStatuses from cancelled allows re-activation only", () => {
+      expect(nextStatuses("cancelled")).toEqual(["active"]);
     });
   });
 });
