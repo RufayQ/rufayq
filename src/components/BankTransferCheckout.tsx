@@ -316,15 +316,55 @@ Please verify and activate my subscription.`;
             ))}
           </div>
 
-          {/* Amount + RFQ-PAY preview */}
+          {/* Amount + real RFQ-PAY reference + countdown */}
           <div className="rounded-xl p-3" style={{ background: "var(--off-white)" }}>
             <div className="flex items-center justify-between">
               <p className="text-xs" style={{ color: "var(--gray)" }}>Amount due · المبلغ</p>
               <p className="font-display text-2xl font-bold" style={{ color: "var(--navy)" }}>SAR {amount.toLocaleString()}</p>
             </div>
             <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>VAT may apply depending on official billing setup. · قد تُطبَّق ضريبة القيمة المضافة.</p>
-            <p className="font-mono text-[10px] mt-2" style={{ color: "var(--gold)" }}>Transfer reference: {previewRef}</p>
-            <p className="text-[10px]" style={{ color: "var(--gray)" }}>Subscription will not activate until payment is verified.</p>
+
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[9px] uppercase tracking-widest" style={{ color: "var(--gray)" }}>Use this exact reference in your bank transfer</p>
+                {generating && !pendingReceipt ? (
+                  <p className="font-mono text-xs flex items-center gap-1" style={{ color: "var(--gray)" }}>
+                    <Loader2 size={11} className="animate-spin" /> Generating…
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => pendingReceipt?.payment_reference && copyText(pendingReceipt.payment_reference, "Reference")}
+                    className="font-mono text-sm font-bold flex items-center gap-1.5 btn-press"
+                    style={{ color: isExpired ? "var(--danger)" : "var(--gold)" }}
+                  >
+                    {pendingReceipt?.payment_reference || "—"}
+                    {pendingReceipt?.payment_reference && <Copy size={11} />}
+                  </button>
+                )}
+              </div>
+              {pendingReceipt && !isExpired && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                      style={{ background: `${expiryTone}20`, color: expiryTone, border: `1px solid ${expiryTone}` }}>
+                  {expiryLabel}
+                </span>
+              )}
+            </div>
+
+            {isExpired && (
+              <div className="mt-2 rounded-lg p-2 flex items-center justify-between gap-2"
+                   style={{ background: "var(--danger-bg, #fee)", border: "1px solid var(--danger)" }}>
+                <p className="text-[11px]" style={{ color: "var(--danger)" }}>
+                  Reference expired · انتهت صلاحية المرجع
+                </p>
+                <button onClick={generatePending} disabled={generating}
+                  className="text-[11px] font-semibold px-2 py-1 rounded flex items-center gap-1"
+                  style={{ background: "var(--teal-deep)", color: "white" }}>
+                  {generating ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+                  Get new code
+                </button>
+              </div>
+            )}
+            <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>Subscription will not activate until payment is verified.</p>
           </div>
 
           {/* Bank instructions */}
