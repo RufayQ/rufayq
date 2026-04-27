@@ -142,9 +142,7 @@ const AdminSubscriptions = () => {
                   <CreditCard size={14} className="text-amber-300" />
                   <span className="text-sm font-semibold text-white uppercase">{s.plan}</span>
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
-                      STATUS_TONE[s.status] || "bg-slate-700/50 text-slate-300"
-                    }`}
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${statusTone(s.status)}`}
                   >
                     {s.status}
                   </span>
@@ -166,11 +164,11 @@ const AdminSubscriptions = () => {
                 {s.notes && <p className="text-[11px] text-slate-300 italic mt-2">"{s.notes}"</p>}
               </div>
               <select
-                value={PLAN_OPTIONS.includes(s.plan.toUpperCase()) ? s.plan.toUpperCase() : ""}
+                value={(PLAN_OPTIONS as readonly string[]).includes(s.plan.toUpperCase()) ? s.plan.toUpperCase() : ""}
                 onChange={(e) => setPlan(s, e.target.value)}
                 className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 shrink-0"
               >
-                {!PLAN_OPTIONS.includes(s.plan.toUpperCase()) && (
+                {!(PLAN_OPTIONS as readonly string[]).includes(s.plan.toUpperCase()) && (
                   <option value="">{s.plan}</option>
                 )}
                 {PLAN_OPTIONS.map((p) => (
