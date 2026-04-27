@@ -311,6 +311,11 @@ const AdminUsers = () => {
                       className="px-2.5 py-1 rounded bg-violet-500/15 text-violet-300 text-[11px] flex items-center gap-1 disabled:opacity-30" title="Set a specific password">
                       <RotateCw size={11}/>Set pwd
                     </button>
+                    <button onClick={() => setDrawerUser(p)} disabled={isDeleted}
+                      title="Open subscription management"
+                      className="px-2.5 py-1 rounded bg-gradient-to-r from-amber-500/30 to-amber-600/20 text-amber-200 border border-amber-500/40 text-[11px] flex items-center gap-1 disabled:opacity-30 hover:from-amber-500/40 hover:to-amber-600/30 transition-colors">
+                      <Crown size={11}/>Subscription
+                    </button>
                     <button onClick={() => startEdit(p)} disabled={isDeleted}
                       className="px-2.5 py-1 rounded bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1 disabled:opacity-30"><Edit3 size={11}/>Edit</button>
                   </>
