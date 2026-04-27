@@ -95,8 +95,9 @@ const SecondaryPanel = ({ group, activeLeaf, onPick, badges, collapsed, onToggle
 
   return (
     <aside
-      className={`relative border-r border-slate-800 bg-slate-900/40 transition-all duration-300 ease-out flex-shrink-0 ${collapsed ? "w-0" : "w-64"}`}
+      className={`relative border-r border-slate-800 bg-slate-900/40 transition-[width] duration-300 ease-out flex-shrink-0 overflow-hidden ${collapsed ? "w-0 border-r-0" : "w-64"}`}
       aria-label="Module submenu"
+      aria-hidden={collapsed}
     >
       <button
         onClick={onToggleCollapsed}
