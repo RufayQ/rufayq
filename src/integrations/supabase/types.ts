@@ -988,6 +988,7 @@ export type Database = {
           amount: number
           bank_name: string | null
           billing_cycle: string
+          code_expires_at: string | null
           created_at: string
           currency: string
           device_id: string
@@ -1014,6 +1015,7 @@ export type Database = {
           amount: number
           bank_name?: string | null
           billing_cycle?: string
+          code_expires_at?: string | null
           created_at?: string
           currency?: string
           device_id: string
@@ -1040,6 +1042,7 @@ export type Database = {
           amount?: number
           bank_name?: string | null
           billing_cycle?: string
+          code_expires_at?: string | null
           created_at?: string
           currency?: string
           device_id?: string
@@ -4763,6 +4766,7 @@ export type Database = {
           device_id: string
           id: string
           notes: string | null
+          payment_receipt_id: string | null
           plan: string
           provider: string
           provider_subscription_id: string | null
@@ -4782,6 +4786,7 @@ export type Database = {
           device_id: string
           id?: string
           notes?: string | null
+          payment_receipt_id?: string | null
           plan: string
           provider?: string
           provider_subscription_id?: string | null
@@ -4801,13 +4806,22 @@ export type Database = {
           device_id?: string
           id?: string
           notes?: string | null
+          payment_receipt_id?: string | null
           plan?: string
           provider?: string
           provider_subscription_id?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_payment_receipt_id_fkey"
+            columns: ["payment_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "payment_receipts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_trials: {
         Row: {
