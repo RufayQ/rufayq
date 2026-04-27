@@ -355,7 +355,16 @@ const Pricing = () => {
               <h3 className="font-display text-2xl mb-1" style={{ color: TEXT }}>{showAr ? t.nameAr : t.nameEn}</h3>
               <p className="text-xs mb-4" style={{ color: MUTED, minHeight: 32 }}>{showAr ? t.descAr : t.descEn}</p>
               <div className="mb-5">
-                <span className="font-display text-3xl font-semibold" style={{ color: TEXT }}>{tierPrice(t.id)}</span>
+                {showPriceSkeleton && t.id !== "free" ? (
+                  <span
+                    data-testid={`price-skeleton-${t.id}`}
+                    aria-hidden="true"
+                    className="inline-block h-8 w-24 rounded-md align-middle animate-pulse"
+                    style={{ background: "rgba(232,236,240,0.08)" }}
+                  />
+                ) : (
+                  <span className="font-display text-3xl font-semibold" style={{ color: TEXT }}>{tierPrice(t.id)}</span>
+                )}
                 {t.id !== "free" && (
                   <span className="text-xs ms-1" style={{ color: MUTED }}>
                     {period === "monthly" ? (showAr ? "/ شهر" : "/ month") : (showAr ? "/ سنة" : "/ year")}
