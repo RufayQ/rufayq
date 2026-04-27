@@ -18,7 +18,7 @@ export interface ApiResult<T> {
 }
 
 const ok = <T>(data: T): ApiResult<T> => ({ data, error: null });
-const fail = (code: string, message: string): ApiResult<never> =>
+const fail = <T = never>(code: string, message: string): ApiResult<T> =>
   ({ data: null, error: { code, message } });
 
 export const subscriptionsClient = {
