@@ -27,6 +27,7 @@ import {
   Sparkles, Calendar, ShieldCheck, Loader2, ArrowLeft,
 } from "lucide-react";
 import { PLANS, type PlanCode, type BillingCycle } from "@/data/subscriptionPlans";
+import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 
 // ─────────────────────────────────────────────────────────────────────
 // Types
