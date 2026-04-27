@@ -121,7 +121,7 @@ const Admin = () => {
   const leafMeta = ALL_LEAVES.find((l) => l.key === leaf);
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-100" style={{ fontFamily: "'DM Sans', system-ui" }}>
+    <div dir="ltr" className="min-h-screen flex bg-slate-950 text-slate-100" style={{ fontFamily: "'DM Sans', system-ui" }}>
       {/* ── Column 1: Primary sidebar ─────────────────────────────────── */}
       <aside className="w-[68px] flex-shrink-0 border-r border-slate-800 bg-[#0D1B2A] flex flex-col items-center py-4 gap-1">
         <Link to="/" className="mb-3 flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition" title="RufayQ">
