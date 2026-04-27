@@ -478,6 +478,11 @@ const AdminPayments = () => {
                       )}
                     </div>
                   </div>
+                  {auditOpenId === r.id && (
+                    <div className="mt-3 pt-3 border-t border-slate-800">
+                      <ReceiptAuditLog receiptId={r.id} />
+                    </div>
+                  )}
                 </div>
                 );
               })}
