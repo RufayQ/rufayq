@@ -21,6 +21,8 @@ const AdminTickets = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
   const [priorityFilter, setPriorityFilter] = useState<typeof PRIORITY_OPTIONS[number]>("all");
+  const [pulseId, setPulseId] = useState<string | null>(null);
+  const { can } = usePermissions();
 
   useQuickCreateSignal("tickets", () => toast.info("Open a customer ticket from the user profile or via the support reply panel."));
 
@@ -32,9 +34,15 @@ const AdminTickets = () => {
   };
   useEffect(() => { load(); }, []);
 
-  // Live refresh — any open-ticket change triggers a reload so the moderator
-  // always sees the current queue without hitting the refresh button.
-  useRealtimeChannel("ticketsOpen", () => load());
+  // Live refresh — listen to ALL ticket changes (any status) so badges/counts
+  // for open / in_progress / resolved / closed all stay accurate as
+  // moderators (and the system) move tickets between states.
+  useRealtimeChannel<SupportTicket>("ticketsAny", (payload) => {
+    const id = (payload.new?.id ?? payload.old?.id) as string | undefined;
+    if (id) setPulseId(id);
+    load();
+    if (id) setTimeout(() => setPulseId((cur) => (cur === id ? null : cur)), 1500);
+  });
 
   const update = async (id: string, status: string) => {
     const res = await ticketsClient.updateStatus(id, status as TicketStatus);
