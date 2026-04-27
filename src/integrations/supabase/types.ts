@@ -205,8 +205,12 @@ export type Database = {
       cms_global_settings: {
         Row: {
           accent_color: string
+          address_ar: string | null
+          address_en: string | null
           brand_name: string
           brand_name_ar: string
+          business_hours_ar: string | null
+          business_hours_en: string | null
           copyright_ar: string | null
           copyright_en: string | null
           default_language: string
@@ -214,6 +218,7 @@ export type Database = {
           id: string
           is_singleton: boolean
           language_toggle: boolean
+          map_embed_url: string | null
           navy_color: string
           newsletter_subtitle_ar: string | null
           newsletter_subtitle_en: string | null
@@ -225,6 +230,7 @@ export type Database = {
           social_links: Json
           sticky_header: boolean
           support_email: string | null
+          support_phone: string | null
           support_whatsapp: string | null
           tagline_ar: string | null
           tagline_en: string | null
@@ -233,8 +239,12 @@ export type Database = {
         }
         Insert: {
           accent_color?: string
+          address_ar?: string | null
+          address_en?: string | null
           brand_name?: string
           brand_name_ar?: string
+          business_hours_ar?: string | null
+          business_hours_en?: string | null
           copyright_ar?: string | null
           copyright_en?: string | null
           default_language?: string
@@ -242,6 +252,7 @@ export type Database = {
           id?: string
           is_singleton?: boolean
           language_toggle?: boolean
+          map_embed_url?: string | null
           navy_color?: string
           newsletter_subtitle_ar?: string | null
           newsletter_subtitle_en?: string | null
@@ -253,6 +264,7 @@ export type Database = {
           social_links?: Json
           sticky_header?: boolean
           support_email?: string | null
+          support_phone?: string | null
           support_whatsapp?: string | null
           tagline_ar?: string | null
           tagline_en?: string | null
@@ -261,8 +273,12 @@ export type Database = {
         }
         Update: {
           accent_color?: string
+          address_ar?: string | null
+          address_en?: string | null
           brand_name?: string
           brand_name_ar?: string
+          business_hours_ar?: string | null
+          business_hours_en?: string | null
           copyright_ar?: string | null
           copyright_en?: string | null
           default_language?: string
@@ -270,6 +286,7 @@ export type Database = {
           id?: string
           is_singleton?: boolean
           language_toggle?: boolean
+          map_embed_url?: string | null
           navy_color?: string
           newsletter_subtitle_ar?: string | null
           newsletter_subtitle_en?: string | null
@@ -281,6 +298,7 @@ export type Database = {
           social_links?: Json
           sticky_header?: boolean
           support_email?: string | null
+          support_phone?: string | null
           support_whatsapp?: string | null
           tagline_ar?: string | null
           tagline_en?: string | null
