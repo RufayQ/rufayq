@@ -13,37 +13,12 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Calendar, CreditCard, Search, RefreshCw, PauseCircle, PlayCircle, XCircle } from "lucide-react";
+import type { Subscription as Sub, SubscriptionStatus } from "@/shared/types/subscription";
+import { PLAN_CODES, statusTone } from "@/features/subscriptions/logic/statusMachine";
 
 type Tab = "all" | "active" | "pending_receipt" | "past_due" | "suspended" | "cancelled";
 
-interface Sub {
-  id: string;
-  device_id: string;
-  plan: string;
-  status: string;
-  billing_cycle: string;
-  amount: number | null;
-  currency: string;
-  current_period_start: string | null;
-  current_period_end: string | null;
-  activated_at: string | null;
-  notes: string | null;
-  created_at: string;
-}
-
-const PLAN_OPTIONS = ["FREE", "STARTER", "COMPANION", "FAMILY"];
-
-const STATUS_TONE: Record<string, string> = {
-  active: "bg-emerald-500/15 text-emerald-300",
-  trial: "bg-amber-500/15 text-amber-300",
-  pending_receipt: "bg-amber-500/15 text-amber-300",
-  past_due: "bg-orange-500/15 text-orange-300",
-  suspended: "bg-orange-500/15 text-orange-300",
-  pending_cancel: "bg-rose-500/10 text-rose-300",
-  cancelled: "bg-rose-500/15 text-rose-300",
-  expired: "bg-slate-500/15 text-slate-300",
-  rejected: "bg-rose-500/15 text-rose-300",
-};
+const PLAN_OPTIONS = PLAN_CODES;
 
 const AdminSubscriptions = () => {
   const [tab, setTab] = useState<Tab>("active");
