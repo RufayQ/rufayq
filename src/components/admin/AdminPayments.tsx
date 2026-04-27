@@ -260,26 +260,30 @@ const AdminPayments = () => {
                   </td>
                   <td className="px-3 py-2 text-right">
                     <div className="inline-flex gap-1">
-                      {s.status !== "active" && (
-                        <button onClick={() => activateSub(s)} title="Activate"
-                          className="px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[10px] flex items-center gap-1">
-                          <Check size={10} />Activate
+                      <Can action="subscription.modify">
+                        {s.status !== "active" && (
+                          <button onClick={() => activateSub(s)} title="Activate"
+                            className="px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[10px] flex items-center gap-1">
+                            <Check size={10} />Activate
+                          </button>
+                        )}
+                        {s.status === "active" && [30, 90].map(d => (
+                          <button key={d} onClick={() => extendSub(s, d)}
+                            className="px-2 py-1 rounded bg-amber-500/15 text-amber-300 text-[10px]">+{d}d</button>
+                        ))}
+                        <button onClick={() => addAddon(s.id)} title="Add-on"
+                          className="px-2 py-1 rounded bg-slate-700 text-slate-200 text-[10px] flex items-center gap-1">
+                          <Plus size={10} />Add-on
                         </button>
-                      )}
-                      {s.status === "active" && [30, 90].map(d => (
-                        <button key={d} onClick={() => extendSub(s, d)}
-                          className="px-2 py-1 rounded bg-amber-500/15 text-amber-300 text-[10px]">+{d}d</button>
-                      ))}
-                      <button onClick={() => addAddon(s.id)} title="Add-on"
-                        className="px-2 py-1 rounded bg-slate-700 text-slate-200 text-[10px] flex items-center gap-1">
-                        <Plus size={10} />Add-on
-                      </button>
-                      {s.status !== "cancelled" && (
-                        <button onClick={() => cancelSub(s)} title="Cancel"
-                          className="px-2 py-1 rounded bg-rose-500/15 text-rose-300 text-[10px]">
-                          <X size={10} />
-                        </button>
-                      )}
+                      </Can>
+                      <Can action="subscription.cancel">
+                        {s.status !== "cancelled" && (
+                          <button onClick={() => cancelSub(s)} title="Cancel"
+                            className="px-2 py-1 rounded bg-rose-500/15 text-rose-300 text-[10px]">
+                            <X size={10} />
+                          </button>
+                        )}
+                      </Can>
                     </div>
                   </td>
                 </tr>
