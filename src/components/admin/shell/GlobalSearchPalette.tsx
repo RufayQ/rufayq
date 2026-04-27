@@ -32,16 +32,34 @@ const useDebounced = <T,>(value: T, ms = 220) => {
   return v;
 };
 
+const RECENT_KEY = "admin.search.recent";
+const readRecent = (): string[] => {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
+};
+const pushRecent = (term: string) => {
+  const t = term.trim(); if (!t) return;
+  try {
+    const cur: string[] = readRecent().filter((x) => x.toLowerCase() !== t.toLowerCase());
+    cur.unshift(t);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(cur.slice(0, 6)));
+  } catch { /* noop */ }
+};
+
 const GlobalSearchPalette = ({ open, onClose, onPick }: Props) => {
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
+  const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounced = useDebounced(q, 220);
 
   useEffect(() => {
-    if (open) { setQ(""); setActive(0); setResults([]); setTimeout(() => inputRef.current?.focus(), 30); }
+    if (open) {
+      setQ(""); setActive(0); setResults([]);
+      setRecent(readRecent());
+      setTimeout(() => inputRef.current?.focus(), 30);
+    }
   }, [open]);
 
   // Build nav results immediately (synchronous).
@@ -96,12 +114,12 @@ const GlobalSearchPalette = ({ open, onClose, onPick }: Props) => {
       if (e.key === "Enter")     {
         e.preventDefault();
         const r = results[active];
-        if (r) { onPick(r.leaf, r.payload); onClose(); }
+        if (r) { pushRecent(q); onPick(r.leaf, r.payload); onClose(); }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, results, active, onClose, onPick]);
+  }, [open, results, active, onClose, onPick, q]);
 
   if (!open) return null;
 
@@ -134,14 +152,32 @@ const GlobalSearchPalette = ({ open, onClose, onPick }: Props) => {
         </div>
         <div className="max-h-[50vh] overflow-y-auto">
           {!q.trim() && (
-            <div className="px-6 py-10 text-center text-xs text-slate-500">
-              Start typing to search <span className="text-slate-300">users</span>, <span className="text-slate-300">claims</span>, <span className="text-slate-300">payments</span>, and <span className="text-slate-300">CMS pages</span>.
-              <div className="mt-3 flex items-center justify-center gap-2 text-[10px]">
-                <kbd className="font-mono border border-slate-700 rounded px-1.5 py-0.5">↑</kbd>
-                <kbd className="font-mono border border-slate-700 rounded px-1.5 py-0.5">↓</kbd>
-                <span>navigate</span>
-                <kbd className="ml-2 font-mono border border-slate-700 rounded px-1.5 py-0.5">↵</kbd>
-                <span>open</span>
+            <div className="px-6 py-8">
+              {recent.length > 0 ? (
+                <>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Recent</div>
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {recent.map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => setQ(r)}
+                        className="text-[11px] px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 hover:border-amber-500/40 hover:text-amber-200 transition"
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+              <div className="text-center text-xs text-slate-500">
+                Search <span className="text-slate-300">users</span>, <span className="text-slate-300">claims</span>, <span className="text-slate-300">payments</span>, and <span className="text-slate-300">CMS pages</span>.
+                <div className="mt-3 flex items-center justify-center gap-2 text-[10px]">
+                  <kbd className="font-mono border border-slate-700 rounded px-1.5 py-0.5">↑</kbd>
+                  <kbd className="font-mono border border-slate-700 rounded px-1.5 py-0.5">↓</kbd>
+                  <span>navigate</span>
+                  <kbd className="ml-2 font-mono border border-slate-700 rounded px-1.5 py-0.5">↵</kbd>
+                  <span>open</span>
+                </div>
               </div>
             </div>
           )}
