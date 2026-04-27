@@ -6,10 +6,10 @@
  *
  * Other section types fall back to <JsonEditor /> for Phase 1.
  */
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Mail, Phone, MessageCircle, MapPin, Clock, Map as MapIcon } from "lucide-react";
 import type {
   CtaConfig, FeaturesContent, HeroContent, HowContent,
-  CtaSectionContent, FaqContent, PricingContent, RichTextContent, SectionType,
+  CtaSectionContent, FaqContent, PricingContent, RichTextContent, SectionType, ContactContent,
 } from "./cmsTypes";
 
 type AnyContent = Record<string, unknown>;
