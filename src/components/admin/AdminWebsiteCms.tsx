@@ -535,10 +535,42 @@ const GlobalSettingsEditor = () => {
 
       <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 space-y-3">
         <h3 className="text-sm font-semibold text-white">Contact channels</h3>
+        <p className="text-[11px] text-slate-500">These appear in the footer, the Contact section, and structured-data for SEO.</p>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Support email"><input className={inputCls} value={row.support_email ?? ""} onChange={(e) => set({ support_email: e.target.value })} /></Field>
-          <Field label="Support WhatsApp"><input className={inputCls} value={row.support_whatsapp ?? ""} onChange={(e) => set({ support_whatsapp: e.target.value })} /></Field>
-          <Field label="Sales email"><input className={inputCls} value={row.sales_email ?? ""} onChange={(e) => set({ sales_email: e.target.value })} /></Field>
+          <Field label="Support email"><input className={inputCls} type="email" placeholder="support@rufayq.com" value={row.support_email ?? ""} onChange={(e) => set({ support_email: e.target.value })} /></Field>
+          <Field label="Support phone"><input className={inputCls} type="tel" placeholder="+966 …" value={row.support_phone ?? ""} onChange={(e) => set({ support_phone: e.target.value })} /></Field>
+          <Field label="Support WhatsApp"><input className={inputCls} placeholder="+966 … or wa.me link" value={row.support_whatsapp ?? ""} onChange={(e) => set({ support_whatsapp: e.target.value })} /></Field>
+          <Field label="Sales email"><input className={inputCls} type="email" value={row.sales_email ?? ""} onChange={(e) => set({ sales_email: e.target.value })} /></Field>
+          <Field label="Business hours (EN)"><input className={inputCls} placeholder="Sun – Thu · 9:00 – 18:00 AST" value={row.business_hours_en ?? ""} onChange={(e) => set({ business_hours_en: e.target.value })} /></Field>
+          <Field label="ساعات العمل (AR)"><input dir="rtl" className={inputCls} value={row.business_hours_ar ?? ""} onChange={(e) => set({ business_hours_ar: e.target.value })} /></Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Address (EN)"><textarea rows={2} className={inputCls} placeholder="Street, City, Country" value={row.address_en ?? ""} onChange={(e) => set({ address_en: e.target.value })} /></Field>
+          <Field label="العنوان (AR)"><textarea rows={2} dir="rtl" className={inputCls} value={row.address_ar ?? ""} onChange={(e) => set({ address_ar: e.target.value })} /></Field>
+        </div>
+        <Field label="Map embed URL (Google Maps iframe src)">
+          <input className={inputCls} placeholder="https://www.google.com/maps/embed?pb=…" value={row.map_embed_url ?? ""} onChange={(e) => set({ map_embed_url: e.target.value })} />
+        </Field>
+      </div>
+
+      <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-white">Social links</h3>
+        <p className="text-[11px] text-slate-500">Used by the footer and the Contact card. Leave blank to hide an icon.</p>
+        <div className="grid grid-cols-2 gap-3">
+          {([
+            ["twitter", "X / Twitter"], ["linkedin", "LinkedIn"],
+            ["instagram", "Instagram"], ["facebook", "Facebook"],
+            ["youtube", "YouTube"], ["tiktok", "TikTok"],
+          ] as const).map(([k, label]) => (
+            <Field key={k} label={label}>
+              <input
+                className={inputCls}
+                placeholder={`https://${k}.com/rufayq`}
+                value={(row.social_links?.[k] as string) ?? ""}
+                onChange={(e) => set({ social_links: { ...(row.social_links ?? {}), [k]: e.target.value } })}
+              />
+            </Field>
+          ))}
         </div>
       </div>
 
