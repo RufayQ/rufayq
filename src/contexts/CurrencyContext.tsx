@@ -127,6 +127,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
       // Only update if it differs from what we have.
       if (ipCountry !== country) {
         setCountryState(ipCountry);
+        setDetectionSource("ip");
         try { localStorage.setItem(COUNTRY_KEY, ipCountry); } catch { /* */ }
         // If user hasn't manually picked a currency, snap to detected one.
         if (!localStorage.getItem(CURRENCY_OVERRIDE_KEY)) {
@@ -134,6 +135,9 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
           setCurrencyState(cur);
           try { localStorage.setItem(STORAGE_KEY, cur); } catch { /* */ }
         }
+      } else {
+        // Same country — promote source to ip for clarity.
+        setDetectionSource((s) => (s === "manual" ? s : "ip"));
       }
     });
     return () => { alive = false; };
