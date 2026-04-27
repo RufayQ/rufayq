@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 import {
   CreditCard, FileText, Sparkles, Search, Check, X, RefreshCw,
-  Plus, Eye, Trash2,
+  Plus, Eye, Trash2, List, LayoutGrid, Activity,
 } from "lucide-react";
 import {
   paymentsClient,
@@ -24,9 +24,11 @@ import {
   type SubscriptionRow as Sub,
   type AddonRow as Addon,
 } from "@/api";
+import { Can } from "@/features/auth";
 
 type Tab = "subs" | "receipts" | "addons";
 type Receipt = PaymentReceipt;
+type ReceiptView = "cards" | "table";
 
 import { receiptTone, isPendingReceipt } from "@/features/payments/logic/receipts";
 import { statusTone } from "@/features/subscriptions/logic/statusMachine";
