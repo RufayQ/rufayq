@@ -298,6 +298,7 @@ export const editorFor = (type: SectionType) => {
     case "faq": return FaqEditor;
     case "pricing": return PricingEditor;
     case "rich_text": return RichTextEditor;
+    case "contact_form": return ContactInfoEditor;
     default: return JsonEditor;
   }
 };
