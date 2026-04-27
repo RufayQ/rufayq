@@ -26,7 +26,11 @@ interface Ctx {
   country: string | null;
   /** Whether the country was manually overridden by the user. */
   countryManual: boolean;
+  /** How the current country was determined. */
+  detectionSource: "manual" | "ip" | "locale" | "timezone" | "stored" | "default";
 }
+
+export type DetectionSource = Ctx["detectionSource"];
 
 const CurrencyContext = createContext<Ctx | null>(null);
 
