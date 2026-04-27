@@ -17,7 +17,9 @@ export const KNOWN_PAYMENT_STATUSES = [
 
 export const PaymentStatusSchema = z.string().min(1);
 export const PaymentChannelSchema = z.string().min(1);
-export const BillingCycleSchema = z.enum(["monthly", "quarterly", "yearly"]);
+/** Re-uses the same `monthly|quarterly|yearly` set as subscriptions. */
+export { BillingCycleSchema } from "./subscriptions";
+import { BillingCycleSchema } from "./subscriptions";
 
 export const PaymentReceiptSchema = z.object({
   id: z.string().uuid(),
