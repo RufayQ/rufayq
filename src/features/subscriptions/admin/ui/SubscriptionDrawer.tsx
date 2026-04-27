@@ -113,7 +113,7 @@ const PAYMENT_TONE: Record<string, string> = {
 const audit = async (action: string, target_id: string, details: Record<string, unknown>) => {
   await supabase.rpc("log_audit_event", {
     _action: action, _target_type: "user_subscription",
-    _target_id: target_id, _details: details,
+    _target_id: target_id, _details: details as never,
   });
 };
 
