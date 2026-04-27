@@ -148,8 +148,18 @@ const SecondaryPanel = ({ group, activeLeaf, onPick, badges, collapsed, onToggle
             )}
           </div>
         )}
-      </div>
-    </aside>
+        </div>
+      </aside>
+      <button
+        onClick={onToggleCollapsed}
+        className="absolute top-6 z-20 w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-slate-300 flex items-center justify-center hover:bg-slate-700"
+        style={{ left: collapsed ? "-12px" : "calc(16rem - 12px)", transition: "left 300ms ease-out" }}
+        aria-label={collapsed ? "Expand submenu" : "Collapse submenu"}
+        title={collapsed ? "Expand" : "Collapse"}
+      >
+        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+      </button>
+    </div>
   );
 };
 
