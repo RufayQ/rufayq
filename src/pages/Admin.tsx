@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Star, MessageSquare, Users, LogOut, CreditCard, FileText, Building2, UserPlus, Activity, LayoutDashboard, Briefcase } from "lucide-react";
+import { Shield, LogOut, Search, ChevronRight, Home } from "lucide-react";
+
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 import AdminPayments from "@/components/admin/AdminPayments";
@@ -24,39 +25,27 @@ import AdminVerificationAssist from "@/components/admin/AdminVerificationAssist"
 import AdminAiUsage from "@/components/admin/AdminAiUsage";
 import AdminUserSearch from "@/components/admin/AdminUserSearch";
 
-type Tab = "dashboard" | "users" | "user_search" | "create" | "verify_assist" | "orgs" | "applications" | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk" | "subs" | "payments" | "ai_usage" | "reviews" | "tickets" | "news" | "pages" | "website_cms" | "audit";
+import { NAV_MODULES, ALL_LEAVES, findGroupForLeaf, type LeafKey } from "@/components/admin/shell/adminNav";
+import { useAdminBadges } from "@/components/admin/shell/useAdminBadges";
+import SecondaryPanel from "@/components/admin/shell/SecondaryPanel";
+import QuickCreateMenu from "@/components/admin/shell/QuickCreateMenu";
+import GlobalSearchPalette from "@/components/admin/shell/GlobalSearchPalette";
 
-// Tabs are grouped: Users area first (Users → Create User → User Activations),
-// then Org/Provider area, then RCM, then ops.
-const ALL_TABS: { key: Tab; label: string; Icon: typeof Users; adminOnly?: boolean }[] = [
-  { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { key: "users", label: "Users", Icon: Users },
-  { key: "user_search", label: "User Search & Assign", Icon: Users, adminOnly: true },
-  { key: "create", label: "Create User", Icon: UserPlus, adminOnly: true },
-  { key: "verify_assist", label: "User Activations", Icon: Shield },
-  { key: "orgs", label: "Organizations", Icon: Building2 },
-  { key: "applications", label: "Applications", Icon: Briefcase },
-  { key: "claims", label: "Patient Claims", Icon: UserPlus },
-  { key: "rcm", label: "RCM Masters", Icon: Building2, adminOnly: true },
-  { key: "rcm_activations", label: "RCM Activations", Icon: Activity, adminOnly: true },
-  { key: "rcm_imports", label: "RCM Imports", Icon: FileText, adminOnly: true },
-  { key: "rcm_bulk", label: "RCM Bulk Ops", Icon: FileText, adminOnly: true },
-  { key: "subs", label: "Subscriptions", Icon: CreditCard, adminOnly: true },
-  { key: "payments", label: "Payments", Icon: CreditCard, adminOnly: true },
-  { key: "ai_usage", label: "AI Usage", Icon: Activity, adminOnly: true },
-  { key: "reviews", label: "Reviews", Icon: Star },
-  { key: "tickets", label: "Tickets", Icon: MessageSquare },
-  { key: "news", label: "News & Articles", Icon: FileText },
-  { key: "pages", label: "Site Pages (legacy)", Icon: FileText },
-  { key: "website_cms", label: "Website CMS", Icon: FileText, adminOnly: true },
-  { key: "audit", label: "Audit Log", Icon: Activity },
-];
+const LS_LEAF = "admin.leaf";
+const LS_COLLAPSED = "admin.submenu.collapsed";
 
 const Admin = () => {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
   const [role, setRole] = useState<"admin" | "moderator" | null>(null);
-  const [tab, setTab] = useState<Tab>("dashboard");
+  const [leaf, setLeaf] = useState<LeafKey>(() => (localStorage.getItem(LS_LEAF) as LeafKey) || "dashboard");
+  const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(LS_COLLAPSED) === "1");
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const badges = useAdminBadges(!!role);
+
+  useEffect(() => { localStorage.setItem(LS_LEAF, leaf); }, [leaf]);
+  useEffect(() => { localStorage.setItem(LS_COLLAPSED, collapsed ? "1" : "0"); }, [collapsed]);
 
   useEffect(() => {
     (async () => {
@@ -68,6 +57,38 @@ const Admin = () => {
       else if (roles.includes("moderator")) setRole("moderator");
       setAuthChecked(true);
     })();
+  }, []);
+
+  // ⌘K / Ctrl+K to open search
+  useEffect(() => {
+    if (!role) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [role]);
+
+  const visibleModules = useMemo(
+    () => NAV_MODULES.map((g) => ({ ...g, leaves: g.leaves.filter((l) => role === "admin" || !l.adminOnly) }))
+                     .filter((g) => g.leaves.length > 0),
+    [role],
+  );
+
+  const currentGroup = findGroupForLeaf(leaf) || visibleModules[0];
+
+  const goLeaf = useCallback((next: LeafKey, payload?: any) => {
+    setLeaf(next);
+    if (payload?.id) sessionStorage.setItem(`admin.${next}.focusId`, String(payload.id));
+    if (payload?.action) sessionStorage.setItem(`admin.${next}.action`, String(payload.action));
+  }, []);
+
+  const handleQuickCreate = useCallback((next: LeafKey, action?: string) => {
+    setLeaf(next);
+    if (action) sessionStorage.setItem(`admin.${next}.action`, action);
   }, []);
 
   const signOut = async () => {
@@ -94,56 +115,119 @@ const Admin = () => {
     );
   }
 
-  const visibleTabs = ALL_TABS.filter(t => role === "admin" || !t.adminOnly);
+  const leafMeta = ALL_LEAVES.find((l) => l.key === leaf);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100" style={{ fontFamily: "'DM Sans', system-ui" }}>
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield size={20} className="text-amber-400" />
-            <h1 className="text-lg font-semibold">RufayQ Admin</h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 uppercase tracking-wide">{role}</span>
-          </div>
-          <button onClick={signOut} className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5">
-            <LogOut size={14} /> Sign out
-          </button>
-        </div>
-        <div className="max-w-7xl mx-auto px-6 flex flex-wrap gap-x-1 gap-y-0">
-          {visibleTabs.map(({ key, label, Icon }) => (
-            <button key={key} onClick={() => setTab(key)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2 whitespace-nowrap ${
-                tab === key ? "border-amber-400 text-white" : "border-transparent text-slate-400 hover:text-slate-200"
-              }`}>
-              <Icon size={14} /> {label}
-            </button>
-          ))}
-        </div>
-      </header>
+    <div className="min-h-screen flex bg-slate-950 text-slate-100" style={{ fontFamily: "'DM Sans', system-ui" }}>
+      {/* ── Column 1: Primary sidebar ─────────────────────────────────── */}
+      <aside className="w-[68px] flex-shrink-0 border-r border-slate-800 bg-[#0D1B2A] flex flex-col items-center py-4 gap-1">
+        <Link to="/" className="mb-3 flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition" title="RufayQ">
+          <Shield size={18} />
+        </Link>
+        <nav className="flex-1 flex flex-col items-center gap-1 w-full px-2">
+          {visibleModules.map((g) => {
+            const Icon = g.icon;
+            const active = currentGroup?.key === g.key;
+            // Sum badges within this group
+            const groupBadges = g.leaves.reduce((s, l) => s + (l.badgeKey ? badges[l.badgeKey] : 0), 0);
+            return (
+              <button
+                key={g.key}
+                onClick={() => goLeaf(g.leaves[0].key)}
+                title={g.label}
+                className={`relative w-full h-12 rounded-xl flex items-center justify-center transition group ${
+                  active ? "bg-amber-500/15 text-amber-300" : "text-slate-400 hover:bg-slate-800/70 hover:text-slate-100"
+                }`}
+              >
+                <Icon size={18} />
+                {groupBadges > 0 && (
+                  <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-slate-950 text-[9px] font-bold flex items-center justify-center">
+                    {groupBadges > 99 ? "99+" : groupBadges}
+                  </span>
+                )}
+                {active && <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full bg-amber-400" />}
+                <span className="absolute left-full ml-2 px-2 py-1 rounded-md bg-slate-800 text-[11px] text-slate-100 opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-30 shadow-lg">
+                  {g.label}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+        <button onClick={signOut} title="Sign out" className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-amber-400 hover:bg-slate-800/60 transition">
+          <LogOut size={16} />
+        </button>
+      </aside>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {tab === "dashboard" && <AdminDashboard />}
-        {tab === "users" && <AdminUsers />}
-        {tab === "user_search" && role === "admin" && <AdminUserSearch />}
-        {tab === "create" && role === "admin" && <AdminCreateUser />}
-        {tab === "verify_assist" && <AdminVerificationAssist />}
-        {tab === "orgs" && <AdminOrganizations />}
-        {tab === "applications" && <AdminProviderApplications />}
-        {tab === "claims" && <AdminPatientClaims />}
-        {tab === "rcm" && role === "admin" && <AdminRcmMasters />}
-        {tab === "rcm_activations" && role === "admin" && <AdminRcmActivations />}
-        {tab === "rcm_imports" && role === "admin" && <AdminRcmImports />}
-        {tab === "rcm_bulk" && role === "admin" && <AdminRcmBulkOps />}
-        {tab === "subs" && role === "admin" && <AdminSubscriptions />}
-        {tab === "payments" && role === "admin" && <AdminPayments />}
-        {tab === "ai_usage" && role === "admin" && <AdminAiUsage />}
-        {tab === "reviews" && <AdminReviews />}
-        {tab === "tickets" && <AdminTickets />}
-        {tab === "news" && <AdminNews />}
-        {tab === "pages" && <AdminPages />}
-        {tab === "website_cms" && role === "admin" && <AdminWebsiteCms />}
-        {tab === "audit" && <AdminAuditLog />}
-      </main>
+      {/* ── Column 2: Secondary submenu ──────────────────────────────── */}
+      <SecondaryPanel
+        group={currentGroup}
+        activeLeaf={leaf}
+        onPick={(k) => goLeaf(k)}
+        badges={badges}
+        collapsed={collapsed}
+        onToggleCollapsed={() => setCollapsed((v) => !v)}
+        role={role}
+      />
+
+      {/* ── Column 3: Main workspace ─────────────────────────────────── */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="sticky top-0 z-20 border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+          <div className="px-6 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 min-w-0">
+              <Home size={12} className="text-slate-600" />
+              <ChevronRight size={11} className="text-slate-700" />
+              <span>{currentGroup?.label}</span>
+              <ChevronRight size={11} className="text-slate-700" />
+              <span className="text-slate-200 font-medium truncate">{leafMeta?.label || "—"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-800/70 border border-slate-700 text-xs text-slate-400 hover:text-slate-100 hover:border-slate-600 transition"
+              >
+                <Search size={12} />
+                <span>Search…</span>
+                <kbd className="ml-2 font-mono text-[10px] border border-slate-700 rounded px-1 py-0.5">⌘K</kbd>
+              </button>
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="md:hidden w-8 h-8 rounded-md bg-slate-800/70 border border-slate-700 text-slate-400 flex items-center justify-center"
+                aria-label="Search"
+              >
+                <Search size={14} />
+              </button>
+              <QuickCreateMenu onPick={handleQuickCreate} />
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 uppercase tracking-wide">{role}</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 px-6 py-6 overflow-y-auto">
+          {leaf === "dashboard" && <AdminDashboard />}
+          {leaf === "users" && <AdminUsers />}
+          {leaf === "user_search" && role === "admin" && <AdminUserSearch />}
+          {leaf === "create" && role === "admin" && <AdminCreateUser />}
+          {leaf === "verify_assist" && <AdminVerificationAssist />}
+          {leaf === "orgs" && <AdminOrganizations />}
+          {leaf === "applications" && <AdminProviderApplications />}
+          {leaf === "claims" && <AdminPatientClaims />}
+          {leaf === "rcm" && role === "admin" && <AdminRcmMasters />}
+          {leaf === "rcm_activations" && role === "admin" && <AdminRcmActivations />}
+          {leaf === "rcm_imports" && role === "admin" && <AdminRcmImports />}
+          {leaf === "rcm_bulk" && role === "admin" && <AdminRcmBulkOps />}
+          {leaf === "subs" && role === "admin" && <AdminSubscriptions />}
+          {leaf === "payments" && role === "admin" && <AdminPayments />}
+          {leaf === "ai_usage" && role === "admin" && <AdminAiUsage />}
+          {leaf === "reviews" && <AdminReviews />}
+          {leaf === "tickets" && <AdminTickets />}
+          {leaf === "news" && <AdminNews />}
+          {leaf === "pages" && <AdminPages />}
+          {leaf === "website_cms" && role === "admin" && <AdminWebsiteCms />}
+          {leaf === "audit" && <AdminAuditLog />}
+        </main>
+      </div>
+
+      <GlobalSearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onPick={(k, payload) => goLeaf(k, payload)} />
     </div>
   );
 };
