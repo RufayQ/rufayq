@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, Activity } from "lucide-react";
 import { ticketsClient, useRealtimeChannel, type SupportTicket, type TicketStatus } from "@/api";
 import { toast } from "sonner";
 import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
+import { Can, usePermissions } from "@/features/auth";
 
 const STATUS_OPTIONS: Array<{ value: TicketStatus | "all"; label: string }> = [
   { value: "all", label: "All" },
