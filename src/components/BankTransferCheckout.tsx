@@ -444,7 +444,7 @@ Please verify and activate my subscription.`;
             </label>
           )}
 
-          <button onClick={submit} disabled={submitting}
+          <button onClick={submit} disabled={submitting || !pendingReceipt || isExpired}
             className="w-full py-3 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ background: "var(--teal-deep)" }}>
             {submitting && <Loader2 size={16} className="animate-spin" />}
