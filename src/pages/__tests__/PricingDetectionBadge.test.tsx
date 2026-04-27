@@ -13,6 +13,19 @@ import Pricing from "@/pages/Pricing";
 // --- Hook mocks ----------------------------------------------------------
 const mockSetCurrency = vi.fn();
 
+const defaultDebug = {
+  ipCountry: null as string | null,
+  localeCountry: null as string | null,
+  timezone: null as string | null,
+  timezoneCountry: null as string | null,
+  storedCountry: null as string | null,
+  storedCurrency: null as string | null,
+  manualCountry: null as string | null,
+  manualCurrency: null as string | null,
+  perCountryOverride: null as string | null,
+  languages: [] as string[],
+};
+
 let currencyState = {
   currency: "SAR" as string,
   setCurrency: mockSetCurrency,
@@ -24,6 +37,8 @@ let currencyState = {
   country: "SA" as string | null,
   countryManual: false,
   detectionSource: "ip" as "manual" | "ip" | "locale" | "timezone" | "stored" | "default",
+  geoLoading: false as boolean,
+  debug: defaultDebug,
 };
 
 let langMode: "en" | "ar" | "both" = "en";
@@ -64,6 +79,8 @@ beforeEach(() => {
     country: "SA",
     countryManual: false,
     detectionSource: "ip",
+    geoLoading: false,
+    debug: { ...defaultDebug },
   };
 });
 
