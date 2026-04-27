@@ -147,6 +147,9 @@ const AdminUserSearch = () => {
   const [selected, setSelected] = useState<Profile | null>(null);
   const [activeSub, setActiveSub] = useState<ActiveSub | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
+  useQuickCreateSignal("user_search", (action) => {
+    if (action === "assign") toast.info("Find a user, then click their row to open the Assign Subscription modal.");
+  });
   const criterion = useMemo(() => detectCriterion(term), [term]);
   const Meta = CRITERION_META[criterion];
 
