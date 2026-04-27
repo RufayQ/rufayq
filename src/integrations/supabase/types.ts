@@ -751,43 +751,123 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_subscriptions: {
+        Row: {
+          amount: number
+          assigned_by: string | null
+          billing_cycle: string
+          created_at: string
+          currency: string
+          ends_at: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          plan: string
+          seats: number
+          starts_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          assigned_by?: string | null
+          billing_cycle?: string
+          created_at?: string
+          currency?: string
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          plan: string
+          seats?: number
+          starts_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          assigned_by?: string | null
+          billing_cycle?: string
+          created_at?: string
+          currency?: string
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          plan?: string
+          seats?: number
+          starts_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
+          city: string | null
           contact_email: string | null
           contact_phone: string | null
+          contract_filename: string | null
+          contract_uploaded_at: string | null
+          contract_url: string | null
           country: string | null
           created_at: string
           created_by: string | null
           id: string
           name: string
           notes: string | null
+          org_code: string | null
           org_type: Database["public"]["Enums"]["org_type"]
+          seq_no: number
+          status: string
           updated_at: string
           website: string | null
         }
         Insert: {
+          city?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          contract_filename?: string | null
+          contract_uploaded_at?: string | null
+          contract_url?: string | null
           country?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           name: string
           notes?: string | null
+          org_code?: string | null
           org_type?: Database["public"]["Enums"]["org_type"]
+          seq_no?: number
+          status?: string
           updated_at?: string
           website?: string | null
         }
         Update: {
+          city?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          contract_filename?: string | null
+          contract_uploaded_at?: string | null
+          contract_url?: string | null
           country?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           name?: string
           notes?: string | null
+          org_code?: string | null
           org_type?: Database["public"]["Enums"]["org_type"]
+          seq_no?: number
+          status?: string
           updated_at?: string
           website?: string | null
         }
