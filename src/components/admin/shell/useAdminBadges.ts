@@ -20,7 +20,7 @@ export const useAdminBadges = (enabled: boolean): AdminBadges => {
     const load = async () => {
       const safeCount = async (table: string, build: (q: any) => any) => {
         try {
-          const { count } = await build(supabase.from(table).select("id", { count: "exact", head: true }));
+          const { count } = await build((supabase as any).from(table).select("id", { count: "exact", head: true }));
           return count ?? 0;
         } catch { return 0; }
       };

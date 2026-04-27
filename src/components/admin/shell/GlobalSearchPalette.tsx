@@ -62,14 +62,15 @@ const GlobalSearchPalette = ({ open, onClose, onPick }: Props) => {
     const term = debounced.trim();
     const like = `%${term}%`;
     (async () => {
-      const safe = async <T,>(p: Promise<{ data: T[] | null }>) => {
-        try { const r = await p; return r.data ?? []; } catch { return []; }
+      const safe = async <T,>(build: () => any): Promise<T[]> => {
+        try { const r = await build(); return (r?.data ?? []) as T[]; } catch { return []; }
       };
+      const sb: any = supabase;
       const [users, claims, payments, pages] = await Promise.all([
-        safe(supabase.from("profiles").select("id,full_name,email,phone").or(`email.ilike.${like},full_name.ilike.${like},phone.ilike.${like}`).limit(5)),
-        safe(supabase.from("patient_claims").select("id,patient_name,status,claim_no").or(`patient_name.ilike.${like},claim_no.ilike.${like}`).limit(5)),
-        safe(supabase.from("payment_receipts").select("id,payer_name,reference_no,amount,currency").or(`payer_name.ilike.${like},reference_no.ilike.${like}`).limit(5)),
-        safe(supabase.from("cms_pages").select("id,slug,title").or(`slug.ilike.${like},title.ilike.${like}`).limit(5)),
+        safe<any>(() => sb.from("profiles").select("id,full_name,email,phone").or(`email.ilike.${like},full_name.ilike.${like},phone.ilike.${like}`).limit(5)),
+        safe<any>(() => sb.from("patient_claims").select("id,patient_name,status,claim_no").or(`patient_name.ilike.${like},claim_no.ilike.${like}`).limit(5)),
+        safe<any>(() => sb.from("payment_receipts").select("id,payer_name,reference_no,amount,currency").or(`payer_name.ilike.${like},reference_no.ilike.${like}`).limit(5)),
+        safe<any>(() => sb.from("cms_pages").select("id,slug,title").or(`slug.ilike.${like},title.ilike.${like}`).limit(5)),
       ]);
       if (cancelled) return;
       const out: Result[] = [
