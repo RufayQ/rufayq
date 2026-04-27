@@ -63,6 +63,22 @@ export interface RichTextContent {
   body?: string;  // markdown / plain
 }
 
+/** Contact section: free-form contact card editable per locale.
+ *  Section type is `contact_form` for backwards-compat with existing rows. */
+export interface ContactContent {
+  title?: string;
+  subtitle?: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  address?: string;
+  hours?: string;
+  mapEmbedUrl?: string;
+  /** Optional override CTA shown next to the contact details. */
+  ctaLabel?: string;
+  ctaLink?: string;
+}
+
 export interface CmsSection {
   id: string;
   page_id: string;
