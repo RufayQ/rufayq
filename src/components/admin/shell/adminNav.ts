@@ -12,6 +12,7 @@ export type LeafKey =
   | "subs" | "payments" | "ai_usage"
   | "reviews" | "tickets"
   | "news" | "pages" | "website_cms"
+  | "cms_seo" | "cms_media" | "cms_blog_cats"
   | "audit"
   | "settings_general" | "settings_team";
 
