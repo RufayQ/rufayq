@@ -99,7 +99,11 @@ function currencyForCountry(country: string | null): CurrencyCode {
 }
 
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
-  const [country, setCountryState] = useState<string | null>(() => detectCountrySync());
+  const initial = (typeof window !== "undefined")
+    ? detectCountrySyncWithSource()
+    : { code: null as string | null, source: "default" as DetectionSource };
+  const [country, setCountryState] = useState<string | null>(initial.code);
+  const [detectionSource, setDetectionSource] = useState<DetectionSource>(initial.source);
   const [countryManual, setCountryManual] = useState<boolean>(() =>
     typeof window !== "undefined" && !!localStorage.getItem(COUNTRY_OVERRIDE_KEY),
   );
