@@ -150,10 +150,35 @@ const Pricing = () => {
           <CurrencySwitcher variant="inline" />
           <span style={{ color: MUTED }}>·</span>
           <CountryPicker />
+          {/* Detected vs Manual source badge — confirms where the price comes from */}
           {country && (
-            <span className="px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider" style={{ background: "rgba(197,150,90,0.12)", color: GOLD, border: `1px solid ${BORDER}` }}>
-              {countryManual ? (showAr ? `محدد يدوياً · ${country}` : `Manual · ${country}`) : (showAr ? `موقع تلقائي · ${country}` : `Auto-detected · ${country}`)}
+            <span
+              className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold inline-flex items-center gap-1"
+              title={countryManual
+                ? (showAr ? "تم اختيار الدولة يدوياً" : "Country was manually overridden")
+                : (showAr ? "تم اكتشاف موقعك تلقائياً" : "Detected automatically from your location")}
+              style={countryManual
+                ? { background: "rgba(197,150,90,0.18)", color: GOLD, border: `1px solid ${GOLD}55` }
+                : { background: "rgba(94,229,176,0.12)", color: "#5EE5B0", border: "1px solid rgba(94,229,176,0.35)" }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: countryManual ? GOLD : "#5EE5B0" }} />
+              {countryManual
+                ? (showAr ? `يدوي · ${country}` : `Manual · ${country}`)
+                : (showAr ? `تلقائي · ${country}` : `Detected · ${country}`)}
             </span>
+          )}
+          {/* Quick local↔USD toggle — lets visitors flip between their local currency and USD without opening the picker */}
+          {country && COUNTRY_CURRENCY[country] && COUNTRY_CURRENCY[country] !== "USD" && (
+            <button
+              onClick={() => setCurrency(currency === "USD" ? COUNTRY_CURRENCY[country]! : "USD")}
+              className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold transition-all hover:scale-105"
+              style={{ background: "transparent", color: TEXT, border: `1px solid ${BORDER}` }}
+              title={showAr ? "تبديل بين العملة المحلية والدولار" : "Toggle between local currency and USD"}
+            >
+              {currency === "USD"
+                ? (showAr ? `عرض بـ ${COUNTRY_CURRENCY[country]}` : `Show in ${COUNTRY_CURRENCY[country]}`)
+                : (showAr ? "عرض بالدولار" : "Show in USD")}
+            </button>
           )}
         </div>
       </header>
