@@ -27,6 +27,9 @@ import AdminUserSearch from "@/components/admin/AdminUserSearch";
 import AdminSettingsGeneral from "@/components/admin/AdminSettingsGeneral";
 import AdminSettingsTeam from "@/components/admin/AdminSettingsTeam";
 import ComingSoon from "@/components/admin/shell/ComingSoon";
+import AdminCmsSeo from "@/components/admin/AdminCmsSeo";
+import AdminCmsMedia from "@/components/admin/AdminCmsMedia";
+import AdminCmsBlogCategories from "@/components/admin/AdminCmsBlogCategories";
 
 import { NAV_MODULES, ALL_LEAVES, findGroupForLeaf, type LeafKey } from "@/components/admin/shell/adminNav";
 import { useAdminBadges } from "@/components/admin/shell/useAdminBadges";
