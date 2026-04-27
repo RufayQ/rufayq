@@ -23,6 +23,8 @@ const AdminPatientClaims = () => {
   const [loading, setLoading] = useState(true);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [filter, setFilter] = useState<string>("pending_admin");
+  const { ready, can } = usePermissions();
+  const canDecide = can("claim.decide");
   useQuickCreateSignal("claims", () => toast.info("Patient claims are submitted by hospitals/insurers. Filter ‘Pending’ to triage incoming requests."));
 
   const load = async () => {
@@ -37,6 +39,9 @@ const AdminPatientClaims = () => {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Live refresh — pending-admin queue updates instantly as new claims arrive.
+  useRealtimeChannel("patientClaimsPending", () => load());
 
   const decide = async (id: string, approve: boolean) => {
     const { data: { user } } = await supabase.auth.getUser();
