@@ -41,10 +41,12 @@ const AdminCustomerService = () => {
     const ids = [...new Set((roles || []).map((r: any) => r.user_id))];
     if (ids.length === 0) { setUsers([]); setLoading(false); return; }
 
-    const [{ data: profiles }, { data: status }] = await Promise.all([
+    const [profilesRes, statusRes] = await Promise.all([
       supabase.from("profiles").select("user_id, email, full_name, phone, country, created_at").in("user_id", ids),
       supabase.from("user_status").select("user_id, status").in("user_id", ids),
     ]);
+    const profiles = (profilesRes.data || []) as any[];
+    const status = (statusRes.data || []) as any[];
 
     const map = new Map<string, CsUser>();
     (roles || []).forEach((r: any) => {
