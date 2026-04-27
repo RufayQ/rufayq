@@ -73,8 +73,40 @@ const AdminTickets = () => {
     return c;
   }, [tickets]);
 
+  const STATUS_TONES: Record<string, string> = {
+    all: "bg-slate-800 text-slate-200 border-slate-700",
+    open: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    in_progress: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+    resolved: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+    closed: "bg-slate-700/40 text-slate-400 border-slate-700",
+  };
+  const canModerate = can("ticket.moderate");
+
   return (
     <div className="space-y-4">
+      {/* Realtime status badges — counts update live as tickets change state */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {STATUS_OPTIONS.map((s) => {
+          const active = statusFilter === s.value;
+          const tone = STATUS_TONES[s.value] ?? STATUS_TONES.all;
+          return (
+            <button
+              key={s.value}
+              onClick={() => setStatusFilter(s.value)}
+              className={`px-2.5 py-1 rounded-full text-[11px] flex items-center gap-1.5 border transition-colors ${active ? tone : "border-slate-800 text-slate-400 hover:text-slate-200"}`}
+            >
+              {s.label}
+              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${active ? "bg-black/30" : "bg-slate-800 text-slate-300"}`}>
+                {counts[s.value] ?? 0}
+              </span>
+            </button>
+          );
+        })}
+        <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-slate-500">
+          <Activity size={10} className="text-emerald-400 animate-pulse" />live
+        </span>
+      </div>
+
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[220px] max-w-md">
@@ -86,17 +118,6 @@ const AdminTickets = () => {
             className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-200"
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as TicketStatus | "all")}
-          className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label} ({counts[s.value] ?? 0})
-            </option>
-          ))}
-        </select>
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value as typeof PRIORITY_OPTIONS[number])}
@@ -123,8 +144,10 @@ const AdminTickets = () => {
             No tickets match these filters.
           </p>
         )}
-        {filtered.map((t) => (
-          <div key={t.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+        {filtered.map((t) => {
+          const pulse = pulseId === t.id;
+          return (
+          <div key={t.id} className={`rounded-xl border p-4 transition-colors ${pulse ? "border-amber-500/60 bg-amber-500/5" : "border-slate-800 bg-slate-900/50"}`}>
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -138,20 +161,34 @@ const AdminTickets = () => {
                   {t.user_name || "—"} · {t.user_email || "no email"} · {new Date(t.created_at).toLocaleString()}
                 </p>
               </div>
-              <select
-                value={t.status}
-                onChange={(e) => update(t.id, e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 shrink-0"
+              <Can
+                action="ticket.moderate"
+                fallback={
+                  <span
+                    className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-500 shrink-0"
+                    title="You don't have permission to change ticket status"
+                  >
+                    {t.status}
+                  </span>
+                }
               >
-                <option value="open">Open</option>
-                <option value="in_progress">In progress</option>
-                <option value="resolved">Resolved</option>
-                <option value="closed">Closed</option>
-              </select>
+                <select
+                  value={t.status}
+                  onChange={(e) => update(t.id, e.target.value)}
+                  disabled={!canModerate}
+                  className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="open">Open</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </Can>
             </div>
             <p className="text-sm text-slate-300 whitespace-pre-wrap">{t.description}</p>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
