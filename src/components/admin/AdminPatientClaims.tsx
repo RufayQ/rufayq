@@ -113,19 +113,28 @@ const AdminPatientClaims = () => {
             </div>
 
             {c.status === "pending_admin" && (
-              <div className="flex gap-2 mt-3">
-                <button onClick={() => decide(c.id, true)} disabled={!c.matched_device_id}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed">
-                  <Check size={14} /> Approve → Patient
-                </button>
-                <button onClick={() => decide(c.id, false)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-rose-600 hover:bg-rose-500">
-                  <X size={14} /> Reject
-                </button>
-                {!c.matched_device_id && (
-                  <span className="text-[10px] text-amber-400 self-center">Patient not registered yet — wait for signup</span>
-                )}
-              </div>
+              <Can
+                action="claim.decide"
+                fallback={
+                  <p className="mt-3 text-[10px] text-slate-500 italic">
+                    You don't have permission to decide on this claim.
+                  </p>
+                }
+              >
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => decide(c.id, true)} disabled={!c.matched_device_id || !canDecide}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <Check size={14} /> Approve → Patient
+                  </button>
+                  <button onClick={() => decide(c.id, false)} disabled={!canDecide}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <X size={14} /> Reject
+                  </button>
+                  {!c.matched_device_id && (
+                    <span className="text-[10px] text-amber-400 self-center">Patient not registered yet — wait for signup</span>
+                  )}
+                </div>
+              </Can>
             )}
           </div>
         ))}
