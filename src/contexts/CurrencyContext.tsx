@@ -128,6 +128,52 @@ function currencyForCountry(country: string | null): CurrencyCode {
   return "USD";
 }
 
+function readDebugSnapshot() {
+  if (typeof window === "undefined") {
+    return {
+      localeCountry: null as string | null,
+      timezone: null as string | null,
+      timezoneCountry: null as string | null,
+      storedCountry: null as string | null,
+      storedCurrency: null as string | null,
+      manualCountry: null as string | null,
+      manualCurrency: null as string | null,
+      languages: [] as string[],
+    };
+  }
+  const langs = navigator.languages?.length ? Array.from(navigator.languages) : [navigator.language];
+  let localeCountry: string | null = null;
+  for (const lang of langs) {
+    const m = lang?.match(/-([A-Z]{2})$/i);
+    if (m) { localeCountry = m[1].toUpperCase(); break; }
+  }
+  let timezone: string | null = null;
+  let timezoneCountry: string | null = null;
+  try {
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const tzMap: Record<string, string> = {
+      "Asia/Riyadh": "SA", "Asia/Mecca": "SA",
+      "Asia/Dubai": "AE", "Asia/Muscat": "OM",
+      "Asia/Kuwait": "KW", "Asia/Qatar": "QA", "Asia/Bahrain": "BH",
+      "Africa/Cairo": "EG",
+      "Europe/Berlin": "DE", "Europe/Paris": "FR", "Europe/Rome": "IT",
+      "Europe/Madrid": "ES", "Europe/Amsterdam": "NL", "Europe/Vienna": "AT",
+      "Europe/Brussels": "BE", "Europe/Dublin": "IE", "Europe/Lisbon": "PT",
+    };
+    if (timezone && tzMap[timezone]) timezoneCountry = tzMap[timezone];
+  } catch { /* */ }
+  return {
+    localeCountry,
+    timezone,
+    timezoneCountry,
+    storedCountry: localStorage.getItem(COUNTRY_KEY),
+    storedCurrency: localStorage.getItem(STORAGE_KEY),
+    manualCountry: localStorage.getItem(COUNTRY_OVERRIDE_KEY),
+    manualCurrency: localStorage.getItem(CURRENCY_OVERRIDE_KEY),
+    languages: langs.filter(Boolean) as string[],
+  };
+}
+
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const initial = (typeof window !== "undefined")
     ? detectCountrySyncWithSource()
@@ -137,6 +183,12 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const [countryManual, setCountryManual] = useState<boolean>(() =>
     typeof window !== "undefined" && !!localStorage.getItem(COUNTRY_OVERRIDE_KEY),
   );
+  const [ipCountry, setIpCountry] = useState<string | null>(null);
+  // Skip the loading state when the user already manually overrode — we won't fetch.
+  const [geoLoading, setGeoLoading] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return !localStorage.getItem(COUNTRY_OVERRIDE_KEY);
+  });
 
   const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
     if (typeof window === "undefined") return "SAR";
@@ -157,23 +209,25 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   // Async geo-IP refinement on first load (only if user hasn't manually overridden).
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (localStorage.getItem(COUNTRY_OVERRIDE_KEY)) return;
+    if (localStorage.getItem(COUNTRY_OVERRIDE_KEY)) { setGeoLoading(false); return; }
     let alive = true;
-    detectCountryFromIp().then((ipCountry) => {
-      if (!alive || !ipCountry) return;
+    detectCountryFromIp().then((ip) => {
+      if (!alive) { return; }
+      setIpCountry(ip);
+      if (!ip) { setGeoLoading(false); return; }
       // Only update if it differs from what we have.
-      if (ipCountry !== country) {
-        setCountryState(ipCountry);
+      if (ip !== country) {
+        setCountryState(ip);
         setDetectionSource("ip");
-        try { localStorage.setItem(COUNTRY_KEY, ipCountry); } catch { /* */ }
+        try { localStorage.setItem(COUNTRY_KEY, ip); } catch { /* */ }
         // If user hasn't manually picked a currency for this country, snap.
         const map = readCurrencyOverrideMap();
-        const perCountry = map[ipCountry];
+        const perCountry = map[ip];
         if (perCountry && currencyMaster[perCountry]) {
           setCurrencyState(perCountry);
           try { localStorage.setItem(STORAGE_KEY, perCountry); } catch { /* */ }
         } else if (!localStorage.getItem(CURRENCY_OVERRIDE_KEY)) {
-          const cur = currencyForCountry(ipCountry);
+          const cur = currencyForCountry(ip);
           setCurrencyState(cur);
           try { localStorage.setItem(STORAGE_KEY, cur); } catch { /* */ }
         }
@@ -181,12 +235,11 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         // Same country — promote source to ip for clarity.
         setDetectionSource((s) => (s === "manual" ? s : "ip"));
       }
-    });
+      setGeoLoading(false);
+    }).catch(() => { if (alive) setGeoLoading(false); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const setCurrency = useCallback((c: CurrencyCode) => {
     setCurrencyState(c);
     try {
       localStorage.setItem(STORAGE_KEY, c);
