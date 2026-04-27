@@ -11,43 +11,22 @@
  *  • Add-ons       — extras attached to a subscription
  */
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 import {
   CreditCard, FileText, Sparkles, Search, Check, X, RefreshCw,
-  Plus, Calendar, DownloadCloud, Eye, Trash2,
+  Plus, Eye, Trash2,
 } from "lucide-react";
+import {
+  paymentsClient,
+  useRealtimeChannel,
+  type PaymentReceipt,
+  type SubscriptionRow as Sub,
+  type AddonRow as Addon,
+} from "@/api";
 
 type Tab = "subs" | "receipts" | "addons";
-
-interface Sub {
-  id: string; device_id: string; plan: string; status: string;
-  billing_cycle: string; amount: number | null; currency: string;
-  current_period_start: string | null; current_period_end: string | null;
-  activated_by: string | null; activated_at: string | null;
-  notes: string | null; provider: string;
-  created_at: string;
-}
-interface Receipt {
-  id: string; device_id: string; subscription_id: string | null;
-  requested_plan: string; billing_cycle: string;
-  amount: number; currency: string; payment_method: string;
-  reference_no: string | null; receipt_file_path: string | null;
-  payer_name: string | null; payer_phone: string | null;
-  payment_reference: string | null;
-  submission_channel: string; bank_name: string | null;
-  transfer_date: string | null;
-  patient_message: string | null; internal_note: string | null;
-  status: string; reviewer_notes: string | null;
-  reviewed_at: string | null; created_at: string;
-}
-interface Addon {
-  id: string; subscription_id: string; addon_key: string; addon_label: string;
-  quantity: number; unit_price: number | null; currency: string;
-  active_from: string; active_until: string | null; is_active: boolean;
-  created_at: string;
-}
+type Receipt = PaymentReceipt;
 
 import { receiptTone, isPendingReceipt } from "@/features/payments/logic/receipts";
 import { statusTone } from "@/features/subscriptions/logic/statusMachine";
