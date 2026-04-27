@@ -35,7 +35,7 @@ const Auth = () => {
       {/* NAV */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.75)", borderBottom: `1px solid ${BORDER}` }}>
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to={isAr ? "/ar" : "/"} className="flex items-center gap-2.5">
             <RufayQLogo size={28} variant="light" />
             <span className="font-display text-lg tracking-tight">
               <span style={{ color: TEXT }}>Rufay</span>
@@ -44,7 +44,7 @@ const Auth = () => {
           </Link>
           <div className="flex items-center gap-3">
             <LanguageSwitcher compact />
-            <Link to="/" className="text-[12px] flex items-center gap-1" style={{ color: TEXT_MUTED }}>
+            <Link to={isAr ? "/ar" : "/"} className="text-[12px] flex items-center gap-1" style={{ color: TEXT_MUTED }}>
               <ArrowLeft size={14} /> {t("Home", "الرئيسية")}
             </Link>
           </div>
@@ -102,7 +102,7 @@ const Auth = () => {
 
             <p className="text-center text-[12px] mt-10" style={{ color: TEXT_MUTED }}>
               {t("New provider organisation?", "منظمة مزوّد جديدة؟")}{" "}
-              <Link to="/providers" className="underline" style={{ color: GOLD }}>
+              <Link to={isAr ? "/ar/providers" : "/providers"} className="underline" style={{ color: GOLD }}>
                 {t("Apply for access", "قدّم طلب وصول")}
               </Link>
             </p>
@@ -147,7 +147,7 @@ const Auth = () => {
 
             <p className="text-center text-[12px] mt-10" style={{ color: TEXT_MUTED }}>
               {t("Don't have an account yet?", "ليس لديك حساب بعد؟")}{" "}
-              <Link to="/providers" className="underline" style={{ color: GOLD }}>
+              <Link to={isAr ? "/ar/providers" : "/providers"} className="underline" style={{ color: GOLD }}>
                 {t("Apply for provider access", "قدّم طلب وصول كمزوّد")}
               </Link>
             </p>
