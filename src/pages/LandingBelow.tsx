@@ -379,8 +379,8 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
             <span className="text-[10px]">{isAr ? <span className="font-arabic">متوافق مع نظام حماية البيانات السعودي والإماراتي · DHA · HIPAA · GDPR</span> : "Compliant with KSA PDPL · UAE PDPL · DHA · HIPAA · GDPR"}</span>
           </p>
           <div className="flex gap-5">
-            <Link to="/privacy" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الخصوصية</span> : "Privacy"}</Link>
-            <Link to="/terms" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الشروط</span> : "Terms"}</Link>
+            <Link to={isAr ? "/ar/privacy" : "/privacy"} className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الخصوصية</span> : "Privacy"}</Link>
+            <Link to={isAr ? "/ar/terms" : "/terms"} className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الشروط</span> : "Terms"}</Link>
             <a href="#news" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">الأخبار</span> : "News"}</a>
             <a href="#contact" className="text-xs transition-colors hover:text-white" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">تواصل</span> : "Contact"}</a>
           </div>
