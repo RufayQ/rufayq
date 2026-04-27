@@ -240,6 +240,8 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const setCurrency = useCallback((c: CurrencyCode) => {
     setCurrencyState(c);
     try {
       localStorage.setItem(STORAGE_KEY, c);
@@ -305,9 +307,16 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
 
   const isGccPegged = country ? GCC_PEGGED_COUNTRIES.has(country) : false;
 
+  const debug = useMemo(() => {
+    const snap = readDebugSnapshot();
+    const map = (typeof window !== "undefined") ? readCurrencyOverrideMap() : {};
+    const perCountry = country ? (map[country] ?? null) : null;
+    return { ipCountry, ...snap, perCountryOverride: perCountry };
+  }, [country, ipCountry, currency, detectionSource, countryManual]);
+
   const value = useMemo<Ctx>(
-    () => ({ currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual, detectionSource }),
-    [currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual, detectionSource],
+    () => ({ currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual, detectionSource, geoLoading, debug }),
+    [currency, setCurrency, setCountry, getPrice, getAddon, format, isGccPegged, country, countryManual, detectionSource, geoLoading, debug],
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
@@ -327,6 +336,12 @@ export const useCurrency = (): Ctx => {
       country: null,
       countryManual: false,
       detectionSource: "default",
+      geoLoading: false,
+      debug: {
+        ipCountry: null, localeCountry: null, timezone: null, timezoneCountry: null,
+        storedCountry: null, storedCurrency: null, manualCountry: null, manualCurrency: null,
+        perCountryOverride: null, languages: [],
+      },
     };
   }
   return ctx;
