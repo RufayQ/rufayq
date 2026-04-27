@@ -120,7 +120,10 @@ const Pricing = () => {
             <RufayQLogo size={28} variant="light" />
             <span className="font-display text-lg"><span style={{ color: TEXT }}>Rufay</span><span className="font-bold" style={{ color: GOLD }}>Q</span></span>
           </Link>
-          <CurrencySwitcher />
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher compact />
+            <CurrencySwitcher />
+          </div>
         </div>
       </nav>
 
