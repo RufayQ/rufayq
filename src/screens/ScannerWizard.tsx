@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { X, RotateCw, Sun, Contrast, Crop, Palette } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
+import { FileUploadPreview } from "@/shared/ui";
 
 interface ScannerWizardProps {
   onClose: () => void;
