@@ -1,18 +1,26 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pause, Play, Ban, Trash2, KeyRound, Search, Copy, MessageCircle, Mail, Edit3, Save, X, RotateCw, Shuffle } from "lucide-react";
+import { Pause, Play, Ban, Trash2, KeyRound, Search, Copy, MessageCircle, Mail, Edit3, Save, X, RotateCw, Shuffle, Crown } from "lucide-react";
+import SubscriptionDrawer from "@/features/subscriptions/admin/ui/SubscriptionDrawer";
+import { statusTone, normalizePlanCode } from "@/features/subscriptions/logic/statusMachine";
 
 interface Profile {
   id: string; device_id: string; full_name_en: string | null; phone: string | null;
   email: string | null; nationality: string | null; created_at: string;
   deleted_at?: string | null; deleted_reason?: string | null;
   provider_type?: string | null; organization_id?: string | null;
+  rufayq_id?: string | null;
 }
 interface UserStatus {
   user_id: string; status: "active" | "on_hold" | "suspended"; reason: string | null;
 }
 interface Org { id: string; name: string; org_type: string }
+interface SubSummary {
+  device_id: string; plan: string; status: string;
+  current_period_end: string | null;
+}
+interface ReceiptSummary { device_id: string; status: string; }
 
 const PROVIDER_TYPES = ["patient","hospital","physician","vendor","insurance","internal"];
 const TYPE_BADGE: Record<string, string> = {
