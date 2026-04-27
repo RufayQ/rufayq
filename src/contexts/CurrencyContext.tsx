@@ -197,12 +197,12 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem(COUNTRY_KEY, upper);
       localStorage.setItem(COUNTRY_OVERRIDE_KEY, upper);
     } catch { /* */ }
-    // Snap currency to the country's preferred unless user already locked one this session.
-    const cur = currencyForCountry(upper);
+    // Restore per-country currency override if present, else snap to country default.
+    const map = readCurrencyOverrideMap();
+    const cur = (map[upper] && currencyMaster[map[upper]]) ? map[upper] : currencyForCountry(upper);
     setCurrencyState(cur);
     try {
       localStorage.setItem(STORAGE_KEY, cur);
-      // Manual country implies currency follows; clear stale currency override.
       localStorage.removeItem(CURRENCY_OVERRIDE_KEY);
     } catch { /* */ }
   }, []);
