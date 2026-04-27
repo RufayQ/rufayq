@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 
 interface Ticket {
   id: string; ticket_number: string; title: string; description: string;
@@ -11,6 +12,8 @@ interface Ticket {
 const AdminTickets = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useQuickCreateSignal("tickets", () => toast.info("Open a customer ticket from the user profile or via the support reply panel."));
 
   const load = async () => {
     setLoading(true);

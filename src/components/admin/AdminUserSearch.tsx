@@ -27,6 +27,7 @@ import {
   Sparkles, Calendar, ShieldCheck, Loader2, ArrowLeft,
 } from "lucide-react";
 import { PLANS, type PlanCode, type BillingCycle } from "@/data/subscriptionPlans";
+import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 
 // ─────────────────────────────────────────────────────────────────────
 // Types
@@ -146,6 +147,9 @@ const AdminUserSearch = () => {
   const [selected, setSelected] = useState<Profile | null>(null);
   const [activeSub, setActiveSub] = useState<ActiveSub | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
+  useQuickCreateSignal("user_search", (action) => {
+    if (action === "assign") toast.info("Find a user, then click their row to open the Assign Subscription modal.");
+  });
   const criterion = useMemo(() => detectCriterion(term), [term]);
   const Meta = CRITERION_META[criterion];
 

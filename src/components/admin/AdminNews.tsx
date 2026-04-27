@@ -31,6 +31,7 @@ import {
 } from "@/lib/articleMeta";
 import { getClusterSuggestions } from "@/lib/seoCluster";
 import ArticleSeoPreview from "./ArticleSeoPreview";
+import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 
 type Lang = "en" | "ar";
 type StatusFilter = "all" | "live" | "scheduled" | "draft";
@@ -243,6 +244,12 @@ const AdminNews = () => {
     setArticles((arr) => [a, ...arr]);
     setActiveId(a.id);
   };
+
+  // Auto-trigger "New Article" if user clicked + New → Article in the admin shell.
+  useQuickCreateSignal("news", () => {
+    if (!loading) addArticle();
+    else setTimeout(() => addArticle(), 400);
+  });
 
   const duplicateActive = () => {
     if (!active) return;

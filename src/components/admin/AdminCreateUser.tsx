@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserPlus, Copy, Globe, Phone } from "lucide-react";
+import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 
 interface Org { id: string; name: string; org_type: string }
 
@@ -59,6 +60,7 @@ const AdminCreateUser = () => {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [busy, setBusy] = useState(false);
   const [showAr, setShowAr] = useState(false);
+  useQuickCreateSignal("create", () => toast.info("Fill the form below to provision a new user."));
 
   const [form, setForm] = useState({
     email: "", password: "", full_name: "", full_name_ar: "", phone: "", phoneCountry: "SA",

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Check, X, Search } from "lucide-react";
+import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 
 interface Claim {
   id: string;
@@ -20,6 +21,7 @@ const AdminPatientClaims = () => {
   const [loading, setLoading] = useState(true);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [filter, setFilter] = useState<string>("pending_admin");
+  useQuickCreateSignal("claims", () => toast.info("Patient claims are submitted by hospitals/insurers. Filter ‘Pending’ to triage incoming requests."));
 
   const load = async () => {
     setLoading(true);

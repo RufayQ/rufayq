@@ -6,6 +6,7 @@ import { Seo } from "@/seo/Seo";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import FamilySetupModal from "@/components/FamilySetupModal";
 import { ADDON_META, type AddOnId, type TierId } from "@/data/currencyMaster";
 import { faqSchema, breadcrumbSchema } from "@/seo/schema";
@@ -119,7 +120,10 @@ const Pricing = () => {
             <RufayQLogo size={28} variant="light" />
             <span className="font-display text-lg"><span style={{ color: TEXT }}>Rufay</span><span className="font-bold" style={{ color: GOLD }}>Q</span></span>
           </Link>
-          <CurrencySwitcher />
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher compact />
+            <CurrencySwitcher />
+          </div>
         </div>
       </nav>
 

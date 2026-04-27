@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 import {
   CreditCard, FileText, Sparkles, Search, Check, X, RefreshCw,
   Plus, Calendar, DownloadCloud, Eye, Trash2,
@@ -66,6 +67,7 @@ const PERIOD_DAYS: Record<string, number> = { monthly: 30, quarterly: 90, yearly
 
 const AdminPayments = () => {
   const [tab, setTab] = useState<Tab>("subs");
+  useQuickCreateSignal("payments", () => { setTab("receipts"); toast.info("Switched to Receipts — log a new manual payment from here."); });
   const [loading, setLoading] = useState(false);
   const [subs, setSubs] = useState<Sub[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
