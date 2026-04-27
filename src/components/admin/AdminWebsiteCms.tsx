@@ -301,7 +301,13 @@ const PageEditor = ({ pageId, onBack }: { pageId: string; onBack: () => void }) 
           </label>
           <div>
             <span className="block text-xs text-slate-400 mb-1">Status</span>
-            <select className={inputCls} value={page.status} onChange={(e) => savePage({ status: e.target.value as PageStatus })}>
+            <select className={inputCls} value={page.status} onChange={async (e) => {
+              const next = e.target.value as PageStatus;
+              const res = await cmsClient.publish(page as never, { status: next, scheduled_at: page.scheduled_at ?? null });
+              if (res.error) { toast.error(res.error.message); return; }
+              setPage({ ...page, status: next });
+              toast.success(`Status → ${next}`);
+            }}>
               <option value="draft">Draft</option><option value="published">Published</option>
               <option value="scheduled">Scheduled</option><option value="archived">Archived</option>
             </select>
