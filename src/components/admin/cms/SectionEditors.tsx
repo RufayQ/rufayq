@@ -222,19 +222,19 @@ export const ContactInfoEditor = ({ content, onChange }: { content: ContactConte
       <div className={sectionCls}>
         <div className="text-[11px] font-semibold text-amber-300">Contact channels</div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label={<span className="inline-flex items-center gap-1"><Mail size={11} /> Email</span> as unknown as string}>
+          <Field label={<span className="inline-flex items-center gap-1"><Mail size={11} /> Email</span>}>
             <input className={inputCls} type="email" placeholder="support@example.com"
               value={content.email ?? ""} onChange={(e) => set({ email: e.target.value })} />
           </Field>
-          <Field label={<span className="inline-flex items-center gap-1"><Phone size={11} /> Phone</span> as unknown as string}>
+          <Field label={<span className="inline-flex items-center gap-1"><Phone size={11} /> Phone</span>}>
             <input className={inputCls} type="tel" placeholder="+966 5X XXX XXXX"
               value={content.phone ?? ""} onChange={(e) => set({ phone: e.target.value })} />
           </Field>
-          <Field label={<span className="inline-flex items-center gap-1"><MessageCircle size={11} /> WhatsApp</span> as unknown as string}>
+          <Field label={<span className="inline-flex items-center gap-1"><MessageCircle size={11} /> WhatsApp</span>}>
             <input className={inputCls} placeholder="+966 5X XXX XXXX or wa.me link"
               value={content.whatsapp ?? ""} onChange={(e) => set({ whatsapp: e.target.value })} />
           </Field>
-          <Field label={<span className="inline-flex items-center gap-1"><Clock size={11} /> Business hours</span> as unknown as string}>
+          <Field label={<span className="inline-flex items-center gap-1"><Clock size={11} /> Business hours</span>}>
             <input className={inputCls} placeholder="Sun – Thu · 9:00 – 18:00 AST"
               value={content.hours ?? ""} onChange={(e) => set({ hours: e.target.value })} />
           </Field>
@@ -243,11 +243,11 @@ export const ContactInfoEditor = ({ content, onChange }: { content: ContactConte
 
       <div className={sectionCls}>
         <div className="text-[11px] font-semibold text-amber-300">Location</div>
-        <Field label={<span className="inline-flex items-center gap-1"><MapPin size={11} /> Address</span> as unknown as string}>
+        <Field label={<span className="inline-flex items-center gap-1"><MapPin size={11} /> Address</span>}>
           <textarea rows={2} className={inputCls} placeholder="Street, City, Country"
             value={content.address ?? ""} onChange={(e) => set({ address: e.target.value })} />
         </Field>
-        <Field label={<span className="inline-flex items-center gap-1"><MapIcon size={11} /> Map embed URL (Google Maps iframe src)</span> as unknown as string}>
+        <Field label={<span className="inline-flex items-center gap-1"><MapIcon size={11} /> Map embed URL (Google Maps iframe src)</span>}>
           <input className={inputCls} placeholder="https://www.google.com/maps/embed?pb=…"
             value={content.mapEmbedUrl ?? ""} onChange={(e) => set({ mapEmbedUrl: e.target.value })} />
         </Field>
