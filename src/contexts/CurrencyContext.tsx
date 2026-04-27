@@ -43,6 +43,21 @@ interface Ctx {
   countryManual: boolean;
   /** How the current country was determined. */
   detectionSource: "manual" | "ip" | "locale" | "timezone" | "stored" | "default";
+  /** True while the async IP-based geo lookup is still in flight. */
+  geoLoading: boolean;
+  /** Raw signals used during detection — surfaced for the debug panel. */
+  debug: {
+    ipCountry: string | null;
+    localeCountry: string | null;
+    timezone: string | null;
+    timezoneCountry: string | null;
+    storedCountry: string | null;
+    storedCurrency: string | null;
+    manualCountry: string | null;
+    manualCurrency: string | null;
+    perCountryOverride: string | null;
+    languages: string[];
+  };
 }
 
 export type DetectionSource = Ctx["detectionSource"];
