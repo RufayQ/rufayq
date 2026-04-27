@@ -237,7 +237,7 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
     const end = new Date(start);
     end.setDate(end.getDate() + days);
     const payload = {
-      device_id: user.device_id, plan, billing_cycle: "monthly", amount: 0,
+      device_id: user.device_id, plan, billing_cycle: "monthly" as const, amount: 0,
       currency: "SAR", status: "active", provider: "manual",
       current_period_start: start.toISOString(), current_period_end: end.toISOString(),
       activated_at: start.toISOString(),
@@ -554,7 +554,7 @@ const OverviewTab = ({
           <Row k="Start" v={fmtDate(active.current_period_start || active.activated_at)} />
           <Row k="End" v={fmtDate(active.current_period_end)} />
           <Row k="Renewal" v="Manual Bank Transfer" />
-          <Row k="Provider" v={active.provider ?? "manual"} />
+          <Row k="Provider" v="manual" />
         </div>
         {def && (
           <div className="mt-3 pt-3 border-t border-slate-800">
