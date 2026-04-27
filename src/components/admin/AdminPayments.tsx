@@ -67,6 +67,7 @@ const PERIOD_DAYS: Record<string, number> = { monthly: 30, quarterly: 90, yearly
 
 const AdminPayments = () => {
   const [tab, setTab] = useState<Tab>("subs");
+  useQuickCreateSignal("payments", () => { setTab("receipts"); toast.info("Switched to Receipts — log a new manual payment from here."); });
   const [loading, setLoading] = useState(false);
   const [subs, setSubs] = useState<Sub[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
