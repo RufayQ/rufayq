@@ -58,7 +58,7 @@ const LanguageSwitcher = forwardRef<HTMLDivElement, Props>(({
     if (target === "both") { setMode("both"); restore(); return; }
     const path = location.pathname;
     const search = location.search || "";
-    const hash = location.hash || "";
+    // hash already captured above for scroll restore
     // Dynamic news pair (not in ROUTES table)
     const isArNews = path === "/ar/news" || path.startsWith("/ar/news/");
     const isEnNews = path === "/news" || path.startsWith("/news/");
