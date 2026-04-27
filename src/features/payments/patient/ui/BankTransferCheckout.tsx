@@ -20,6 +20,7 @@ import { getDeviceId } from "@/hooks/useDeviceId";
 import { paymentsClient } from "@/api";
 import { BANK_DETAILS, PLAN_BY_CODE, planPrice, type BillingCycle, type PlanCode } from "@/data/subscriptionPlans";
 import ReceiptStatusTimeline from "@/features/payments/patient/ui/ReceiptStatusTimeline";
+import { FileUploadPreview } from "@/shared/ui";
 
 interface Props {
   open: boolean;
@@ -431,18 +432,24 @@ Please verify and activate my subscription.`;
 
           {/* File upload */}
           {channel === "app" && (
-            <label className="block">
+            <div>
               <p className="text-[10px] font-mono tracking-widest mb-2" style={{ color: "var(--gray)" }}>RECEIPT (image or PDF) · الإيصال</p>
-              <div className="rounded-xl border-2 border-dashed p-4 text-center cursor-pointer"
-                style={{ borderColor: file ? "var(--teal-deep)" : "var(--gray-light)" }}>
-                <input type="file" accept="image/*,application/pdf" className="hidden"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                <Upload size={20} className="mx-auto mb-1" color={file ? "var(--teal-deep)" : "var(--gray)"} />
-                <p className="text-xs" style={{ color: file ? "var(--teal-deep)" : "var(--gray)" }}>
-                  {file ? file.name : "Tap to choose file · اختر ملف"}
-                </p>
-              </div>
-            </label>
+              {!file ? (
+                <label className="block">
+                  <div className="rounded-xl border-2 border-dashed p-4 text-center cursor-pointer"
+                    style={{ borderColor: "var(--gray-light)" }}>
+                    <input type="file" accept="image/*,application/pdf" className="hidden"
+                      onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                    <Upload size={20} className="mx-auto mb-1" color="var(--gray)" />
+                    <p className="text-xs" style={{ color: "var(--gray)" }}>
+                      Tap to choose file · اختر ملف
+                    </p>
+                  </div>
+                </label>
+              ) : (
+                <FileUploadPreview file={file} onRemove={() => setFile(null)} lang="both" maxHeight={220} />
+              )}
+            </div>
           )}
 
           <button onClick={submit} disabled={submitting || !pendingReceipt || isExpired}
