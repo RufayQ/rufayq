@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Paperclip, ChevronRight, X, Camera, Upload, Mic, Square, Trash2, Copy, Share2, Sparkles } from "lucide-react";
+import { FileUploadPreview } from "@/shared/ui";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
@@ -44,7 +45,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
   const [isTyping, setIsTyping] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const [showUploadSheet, setShowUploadSheet] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string } | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadInstruction, setUploadInstruction] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
