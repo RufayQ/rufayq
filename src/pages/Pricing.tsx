@@ -98,6 +98,10 @@ const Pricing = () => {
     return format(p);
   };
 
+  // Show skeletons for paid prices and the detection note while async geo
+  // resolves, so the UI doesn't flash a wrong currency or shift layout.
+  const showPriceSkeleton = geoLoading && !countryManual;
+
   return (
     <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }}>
       <Seo
@@ -147,7 +151,9 @@ const Pricing = () => {
             </button>
           ))}
         </div>
-        <TooltipProvider delayDuration={150}>
+        {/* delayDuration prevents accidental tooltip popups on touch/mobile —
+            the badge & toggle live in a tight horizontal row, easy to brush. */}
+        <TooltipProvider delayDuration={700} skipDelayDuration={300}>
           <div className="text-[11px] flex items-center gap-2 flex-wrap justify-center" style={{ color: MUTED }} dir={showAr ? "rtl" : "ltr"}>
             <span>{showAr ? `الأسعار بـ ${currency}` : `Prices shown in ${currency}`}</span>
             <CurrencySwitcher variant="inline" />
