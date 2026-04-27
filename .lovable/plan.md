@@ -1,113 +1,107 @@
-## Do we need to change technology?
+## Context
 
-**No.** The attached architecture spec (`RufayQ_Codebase_Architecture.html`) targets the **exact same stack** you're already on:
+You want RufayQ to become:
+1. **API-first** — every feature usable from web, native mobile (iOS/Android/Huawei), Android Auto, and future B2B partners through stable, versioned contracts.
+2. **SEO-first** — marketing/content surface optimised for organic discovery (already partially in place via `src/seo/`).
+3. **Mobile-ready** — separate native apps that read/write through the same APIs the admin portal uses, with realtime listen channels.
 
-- React 18 + Vite 5 + TypeScript 5 (strict)
-- Tailwind + CSS custom properties
-- Supabase (DB / Auth / Storage / Edge Functions)
-- React Router v6
-- Zustand (the only addition — and only worth introducing if/when we actually have global client state to manage; today most state is local + Supabase)
+The previous plan focused on moving ~80 files into `features/*` folders. That work is **high churn, low new value** because Phase 1–2 already delivered the important wins (stable barrels at `@/features/*`, centralised types in `@/shared/types`, and logic modules in `features/*/logic`). Physical relocations can now happen one PR at a time as a near-zero-risk shim swap.
 
-The recommendation is purely a **structural refactor** (Feature-Sliced Design), not a stack migration. We keep every dependency we have today.
+This revised plan **drops the bulk file-move phase** and replaces it with the work that actually unlocks API-first + mobile.
 
-## What's wrong today (concrete observations)
+## What changes vs the previous plan
 
-- `src/components/admin/` has 26 flat `Admin*.tsx` files mixing billing, RCM, CMS, support, users.
-- `src/pages/` mixes patient marketing pages, admin shell, provider portal, and subscription dashboard with no domain boundary.
-- Plan / status / role logic is duplicated across `AdminSubscriptions`, `AdminPayments`, `SubscriptionDashboard`, `useSubscription`, `PaywallModal` (e.g. `STATUS_TONE` maps, `PLAN_OPTIONS`, role checks).
-- Shared types (`User`, `Subscription`, `Payment`, `AuditLog`, `Organization`, `CmsPage`) live inline in components or only as auto-generated DB rows — no domain layer.
-- Tests cover only the admin shell badges + pricing badge; no coverage for subscription state machine, payment verification, CMS publish flow, or the `x-device-id` header contract.
-- Admin nav is already config-driven (`adminNav.ts`) ✅ — that one is done.
+| Previously planned | Status now |
+|---|---|
+| Phase 2: move 80 files into `features/*` | **Deferred** — done opportunistically when a file is already being edited. Barrels already give the stable import surface. |
+| Phase 3: lift providers into `app/providers/` | **Kept, but minimal** — only when we actually need to share providers with a mobile shell. |
+| Phase 4: tests for state machines | **Already done** ✅ (96/96 passing). |
+| — | **NEW:** API contract layer (`src/api/`) with versioned, typed clients used by web today and reused by mobile tomorrow. |
+| — | **NEW:** Edge-function API surface audit + OpenAPI spec generation. |
+| — | **NEW:** Realtime channel registry so mobile + admin subscribe to the same topics. |
+| — | **NEW:** SEO hardening (sitemap completeness, structured data audit, content cluster expansion plan). |
 
-## Target structure (matches the attached spec)
+## New target structure (additive, no big moves)
 
 ```text
 src/
-  app/
-    routes/         # route table, lazy boundaries
-    shell/          # AppShell, BottomNav, HeaderMenu, admin shell
-    providers/      # CurrencyProvider, LanguageProvider, QueryClient, Tooltip
-  features/
-    patient/        # screens/* + patient hooks
-    admin/          # all Admin* modules + admin shell pieces
-    provider/       # ProviderDashboard + RCM worklists
-    subscriptions/  # plan logic, useSubscription, PaywallModal, UpgradeCTA
-    payments/       # BankTransferCheckout, AdminPayments, receipt verify
-    cms/            # AdminWebsiteCms, SectionEditors, useCmsPage, ContentPage
-    rcm/            # AdminRcm*, RcmStatusPanel, provider/Rcm* worklists
-    auth/           # Auth, AdminLogin, ProviderLogin, OtpInput, useDeviceId
-  shared/
-    ui/             # shadcn primitives (current src/components/ui)
-    hooks/          # cross-feature hooks (useTheme, use-mobile, useFreshStart)
-    utils/          # lib/utils, articleMeta, seoCluster
-    types/          # NEW domain types (see below)
-    constants/      # data/, currencyMaster, subscriptionPlans
-  integrations/
-    supabase/       # client.ts, types.ts, deviceHeader.ts (unchanged)
-  seo/              # already isolated — keep as-is
+  api/                          # NEW — single source of truth for all backend calls
+    contracts/                  # Zod schemas + TS types per resource
+      subscriptions.ts
+      payments.ts
+      cms.ts
+      rcm.ts
+      auth.ts
+    clients/                    # Thin wrappers over supabase + edge functions
+      subscriptions.client.ts
+      payments.client.ts
+      ...
+    realtime/                   # Channel registry (table + filter constants)
+      channels.ts
+    index.ts                    # Public API barrel — what mobile will import
+  features/                     # already exists (Phase 1–2)
+  shared/                       # already exists
+  seo/                          # already exists — expanded in this plan
+  integrations/supabase/        # unchanged
 ```
 
-## Phased rollout (module-by-module, no big-bang)
+Mobile app (separate repo later) imports **only** from `@/api` — never reaches into `features/*` or Supabase directly.
 
-Each phase ships independently, app keeps working, no route changes user-visible.
+## Phased rollout (replaces old Phase 2–3)
 
-### Phase 1 — Domain types + business-rule modules (foundation, no file moves)
-Create `src/shared/types/` and `src/features/*/logic/` without moving components yet.
+### Phase A — API contract layer (highest leverage)
+Create `src/api/contracts/` with **Zod schemas** for every resource that crosses the network: `Subscription`, `Payment`, `Receipt`, `CmsPage`, `CmsSection`, `AuditLogEntry`, `ProviderApplication`, `Ticket`, `Review`, `RcmClaim`, `User`, `Organization`. Each schema is the canonical shape; TS types are inferred (`z.infer<...>`). This replaces ad-hoc `as` casts on Supabase responses.
 
-- `shared/types/user.ts` — `AppUser`, `AppRole` (`'admin' | 'moderator' | 'user' | 'provider_admin' | 'provider_staff'`)
-- `shared/types/subscription.ts` — `SubscriptionPlan`, `SubscriptionStatus`, `BillingCycle`, `Subscription`
-- `shared/types/payment.ts` — `Payment`, `PaymentStatus`, `Receipt`
-- `shared/types/audit.ts` — `AuditLogEntry`, `AuditAction`
-- `shared/types/organization.ts` — `Organization`, `OrgKind`, `ProviderApplication`
-- `shared/types/cms.ts` — re-export from existing `cmsTypes.ts`
+### Phase B — Typed clients
+For each resource, add `src/api/clients/<resource>.client.ts` exposing `list / get / create / update / remove` (and resource-specific actions like `verifyReceipt`, `publishPage`). Internally they call `supabase.from(...)` or `supabase.functions.invoke(...)` and parse the response through the Zod schema. Existing components keep working; they just gradually swap `supabase.from('subscriptions')` for `subscriptionsClient.list()`.
 
-Centralize rules:
-- `features/subscriptions/logic/statusMachine.ts` — single `STATUS_TONE`, `nextStatuses(current)`, `canActivate/Suspend/Cancel`
-- `features/subscriptions/logic/entitlements.ts` — single `hasFeature(plan, key)` used by `PaywallModal`, `useSubscription`, admin
-- `features/auth/logic/permissions.ts` — single `can(role, action)` used everywhere instead of inline `hasRole` checks
-- `features/payments/logic/receipts.ts` — verification state machine
+### Phase C — Edge function audit + OpenAPI
+Inventory every edge function (`send-otp`, `verify-otp`, `admin-create-user`, `admin-reset-password`, `approve-provider`, `chat`, `provider-search-patient`, `rcm-bulk-parse`). For each, document: auth requirements, request/response Zod schema, error codes, idempotency. Generate a single `docs/api.md` (and optionally an OpenAPI 3.1 JSON) so the mobile team has a contract.
 
-Update existing files to import from the new modules (no moves yet). Delete duplicated `STATUS_TONE` / `PLAN_OPTIONS` / role checks.
+### Phase D — Realtime channel registry
+Create `src/api/realtime/channels.ts` defining every realtime channel as a typed constant: name, table, event filter, payload schema. Admin portal and mobile both subscribe through the same registry → no drift. First channels to register: `payments:pending`, `tickets:open`, `provider_applications:pending`, `patient_claims:pending`, `cms_pages:published`.
 
-### Phase 2 — Feature folders for the noisy ones
-Move files (one feature per PR). Use re-export shims so old import paths keep working during the transition.
+### Phase E — SEO hardening
+- Audit `scripts/generate-sitemap.ts` against `ALL_ROUTES` + dynamic content (news articles, condition pages) — ensure every published CMS page emits a sitemap entry.
+- Expand `seo/schema.ts` JSON-LD coverage: `MedicalWebPage`, `FAQPage`, `BreadcrumbList`, `Organization` on every content route.
+- Add hreflang validation test (en ↔ ar pair completeness).
+- Add a `prerender` decision matrix per route in `seo/routes.ts` (which routes need static HTML for crawlers vs SPA-fine).
 
-Order, lowest-risk first:
-1. `features/subscriptions/` — `useSubscription`, `subscriptionPlans`, `PaywallModal`, `UpgradeCTA`, `TrialLockBanner`, `SubscriptionDashboard`, `AdminSubscriptions`
-2. `features/payments/` — `BankTransferCheckout`, `AdminPayments`
-3. `features/cms/` — `AdminWebsiteCms`, `SectionEditors`, `cmsTypes`, `useCmsPage`, `AdminCmsSeo`, `AdminCmsMedia`, `AdminCmsBlogCategories`, `ContentPage`, `MarkdownPage`, `AdminNews`, `AdminPages`
-4. `features/rcm/` — `AdminRcm*`, `RcmStatusPanel`, `provider/Rcm*Worklist`, `AdminPatientClaims`
-5. `features/admin/` — remaining `Admin*` (Dashboard, Users, Orgs, Tickets, Reviews, AuditLog, Settings*, VerificationAssist, ProviderApplications, AiUsage)
-6. `features/provider/` — `ProviderDashboard`, `PatientSearch`, `ProviderLogin`
-7. `features/auth/` — `Auth`, `AdminLogin`, `OtpInput`, `useDeviceId`, OTP edge-function callers
-8. `features/patient/` — all `src/screens/*` + patient-only hooks
+### Phase F — Mobile readiness checklist (no code, just spec)
+Document in `docs/mobile-readiness.md`:
+- Auth flow for native (OTP via `send-otp` / `verify-otp`, deep-link callback contract).
+- Device-id header contract (already enforced by `deviceHeader.ts`).
+- Storage upload conventions (receipts, profile photos).
+- Push notification topic naming (aligned with realtime channel registry).
+- Android Auto surface: which read-only endpoints the car app needs (medications-due, next-appointment, emergency contacts).
+- Huawei AppGallery specifics: HMS Push vs FCM, no Google Mobile Services dependency.
 
-### Phase 3 — `app/` and `shared/` reshape
-- Move `App.tsx`, `AppShell.tsx`, `main.tsx` orchestration into `app/`
-- Extract a single `app/providers/AppProviders.tsx` (wraps Currency, Language, Tooltip, Toaster, QueryClient)
-- Move `src/components/ui/*` → `shared/ui/`
-- Move generic hooks/utils/constants → `shared/`
-- Delete the re-export shims left in Phase 2
+### Phase G — File relocations (lazy, opt-in)
+Whenever a file in `src/components/admin/` or `src/pages/` is being meaningfully edited, the editor moves it into the right `features/*` folder in the same PR and updates the barrel's re-export to point at the new path. No dedicated file-move PRs. Over 2–3 months the old folders empty out organically with zero risk.
 
-### Phase 4 — Test backbone
-Add Vitest coverage for the things that actually break in production:
+## What we will NOT do
 
-- `features/subscriptions/logic/statusMachine.test.ts` — every legal transition, every illegal transition rejected
-- `features/payments/logic/receipts.test.ts` — verification workflow (uploaded → under_review → approved/rejected), audit side-effects mocked
-- `features/cms/logic/publish.test.ts` — draft → scheduled → published → archived; `scheduled_at` validation
-- `integrations/supabase/deviceHeader.test.ts` — `x-device-id` injected on Supabase URL, untouched on others, never overwrites caller-set header
-- `features/auth/logic/permissions.test.ts` — `can()` matrix per role
-
-Target: ≥80% on the four `logic/` folders. UI tests stay as-is.
+- Mass file moves (deferred to lazy/opportunistic).
+- Introduce Zustand or any new state lib (React Query + context still sufficient).
+- Build the mobile app inside this repo — it will be a separate Capacitor or React Native repo that depends on the published `@/api` contracts.
+- Touch `supabase/migrations/`, `supabase/config.toml`, `src/integrations/supabase/client.ts`, `src/integrations/supabase/types.ts`, or `.env`.
 
 ## Technical notes
 
-- **Re-export shims**: when moving `X.tsx`, leave `src/old/path/X.tsx` containing `export * from "@/features/.../X";` so we can move incrementally without touching every importer in the same PR. Removed in Phase 3.
-- **Path aliases**: `@/features/*`, `@/shared/*`, `@/app/*`, `@/integrations/*` — add to `tsconfig.app.json` and `vite.config.ts`.
-- **No changes to**: `src/integrations/supabase/client.ts`, `src/integrations/supabase/types.ts`, `.env`, `supabase/config.toml`, `supabase/migrations/*`, `supabase/functions/*`. Edge functions and DB schema are untouched.
-- **Zustand**: defer. Don't introduce until we have a concrete piece of cross-feature client state that React Query + context can't handle cleanly.
-- **Admin nav**: already config-driven in `adminNav.ts` — keep it, just relocate to `features/admin/shell/`.
+- **Zod** is already an indirect dep via shadcn forms; we'll use it directly in `api/contracts/`.
+- **Path alias `@/api`** added to `tsconfig.app.json` and `vite.config.ts`.
+- Clients return `{ data, error }` envelopes (not throws) so mobile + web handle errors uniformly.
+- Realtime channel constants are exported as `as const` tuples so TypeScript infers literal types for table/event names.
+- OpenAPI generation: lightweight — hand-written JSON in `docs/openapi.json` validated by a small Vitest that re-runs the same Zod schemas. No code generation pipeline.
+- Tests added per phase: contract round-trip tests (Zod parse + serialise), client tests with `supabase` mocked, realtime channel name uniqueness test.
 
-## What I'd do *first* if you approve
+## What ships first if you approve
 
-Phase 1 only — types + centralized business rules. It's the highest-leverage, lowest-risk change and unblocks the test work in Phase 4 without moving a single file. Phases 2–4 follow one PR at a time so delivery doesn't stall.
+**Phase A + B for one resource end-to-end (Subscriptions)** as the reference implementation:
+- `src/api/contracts/subscriptions.ts`
+- `src/api/clients/subscriptions.client.ts`
+- Migrate `useSubscription` and `AdminSubscriptions` to use the client.
+- Tests for the contract + client.
+- Doc the pattern in `docs/api-pattern.md` so subsequent resources are mechanical.
+
+Then Phases C–F roll out one resource / one concern per PR.
