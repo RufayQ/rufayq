@@ -146,42 +146,90 @@ const Pricing = () => {
             </button>
           ))}
         </div>
-        <div className="text-[11px] flex items-center gap-2 flex-wrap justify-center" style={{ color: MUTED }}>
-          <span>{showAr ? `الأسعار بـ ${currency}` : `Prices shown in ${currency}`}</span>
-          <CurrencySwitcher variant="inline" />
-          <span style={{ color: MUTED }}>·</span>
-          <CountryPicker />
-          {/* Detected vs Manual source badge — confirms where the price comes from */}
-          {country && (
-            <span
-              className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold inline-flex items-center gap-1"
-              title={countryManual
-                ? (showAr ? "تم اختيار الدولة يدوياً" : "Country was manually overridden")
-                : (showAr ? "تم اكتشاف موقعك تلقائياً" : "Detected automatically from your location")}
-              style={countryManual
-                ? { background: "rgba(197,150,90,0.18)", color: GOLD, border: `1px solid ${GOLD}55` }
-                : { background: "rgba(94,229,176,0.12)", color: "#5EE5B0", border: "1px solid rgba(94,229,176,0.35)" }}
+        <TooltipProvider delayDuration={150}>
+          <div className="text-[11px] flex items-center gap-2 flex-wrap justify-center" style={{ color: MUTED }} dir={showAr ? "rtl" : "ltr"}>
+            <span>{showAr ? `الأسعار بـ ${currency}` : `Prices shown in ${currency}`}</span>
+            <CurrencySwitcher variant="inline" />
+            <span style={{ color: MUTED }}>·</span>
+            <CountryPicker />
+            {/* Detected vs Manual source badge — confirms where the price comes from */}
+            {country && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    data-testid="detection-badge"
+                    className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold inline-flex items-center gap-1 cursor-help"
+                    style={countryManual
+                      ? { background: "rgba(197,150,90,0.18)", color: GOLD, border: `1px solid ${GOLD}55` }
+                      : { background: "rgba(94,229,176,0.12)", color: "#5EE5B0", border: "1px solid rgba(94,229,176,0.35)" }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: countryManual ? GOLD : "#5EE5B0" }} />
+                    {countryManual
+                      ? (showAr ? `يدوي · ${country}` : `Manual · ${country}`)
+                      : (showAr ? `تلقائي · ${country}` : `Detected · ${country}`)}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align={showAr ? "end" : "start"} dir={showAr ? "rtl" : "ltr"} className={showAr ? "font-arabic text-right" : "text-left"}>
+                  {countryManual
+                    ? (showAr ? "تم اختيار الدولة يدوياً" : "Country was manually overridden")
+                    : (showAr ? "تم اكتشاف موقعك تلقائياً" : "Detected automatically from your location")}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {/* Quick local↔USD toggle — lets visitors flip between their local currency and USD without opening the picker */}
+            {country && COUNTRY_CURRENCY[country] && COUNTRY_CURRENCY[country] !== "USD" && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    data-testid="currency-toggle"
+                    onClick={() => setCurrency(currency === "USD" ? COUNTRY_CURRENCY[country]! : "USD")}
+                    className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold transition-all hover:scale-105 inline-flex items-center gap-1"
+                    style={{ background: "transparent", color: TEXT, border: `1px solid ${BORDER}` }}
+                    aria-label={showAr ? "تبديل العملة" : "Toggle currency"}
+                  >
+                    <Globe2 size={10} style={{ transform: showAr ? "scaleX(-1)" : undefined }} />
+                    {currency === "USD"
+                      ? (showAr ? `عرض بـ ${COUNTRY_CURRENCY[country]}` : `Show in ${COUNTRY_CURRENCY[country]}`)
+                      : (showAr ? "عرض بالدولار" : "Show in USD")}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align={showAr ? "end" : "start"} dir={showAr ? "rtl" : "ltr"} className={showAr ? "font-arabic text-right" : "text-left"}>
+                  {showAr ? "تبديل بين العملة المحلية والدولار" : "Toggle between local currency and USD"}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+          {/* Inline note: explains how location was determined and any fallback used */}
+          {country && !countryManual && (
+            <p
+              data-testid="detection-note"
+              className={`mt-2 text-[10px] flex items-center justify-center gap-1.5 ${showAr ? "font-arabic" : ""}`}
+              style={{ color: MUTED }}
+              dir={showAr ? "rtl" : "ltr"}
             >
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: countryManual ? GOLD : "#5EE5B0" }} />
-              {countryManual
-                ? (showAr ? `يدوي · ${country}` : `Manual · ${country}`)
-                : (showAr ? `تلقائي · ${country}` : `Detected · ${country}`)}
-            </span>
+              <MapPin size={10} style={{ transform: showAr ? "scaleX(-1)" : undefined }} />
+              {(() => {
+                const loc = country;
+                if (showAr) {
+                  switch (detectionSource) {
+                    case "ip": return `استناداً إلى عنوان IP الخاص بك · ${loc}`;
+                    case "locale": return `استناداً إلى لغة المتصفح · ${loc} (تعذّر تحديد IP)`;
+                    case "timezone": return `استناداً إلى المنطقة الزمنية · ${loc} (تعذّر تحديد IP)`;
+                    case "stored": return `من تفضيلاتك السابقة · ${loc}`;
+                    default: return `الموقع الافتراضي · ${loc}`;
+                  }
+                }
+                switch (detectionSource) {
+                  case "ip": return `Based on your IP address · ${loc}`;
+                  case "locale": return `Fell back to browser language · ${loc} (IP lookup unavailable)`;
+                  case "timezone": return `Fell back to timezone · ${loc} (IP lookup unavailable)`;
+                  case "stored": return `From your previous preference · ${loc}`;
+                  default: return `Default location · ${loc}`;
+                }
+              })()}
+            </p>
           )}
-          {/* Quick local↔USD toggle — lets visitors flip between their local currency and USD without opening the picker */}
-          {country && COUNTRY_CURRENCY[country] && COUNTRY_CURRENCY[country] !== "USD" && (
-            <button
-              onClick={() => setCurrency(currency === "USD" ? COUNTRY_CURRENCY[country]! : "USD")}
-              className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold transition-all hover:scale-105"
-              style={{ background: "transparent", color: TEXT, border: `1px solid ${BORDER}` }}
-              title={showAr ? "تبديل بين العملة المحلية والدولار" : "Toggle between local currency and USD"}
-            >
-              {currency === "USD"
-                ? (showAr ? `عرض بـ ${COUNTRY_CURRENCY[country]}` : `Show in ${COUNTRY_CURRENCY[country]}`)
-                : (showAr ? "عرض بالدولار" : "Show in USD")}
-            </button>
-          )}
-        </div>
+        </TooltipProvider>
       </header>
 
       {/* Tier cards */}
