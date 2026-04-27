@@ -8,7 +8,8 @@ export type PaymentStatus =
   | "under_review"
   | "needs_more_info"
   | "verified"
-  | "rejected";
+  | "rejected"
+  | "code_expired";
 
 export interface PaymentReceipt {
   id: string;

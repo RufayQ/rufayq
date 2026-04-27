@@ -13,6 +13,7 @@ export const KNOWN_PAYMENT_STATUSES = [
   "needs_more_info",
   "verified",
   "rejected",
+  "code_expired",
 ] as const;
 
 export const PaymentStatusSchema = z.string().min(1);
@@ -43,6 +44,7 @@ export const PaymentReceiptSchema = z.object({
   status: PaymentStatusSchema,
   reviewer_notes: z.string().nullable(),
   reviewed_at: z.string().nullable(),
+  code_expires_at: z.string().nullable().optional(),
   created_at: z.string(),
 });
 

@@ -17,6 +17,7 @@ import { X, Upload, Loader2, CheckCircle2, Clock, Copy, FileText, AlertTriangle,
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { paymentsClient } from "@/api";
 import { BANK_DETAILS, PLAN_BY_CODE, planPrice, type BillingCycle, type PlanCode } from "@/data/subscriptionPlans";
 
 interface Props {
@@ -30,7 +31,7 @@ interface Props {
 
 interface ReceiptRow {
   id: string;
-  status: "pending" | "under_review" | "verified" | "rejected" | "needs_more_info";
+  status: "pending" | "under_review" | "verified" | "rejected" | "needs_more_info" | "code_expired";
   payment_reference: string | null;
   reviewer_notes: string | null;
   patient_message: string | null;
@@ -38,6 +39,7 @@ interface ReceiptRow {
   reviewed_at: string | null;
   amount: number;
   requested_plan: string;
+  code_expires_at?: string | null;
 }
 
 const STATUS_META: Record<ReceiptRow["status"], { en: string; ar: string; tone: string; icon: any }> = {
@@ -46,6 +48,7 @@ const STATUS_META: Record<ReceiptRow["status"], { en: string; ar: string; tone: 
   needs_more_info: { en: "More info needed",      ar: "مطلوب معلومات إضافية", tone: "var(--gold)",       icon: AlertTriangle },
   verified:        { en: "Approved & active",     ar: "تمت الموافقة",        tone: "var(--success)",    icon: CheckCircle2 },
   rejected:        { en: "Rejected",              ar: "مرفوض",              tone: "var(--danger)",     icon: X },
+  code_expired:    { en: "Reference code expired",ar: "انتهت صلاحية المرجع",  tone: "var(--danger)",     icon: AlertTriangle },
 };
 
 const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaultCycle = "monthly", onSuccess, rufayqId }: Props) => {
@@ -62,16 +65,60 @@ const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaul
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [pollReceipt, setPollReceipt] = useState<ReceiptRow | null>(null);
+  // Pending row created on mount / when plan or cycle changes — gives the
+  // patient a real `payment_reference` (set by DB trigger) before they pay.
+  const [pendingReceipt, setPendingReceipt] = useState<ReceiptRow | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   // Reset state when modal closes
   useEffect(() => {
     if (!open) {
       setSubmitted(false);
       setPollReceipt(null);
+      setPendingReceipt(null);
       setFile(null);
       setReference(""); setPayerName(""); setPayerPhone(""); setBankName("");
     }
   }, [open]);
+
+  const planDef = PLAN_BY_CODE[plan];
+  const amount = planPrice(plan, cycle);
+
+  // Pre-create pending receipt whenever the modal opens or plan/cycle changes.
+  // This gives the patient the canonical RFQ-PAY-... reference up front.
+  const generatePending = async () => {
+    setGenerating(true);
+    const res = await paymentsClient.createPendingReceipt({
+      device_id: getDeviceId(),
+      requested_plan: plan,
+      billing_cycle: cycle,
+      currency: "SAR",
+      amount,
+      payment_method: "bank_transfer",
+      submission_channel: "web",
+    });
+    if (res.error || !res.data) {
+      toast.error(res.error?.message || "Could not generate reference code");
+      setGenerating(false);
+      return;
+    }
+    setPendingReceipt(res.data as ReceiptRow);
+    setGenerating(false);
+  };
+
+  useEffect(() => {
+    if (!open || submitted) return;
+    generatePending();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, plan, cycle]);
+
+  // Tick every 30s for countdown rendering.
+  useEffect(() => {
+    if (!open || submitted) return;
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, [open, submitted]);
 
   // Poll latest receipt for live status updates while open
   useEffect(() => {
@@ -80,7 +127,7 @@ const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaul
     const tick = async () => {
       const { data } = await supabase
         .from("payment_receipts")
-        .select("id,status,payment_reference,reviewer_notes,patient_message,created_at,reviewed_at,amount,requested_plan")
+        .select("id,status,payment_reference,reviewer_notes,patient_message,created_at,reviewed_at,amount,requested_plan,code_expires_at")
         .eq("id", id)
         .maybeSingle();
       if (data) {
@@ -92,15 +139,18 @@ const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaul
     return () => clearInterval(t);
   }, [open, submitted, pollReceipt?.id]);
 
-  const planDef = PLAN_BY_CODE[plan];
-  const amount = planPrice(plan, cycle);
-
-  // Live RFQ-PAY reference shown to user before submission (final one is regenerated server-side).
-  const previewRef = useMemo(() => {
-    const d = new Date();
-    const ymd = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`;
-    return `RFQ-PAY-${ymd}-XXXXX`;
-  }, [open]);
+  // Expiry derivation
+  const expiresAt = pendingReceipt?.code_expires_at ? new Date(pendingReceipt.code_expires_at).getTime() : null;
+  const msLeft = expiresAt ? expiresAt - now : null;
+  const isExpired = msLeft !== null && msLeft <= 0;
+  const expiryTone = msLeft === null ? "var(--gray)"
+    : msLeft < 30 * 60_000 ? "var(--danger)"
+    : msLeft < 2 * 60 * 60_000 ? "var(--gold)"
+    : "var(--success)";
+  const expiryLabel = msLeft === null ? ""
+    : msLeft <= 0 ? "Code expired · انتهت الصلاحية"
+    : msLeft > 60 * 60_000 ? `Valid for ${Math.floor(msLeft / 3_600_000)}h ${Math.floor((msLeft % 3_600_000) / 60_000)}m`
+    : `Valid for ${Math.max(1, Math.floor(msLeft / 60_000))}m`;
 
   if (!open) return null;
 
@@ -109,12 +159,14 @@ const BankTransferCheckout = ({ open, onClose, defaultPlan = "COMPANION", defaul
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied · تم النسخ`);
   };
+  const refForCopy = pendingReceipt?.payment_reference || "[reference code]";
   const whatsappCopy = `Hello RufayQ Support,
 I have transferred the subscription payment.
 RufayQ ID: ${rufayqId || "[your RufayQ ID]"}
 Plan: ${planDef.nameEn} (${cycle})
 Amount: SAR ${amount}
-Transfer Reference: ${reference || "[transfer reference]"}
+RufayQ reference: ${refForCopy}
+Bank transfer reference: ${reference || "[transfer reference]"}
 Please verify and activate my subscription.`;
   const emailCopy = whatsappCopy;
   const arabicCopy = `مرحباً فريق رُفَيْق،
@@ -122,11 +174,14 @@ Please verify and activate my subscription.`;
 رقم رُفَيْق: ${rufayqId || "[رقم رُفَيْق الخاص بك]"}
 الباقة: ${planDef.nameAr} (${cycle === "monthly" ? "شهري" : "سنوي"})
 المبلغ: ${amount} ر.س
-رقم المرجع: ${reference || "[رقم المرجع]"}
+مرجع رُفَيْق: ${refForCopy}
+رقم المرجع البنكي: ${reference || "[رقم المرجع]"}
 نرجو التحقق وتفعيل الاشتراك.`;
 
   // === Submit ===
   const submit = async () => {
+    if (!pendingReceipt) return toast.error("Please wait for the reference code");
+    if (isExpired) return toast.error("Reference code expired — please regenerate");
     if (channel === "app" && !file) return toast.error("Upload the receipt image or PDF · أرفق الإيصال");
     if (!reference.trim()) return toast.error("Bank transfer reference required · رقم المرجع مطلوب");
     if (!payerName.trim()) return toast.error("Sender name required · اسم المرسل مطلوب");
@@ -141,25 +196,24 @@ Please verify and activate my subscription.`;
         const { error: upErr } = await supabase.storage.from("payment-receipts").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
       }
-      const { data: row, error: insErr } = await supabase.from("payment_receipts").insert({
-        device_id: deviceId,
-        requested_plan: plan,
-        billing_cycle: cycle,
-        amount,
-        currency: "SAR",
-        payment_method: "bank_transfer",
+      const upd = await paymentsClient.attachAndSubmit(pendingReceipt.id, {
+        receipt_file_path: path,
         submission_channel: channel,
-        reference_no: reference.trim(),
         bank_name: bankName.trim() || null,
+        transfer_date: transferDate || null,
+        reference_no: reference.trim(),
         payer_name: payerName.trim(),
         payer_phone: payerPhone.trim() || null,
-        transfer_date: transferDate || null,
-        receipt_file_path: path,
-        status: "pending",
-      }).select().single();
-      if (insErr) throw insErr;
+      });
+      if (upd.error) throw new Error(upd.error.message);
 
-      setPollReceipt(row as ReceiptRow);
+      // Re-fetch the row so the timeline shows the latest server state
+      const { data: row } = await supabase
+        .from("payment_receipts")
+        .select("id,status,payment_reference,reviewer_notes,patient_message,created_at,reviewed_at,amount,requested_plan,code_expires_at")
+        .eq("id", pendingReceipt.id)
+        .maybeSingle();
+      setPollReceipt((row as ReceiptRow) || pendingReceipt);
       setSubmitted(true);
       toast.success("Receipt submitted · تم استلام الإيصال");
     } catch (e: any) {
@@ -262,15 +316,55 @@ Please verify and activate my subscription.`;
             ))}
           </div>
 
-          {/* Amount + RFQ-PAY preview */}
+          {/* Amount + real RFQ-PAY reference + countdown */}
           <div className="rounded-xl p-3" style={{ background: "var(--off-white)" }}>
             <div className="flex items-center justify-between">
               <p className="text-xs" style={{ color: "var(--gray)" }}>Amount due · المبلغ</p>
               <p className="font-display text-2xl font-bold" style={{ color: "var(--navy)" }}>SAR {amount.toLocaleString()}</p>
             </div>
             <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>VAT may apply depending on official billing setup. · قد تُطبَّق ضريبة القيمة المضافة.</p>
-            <p className="font-mono text-[10px] mt-2" style={{ color: "var(--gold)" }}>Transfer reference: {previewRef}</p>
-            <p className="text-[10px]" style={{ color: "var(--gray)" }}>Subscription will not activate until payment is verified.</p>
+
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[9px] uppercase tracking-widest" style={{ color: "var(--gray)" }}>Use this exact reference in your bank transfer</p>
+                {generating && !pendingReceipt ? (
+                  <p className="font-mono text-xs flex items-center gap-1" style={{ color: "var(--gray)" }}>
+                    <Loader2 size={11} className="animate-spin" /> Generating…
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => pendingReceipt?.payment_reference && copyText(pendingReceipt.payment_reference, "Reference")}
+                    className="font-mono text-sm font-bold flex items-center gap-1.5 btn-press"
+                    style={{ color: isExpired ? "var(--danger)" : "var(--gold)" }}
+                  >
+                    {pendingReceipt?.payment_reference || "—"}
+                    {pendingReceipt?.payment_reference && <Copy size={11} />}
+                  </button>
+                )}
+              </div>
+              {pendingReceipt && !isExpired && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                      style={{ background: `${expiryTone}20`, color: expiryTone, border: `1px solid ${expiryTone}` }}>
+                  {expiryLabel}
+                </span>
+              )}
+            </div>
+
+            {isExpired && (
+              <div className="mt-2 rounded-lg p-2 flex items-center justify-between gap-2"
+                   style={{ background: "var(--danger-bg, #fee)", border: "1px solid var(--danger)" }}>
+                <p className="text-[11px]" style={{ color: "var(--danger)" }}>
+                  Reference expired · انتهت صلاحية المرجع
+                </p>
+                <button onClick={generatePending} disabled={generating}
+                  className="text-[11px] font-semibold px-2 py-1 rounded flex items-center gap-1"
+                  style={{ background: "var(--teal-deep)", color: "white" }}>
+                  {generating ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+                  Get new code
+                </button>
+              </div>
+            )}
+            <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>Subscription will not activate until payment is verified.</p>
           </div>
 
           {/* Bank instructions */}
@@ -350,7 +444,7 @@ Please verify and activate my subscription.`;
             </label>
           )}
 
-          <button onClick={submit} disabled={submitting}
+          <button onClick={submit} disabled={submitting || !pendingReceipt || isExpired}
             className="w-full py-3 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ background: "var(--teal-deep)" }}>
             {submitting && <Loader2 size={16} className="animate-spin" />}

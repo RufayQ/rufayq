@@ -68,6 +68,68 @@ export const paymentsClient = {
     return ok(out.data);
   },
 
+  /**
+   * Pre-create a `pending` receipt row at the start of the bank-transfer flow
+   * so the patient sees the canonical `payment_reference` (set by the DB
+   * trigger) before they go to their bank app. The same row is later updated
+   * by `attachAndSubmit` once they upload proof — guaranteeing the admin
+   * queue is never empty for a real payer.
+   */
+  async createPendingReceipt(input: {
+    device_id: string;
+    requested_plan: string;
+    billing_cycle: "monthly" | "yearly" | "quarterly";
+    currency: string;
+    amount: number;
+    payment_method: string;
+    payer_name?: string | null;
+    payer_phone?: string | null;
+    submission_channel?: string;
+  }): Promise<ApiResult<PaymentReceipt>> {
+    const { data, error } = await supabase
+      .from("payment_receipts")
+      .insert({
+        device_id: input.device_id,
+        requested_plan: input.requested_plan,
+        billing_cycle: input.billing_cycle,
+        currency: input.currency,
+        amount: input.amount,
+        payment_method: input.payment_method,
+        payer_name: input.payer_name ?? null,
+        payer_phone: input.payer_phone ?? null,
+        submission_channel: input.submission_channel ?? "web",
+        status: "pending",
+      } as never)
+      .select()
+      .single();
+    if (error) return fail("insert_failed", error.message);
+    const out = PaymentReceiptSchema.safeParse(data);
+    if (!out.success) return fail("contract_violation", out.error.message);
+    return ok(out.data);
+  },
+
+  /**
+   * Patient finished the bank transfer and uploaded proof — flip the
+   * existing pending row to `under_review` with the receipt details.
+   */
+  async attachAndSubmit(id: string, patch: {
+    receipt_file_path?: string | null;
+    submission_channel?: string;
+    bank_name?: string | null;
+    transfer_date?: string | null;
+    reference_no?: string | null;
+    payer_name?: string | null;
+    payer_phone?: string | null;
+    patient_message?: string | null;
+  }): Promise<ApiResult<true>> {
+    const { error } = await supabase
+      .from("payment_receipts")
+      .update({ ...patch, status: "under_review" } as never)
+      .eq("id", id);
+    if (error) return fail("update_failed", error.message);
+    return ok(true);
+  },
+
   async updateStatus(id: string, patch: ReceiptStatusUpdate): Promise<ApiResult<true>> {
     const parsed = ReceiptStatusUpdateSchema.safeParse(patch);
     if (!parsed.success) return fail("invalid_input", parsed.error.message);
@@ -154,6 +216,7 @@ export const paymentsClient = {
       activated_by: user?.id ?? null,
       activated_at: start.toISOString(),
       provider: "manual",
+      payment_receipt_id: receipt.id,
       notes: `Verified from receipt ${receipt.id.slice(0, 8)}`,
     } as never).select().single();
     if (subErr || !subRow) return fail("insert_failed", subErr?.message ?? "Could not create subscription");

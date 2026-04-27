@@ -1,107 +1,55 @@
-## Context
+# Billing revamp — execution plan
 
-You want RufayQ to become:
-1. **API-first** — every feature usable from web, native mobile (iOS/Android/Huawei), Android Auto, and future B2B partners through stable, versioned contracts.
-2. **SEO-first** — marketing/content surface optimised for organic discovery (already partially in place via `src/seo/`).
-3. **Mobile-ready** — separate native apps that read/write through the same APIs the admin portal uses, with realtime listen channels.
+Build the 7 parts in the safest order. After each part the system stays usable, so we can stop if anything regresses.
 
-The previous plan focused on moving ~80 files into `features/*` folders. That work is **high churn, low new value** because Phase 1–2 already delivered the important wins (stable barrels at `@/features/*`, centralised types in `@/shared/types`, and logic modules in `features/*/logic`). Physical relocations can now happen one PR at a time as a near-zero-risk shim swap.
+## 1. Migration — `payment_receipts` + `user_subscriptions` gaps
+New file: `supabase/migrations/<timestamp>_billing_gaps.sql`
+- `payment_receipts.code_expires_at TIMESTAMPTZ DEFAULT now() + interval '24 hours'`
+- Drop + re-add `payment_receipts_status_check` to allow `code_expired`
+- `user_subscriptions.payment_receipt_id UUID REFERENCES payment_receipts(id) ON DELETE SET NULL`
+- Moderator UPDATE policy on `payment_receipts` (using `has_role(auth.uid(),'moderator')`)
+- Partial index `idx_payment_receipts_expiry ON (code_expires_at) WHERE status='pending'`
 
-This revised plan **drops the bulk file-move phase** and replaces it with the work that actually unlocks API-first + mobile.
+## 2. Contracts + client — `createPendingReceipt`
+- `src/api/contracts/payments.ts`: add `'code_expired'` to `KNOWN_PAYMENT_STATUSES`; add `code_expires_at: z.string().nullable()` to `PaymentReceiptSchema`.
+- `src/api/clients/payments.client.ts`: add `createPendingReceipt({ device_id, requested_plan, billing_cycle, currency, amount, payment_method, payer_name?, payer_phone?, submission_channel? })`. Inserts a `pending` row, lets the DB trigger assign `payment_reference`, returns the full row including `code_expires_at`.
+- `src/features/payments/logic/receipts.ts`: tone for `code_expired` (slate/orange).
+- `src/shared/types/payment.ts`: extend `PaymentStatus` union.
 
-## What changes vs the previous plan
+## 3. `verifyAndActivate` — link receipt to subscription
+- After inserting the new `user_subscriptions` row, set `payment_receipt_id = receipt.id` on the same insert payload (single statement — no extra round-trip).
 
-| Previously planned | Status now |
-|---|---|
-| Phase 2: move 80 files into `features/*` | **Deferred** — done opportunistically when a file is already being edited. Barrels already give the stable import surface. |
-| Phase 3: lift providers into `app/providers/` | **Kept, but minimal** — only when we actually need to share providers with a mobile shell. |
-| Phase 4: tests for state machines | **Already done** ✅ (96/96 passing). |
-| — | **NEW:** API contract layer (`src/api/`) with versioned, typed clients used by web today and reused by mobile tomorrow. |
-| — | **NEW:** Edge-function API surface audit + OpenAPI spec generation. |
-| — | **NEW:** Realtime channel registry so mobile + admin subscribe to the same topics. |
-| — | **NEW:** SEO hardening (sitemap completeness, structured data audit, content cluster expansion plan). |
+## 4. Patient flow — `BankTransferCheckout.tsx`
+- On mount, call `createPendingReceipt(...)` once and store the row in state.
+- Replace placeholder `RFQ-PAY-…` with the real `payment_reference` from DB (skeleton while loading).
+- New small component `ExpiryCountdown` (inline in the file): green > 2h, amber 30m–2h, red < 30m, "Code expired" terminal state with **Get new code** button that calls `createPendingReceipt` again.
+- Change the existing submit path from `.insert(...)` to `paymentsClient` update of the existing row: set `receipt_file_path`, `submission_channel`, `bank_name`, `transfer_date`, `payer_*`, `patient_message`, `status='under_review'` via `.eq('id', pendingReceipt.id)`. Add a `paymentsClient.attachAndSubmit(id, patch)` helper to keep raw `supabase.from` out of the component.
+- Disable submit until row exists; if expired, force user to regenerate first.
 
-## New target structure (additive, no big moves)
+## 5. Admin — Add Receipt + status surfaces
+- New `src/components/admin/AdminAddReceiptPanel.tsx` (Sheet from the right):
+  - Step 1: debounced patient search against `profiles` (`full_name`, `email`, `phone`, `rufayq_id`); result row → captures `device_id` (from latest `user_devices`/profile mapping — read existing pattern in `AdminUserSearch.tsx` to stay consistent).
+  - Step 2: plan radio (Starter/Companion/Family), cycle toggle, currency, amount (auto-fill from `data/subscriptionPlans.ts`, editable), submission channel dropdown, transfer date, bank name.
+  - Step 3: drag/drop upload to `payment-receipts` bucket; "Image not available" checkbox.
+  - Step 4: internal note + patient message.
+  - Submit → `paymentsClient.upload(...)` with `status: 'under_review'` + reviewer fields, then toast.
+- `AdminPayments.tsx` edits:
+  - Header: gold **+ New Receipt** button → opens panel.
+  - Empty state: icon + title + subtitle + same CTA.
+  - Status pill + filter dropdown: add **Code Expired** (orange).
+- `src/features/payments/index.ts`: re-export `AdminAddReceiptPanel`.
 
-```text
-src/
-  api/                          # NEW — single source of truth for all backend calls
-    contracts/                  # Zod schemas + TS types per resource
-      subscriptions.ts
-      payments.ts
-      cms.ts
-      rcm.ts
-      auth.ts
-    clients/                    # Thin wrappers over supabase + edge functions
-      subscriptions.client.ts
-      payments.client.ts
-      ...
-    realtime/                   # Channel registry (table + filter constants)
-      channels.ts
-    index.ts                    # Public API barrel — what mobile will import
-  features/                     # already exists (Phase 1–2)
-  shared/                       # already exists
-  seo/                          # already exists — expanded in this plan
-  integrations/supabase/        # unchanged
-```
+## 6. Edge function — `expire-pending-payments`
+- `supabase/functions/expire-pending-payments/index.ts`: service-role client, single update `status='code_expired'` where `status='pending' AND code_expires_at < now()`, returns `{ expired: count }`. CORS + JSON.
+- Schedule via `pg_cron` + `pg_net` every 30 min (`*/30 * * * *`) using the project ref + anon key (insert-tool SQL, not migration, per docs).
 
-Mobile app (separate repo later) imports **only** from `@/api` — never reaches into `features/*` or Supabase directly.
+## 7. Relocation (last, cosmetic)
+- Move `src/components/admin/AdminPayments.tsx` → `src/features/payments/admin/ui/AdminPayments.tsx`.
+- Update `src/features/payments/index.ts` and any direct imports (`src/pages/Admin.tsx`, etc.) found via `rg`.
 
-## Phased rollout (replaces old Phase 2–3)
+## Validation after each part
+- `bunx vitest run` on touched areas (`receipts.test.ts`, contracts).
+- Manual: open `/pricing` bank-transfer flow → confirm a real `RFQ-PAY-…` appears and a row exists in `payment_receipts` with `status='pending'`. Then admin sees it in the queue.
 
-### Phase A — API contract layer (highest leverage)
-Create `src/api/contracts/` with **Zod schemas** for every resource that crosses the network: `Subscription`, `Payment`, `Receipt`, `CmsPage`, `CmsSection`, `AuditLogEntry`, `ProviderApplication`, `Ticket`, `Review`, `RcmClaim`, `User`, `Organization`. Each schema is the canonical shape; TS types are inferred (`z.infer<...>`). This replaces ad-hoc `as` casts on Supabase responses.
-
-### Phase B — Typed clients
-For each resource, add `src/api/clients/<resource>.client.ts` exposing `list / get / create / update / remove` (and resource-specific actions like `verifyReceipt`, `publishPage`). Internally they call `supabase.from(...)` or `supabase.functions.invoke(...)` and parse the response through the Zod schema. Existing components keep working; they just gradually swap `supabase.from('subscriptions')` for `subscriptionsClient.list()`.
-
-### Phase C — Edge function audit + OpenAPI
-Inventory every edge function (`send-otp`, `verify-otp`, `admin-create-user`, `admin-reset-password`, `approve-provider`, `chat`, `provider-search-patient`, `rcm-bulk-parse`). For each, document: auth requirements, request/response Zod schema, error codes, idempotency. Generate a single `docs/api.md` (and optionally an OpenAPI 3.1 JSON) so the mobile team has a contract.
-
-### Phase D — Realtime channel registry
-Create `src/api/realtime/channels.ts` defining every realtime channel as a typed constant: name, table, event filter, payload schema. Admin portal and mobile both subscribe through the same registry → no drift. First channels to register: `payments:pending`, `tickets:open`, `provider_applications:pending`, `patient_claims:pending`, `cms_pages:published`.
-
-### Phase E — SEO hardening
-- Audit `scripts/generate-sitemap.ts` against `ALL_ROUTES` + dynamic content (news articles, condition pages) — ensure every published CMS page emits a sitemap entry.
-- Expand `seo/schema.ts` JSON-LD coverage: `MedicalWebPage`, `FAQPage`, `BreadcrumbList`, `Organization` on every content route.
-- Add hreflang validation test (en ↔ ar pair completeness).
-- Add a `prerender` decision matrix per route in `seo/routes.ts` (which routes need static HTML for crawlers vs SPA-fine).
-
-### Phase F — Mobile readiness checklist (no code, just spec)
-Document in `docs/mobile-readiness.md`:
-- Auth flow for native (OTP via `send-otp` / `verify-otp`, deep-link callback contract).
-- Device-id header contract (already enforced by `deviceHeader.ts`).
-- Storage upload conventions (receipts, profile photos).
-- Push notification topic naming (aligned with realtime channel registry).
-- Android Auto surface: which read-only endpoints the car app needs (medications-due, next-appointment, emergency contacts).
-- Huawei AppGallery specifics: HMS Push vs FCM, no Google Mobile Services dependency.
-
-### Phase G — File relocations (lazy, opt-in)
-Whenever a file in `src/components/admin/` or `src/pages/` is being meaningfully edited, the editor moves it into the right `features/*` folder in the same PR and updates the barrel's re-export to point at the new path. No dedicated file-move PRs. Over 2–3 months the old folders empty out organically with zero risk.
-
-## What we will NOT do
-
-- Mass file moves (deferred to lazy/opportunistic).
-- Introduce Zustand or any new state lib (React Query + context still sufficient).
-- Build the mobile app inside this repo — it will be a separate Capacitor or React Native repo that depends on the published `@/api` contracts.
-- Touch `supabase/migrations/`, `supabase/config.toml`, `src/integrations/supabase/client.ts`, `src/integrations/supabase/types.ts`, or `.env`.
-
-## Technical notes
-
-- **Zod** is already an indirect dep via shadcn forms; we'll use it directly in `api/contracts/`.
-- **Path alias `@/api`** added to `tsconfig.app.json` and `vite.config.ts`.
-- Clients return `{ data, error }` envelopes (not throws) so mobile + web handle errors uniformly.
-- Realtime channel constants are exported as `as const` tuples so TypeScript infers literal types for table/event names.
-- OpenAPI generation: lightweight — hand-written JSON in `docs/openapi.json` validated by a small Vitest that re-runs the same Zod schemas. No code generation pipeline.
-- Tests added per phase: contract round-trip tests (Zod parse + serialise), client tests with `supabase` mocked, realtime channel name uniqueness test.
-
-## What ships first if you approve
-
-**Phase A + B for one resource end-to-end (Subscriptions)** as the reference implementation:
-- `src/api/contracts/subscriptions.ts`
-- `src/api/clients/subscriptions.client.ts`
-- Migrate `useSubscription` and `AdminSubscriptions` to use the client.
-- Tests for the contract + client.
-- Doc the pattern in `docs/api-pattern.md` so subsequent resources are mechanical.
-
-Then Phases C–F roll out one resource / one concern per PR.
+## Out of scope (per audit)
+- No `payment_records` table, no `audit_events`, no rename of existing tables/columns, no global realtime in providers, no status-machine changes.
