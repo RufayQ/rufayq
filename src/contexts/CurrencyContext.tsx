@@ -35,19 +35,19 @@ export type DetectionSource = Ctx["detectionSource"];
 const CurrencyContext = createContext<Ctx | null>(null);
 
 /** Locale + timezone country detection (sync, free, instant). */
-function detectCountrySync(): string | null {
-  if (typeof window === "undefined") return null;
+function detectCountrySyncWithSource(): { code: string | null; source: DetectionSource } {
+  if (typeof window === "undefined") return { code: null, source: "default" };
 
   const manual = localStorage.getItem(COUNTRY_OVERRIDE_KEY);
-  if (manual) return manual;
+  if (manual) return { code: manual, source: "manual" };
 
   const stored = localStorage.getItem(COUNTRY_KEY);
-  if (stored) return stored;
+  if (stored) return { code: stored, source: "stored" };
 
   const langs = navigator.languages?.length ? navigator.languages : [navigator.language];
   for (const lang of langs) {
     const m = lang?.match(/-([A-Z]{2})$/i);
-    if (m) return m[1].toUpperCase();
+    if (m) return { code: m[1].toUpperCase(), source: "locale" };
   }
 
   try {
@@ -61,9 +61,13 @@ function detectCountrySync(): string | null {
       "Europe/Madrid": "ES", "Europe/Amsterdam": "NL", "Europe/Vienna": "AT",
       "Europe/Brussels": "BE", "Europe/Dublin": "IE", "Europe/Lisbon": "PT",
     };
-    if (tzMap[tz]) return tzMap[tz];
+    if (tzMap[tz]) return { code: tzMap[tz], source: "timezone" };
   } catch { /* ignore */ }
-  return null;
+  return { code: null, source: "default" };
+}
+
+function detectCountrySync(): string | null {
+  return detectCountrySyncWithSource().code;
 }
 
 /** Async IP-based country detection. Free, no key. ~50–150ms. */
