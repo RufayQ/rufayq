@@ -25,8 +25,8 @@ import {
   type AddonRow as Addon,
 } from "@/api";
 import { Can } from "@/features/auth";
-import AdminAddReceiptPanel from "@/components/admin/AdminAddReceiptPanel";
-import ReceiptAuditLog from "@/components/admin/ReceiptAuditLog";
+import AdminAddReceiptPanel from "@/features/payments/admin/ui/AdminAddReceiptPanel";
+import ReceiptAuditLog from "@/features/payments/admin/ui/ReceiptAuditLog";
 
 type Tab = "subs" | "receipts" | "addons";
 type Receipt = PaymentReceipt;

@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { ArrowLeft, Check, Star, Clock, CheckCircle2 } from "lucide-react";
 import { PLANS, planPrice, type BillingCycle, type PlanCode } from "@/data/subscriptionPlans";
-import BankTransferCheckout from "@/components/BankTransferCheckout";
+import BankTransferCheckout from "@/features/payments/patient/ui/BankTransferCheckout";
 import { useSubscription } from "@/hooks/useSubscription";
 
 interface PricingScreenProps { onBack: () => void; }

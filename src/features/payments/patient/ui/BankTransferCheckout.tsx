@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { paymentsClient } from "@/api";
 import { BANK_DETAILS, PLAN_BY_CODE, planPrice, type BillingCycle, type PlanCode } from "@/data/subscriptionPlans";
-import ReceiptStatusTimeline from "@/components/ReceiptStatusTimeline";
+import ReceiptStatusTimeline from "@/features/payments/patient/ui/ReceiptStatusTimeline";
 
 interface Props {
   open: boolean;

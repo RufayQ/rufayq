@@ -1,10 +1,13 @@
 /**
  * features/payments — public API barrel.
- * Re-exports current files so callers can migrate to `@/features/payments`
- * before the physical relocation happens.
+ * All payment UI lives under `features/payments/{admin,patient}/ui/*` after
+ * the 2026-04-27 relocation.
  */
-export { default as BankTransferCheckout } from "@/components/BankTransferCheckout";
-export { default as AdminPayments } from "@/components/admin/AdminPayments";
+export { default as BankTransferCheckout } from "./patient/ui/BankTransferCheckout";
+export { default as ReceiptStatusTimeline } from "./patient/ui/ReceiptStatusTimeline";
+export { default as AdminPayments } from "./admin/ui/AdminPayments";
+export { default as AdminAddReceiptPanel } from "./admin/ui/AdminAddReceiptPanel";
+export { default as ReceiptAuditLog } from "./admin/ui/ReceiptAuditLog";
 
 // Domain logic
 export * from "./logic/receipts";
