@@ -587,10 +587,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
                 ].map((t) => (
                   <button
                     key={t.label}
-                    onClick={() => {
-                      setUploadedFile({ name: `${t.label.toLowerCase().replace(/\s+/g, "_")}_scan.pdf`, size: "1.2 MB" });
-                      setUploadInstruction(t.label);
-                    }}
+                    onClick={() => setUploadInstruction(t.label)}
                     className="flex flex-col items-center gap-1 py-3 rounded-xl card-press"
                     style={{ background: uploadInstruction === t.label ? "var(--teal-light)" : "var(--off-white)", border: uploadInstruction === t.label ? "2px solid var(--teal-deep)" : "1px solid var(--gray-light)" }}
                   >
@@ -601,14 +598,29 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
                 ))}
               </div>
             </div>
+            {/* Hidden real file picker shared by Camera / Files buttons */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+            />
             <div className="flex gap-2 px-5">
               {[
-                { emoji: "📷", label: "Camera", ar: "كاميرا" },
-                { emoji: "📁", label: "Files", ar: "ملفات" },
+                { emoji: "📷", label: "Camera", ar: "كاميرا", capture: true },
+                { emoji: "📁", label: "Files", ar: "ملفات", capture: false },
               ].map((s) => (
                 <button
                   key={s.label}
-                  onClick={() => setUploadedFile({ name: `sample_${s.label.toLowerCase()}.pdf`, size: "1.2 MB" })}
+                  onClick={() => {
+                    if (fileInputRef.current) {
+                      // Use capture attribute for the camera variant on supporting browsers
+                      if (s.capture) fileInputRef.current.setAttribute("capture", "environment");
+                      else fileInputRef.current.removeAttribute("capture");
+                      fileInputRef.current.click();
+                    }
+                  }}
                   className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl card-press"
                   style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
                 >
@@ -619,13 +631,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
               ))}
             </div>
             {uploadedFile && (
-              <div className="mx-5 mt-3 rounded-xl p-3 flex items-center gap-3" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-                <span className="text-xl">📄</span>
-                <div className="flex-1">
-                  <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{uploadedFile.name}</p>
-                  <p className="text-[10px]" style={{ color: "var(--gray)" }}>{uploadedFile.size}</p>
-                </div>
-                <button onClick={() => setUploadedFile(null)}><X size={14} style={{ color: "var(--gray)" }} /></button>
+              <div className="mx-5 mt-3">
+                <FileUploadPreview file={uploadedFile} onRemove={() => setUploadedFile(null)} lang="both" maxHeight={180} />
               </div>
             )}
             {uploadedFile && (
