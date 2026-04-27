@@ -182,12 +182,45 @@ Please verify and activate my subscription.`;
 نرجو التحقق وتفعيل الاشتراك.`;
 
   // === Submit ===
+  // Validate every field together so the form can highlight ALL invalid
+  // controls at once (not the first failure only). After validation we focus
+  // & scroll the first invalid input into view for accessibility.
+  const validate = (): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+    const ALLOWED = /^(image\/(png|jpe?g|webp|heic)|application\/pdf)$/i;
+    if (!pendingReceipt) errs._global = "Please wait for the reference code · انتظر إنشاء المرجع";
+    else if (isExpired) errs._global = "Reference code expired — please regenerate · انتهت الصلاحية";
+    if (channel === "app") {
+      if (!file) errs.file = "Upload the receipt image or PDF · أرفق الإيصال";
+      else if (file.size > MAX_BYTES) errs.file = "File too large (max 8 MB) · الملف كبير جداً";
+      else if (file.type && !ALLOWED.test(file.type)) errs.file = "Use JPG, PNG, WebP or PDF · استخدم صيغة مدعومة";
+    }
+    if (!reference.trim()) errs.reference = "Bank transfer reference required · رقم المرجع مطلوب";
+    else if (reference.trim().length < 3) errs.reference = "Reference looks too short · المرجع قصير جداً";
+    if (!payerName.trim()) errs.payerName = "Sender name required · اسم المرسل مطلوب";
+    else if (payerName.trim().length < 2) errs.payerName = "Sender name looks too short · الاسم قصير جداً";
+    if (payerPhone.trim() && !/^[+0-9 \-()]{6,}$/.test(payerPhone.trim())) {
+      errs.payerPhone = "Invalid phone number · رقم جوال غير صالح";
+    }
+    if (!transferDate) errs.transferDate = "Pick a transfer date · حدّد تاريخ التحويل";
+    return errs;
+  };
+
   const submit = async () => {
-    if (!pendingReceipt) return toast.error("Please wait for the reference code");
-    if (isExpired) return toast.error("Reference code expired — please regenerate");
-    if (channel === "app" && !file) return toast.error("Upload the receipt image or PDF · أرفق الإيصال");
-    if (!reference.trim()) return toast.error("Bank transfer reference required · رقم المرجع مطلوب");
-    if (!payerName.trim()) return toast.error("Sender name required · اسم المرسل مطلوب");
+    const errs = validate();
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      // Surface a top-level toast then focus the first invalid control.
+      const firstKey = errs._global ? null : Object.keys(errs)[0];
+      toast.error(errs._global || errs[firstKey!] || "Please fix the highlighted fields");
+      if (firstKey) {
+        const el = document.querySelector<HTMLElement>(`[data-field="${firstKey}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        (el as HTMLInputElement | null)?.focus?.();
+      }
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -199,7 +232,7 @@ Please verify and activate my subscription.`;
         const { error: upErr } = await supabase.storage.from("payment-receipts").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
       }
-      const upd = await paymentsClient.attachAndSubmit(pendingReceipt.id, {
+      const upd = await paymentsClient.attachAndSubmit(pendingReceipt!.id, {
         receipt_file_path: path,
         submission_channel: channel,
         bank_name: bankName.trim() || null,
@@ -214,10 +247,11 @@ Please verify and activate my subscription.`;
       const { data: row } = await supabase
         .from("payment_receipts")
         .select("id,status,payment_reference,reviewer_notes,patient_message,created_at,reviewed_at,amount,requested_plan,code_expires_at")
-        .eq("id", pendingReceipt.id)
+        .eq("id", pendingReceipt!.id)
         .maybeSingle();
       setPollReceipt((row as ReceiptRow) || pendingReceipt);
       setSubmitted(true);
+      setFieldErrors({});
       toast.success("Receipt submitted · تم استلام الإيصال");
     } catch (e: any) {
       toast.error(e?.message || "Submission failed · فشل الإرسال");
