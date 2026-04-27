@@ -94,32 +94,38 @@ const PagesList = ({ onEdit }: { onEdit: (id: string) => void }) => {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("cms_pages").select("*").order("is_system", { ascending: false }).order("slug");
-    setPages((data as unknown as CmsPage[]) ?? []);
+    const res = await cmsClient.listPages();
+    if (res.error) toast.error(res.error.message);
+    else setPages((res.data ?? []) as unknown as CmsPage[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
+  // Live refresh whenever any page transitions to/within `published`.
+  useRealtimeChannel("cmsPagesPublished", () => load());
+
   const create = async () => {
     if (!newSlug.trim() || !newTitle.trim()) return;
-    const { error } = await supabase.from("cms_pages").insert({
-      slug: newSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-"),
-      title_en: newTitle.trim(),
-      status: "draft",
-    });
-    if (error) { alert(error.message); return; }
+    const res = await cmsClient.createPage(newSlug, newTitle);
+    if (res.error) { toast.error(res.error.message); return; }
     setNewSlug(""); setNewTitle(""); setAdding(false); load();
   };
 
   const remove = async (p: CmsPage) => {
-    if (p.is_system) { alert("System pages cannot be deleted. Archive instead."); return; }
+    if (p.is_system) { toast.error("System pages cannot be deleted. Archive instead."); return; }
     if (!confirm(`Delete page "${p.title_en}" and all its sections?`)) return;
-    await supabase.from("cms_pages").delete().eq("id", p.id);
+    const res = await cmsClient.deletePage(p.id);
+    if (res.error) toast.error(res.error.message);
     load();
   };
 
   const updateStatus = async (p: CmsPage, status: PageStatus) => {
-    await supabase.from("cms_pages").update({ status }).eq("id", p.id);
+    const res = await cmsClient.publish(p as never, { status, scheduled_at: p.scheduled_at ?? null });
+    if (res.error) {
+      toast.error(res.error.message);
+      return;
+    }
+    toast.success(`Page “${p.title_en}” → ${status}`);
     load();
   };
 
