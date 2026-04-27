@@ -157,6 +157,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     const upper = code.toUpperCase();
     setCountryState(upper);
     setCountryManual(true);
+    setDetectionSource("manual");
     try {
       localStorage.setItem(COUNTRY_KEY, upper);
       localStorage.setItem(COUNTRY_OVERRIDE_KEY, upper);
