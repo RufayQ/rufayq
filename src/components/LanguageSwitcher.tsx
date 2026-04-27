@@ -37,11 +37,22 @@ const LanguageSwitcher = forwardRef<HTMLDivElement, Props>(({
   const handleClick = (target: LangMode) => {
     // Snapshot scroll so we can restore after route swap (RTL flip can otherwise jump us to top)
     const y = typeof window !== "undefined" ? window.scrollY : 0;
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
     const restore = () => {
-      // Two RAFs: first lets the new route mount, second lets layout settle in RTL/LTR
-      requestAnimationFrame(() => requestAnimationFrame(() => {
+      // If we have a hash anchor, prefer scrolling to that element (handles late-mounting sections).
+      // Otherwise restore the snapshot Y. We poll a couple of frames to let layout settle.
+      const anchorId = hash && hash.startsWith("#") ? hash.slice(1) : "";
+      let attempts = 0;
+      const tick = () => {
+        attempts += 1;
+        if (anchorId) {
+          const el = document.getElementById(anchorId);
+          if (el) { el.scrollIntoView({ behavior: "auto", block: "start" }); return; }
+          if (attempts < 8) { requestAnimationFrame(tick); return; }
+        }
         try { window.scrollTo({ top: y, behavior: "auto" }); } catch { /* noop */ }
-      }));
+      };
+      requestAnimationFrame(() => requestAnimationFrame(tick));
     };
 
     if (target === "both") { setMode("both"); restore(); return; }
