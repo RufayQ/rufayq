@@ -1,37 +1,31 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { reviewsClient, type AppReview } from "@/api";
 import { toast } from "sonner";
 import { Star, Check, X, Trash2 } from "lucide-react";
 
-interface Review {
-  id: string; rating: number; reviewer_name: string | null; reviewer_country: string | null;
-  notes: string | null; advice: string | null; approved: boolean; created_at: string;
-}
-
 const AdminReviews = () => {
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<AppReview[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("app_reviews").select("*").order("created_at", { ascending: false });
-    if (error) toast.error(error.message); else setReviews((data || []) as Review[]);
+    const res = await reviewsClient.list();
+    if (res.error) toast.error(res.error.message); else setReviews(res.data ?? []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
   const setApproved = async (id: string, approved: boolean) => {
-    const { error } = await supabase.from("app_reviews").update({ approved }).eq("id", id);
-    if (error) toast.error(error.message); else {
-      await supabase.rpc("log_audit_event", { _action: "review_moderated", _target_type: "review", _target_id: id, _details: { approved } });
-      toast.success(approved ? "Approved" : "Unapproved"); load();
-    }
+    const res = await reviewsClient.setApproved(id, approved);
+    if (res.error) toast.error(res.error.message);
+    else { toast.success(approved ? "Approved" : "Unapproved"); load(); }
   };
   const remove = async (id: string) => {
     if (!confirm("Delete this review?")) return;
-    const { error } = await supabase.from("app_reviews").delete().eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Deleted"); load(); }
+    const res = await reviewsClient.remove(id);
+    if (res.error) toast.error(res.error.message);
+    else { toast.success("Deleted"); load(); }
   };
 
   if (loading) return <p className="text-slate-400 text-sm">Loading…</p>;

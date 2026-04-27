@@ -1,34 +1,26 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { ticketsClient, type SupportTicket, type TicketStatus } from "@/api";
 import { toast } from "sonner";
 import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 
-interface Ticket {
-  id: string; ticket_number: string; title: string; description: string;
-  category: string; priority: string; status: string; user_email: string | null;
-  user_name: string | null; created_at: string; resolution_notes: string | null;
-}
-
 const AdminTickets = () => {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(false);
 
   useQuickCreateSignal("tickets", () => toast.info("Open a customer ticket from the user profile or via the support reply panel."));
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("support_tickets").select("*").order("created_at", { ascending: false });
-    if (error) toast.error(error.message); else setTickets((data || []) as Ticket[]);
+    const res = await ticketsClient.list();
+    if (res.error) toast.error(res.error.message); else setTickets(res.data ?? []);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
   const update = async (id: string, status: string) => {
-    const { error } = await supabase.from("support_tickets").update({ status: status as never }).eq("id", id);
-    if (error) toast.error(error.message); else {
-      await supabase.rpc("log_audit_event", { _action: "ticket_updated", _target_type: "ticket", _target_id: id, _details: { status } });
-      toast.success("Updated"); load();
-    }
+    const res = await ticketsClient.updateStatus(id, status as TicketStatus);
+    if (res.error) toast.error(res.error.message);
+    else { toast.success("Updated"); load(); }
   };
 
   if (loading) return <p className="text-slate-400 text-sm">Loading…</p>;

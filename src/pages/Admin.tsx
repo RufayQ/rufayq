@@ -55,12 +55,12 @@ const Admin = () => {
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { setAuthChecked(true); return; }
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id);
-      const roles = (data || []).map((r: any) => r.role);
-      if (roles.includes("admin")) setRole("admin");
-      else if (roles.includes("moderator")) setRole("moderator");
+      const { authClient } = await import("@/api");
+      const res = await authClient.current();
+      if (res.data?.user) {
+        if (res.data.roles.includes("admin")) setRole("admin");
+        else if (res.data.roles.includes("moderator")) setRole("moderator");
+      }
       setAuthChecked(true);
     })();
   }, []);
