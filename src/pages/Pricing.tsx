@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, Check, Star, ChevronDown, ChevronUp, Globe2, MapPin } from "lucide-react";
+import { ArrowLeft, Check, Star, ChevronDown, ChevronUp, Globe2, MapPin, Bug } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import { Seo } from "@/seo/Seo";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -83,10 +83,11 @@ const FAQ_AR = [
 const Pricing = () => {
   const isAr = useLocation().pathname.startsWith("/ar");
   const { mode } = useLanguage();
-  const { format, getPrice, getAddon, currency, setCurrency, country, countryManual, detectionSource } = useCurrency();
+  const { format, getPrice, getAddon, currency, setCurrency, country, countryManual, detectionSource, geoLoading, debug } = useCurrency();
   const [period, setPeriod] = useState<"monthly" | "annual">("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [familyOpen, setFamilyOpen] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
 
   const showAr = mode === "ar";
   const showEn = mode !== "ar";
