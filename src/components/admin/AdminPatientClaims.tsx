@@ -21,6 +21,7 @@ const AdminPatientClaims = () => {
   const [loading, setLoading] = useState(true);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [filter, setFilter] = useState<string>("pending_admin");
+  useQuickCreateSignal("claims", () => toast.info("Patient claims are submitted by hospitals/insurers. Filter ‘Pending’ to triage incoming requests."));
 
   const load = async () => {
     setLoading(true);
