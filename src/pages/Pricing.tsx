@@ -145,15 +145,17 @@ const Pricing = () => {
             </button>
           ))}
         </div>
-        <span className="text-[11px] inline-flex items-center gap-1 flex-wrap justify-center" style={{ color: MUTED }}>
-          {showAr ? `الأسعار بـ ${currency} — ` : `Prices shown in ${currency} — `}
+        <div className="text-[11px] flex items-center gap-2 flex-wrap justify-center" style={{ color: MUTED }}>
+          <span>{showAr ? `الأسعار بـ ${currency}` : `Prices shown in ${currency}`}</span>
           <CurrencySwitcher variant="inline" />
+          <span style={{ color: MUTED }}>·</span>
+          <CountryPicker />
           {country && (
-            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider" style={{ background: "rgba(197,150,90,0.12)", color: GOLD, border: `1px solid ${BORDER}` }}>
-              {showAr ? `موقع تلقائي · ${country}` : `Auto-detected · ${country}`}
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider" style={{ background: "rgba(197,150,90,0.12)", color: GOLD, border: `1px solid ${BORDER}` }}>
+              {countryManual ? (showAr ? `محدد يدوياً · ${country}` : `Manual · ${country}`) : (showAr ? `موقع تلقائي · ${country}` : `Auto-detected · ${country}`)}
             </span>
           )}
-        </span>
+        </div>
       </header>
 
       {/* Tier cards */}
