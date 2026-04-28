@@ -142,7 +142,7 @@ const AdminSubscriptions = () => {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by device id, plan, status…"
+          placeholder="Search by name, email, device id, plan, status…"
           className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200"
         />
       </div>
