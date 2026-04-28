@@ -37,6 +37,7 @@ import { useAdminBadges } from "@/components/admin/shell/useAdminBadges";
 import SecondaryPanel from "@/components/admin/shell/SecondaryPanel";
 import QuickCreateMenu from "@/components/admin/shell/QuickCreateMenu";
 import GlobalSearchPalette from "@/components/admin/shell/GlobalSearchPalette";
+import AdminTopbarPrefs from "@/components/admin/shell/AdminTopbarPrefs";
 
 const LS_LEAF = "admin.leaf";
 const LS_COLLAPSED = "admin.submenu.collapsed";
@@ -125,7 +126,7 @@ const Admin = () => {
   const leafMeta = ALL_LEAVES.find((l) => l.key === leaf);
 
   return (
-    <div dir="ltr" className="min-h-screen flex bg-slate-950 text-slate-100" style={{ fontFamily: "'DM Sans', system-ui" }}>
+    <div dir="ltr" className="admin-shell min-h-screen flex bg-slate-950 text-slate-100" style={{ fontFamily: "'DM Sans', system-ui" }}>
       {/* ── Column 1: Primary sidebar ─────────────────────────────────── */}
       <aside className="w-[68px] flex-shrink-0 border-r border-slate-800 bg-[#0D1B2A] flex flex-col items-center py-4 gap-1">
         <Link to="/" className="mb-3 flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition" title="RufayQ">
@@ -204,6 +205,7 @@ const Admin = () => {
                 <Search size={14} />
               </button>
               <QuickCreateMenu onPick={handleQuickCreate} />
+              <AdminTopbarPrefs />
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 uppercase tracking-wide">{role}</span>
             </div>
           </div>
