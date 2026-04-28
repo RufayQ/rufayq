@@ -591,79 +591,170 @@ const SubscriptionTab = ({ orgId }: { orgId: string }) => {
 /* -------------------------------------------------------------------------- */
 /* Employees tab — manages provider_members for the organization              */
 /* -------------------------------------------------------------------------- */
+const ORG_ROLES = ["org_admin", "org_manager", "org_agent", "org_viewer"] as const;
+type OrgRole = (typeof ORG_ROLES)[number];
+
+const roleTone = (r: string) =>
+  r === "org_admin" ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+  : r === "org_manager" ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+  : r === "org_agent" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+  : "bg-slate-500/15 text-slate-300 border-slate-500/30";
+
 const EmployeesTab = ({ orgId }: { orgId: string }) => {
   const [members, setMembers] = useState<any[]>([]);
+  const [invites, setInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ user_id: "", member_role: "staff" });
+  const [form, setForm] = useState<{ email: string; invited_role: OrgRole; notes: string }>({
+    email: "", invited_role: "org_viewer", notes: "",
+  });
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("provider_members").select("*").eq("organization_id", orgId).order("created_at", { ascending: false });
-    if (error) toast.error(error.message);
-    setMembers(data || []); setLoading(false);
+    const [mRes, iRes] = await Promise.all([
+      supabase.from("provider_members").select("*").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("organization_invites").select("*").eq("organization_id", orgId).order("created_at", { ascending: false }),
+    ]);
+    if (mRes.error) toast.error(mRes.error.message);
+    if (iRes.error) toast.error(iRes.error.message);
+    setMembers(mRes.data || []);
+    setInvites(iRes.data || []);
+    setLoading(false);
   };
   useEffect(() => { load(); }, [orgId]); // eslint-disable-line
 
-  const add = async () => {
-    if (!form.user_id) { toast.error("User ID is required (auth user UUID)"); return; }
-    const { error } = await supabase.from("provider_members").insert({
-      organization_id: orgId, user_id: form.user_id, member_role: form.member_role, is_active: true,
-    });
+  const sendInvite = async () => {
+    const email = form.email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(email)) { toast.error("Enter a valid email"); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase.from("organization_invites").insert({
+      organization_id: orgId, email, invited_role: form.invited_role,
+      invited_by: user?.id ?? null, notes: form.notes || null,
+    }).select().single();
     if (error) { toast.error(error.message); return; }
     await supabase.rpc("log_audit_event", {
-      _action: "org_employee_added", _target_type: "organization", _target_id: orgId,
-      _details: { user_id: form.user_id, role: form.member_role },
+      _action: "org_invite_sent", _target_type: "organization", _target_id: orgId,
+      _details: { invite_id: data?.id, email, role: form.invited_role },
     });
-    toast.success("Employee added"); setAdding(false); setForm({ user_id: "", member_role: "staff" }); load();
+    toast.success(`Invite sent to ${email}`);
+    setAdding(false); setForm({ email: "", invited_role: "org_viewer", notes: "" }); load();
   };
 
-  const toggle = async (m: any) => {
+  const revokeInvite = async (inv: any) => {
+    if (!confirm(`Revoke invite for ${inv.email}?`)) return;
+    const { error } = await supabase.from("organization_invites")
+      .update({ status: "revoked", revoked_at: new Date().toISOString() }).eq("id", inv.id);
+    if (error) { toast.error(error.message); return; }
+    await supabase.rpc("log_audit_event", {
+      _action: "org_invite_revoked", _target_type: "organization", _target_id: orgId,
+      _details: { invite_id: inv.id, email: inv.email, role: inv.invited_role },
+    });
+    toast.success("Invite revoked"); load();
+  };
+
+  const copyInviteLink = async (inv: any) => {
+    const link = `${window.location.origin}/auth?invite=${inv.token}&org=${orgId}`;
+    try { await navigator.clipboard.writeText(link); toast.success("Invite link copied"); }
+    catch { toast.error("Copy failed"); }
+  };
+
+  const toggleMember = async (m: any) => {
     const { error } = await supabase.from("provider_members").update({ is_active: !m.is_active }).eq("id", m.id);
     if (error) { toast.error(error.message); return; }
     await supabase.rpc("log_audit_event", {
       _action: m.is_active ? "org_employee_deactivated" : "org_employee_activated",
-      _target_type: "organization", _target_id: orgId, _details: { user_id: m.user_id },
+      _target_type: "organization", _target_id: orgId, _details: { user_id: m.user_id, role: m.member_role },
     });
     load();
   };
 
+  const inviteTone = (s: string) =>
+    s === "pending" ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+    : s === "accepted" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+    : s === "revoked" ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+    : "bg-slate-500/15 text-slate-300 border-slate-500/30";
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Invite form */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Employees</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Invite by email</h3>
         <button onClick={() => setAdding(!adding)} className="text-[11px] px-2 py-1 rounded-lg bg-amber-500 text-slate-950 font-semibold flex items-center gap-1">
-          <Plus size={11} /> Add
+          <Send size={11} /> Invite
         </button>
       </div>
       {adding && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
-          <input value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} placeholder="User UUID (auth.users.id)"
-            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 font-mono" />
-          <select value={form.member_role} onChange={(e) => setForm({ ...form, member_role: e.target.value })}
+          <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="employee@hospital.com"
+            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200" />
+          <select value={form.invited_role} onChange={(e) => setForm({ ...form, invited_role: e.target.value as OrgRole })}
             className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200">
-            {["owner", "admin", "manager", "staff", "viewer"].map((r) => <option key={r} value={r}>{r}</option>)}
+            {ORG_ROLES.map((r) => <option key={r} value={r}>{r.replace("org_", "")}</option>)}
           </select>
+          <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional note (department, scope…)" rows={2}
+            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200" />
           <div className="flex justify-end gap-1.5">
             <button onClick={() => setAdding(false)} className="text-[11px] px-2 py-1 rounded bg-slate-700 text-slate-300">Cancel</button>
-            <button onClick={add} className="text-[11px] px-2 py-1 rounded bg-emerald-500 text-slate-950 font-semibold">Add</button>
+            <button onClick={sendInvite} className="text-[11px] px-2 py-1 rounded bg-emerald-500 text-slate-950 font-semibold flex items-center gap-1">
+              <Send size={11} /> Send invite
+            </button>
           </div>
         </div>
       )}
-      {loading && <p className="text-slate-400 text-xs">Loading…</p>}
-      {!loading && members.length === 0 && <p className="text-slate-500 text-xs">No employees yet.</p>}
-      {members.map((m) => (
-        <div key={m.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-3 flex items-center justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-mono text-slate-300 truncate">{m.user_id}</p>
-            <p className="text-[11px] text-slate-500 capitalize">{m.member_role} · {m.is_active ? "active" : "inactive"}</p>
-          </div>
-          <button onClick={() => toggle(m)}
-            className={`text-[11px] px-2 py-1 rounded ${m.is_active ? "bg-rose-500/15 text-rose-300" : "bg-emerald-500/15 text-emerald-300"}`}>
-            {m.is_active ? "Deactivate" : "Activate"}
-          </button>
+
+      {/* Invites list */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wide text-slate-500 mb-1.5">Invitations ({invites.length})</p>
+        {loading && <p className="text-slate-400 text-xs">Loading…</p>}
+        {!loading && invites.length === 0 && <p className="text-slate-500 text-xs">No invitations sent yet.</p>}
+        <div className="space-y-2">
+          {invites.map((inv) => (
+            <div key={inv.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+              <div className="flex items-start justify-between gap-2 flex-wrap">
+                <div className="min-w-0">
+                  <p className="text-sm text-slate-100 font-medium truncate flex items-center gap-1.5">
+                    <Mail size={12} className="text-amber-300" />{inv.email}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border ${roleTone(inv.invited_role)}`}>{inv.invited_role.replace("org_", "")}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border capitalize ${inviteTone(inv.status)}`}>{inv.status}</span>
+                    <span className="text-[10px] text-slate-500">expires {new Date(inv.expires_at).toLocaleDateString()}</span>
+                  </div>
+                  {inv.notes && <p className="text-[11px] text-slate-400 italic mt-1">"{inv.notes}"</p>}
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  {inv.status === "pending" && (
+                    <>
+                      <button onClick={() => copyInviteLink(inv)} className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Copy link</button>
+                      <button onClick={() => revokeInvite(inv)} className="text-[11px] px-2 py-1 rounded bg-rose-500/15 text-rose-300">Revoke</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
+
+      {/* Existing accepted members */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wide text-slate-500 mb-1.5">Active members ({members.length})</p>
+        {!loading && members.length === 0 && <p className="text-slate-500 text-xs">No employees yet — send an invite to get started.</p>}
+        <div className="space-y-2">
+          {members.map((m) => (
+            <div key={m.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-3 flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-mono text-slate-300 truncate">{m.user_id}</p>
+                <p className="text-[11px] text-slate-500 capitalize">{m.member_role} · {m.is_active ? "active" : "inactive"}</p>
+              </div>
+              <button onClick={() => toggleMember(m)}
+                className={`text-[11px] px-2 py-1 rounded ${m.is_active ? "bg-rose-500/15 text-rose-300" : "bg-emerald-500/15 text-emerald-300"}`}>
+                {m.is_active ? "Deactivate" : "Activate"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
