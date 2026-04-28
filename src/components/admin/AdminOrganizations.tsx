@@ -6,6 +6,7 @@ import {
   Users, Package, History, FileText, Trash2, ExternalLink, Hash, Mail, Phone, Globe2, MapPin,
 } from "lucide-react";
 import CountrySelect from "./CountrySelect";
+import CitySelect from "./CitySelect";
 import { COUNTRIES } from "@/data/countries";
 
 interface Org {
