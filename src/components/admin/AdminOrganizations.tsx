@@ -257,8 +257,9 @@ const AdminOrganizations = () => {
 /* -------------------------------------------------------------------------- */
 type Tab = "overview" | "subscription" | "employees" | "contract" | "history";
 
-const OrgDrawer = ({ org, onClose }: { org: Org; onClose: () => void }) => {
-  const [tab, setTab] = useState<Tab>("overview");
+const OrgDrawer = ({ org, initialTab = "overview", onClose }: { org: Org; initialTab?: Tab; onClose: () => void }) => {
+  const [tab, setTab] = useState<Tab>(initialTab);
+  useEffect(() => { setTab(initialTab); }, [initialTab, org.id]);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Org>(org);
 
