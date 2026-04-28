@@ -6,6 +6,7 @@ import {
   Users, Package, History, FileText, Trash2, ExternalLink, Hash, Mail, Phone, Globe2, MapPin,
 } from "lucide-react";
 import CountrySelect from "./CountrySelect";
+import CitySelect from "./CitySelect";
 import { COUNTRIES } from "@/data/countries";
 
 interface Org {
@@ -134,9 +135,8 @@ const AdminOrganizations = () => {
               className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
               {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
-            <CountrySelect value={form.country} onChange={(v) => setForm({ ...form, country: v })} className="py-2 rounded-lg" />
-            <input value={form.city || ""} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="City"
-              className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" />
+            <CountrySelect value={form.country} onChange={(v) => setForm({ ...form, country: v, city: "" })} className="py-2 rounded-lg" />
+            <CitySelect country={form.country} value={form.city} onChange={(v) => setForm({ ...form, city: v })} className="py-2 rounded-lg w-full" />
             <input value={form.contact_email || ""} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} placeholder="Contact email"
               className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" />
             <input value={form.contact_phone || ""} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} placeholder="Phone"
@@ -351,8 +351,8 @@ const OrgDrawer = ({ org, onClose }: { org: Org; onClose: () => void }) => {
                 <Field label="Name" value={form.name} editing={editing} onChange={(v) => setForm({ ...form, name: v })} colSpan />
                 <SelectField label="Type" value={form.org_type} options={TYPES as any} editing={editing} onChange={(v) => setForm({ ...form, org_type: v })} />
                 <SelectField label="Status" value={form.status} options={STATUSES as any} editing={editing} onChange={(v) => setForm({ ...form, status: v })} />
-                <CountryField label="Country" value={form.country} editing={editing} onChange={(v) => setForm({ ...form, country: v })} />
-                <Field label="City" value={form.city || ""} editing={editing} onChange={(v) => setForm({ ...form, city: v })} />
+                <CountryField label="Country" value={form.country} editing={editing} onChange={(v) => setForm({ ...form, country: v, city: "" })} />
+                <CityField label="City" country={form.country} value={form.city || ""} editing={editing} onChange={(v) => setForm({ ...form, city: v })} />
                 <Field label="Email" value={form.contact_email || ""} editing={editing} onChange={(v) => setForm({ ...form, contact_email: v })} />
                 <Field label="Phone" value={form.contact_phone || ""} editing={editing} onChange={(v) => setForm({ ...form, contact_phone: v })} />
                 <Field label="Website" value={form.website || ""} editing={editing} onChange={(v) => setForm({ ...form, website: v })} colSpan />
@@ -407,6 +407,15 @@ const CountryField = ({ label, value, editing, onChange }: any) => (
     <span className="text-[10px] uppercase tracking-wide text-slate-500">{label}</span>
     {editing ? (
       <CountrySelect value={value} onChange={onChange} className="mt-1 w-full rounded-lg" />
+    ) : <p className="mt-1 text-sm text-slate-200">{value || "—"}</p>}
+  </label>
+);
+
+const CityField = ({ label, country, value, editing, onChange }: any) => (
+  <label className="block">
+    <span className="text-[10px] uppercase tracking-wide text-slate-500">{label}</span>
+    {editing ? (
+      <div className="mt-1"><CitySelect country={country} value={value} onChange={onChange} className="w-full rounded-lg" /></div>
     ) : <p className="mt-1 text-sm text-slate-200">{value || "—"}</p>}
   </label>
 );
