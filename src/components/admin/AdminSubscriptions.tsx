@@ -12,17 +12,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Calendar, CreditCard, Search, RefreshCw, PauseCircle, PlayCircle, XCircle } from "lucide-react";
+import { Calendar, CreditCard, Search, RefreshCw, PauseCircle, PlayCircle, XCircle, User, Mail } from "lucide-react";
 import type { Subscription as Sub, SubscriptionStatus } from "@/shared/types/subscription";
 import { PLAN_CODES, statusTone } from "@/features/subscriptions/logic/statusMachine";
 
 type Tab = "all" | "active" | "pending_receipt" | "past_due" | "suspended" | "cancelled";
 
+interface SubWithProfile extends Sub {
+  profile?: { full_name_en: string | null; full_name_ar: string | null; email: string | null; phone: string | null } | null;
+}
+
 const PLAN_OPTIONS = PLAN_CODES;
 
 const AdminSubscriptions = () => {
   const [tab, setTab] = useState<Tab>("active");
-  const [rows, setRows] = useState<Sub[]>([]);
+  const [rows, setRows] = useState<SubWithProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -35,8 +39,19 @@ const AdminSubscriptions = () => {
       .limit(500);
     if (tab !== "all") q = q.eq("status", tab);
     const { data, error } = await q;
-    if (error) toast.error(error.message);
-    else setRows((data || []) as Sub[]);
+    if (error) { toast.error(error.message); setLoading(false); return; }
+    const subs = (data || []) as Sub[];
+    // Join profiles by device_id (best-effort; missing profiles render gracefully)
+    const deviceIds = Array.from(new Set(subs.map((s) => s.device_id).filter(Boolean)));
+    let profileMap: Record<string, SubWithProfile["profile"]> = {};
+    if (deviceIds.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("device_id, full_name_en, full_name_ar, email, phone")
+        .in("device_id", deviceIds);
+      (profs || []).forEach((p: any) => { profileMap[p.device_id] = p; });
+    }
+    setRows(subs.map((s) => ({ ...s, profile: profileMap[s.device_id] || null })));
     setLoading(false);
   };
 
@@ -45,12 +60,16 @@ const AdminSubscriptions = () => {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return rows;
-    return rows.filter(
-      (s) =>
+    return rows.filter((s) => {
+      const name = s.profile?.full_name_en || s.profile?.full_name_ar || "";
+      return (
         s.device_id.toLowerCase().includes(term) ||
         s.plan.toLowerCase().includes(term) ||
-        s.status.toLowerCase().includes(term),
-    );
+        s.status.toLowerCase().includes(term) ||
+        name.toLowerCase().includes(term) ||
+        (s.profile?.email || "").toLowerCase().includes(term)
+      );
+    });
   }, [rows, search]);
 
   const setStatus = async (s: Sub, status: string, extra: Record<string, unknown> = {}) => {
@@ -123,7 +142,7 @@ const AdminSubscriptions = () => {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by device id, plan, status…"
+          placeholder="Search by name, email, device id, plan, status…"
           className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200"
         />
       </div>
@@ -153,6 +172,21 @@ const AdminSubscriptions = () => {
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
                       {s.currency} {Number(s.amount).toLocaleString()}
                     </span>
+                  )}
+                </div>
+                {/* Subscriber profile (joined via device_id, graceful fallback) */}
+                <div className="mt-1 mb-1 px-2 py-1.5 rounded-lg bg-slate-950/60 border border-slate-800 inline-flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
+                  <span className="inline-flex items-center gap-1 text-slate-200">
+                    <User size={11} className="text-amber-300" />
+                    {s.profile?.full_name_en || s.profile?.full_name_ar || <span className="italic text-slate-500">unclaimed device</span>}
+                  </span>
+                  {s.profile?.email && (
+                    <span className="inline-flex items-center gap-1 text-slate-400">
+                      <Mail size={11} />{s.profile.email}
+                    </span>
+                  )}
+                  {s.profile?.phone && (
+                    <span className="text-slate-500">· {s.profile.phone}</span>
                   )}
                 </div>
                 <p className="text-[10px] text-slate-500 font-mono">device: {s.device_id}</p>
