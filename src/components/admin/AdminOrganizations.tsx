@@ -42,6 +42,7 @@ const AdminOrganizations = () => {
   const [filterCountry, setFilterCountry] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [active, setActive] = useState<Org | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "subscription" | "employees" | "contract" | "history">("overview");
 
   const load = async () => {
     setLoading(true);
