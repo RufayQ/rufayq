@@ -411,6 +411,15 @@ const CountryField = ({ label, value, editing, onChange }: any) => (
   </label>
 );
 
+const CityField = ({ label, country, value, editing, onChange }: any) => (
+  <label className="block">
+    <span className="text-[10px] uppercase tracking-wide text-slate-500">{label}</span>
+    {editing ? (
+      <div className="mt-1"><CitySelect country={country} value={value} onChange={onChange} className="w-full rounded-lg" /></div>
+    ) : <p className="mt-1 text-sm text-slate-200">{value || "—"}</p>}
+  </label>
+);
+
 /* -------------------------------------------------------------------------- */
 /* Subscription tab                                                            */
 /* -------------------------------------------------------------------------- */
