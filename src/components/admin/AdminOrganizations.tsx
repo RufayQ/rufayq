@@ -135,9 +135,8 @@ const AdminOrganizations = () => {
               className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
               {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
-            <CountrySelect value={form.country} onChange={(v) => setForm({ ...form, country: v })} className="py-2 rounded-lg" />
-            <input value={form.city || ""} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="City"
-              className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" />
+            <CountrySelect value={form.country} onChange={(v) => setForm({ ...form, country: v, city: "" })} className="py-2 rounded-lg" />
+            <CitySelect country={form.country} value={form.city} onChange={(v) => setForm({ ...form, city: v })} className="py-2 rounded-lg w-full" />
             <input value={form.contact_email || ""} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} placeholder="Contact email"
               className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" />
             <input value={form.contact_phone || ""} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} placeholder="Phone"
