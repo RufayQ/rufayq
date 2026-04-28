@@ -111,6 +111,13 @@ const AdminOrganizations = () => {
             />
           </div>
           <button
+            onClick={load} disabled={loading}
+            className="px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs flex items-center gap-1.5 disabled:opacity-50"
+            title="Refresh organizations"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+          </button>
+          <button
             onClick={() => setCreating(!creating)}
             className="px-3 py-2 rounded-lg bg-amber-500 text-slate-950 text-xs font-semibold flex items-center gap-1.5 shadow-sm hover:bg-amber-400 transition"
           >
