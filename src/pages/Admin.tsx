@@ -205,6 +205,7 @@ const Admin = () => {
                 <Search size={14} />
               </button>
               <QuickCreateMenu onPick={handleQuickCreate} />
+              <AdminTopbarPrefs />
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 uppercase tracking-wide">{role}</span>
             </div>
           </div>
