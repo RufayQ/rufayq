@@ -167,69 +167,87 @@ const AdminOrganizations = () => {
       )}
 
       <div className="space-y-3">
-        {filtered.map((o, idx) => (
-          <article key={o.id}
-            className="group rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-4 hover:border-amber-500/40 transition shadow-sm">
-            <div className="flex items-start gap-4">
-              {/* Numbering */}
-              <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-amber-300 shrink-0">
-                #{idx + 1}
-              </div>
+        {filtered.map((o, idx) => {
+          const openOn = (tab: typeof activeTab) => (e: React.MouseEvent) => {
+            e.stopPropagation();
+            setActiveTab(tab);
+            setActive(o);
+          };
+          const location = [o.city, o.country].filter(Boolean).join(", ");
+          return (
+            <article
+              key={o.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => { setActiveTab("overview"); setActive(o); }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTab("overview"); setActive(o); } }}
+              className="group rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-4 hover:border-amber-500/40 hover:bg-slate-900/60 transition shadow-sm cursor-pointer focus:outline-none focus:border-amber-500/60"
+            >
+              <div className="flex items-start gap-4">
+                {/* Numbering */}
+                <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-amber-300 shrink-0">
+                  #{idx + 1}
+                </div>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Building2 size={15} className="text-amber-400 shrink-0" />
-                      <h3 className="font-semibold text-base text-slate-100 truncate">{o.name}</h3>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 capitalize">{o.org_type}</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full border capitalize ${statusBadge(o.status)}`}>{o.status}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-1 text-[11px] font-mono text-slate-400">
-                      <Hash size={11} className="text-slate-500" />
-                      <span className="select-all">{o.org_code || "—"}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Building2 size={15} className="text-amber-400 shrink-0" />
+                        <h3 className="font-semibold text-base text-slate-100 truncate">{o.name}</h3>
+                        {location && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-slate-300 bg-slate-800/70 border border-slate-700 px-2 py-0.5 rounded-full">
+                            <MapPin size={10} className="text-slate-500" />{location}
+                          </span>
+                        )}
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 capitalize">{o.org_type}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border capitalize ${statusBadge(o.status)}`}>{o.status}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1 text-[11px] font-mono text-slate-400">
+                        <Hash size={11} className="text-slate-500" />
+                        <span className="select-all">{o.org_code || "—"}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-1.5 mt-3 text-xs text-slate-400">
-                  <span className="flex items-center gap-1.5"><Mail size={11} className="text-slate-500" />{o.contact_email || "—"}</span>
-                  <span className="flex items-center gap-1.5"><Phone size={11} className="text-slate-500" />{o.contact_phone || "—"}</span>
-                  <span className="flex items-center gap-1.5"><MapPin size={11} className="text-slate-500" />{[o.city, o.country].filter(Boolean).join(", ") || "—"}</span>
-                  <span className="flex items-center gap-1.5">
-                    <Globe2 size={11} className="text-slate-500" />
-                    {o.website ? <a href={o.website} target="_blank" rel="noreferrer" className="text-amber-300 hover:underline truncate">{o.website}</a> : "—"}
-                  </span>
-                </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1.5 mt-3 text-xs text-slate-400">
+                    <span className="flex items-center gap-1.5"><Mail size={11} className="text-slate-500" />{o.contact_email || "—"}</span>
+                    <span className="flex items-center gap-1.5"><Phone size={11} className="text-slate-500" />{o.contact_phone || "—"}</span>
+                    <span className="flex items-center gap-1.5">
+                      <Globe2 size={11} className="text-slate-500" />
+                      {o.website ? <a href={o.website} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-amber-300 hover:underline truncate">{o.website}</a> : "—"}
+                    </span>
+                  </div>
 
-                {/* Quick actions */}
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <button onClick={() => setActive(o)} className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1">
-                    <Eye size={11} /> View
-                  </button>
-                  <button onClick={() => setActive(o)} className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1">
-                    <Pencil size={11} /> Edit
-                  </button>
-                  <button onClick={() => setActive(o)} className="px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/25 text-[11px] flex items-center gap-1">
-                    <Package size={11} /> Subscription
-                  </button>
-                  <button onClick={() => setActive(o)} className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 text-[11px] flex items-center gap-1">
-                    <Users size={11} /> Employees
-                  </button>
-                  <button onClick={() => setActive(o)} className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 text-[11px] flex items-center gap-1">
-                    <Upload size={11} /> Contract
-                  </button>
-                  <button onClick={() => setActive(o)} className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] flex items-center gap-1">
-                    <History size={11} /> History
-                  </button>
+                  {/* Quick actions (each opens the drawer on its tab) */}
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    <button onClick={openOn("overview")} className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1">
+                      <Eye size={11} /> View
+                    </button>
+                    <button onClick={openOn("overview")} className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1">
+                      <Pencil size={11} /> Edit
+                    </button>
+                    <button onClick={openOn("subscription")} className="px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/25 text-[11px] flex items-center gap-1">
+                      <Package size={11} /> Subscription
+                    </button>
+                    <button onClick={openOn("employees")} className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 text-[11px] flex items-center gap-1">
+                      <Users size={11} /> Employees
+                    </button>
+                    <button onClick={openOn("contract")} className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 text-[11px] flex items-center gap-1">
+                      <Upload size={11} /> Contract
+                    </button>
+                    <button onClick={openOn("history")} className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] flex items-center gap-1">
+                      <History size={11} /> History
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
 
-      {active && <OrgDrawer org={active} onClose={() => { setActive(null); load(); }} />}
+      {active && <OrgDrawer org={active} initialTab={activeTab} onClose={() => { setActive(null); load(); }} />}
     </div>
   );
 };
