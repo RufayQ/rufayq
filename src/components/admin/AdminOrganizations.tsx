@@ -351,8 +351,8 @@ const OrgDrawer = ({ org, onClose }: { org: Org; onClose: () => void }) => {
                 <Field label="Name" value={form.name} editing={editing} onChange={(v) => setForm({ ...form, name: v })} colSpan />
                 <SelectField label="Type" value={form.org_type} options={TYPES as any} editing={editing} onChange={(v) => setForm({ ...form, org_type: v })} />
                 <SelectField label="Status" value={form.status} options={STATUSES as any} editing={editing} onChange={(v) => setForm({ ...form, status: v })} />
-                <CountryField label="Country" value={form.country} editing={editing} onChange={(v) => setForm({ ...form, country: v })} />
-                <Field label="City" value={form.city || ""} editing={editing} onChange={(v) => setForm({ ...form, city: v })} />
+                <CountryField label="Country" value={form.country} editing={editing} onChange={(v) => setForm({ ...form, country: v, city: "" })} />
+                <CityField label="City" country={form.country} value={form.city || ""} editing={editing} onChange={(v) => setForm({ ...form, city: v })} />
                 <Field label="Email" value={form.contact_email || ""} editing={editing} onChange={(v) => setForm({ ...form, contact_email: v })} />
                 <Field label="Phone" value={form.contact_phone || ""} editing={editing} onChange={(v) => setForm({ ...form, contact_phone: v })} />
                 <Field label="Website" value={form.website || ""} editing={editing} onChange={(v) => setForm({ ...form, website: v })} colSpan />
