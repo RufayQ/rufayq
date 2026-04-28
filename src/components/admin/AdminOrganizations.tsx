@@ -467,11 +467,14 @@ const SubscriptionTab = ({ orgId }: { orgId: string }) => {
     toast.success("Subscription assigned"); setAdding(false); load();
   };
 
-  const cancel = async (id: string) => {
-    const { error } = await supabase.from("organization_subscriptions").update({ status: "cancelled" }).eq("id", id);
+  const setStatus = async (id: string, next: string) => {
+    const { error } = await supabase.from("organization_subscriptions").update({ status: next }).eq("id", id);
     if (error) { toast.error(error.message); return; }
-    await supabase.rpc("log_audit_event", { _action: "org_subscription_cancelled", _target_type: "organization", _target_id: orgId, _details: { sub_id: id } });
-    toast.success("Cancelled"); load();
+    await supabase.rpc("log_audit_event", {
+      _action: `org_subscription_${next}`, _target_type: "organization", _target_id: orgId,
+      _details: { sub_id: id, status: next },
+    });
+    toast.success(`Subscription ${next}`); load();
   };
 
   return (
