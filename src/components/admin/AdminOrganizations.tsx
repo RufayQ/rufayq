@@ -561,6 +561,9 @@ const SubscriptionTab = ({ orgId }: { orgId: string }) => {
                     </div>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full border capitalize ${tone}`}>{s.status}</span>
                   </div>
+
+                  <PaymentProofRow sub={s} orgId={orgId} onChanged={load} />
+
                   <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-slate-800">
                     {s.status !== "active" && (
                       <button onClick={() => setStatus(s.id, "active")}
