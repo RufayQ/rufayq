@@ -174,6 +174,21 @@ const AdminSubscriptions = () => {
                     </span>
                   )}
                 </div>
+                {/* Subscriber profile (joined via device_id, graceful fallback) */}
+                <div className="mt-1 mb-1 px-2 py-1.5 rounded-lg bg-slate-950/60 border border-slate-800 inline-flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
+                  <span className="inline-flex items-center gap-1 text-slate-200">
+                    <User size={11} className="text-amber-300" />
+                    {s.profile?.full_name_en || s.profile?.full_name_ar || <span className="italic text-slate-500">unclaimed device</span>}
+                  </span>
+                  {s.profile?.email && (
+                    <span className="inline-flex items-center gap-1 text-slate-400">
+                      <Mail size={11} />{s.profile.email}
+                    </span>
+                  )}
+                  {s.profile?.phone && (
+                    <span className="text-slate-500">· {s.profile.phone}</span>
+                  )}
+                </div>
                 <p className="text-[10px] text-slate-500 font-mono">device: {s.device_id}</p>
                 <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
                   <Calendar size={10} />
