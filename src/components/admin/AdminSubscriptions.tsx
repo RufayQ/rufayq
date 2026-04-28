@@ -60,12 +60,16 @@ const AdminSubscriptions = () => {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return rows;
-    return rows.filter(
-      (s) =>
+    return rows.filter((s) => {
+      const name = s.profile?.full_name_en || s.profile?.full_name_ar || "";
+      return (
         s.device_id.toLowerCase().includes(term) ||
         s.plan.toLowerCase().includes(term) ||
-        s.status.toLowerCase().includes(term),
-    );
+        s.status.toLowerCase().includes(term) ||
+        name.toLowerCase().includes(term) ||
+        (s.profile?.email || "").toLowerCase().includes(term)
+      );
+    });
   }, [rows, search]);
 
   const setStatus = async (s: Sub, status: string, extra: Record<string, unknown> = {}) => {
