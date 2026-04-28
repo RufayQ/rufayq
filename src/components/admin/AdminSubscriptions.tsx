@@ -12,17 +12,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Calendar, CreditCard, Search, RefreshCw, PauseCircle, PlayCircle, XCircle } from "lucide-react";
+import { Calendar, CreditCard, Search, RefreshCw, PauseCircle, PlayCircle, XCircle, User, Mail } from "lucide-react";
 import type { Subscription as Sub, SubscriptionStatus } from "@/shared/types/subscription";
 import { PLAN_CODES, statusTone } from "@/features/subscriptions/logic/statusMachine";
 
 type Tab = "all" | "active" | "pending_receipt" | "past_due" | "suspended" | "cancelled";
 
+interface SubWithProfile extends Sub {
+  profile?: { full_name_en: string | null; full_name_ar: string | null; email: string | null; phone: string | null } | null;
+}
+
 const PLAN_OPTIONS = PLAN_CODES;
 
 const AdminSubscriptions = () => {
   const [tab, setTab] = useState<Tab>("active");
-  const [rows, setRows] = useState<Sub[]>([]);
+  const [rows, setRows] = useState<SubWithProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -35,8 +39,19 @@ const AdminSubscriptions = () => {
       .limit(500);
     if (tab !== "all") q = q.eq("status", tab);
     const { data, error } = await q;
-    if (error) toast.error(error.message);
-    else setRows((data || []) as Sub[]);
+    if (error) { toast.error(error.message); setLoading(false); return; }
+    const subs = (data || []) as Sub[];
+    // Join profiles by device_id (best-effort; missing profiles render gracefully)
+    const deviceIds = Array.from(new Set(subs.map((s) => s.device_id).filter(Boolean)));
+    let profileMap: Record<string, SubWithProfile["profile"]> = {};
+    if (deviceIds.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("device_id, full_name_en, full_name_ar, email, phone")
+        .in("device_id", deviceIds);
+      (profs || []).forEach((p: any) => { profileMap[p.device_id] = p; });
+    }
+    setRows(subs.map((s) => ({ ...s, profile: profileMap[s.device_id] || null })));
     setLoading(false);
   };
 
