@@ -512,20 +512,52 @@ const SubscriptionTab = ({ orgId }: { orgId: string }) => {
       )}
       {loading && <p className="text-slate-400 text-xs">Loading…</p>}
       {!loading && items.length === 0 && <p className="text-slate-500 text-xs">No subscriptions assigned yet.</p>}
-      {items.map((s) => (
-        <div key={s.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-100 font-semibold capitalize">{s.plan} · {s.billing_cycle}</p>
-              <p className="text-xs text-slate-400">{s.amount} {s.currency} · {s.seats} seats · <span className="capitalize">{s.status}</span></p>
-              {s.ends_at && <p className="text-[11px] text-slate-500">Ends {new Date(s.ends_at).toLocaleDateString()}</p>}
-            </div>
-            {s.status === "active" && (
-              <button onClick={() => cancel(s.id)} className="text-[11px] px-2 py-1 rounded bg-rose-500/15 text-rose-300">Cancel</button>
-            )}
+
+      {items.length > 0 && (
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-slate-500 mb-1.5">Plan history</p>
+          <div className="space-y-2">
+            {items.map((s) => {
+              const tone = s.status === "active" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                : s.status === "suspended" ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                : s.status === "cancelled" ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                : "bg-slate-500/15 text-slate-300 border-slate-500/30";
+              return (
+                <div key={s.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="text-sm text-slate-100 font-semibold capitalize">{s.plan} · {s.billing_cycle}</p>
+                      <p className="text-xs text-slate-400">
+                        {s.amount} {s.currency} · {s.seats} seats
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Started {new Date(s.starts_at || s.created_at).toLocaleDateString()}
+                        {s.ends_at && ` · ends ${new Date(s.ends_at).toLocaleDateString()}`}
+                      </p>
+                      {s.notes && <p className="text-[11px] text-slate-400 italic mt-1">"{s.notes}"</p>}
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border capitalize ${tone}`}>{s.status}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-slate-800">
+                    {s.status !== "active" && (
+                      <button onClick={() => setStatus(s.id, "active")}
+                        className="text-[11px] px-2 py-1 rounded bg-emerald-500/15 text-emerald-300">Activate</button>
+                    )}
+                    {s.status === "active" && (
+                      <button onClick={() => setStatus(s.id, "suspended")}
+                        className="text-[11px] px-2 py-1 rounded bg-amber-500/15 text-amber-300">Suspend</button>
+                    )}
+                    {s.status !== "cancelled" && (
+                      <button onClick={() => setStatus(s.id, "cancelled")}
+                        className="text-[11px] px-2 py-1 rounded bg-rose-500/15 text-rose-300">Cancel</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 };
