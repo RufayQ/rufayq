@@ -828,37 +828,256 @@ const ContractTab = ({ org }: { org: Org }) => {
 const HistoryTab = ({ orgId }: { orgId: string }) => {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [actionFilter, setActionFilter] = useState("");
+  const [actorFilter, setActorFilter] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("admin_audit_log").select("*")
+      .eq("target_type", "organization").eq("target_id", orgId)
+      .order("created_at", { ascending: false }).limit(500);
+    if (error) toast.error(error.message);
+    setLogs(data || []); setLoading(false);
+  };
+  useEffect(() => { load(); }, [orgId]); // eslint-disable-line
+
+  const actions = useMemo(() => Array.from(new Set(logs.map((l) => l.action))).sort(), [logs]);
+
+  const filtered = useMemo(() => logs.filter((l) => {
+    if (actionFilter && l.action !== actionFilter) return false;
+    if (actorFilter) {
+      const a = `${l.actor_email || ""} ${l.actor_id || ""}`.toLowerCase();
+      if (!a.includes(actorFilter.trim().toLowerCase())) return false;
+    }
+    if (from && new Date(l.created_at) < new Date(from)) return false;
+    if (to && new Date(l.created_at) > new Date(`${to}T23:59:59`)) return false;
+    return true;
+  }), [logs, actionFilter, actorFilter, from, to]);
+
+  const exportCsv = () => {
+    const escape = (v: any) => {
+      if (v == null) return "";
+      const s = typeof v === "string" ? v : JSON.stringify(v);
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+    const header = ["created_at", "action", "actor_email", "actor_id", "actor_role", "details"];
+    const rows = filtered.map((l) => [
+      new Date(l.created_at).toISOString(), l.action, l.actor_email || "",
+      l.actor_id || "", l.actor_role || "", l.details ? JSON.stringify(l.details) : "",
+    ]);
+    const csv = [header, ...rows].map((r) => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `org-audit-${orgId.slice(0, 8)}-${Date.now()}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast.success(`Exported ${filtered.length} rows`);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin activity log</h3>
+        <div className="flex items-center gap-1.5">
+          <button onClick={load} className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center gap-1">
+            <RefreshCw size={11} className={loading ? "animate-spin" : ""} /> Refresh
+          </button>
+          <button onClick={exportCsv} disabled={filtered.length === 0}
+            className="text-[11px] px-2 py-1 rounded bg-amber-500/15 text-amber-300 disabled:opacity-40 flex items-center gap-1">
+            <Download size={11} /> Export CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-2.5 space-y-2">
+        <div className="flex flex-wrap gap-2">
+          <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 flex-1 min-w-[140px]">
+            <option value="">All actions</option>
+            {actions.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+          <input value={actorFilter} onChange={(e) => setActorFilter(e.target.value)} placeholder="Actor email or ID"
+            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 flex-1 min-w-[140px]" />
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-[10px] text-slate-500">from</span>
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200" />
+          <span className="text-[10px] text-slate-500">to</span>
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200" />
+          {(actionFilter || actorFilter || from || to) && (
+            <button onClick={() => { setActionFilter(""); setActorFilter(""); setFrom(""); setTo(""); }}
+              className="text-[10px] text-slate-400 hover:text-slate-200 underline ml-auto">Clear</button>
+          )}
+          <span className="ml-auto text-[10px] text-slate-500">{filtered.length} of {logs.length}</span>
+        </div>
+      </div>
+
+      {loading && <p className="text-slate-400 text-xs">Loading…</p>}
+      {!loading && filtered.length === 0 && <p className="text-slate-500 text-xs">No activity matches these filters.</p>}
+      <div className="space-y-1.5">
+        {filtered.map((l) => (
+          <div key={l.id} className="rounded-lg border border-slate-800 bg-slate-900/40 p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-slate-200 font-medium">{l.action}</p>
+              <span className="text-[10px] text-slate-500">{new Date(l.created_at).toLocaleString()}</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">{l.actor_email || l.actor_id?.slice(0, 8) || "system"} · {l.actor_role || "—"}</p>
+            {l.details && <pre className="text-[10px] text-slate-500 mt-1 whitespace-pre-wrap break-words font-mono">{JSON.stringify(l.details, null, 0)}</pre>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/* PaymentProofRow — bank-transfer reference + receipt upload per subscription */
+/* -------------------------------------------------------------------------- */
+const PAYMENT_METHODS = ["bank_transfer", "wire", "card", "cash", "cheque", "other"] as const;
+
+const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; onChanged: () => void }) => {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    payment_method: sub.payment_method || "bank_transfer",
+    payment_reference: sub.payment_reference || "",
+  });
+  const [busy, setBusy] = useState(false);
+  const [signed, setSigned] = useState<string | null>(null);
+
+  useEffect(() => {
+    setForm({
+      payment_method: sub.payment_method || "bank_transfer",
+      payment_reference: sub.payment_reference || "",
+    });
+  }, [sub.id, sub.payment_method, sub.payment_reference]);
 
   useEffect(() => {
     (async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("admin_audit_log")
-        .select("*")
-        .eq("target_type", "organization")
-        .eq("target_id", orgId)
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (error) toast.error(error.message);
-      setLogs(data || []); setLoading(false);
+      if (!sub.payment_receipt_url) { setSigned(null); return; }
+      const { data } = await supabase.storage.from("org-payments").createSignedUrl(sub.payment_receipt_url, 60 * 10);
+      setSigned(data?.signedUrl || null);
     })();
-  }, [orgId]);
+  }, [sub.payment_receipt_url]);
+
+  const saveDetails = async () => {
+    setBusy(true);
+    const { error } = await supabase.from("organization_subscriptions")
+      .update({ payment_method: form.payment_method, payment_reference: form.payment_reference || null })
+      .eq("id", sub.id);
+    if (error) { toast.error(error.message); setBusy(false); return; }
+    await supabase.rpc("log_audit_event", {
+      _action: "org_payment_details_saved", _target_type: "organization", _target_id: orgId,
+      _details: { sub_id: sub.id, method: form.payment_method, reference: form.payment_reference },
+    });
+    toast.success("Payment details saved"); setEditing(false); setBusy(false); onChanged();
+  };
+
+  const uploadReceipt = async (file: File) => {
+    setBusy(true);
+    const path = `${orgId}/${sub.id}/${Date.now()}-${file.name}`;
+    const { error: upErr } = await supabase.storage.from("org-payments").upload(path, file, { upsert: false });
+    if (upErr) { toast.error(upErr.message); setBusy(false); return; }
+    const { error: dbErr } = await supabase.from("organization_subscriptions").update({
+      payment_receipt_url: path, payment_receipt_filename: file.name,
+      payment_uploaded_at: new Date().toISOString(),
+    }).eq("id", sub.id);
+    if (dbErr) { toast.error(dbErr.message); setBusy(false); return; }
+    await supabase.rpc("log_audit_event", {
+      _action: "org_payment_receipt_uploaded", _target_type: "organization", _target_id: orgId,
+      _details: { sub_id: sub.id, filename: file.name, size: file.size },
+    });
+    toast.success("Receipt uploaded"); setBusy(false); onChanged();
+  };
+
+  const verify = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("organization_subscriptions").update({
+      payment_verified_at: new Date().toISOString(), payment_verified_by: user?.id ?? null,
+    }).eq("id", sub.id);
+    if (error) { toast.error(error.message); return; }
+    await supabase.rpc("log_audit_event", {
+      _action: "org_payment_verified", _target_type: "organization", _target_id: orgId,
+      _details: { sub_id: sub.id, reference: sub.payment_reference },
+    });
+    toast.success("Payment verified"); onChanged();
+  };
+
+  const verified = !!sub.payment_verified_at;
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin activity log</h3>
-      {loading && <p className="text-slate-400 text-xs">Loading…</p>}
-      {!loading && logs.length === 0 && <p className="text-slate-500 text-xs">No activity yet.</p>}
-      {logs.map((l) => (
-        <div key={l.id} className="rounded-lg border border-slate-800 bg-slate-900/40 p-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-slate-200 font-medium">{l.action}</p>
-            <span className="text-[10px] text-slate-500">{new Date(l.created_at).toLocaleString()}</span>
+    <div className="mt-2 pt-2 border-t border-slate-800/60 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] uppercase tracking-wide text-slate-500 flex items-center gap-1">
+          <Receipt size={11} /> Payment proof
+        </p>
+        {!editing ? (
+          <button onClick={() => setEditing(true)} className="text-[10px] text-slate-400 hover:text-slate-200 underline">
+            {sub.payment_reference ? "Edit" : "Add details"}
+          </button>
+        ) : (
+          <div className="flex gap-1.5">
+            <button onClick={() => setEditing(false)} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">Cancel</button>
+            <button onClick={saveDetails} disabled={busy} className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 font-semibold">Save</button>
           </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">{l.actor_email || l.actor_id?.slice(0, 8) || "system"} · {l.actor_role || "—"}</p>
-          {l.details && <pre className="text-[10px] text-slate-500 mt-1 whitespace-pre-wrap break-words font-mono">{JSON.stringify(l.details, null, 0)}</pre>}
+        )}
+      </div>
+
+      {editing ? (
+        <div className="grid grid-cols-2 gap-2">
+          <select value={form.payment_method} onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
+            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200">
+            {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m.replace("_", " ")}</option>)}
+          </select>
+          <input value={form.payment_reference} onChange={(e) => setForm({ ...form, payment_reference: e.target.value })}
+            placeholder="Transaction reference no."
+            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 font-mono" />
         </div>
-      ))}
+      ) : (
+        <div className="text-[11px] text-slate-400 space-y-0.5">
+          <p>Method: <span className="text-slate-200 capitalize">{(sub.payment_method || "—").replace("_", " ")}</span></p>
+          <p>Ref: <span className="text-slate-200 font-mono">{sub.payment_reference || "—"}</span></p>
+          {sub.payment_uploaded_at && (
+            <p className="text-slate-500">Uploaded {new Date(sub.payment_uploaded_at).toLocaleString()}</p>
+          )}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 flex-wrap">
+        {sub.payment_receipt_url ? (
+          <>
+            <a href={signed || "#"} target="_blank" rel="noreferrer"
+              className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 inline-flex items-center gap-1">
+              <FileText size={10} /> {sub.payment_receipt_filename || "Receipt"} <ExternalLink size={9} />
+            </a>
+            <label className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer inline-flex items-center gap-1">
+              <Upload size={10} /> Replace
+              <input type="file" hidden accept=".pdf,.doc,.docx,image/*" disabled={busy}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); }} />
+            </label>
+          </>
+        ) : (
+          <label className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer inline-flex items-center gap-1">
+            <Upload size={10} /> {busy ? "Uploading…" : "Upload receipt"}
+            <input type="file" hidden accept=".pdf,.doc,.docx,image/*" disabled={busy}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); }} />
+          </label>
+        )}
+        {verified ? (
+          <span className="text-[10px] px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 inline-flex items-center gap-1">
+            <ShieldCheck size={10} /> Verified {new Date(sub.payment_verified_at).toLocaleDateString()}
+          </span>
+        ) : sub.payment_receipt_url && (
+          <button onClick={verify} className="text-[10px] px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 inline-flex items-center gap-1">
+            <ShieldCheck size={10} /> Mark verified
+          </button>
+        )}
+      </div>
     </div>
   );
 };
