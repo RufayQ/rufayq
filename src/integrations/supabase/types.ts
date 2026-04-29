@@ -1140,6 +1140,36 @@ export type Database = {
           },
         ]
       }
+      patient_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          currency: string
+          device_id: string | null
+          id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          device_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          device_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payment_receipts: {
         Row: {
           amount: number
@@ -5295,6 +5325,80 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_transactions: {
+        Row: {
+          actor_id: string | null
+          addon_id: string | null
+          amount: number
+          balance_after: number
+          created_at: string
+          currency: string
+          details: Json | null
+          device_id: string | null
+          direction: string
+          elapsed_pct: number | null
+          id: string
+          kind: string
+          reason: string | null
+          reference: string | null
+          refund_pct: number | null
+          refund_tier: string | null
+          subscription_id: string | null
+          user_id: string | null
+          wallet_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          addon_id?: string | null
+          amount: number
+          balance_after: number
+          created_at?: string
+          currency?: string
+          details?: Json | null
+          device_id?: string | null
+          direction: string
+          elapsed_pct?: number | null
+          id?: string
+          kind: string
+          reason?: string | null
+          reference?: string | null
+          refund_pct?: number | null
+          refund_tier?: string | null
+          subscription_id?: string | null
+          user_id?: string | null
+          wallet_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          addon_id?: string | null
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          currency?: string
+          details?: Json | null
+          device_id?: string | null
+          direction?: string
+          elapsed_pct?: number | null
+          id?: string
+          kind?: string
+          reason?: string | null
+          reference?: string | null
+          refund_pct?: number | null
+          refund_tier?: string | null
+          subscription_id?: string | null
+          user_id?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "patient_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       ai_usage_audit: {
@@ -5325,6 +5429,15 @@ export type Database = {
           expires_at: string
         }[]
       }
+      admin_issue_refund: {
+        Args: {
+          _addon_id: string
+          _amount: number
+          _reason: string
+          _subscription_id: string
+        }
+        Returns: string
+      }
       admin_user_kpis: {
         Args: never
         Returns: {
@@ -5332,6 +5445,20 @@ export type Database = {
           new_7d: number
           provider_type: string
           total: number
+        }[]
+      }
+      compute_refund_tier: {
+        Args: {
+          _amount: number
+          _now?: string
+          _period_end: string
+          _period_start: string
+        }
+        Returns: {
+          elapsed_pct: number
+          refund_amount: number
+          refund_pct: number
+          tier: string
         }[]
       }
       consume_ai_credit: {
@@ -5346,6 +5473,28 @@ export type Database = {
       consume_manual_otp: {
         Args: { _code: string; _recipient: string }
         Returns: boolean
+      }
+      credit_wallet: {
+        Args: {
+          _actor_id: string
+          _addon_id: string
+          _amount: number
+          _currency: string
+          _details?: Json
+          _device_id: string
+          _elapsed_pct: number
+          _kind: string
+          _reason: string
+          _refund_pct: number
+          _refund_tier: string
+          _subscription_id: string
+          _user_id: string
+        }
+        Returns: string
+      }
+      get_or_create_wallet: {
+        Args: { _currency?: string; _device_id: string; _user_id: string }
+        Returns: string
       }
       has_role: {
         Args: {
