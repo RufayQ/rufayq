@@ -147,6 +147,33 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
+  /** Subscription pending cancel — drives <RefundConfirmDialog>. */
+  const [cancelTarget, setCancelTarget] = useState<Sub | null>(null);
+  /** Add-on currently being manually refunded by admin. */
+  const [refundingAddon, setRefundingAddon] = useState<Addon | null>(null);
+
+  /**
+   * Issues a manual admin refund for a subscription or add-on.
+   * Calls the `admin_issue_refund` RPC; the wallet credit + credit-note
+   * notification are handled server-side.
+   */
+  const issueManualRefund = async (
+    subscriptionId: string | null,
+    addonId: string | null,
+    amount: number,
+    reason: string,
+  ) => {
+    setBusy(true);
+    const { error } = await supabase.rpc("admin_issue_refund", {
+      _subscription_id: subscriptionId,
+      _addon_id: addonId,
+      _amount: amount,
+      _reason: reason,
+    });
+    if (error) { toast.error(error.message); setBusy(false); return; }
+    toast.success(`Refunded SAR ${amount.toFixed(2)} to wallet`);
+    setBusy(false); load();
+  };
 
   const active = useMemo(() => subs.find((s) => s.status === "active") || subs[0] || null, [subs]);
   const isFree = !active || active.plan.toUpperCase() === "FREE";
