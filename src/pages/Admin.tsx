@@ -233,6 +233,7 @@ const Admin = () => {
               </button>
               <QuickCreateMenu onPick={handleQuickCreate} />
               <AdminTopbarPrefs />
+              <AdminPermissionsDebug />
               <span className="hidden sm:inline text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 uppercase tracking-wide">{role}</span>
             </div>
           </div>
