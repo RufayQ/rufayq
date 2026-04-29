@@ -396,7 +396,7 @@ const OrgDrawer = ({ org, initialTab = "overview", onClose }: { org: Org; initia
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <Field label="Name" value={form.name} editing={editing} onChange={(v) => setForm({ ...form, name: v })} colSpan />
                 <SelectField label="Type" value={form.org_type} options={TYPES as any} editing={editing} onChange={(v) => setForm({ ...form, org_type: v })} />
                 <SelectField label="Status" value={form.status} options={STATUSES as any} editing={editing} onChange={(v) => setForm({ ...form, status: v })} />
