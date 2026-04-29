@@ -1068,6 +1068,9 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
   });
   const [busy, setBusy] = useState(false);
   const [signed, setSigned] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState(false);
+  const { can, ready } = usePermissions();
+  const canVerify = ready && can("payment.verify");
 
   useEffect(() => {
     setForm({
@@ -1167,12 +1170,36 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
         </div>
       )}
 
+      {/* Thumbnail grid for uploaded receipt(s) */}
+      {sub.payment_receipt_url && (
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <button
+            type="button"
+            onClick={() => signed && setLightbox(true)}
+            className="group relative aspect-square rounded-lg overflow-hidden border border-slate-700 bg-slate-900 hover:border-amber-500/50 transition"
+            title={sub.payment_receipt_filename || "Receipt"}
+          >
+            {signed && /\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(sub.payment_receipt_url) ? (
+              <img src={signed} alt={sub.payment_receipt_filename || "Receipt"} className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1">
+                <FileText size={20} />
+                <span className="text-[9px] font-mono px-1 truncate max-w-full">{(sub.payment_receipt_filename || "file").split(".").pop()?.toUpperCase()}</span>
+              </div>
+            )}
+            <span className="absolute inset-0 bg-slate-950/0 group-hover:bg-slate-950/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+              <Maximize2 size={14} className="text-white" />
+            </span>
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 flex-wrap">
         {sub.payment_receipt_url ? (
           <>
             <a href={signed || "#"} target="_blank" rel="noreferrer"
               className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 inline-flex items-center gap-1">
-              <FileText size={10} /> {sub.payment_receipt_filename || "Receipt"} <ExternalLink size={9} />
+              <ExternalLink size={10} /> Open
             </a>
             <label className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer inline-flex items-center gap-1">
               <Upload size={10} /> Replace
@@ -1192,11 +1219,37 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
             <ShieldCheck size={10} /> Verified {new Date(sub.payment_verified_at).toLocaleDateString()}
           </span>
         ) : sub.payment_receipt_url && (
-          <button onClick={verify} className="text-[10px] px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 inline-flex items-center gap-1">
+          <button
+            onClick={() => {
+              if (!canVerify) { toast.error("Permission required", { description: "Your role can't mark payments as verified." }); return; }
+              verify();
+            }}
+            aria-disabled={!canVerify}
+            className={`text-[10px] px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 inline-flex items-center gap-1 ${canVerify ? "" : "opacity-50 cursor-not-allowed"}`}>
             <ShieldCheck size={10} /> Mark verified
           </button>
         )}
       </div>
+
+      {lightbox && signed && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => setLightbox(false)}>
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" />
+          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between mb-2 text-slate-200 text-xs">
+              <span className="font-mono truncate">{sub.payment_receipt_filename}</span>
+              <div className="flex items-center gap-2">
+                <a href={signed} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 inline-flex items-center gap-1"><ExternalLink size={11} /> Open</a>
+                <button onClick={(e) => { e.stopPropagation(); setLightbox(false); }} className="p-1.5 rounded bg-slate-800 hover:bg-slate-700"><X size={13} /></button>
+              </div>
+            </div>
+            {/\.(pdf)(\?|$)/i.test(sub.payment_receipt_url) ? (
+              <iframe src={signed} className="flex-1 w-full bg-white rounded-lg" title="Receipt" onClick={(e) => e.stopPropagation()} />
+            ) : (
+              <img src={signed} alt={sub.payment_receipt_filename || "Receipt"} className="max-h-[85vh] w-full object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
