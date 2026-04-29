@@ -778,6 +778,7 @@ const AddonsTab = ({
   onAdd: (key: string, label: string, price: number, days: number, complimentary: boolean) => void;
   onRemove: (a: Addon) => void; onExtend: (a: Addon, days: number) => void;
 }) => {
+  const catalog = useAddonCatalog();
   const activeKeys = new Set(addons.filter((a) => a.is_active).map((a) => a.addon_key));
 
   if (!active) return <p className="text-sm text-slate-400">No active subscription — assign a plan first.</p>;
