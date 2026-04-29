@@ -91,6 +91,7 @@ const Admin = () => {
 
   const goLeaf = useCallback((next: LeafKey, payload?: any) => {
     setLeaf(next);
+    setMobileNavOpen(false);
     if (payload?.id) sessionStorage.setItem(`admin.${next}.focusId`, String(payload.id));
     if (payload?.action) sessionStorage.setItem(`admin.${next}.action`, String(payload.action));
   }, []);
