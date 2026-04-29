@@ -3,6 +3,10 @@ import {
   type CurrencyCode, type TierId, type AddOnId,
   currencyMaster, COUNTRY_CURRENCY, GCC_PEGGED_COUNTRIES,
 } from "@/data/currencyMaster";
+import { supabase } from "@/integrations/supabase/client";
+
+/** Maps tier id ↔ pricing_plans.code (DB stores upper-case codes). */
+const TIER_CODE: Record<TierId, string> = { starter: "STARTER", companion: "COMPANION", family: "FAMILY" };
 
 const STORAGE_KEY = "rufayq_currency";
 const COUNTRY_KEY = "rufayq_country";
