@@ -431,12 +431,41 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
               onRenew={() => active && renew(active, (normalizePlanCode(active.plan) || "STARTER"), active.billing_cycle === "yearly" ? "yearly" : "monthly")}
               onExtend={(d) => active && extendDays(active, d)}
               onSuspend={() => active && setSubStatus(active, "suspended")}
-              onCancel={() => active && confirm("Cancel this subscription?") &&
-                setSubStatus(active, "cancelled", { cancelled_at: new Date().toISOString() })}
+              onCancel={() => active && setCancelTarget(active)}
               onAddAddon={() => setTab("addons")}
               onPayments={() => setTab("payments")}
               onComp={() => setTab("plans")}
               busy={busy}
+            />
+          )}
+
+          {/* Refund preview / confirmation modal — see RefundConfirmDialog. */}
+          {cancelTarget && (
+            <RefundConfirmDialog
+              sub={cancelTarget}
+              onClose={() => setCancelTarget(null)}
+              onConfirm={async (mode) => {
+                const target = cancelTarget;
+                setCancelTarget(null);
+                if (!target) return;
+                // mode "auto"   → trigger handles refund using 25/50/0% rule
+                // mode "review" → flag notes so trigger skips refund (admin will review)
+                // mode "norefund" → flag notes so trigger explicitly skips
+                const noteSuffix =
+                  mode === "review" ? "[admin_review]"
+                  : mode === "norefund" ? "[no_refund]"
+                  : "";
+                const mergedNotes = noteSuffix
+                  ? `${target.notes || ""}\n${new Date().toISOString()} · cancel · ${noteSuffix}`.trim()
+                  : target.notes;
+                await setSubStatus(target, "cancelled", {
+                  cancelled_at: new Date().toISOString(),
+                  notes: mergedNotes,
+                });
+                if (mode === "auto") toast.success("Cancelled — refund processed if eligible");
+                else if (mode === "review") toast.info("Cancelled and flagged for refund review");
+                else toast.success("Cancelled with no refund");
+              }}
             />
           )}
 
