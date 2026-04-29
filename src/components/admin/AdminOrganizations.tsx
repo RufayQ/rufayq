@@ -684,6 +684,32 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
     catch { toast.error("Copy failed"); }
   };
 
+  const resendInvite = async (inv: any) => {
+    const tokenBytes = new Uint8Array(24);
+    crypto.getRandomValues(tokenBytes);
+    const token = Array.from(tokenBytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("organization_invites").update({
+      token, expires_at: expiresAt, status: "pending", invited_by: user?.id ?? inv.invited_by ?? null,
+      revoked_at: null, accepted_at: null, accepted_by: null,
+    }).eq("id", inv.id);
+    if (error) {
+      toast.error("Resend failed", { description: error.message });
+      await supabase.rpc("log_audit_event", {
+        _action: "org_invite_resend_failed", _target_type: "organization", _target_id: orgId,
+        _details: { invite_id: inv.id, email: inv.email, role: inv.invited_role, error: error.message },
+      });
+      return;
+    }
+    await supabase.rpc("log_audit_event", {
+      _action: "org_invite_resent", _target_type: "organization", _target_id: orgId,
+      _details: { invite_id: inv.id, email: inv.email, role: inv.invited_role, expires_at: expiresAt, outcome: "token_refreshed" },
+    });
+    toast.success(`Invite resent to ${inv.email}`, { description: `New link expires ${new Date(expiresAt).toLocaleDateString()}` });
+    load();
+  };
+
   const toggleMember = async (m: any) => {
     const { error } = await supabase.from("provider_members").update({ is_active: !m.is_active }).eq("id", m.id);
     if (error) { toast.error(error.message); return; }
@@ -756,8 +782,12 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
                   {inv.status === "pending" && (
                     <>
                       <button onClick={() => copyInviteLink(inv)} className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Copy link</button>
+                      <button onClick={() => resendInvite(inv)} className="text-[11px] px-2 py-1 rounded bg-indigo-500/15 text-indigo-300">Resend</button>
                       <button onClick={() => revokeInvite(inv)} className="text-[11px] px-2 py-1 rounded bg-rose-500/15 text-rose-300">Revoke</button>
                     </>
+                  )}
+                  {inv.status !== "pending" && inv.status !== "accepted" && (
+                    <button onClick={() => resendInvite(inv)} className="text-[11px] px-2 py-1 rounded bg-indigo-500/15 text-indigo-300">Resend</button>
                   )}
                 </div>
               </div>
