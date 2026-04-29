@@ -5,6 +5,7 @@ import { Shield, LogOut, Search, ChevronRight, Home, Menu, X } from "lucide-reac
 
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
+import AdminPricingCatalog from "@/components/admin/AdminPricingCatalog";
 import AdminPayments from "@/features/payments/admin/ui/AdminPayments";
 import AdminReviews from "@/components/admin/AdminReviews";
 import AdminTickets from "@/components/admin/AdminTickets";
