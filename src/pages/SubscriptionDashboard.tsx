@@ -40,12 +40,24 @@ const SubscriptionDashboard = () => {
   const [members, setMembers] = useState<FamMember[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
   const [events, setEvents] = useState<BillEvent[]>([]);
+  /** Wallet balance + recent ledger entries (refunds, credit notes). */
+  const [wallet, setWallet] = useState<{ balance: number; currency: string } | null>(null);
+  const [walletTx, setWalletTx] = useState<WalletTx[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data: ud } = await supabase.auth.getUser();
     if (!ud?.user) { nav("/auth"); return; }
-    const { data: subs } = await supabase.from("subscriptions").select("*").eq("user_id", ud.user.id).maybeSingle();
+    // Fetch subscription + wallet in parallel for faster initial render.
+    const [subRes, walletRes, walletTxRes] = await Promise.all([
+      supabase.from("subscriptions").select("*").eq("user_id", ud.user.id).maybeSingle(),
+      supabase.from("patient_wallets").select("balance,currency").eq("user_id", ud.user.id).maybeSingle(),
+      supabase.from("wallet_transactions").select("*").eq("user_id", ud.user.id)
+        .order("created_at", { ascending: false }).limit(20),
+    ]);
+    setWallet(walletRes.data ? { balance: Number(walletRes.data.balance), currency: walletRes.data.currency } : null);
+    setWalletTx((walletTxRes.data || []) as WalletTx[]);
+    const subs = subRes.data;
     if (!subs) { setSub(null); setLoading(false); return; }
     setSub(subs as Sub);
     const [mRes, aRes, bRes] = await Promise.all([
