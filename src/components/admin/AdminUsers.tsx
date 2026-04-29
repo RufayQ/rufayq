@@ -34,6 +34,9 @@ const TYPE_BADGE: Record<string, string> = {
 };
 
 const AdminUsers = () => {
+  const { can, ready } = usePermissions();
+  const canModify = ready && can("user.assign_role"); // proxy: admins can suspend/edit/delete
+  const canResetPwd = ready && can("user.create");
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [statuses, setStatuses] = useState<Record<string, UserStatus>>({});
   const [loading, setLoading] = useState(false);
