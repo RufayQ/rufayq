@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Building2, Plus, Save, X, Search, Filter, Eye, Pencil, Pause, Play, Upload,
   Users, Package, History, FileText, Trash2, ExternalLink, Hash, Mail, Phone, Globe2, MapPin,
-  RefreshCw, Receipt, Download, ShieldCheck, Send, ChevronRight, Maximize2,
+  RefreshCw, Receipt, Download, ShieldCheck, Send, ChevronRight, Maximize2, FileDown,
 } from "lucide-react";
 import CountrySelect from "./CountrySelect";
 import CitySelect from "./CitySelect";
@@ -684,6 +684,32 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
     catch { toast.error("Copy failed"); }
   };
 
+  const resendInvite = async (inv: any) => {
+    const tokenBytes = new Uint8Array(24);
+    crypto.getRandomValues(tokenBytes);
+    const token = Array.from(tokenBytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("organization_invites").update({
+      token, expires_at: expiresAt, status: "pending", invited_by: user?.id ?? inv.invited_by ?? null,
+      revoked_at: null, accepted_at: null, accepted_by: null,
+    }).eq("id", inv.id);
+    if (error) {
+      toast.error("Resend failed", { description: error.message });
+      await supabase.rpc("log_audit_event", {
+        _action: "org_invite_resend_failed", _target_type: "organization", _target_id: orgId,
+        _details: { invite_id: inv.id, email: inv.email, role: inv.invited_role, error: error.message },
+      });
+      return;
+    }
+    await supabase.rpc("log_audit_event", {
+      _action: "org_invite_resent", _target_type: "organization", _target_id: orgId,
+      _details: { invite_id: inv.id, email: inv.email, role: inv.invited_role, expires_at: expiresAt, outcome: "token_refreshed" },
+    });
+    toast.success(`Invite resent to ${inv.email}`, { description: `New link expires ${new Date(expiresAt).toLocaleDateString()}` });
+    load();
+  };
+
   const toggleMember = async (m: any) => {
     const { error } = await supabase.from("provider_members").update({ is_active: !m.is_active }).eq("id", m.id);
     if (error) { toast.error(error.message); return; }
@@ -756,8 +782,12 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
                   {inv.status === "pending" && (
                     <>
                       <button onClick={() => copyInviteLink(inv)} className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Copy link</button>
+                      <button onClick={() => resendInvite(inv)} className="text-[11px] px-2 py-1 rounded bg-indigo-500/15 text-indigo-300">Resend</button>
                       <button onClick={() => revokeInvite(inv)} className="text-[11px] px-2 py-1 rounded bg-rose-500/15 text-rose-300">Revoke</button>
                     </>
+                  )}
+                  {inv.status !== "pending" && inv.status !== "accepted" && (
+                    <button onClick={() => resendInvite(inv)} className="text-[11px] px-2 py-1 rounded bg-indigo-500/15 text-indigo-300">Resend</button>
                   )}
                 </div>
               </div>
@@ -895,6 +925,20 @@ const HISTORY_COLUMNS = [
   { k: "details", label: "Details (JSON)" },
 ] as const;
 type HCol = (typeof HISTORY_COLUMNS)[number]["k"];
+type HistoryPreset = {
+  id: string;
+  name: string;
+  actionFilter: string;
+  actorFilter: string;
+  from: string;
+  to: string;
+  sortDir: "desc" | "asc";
+  cols: HCol[];
+};
+
+const historyPresetKey = (orgId: string) => `rufayq_org_history_presets_${orgId}`;
+
+const sanitizeFilePart = (value: string) => value.replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "file";
 
 const HistoryTab = ({ orgId }: { orgId: string }) => {
   const [logs, setLogs] = useState<any[]>([]);
@@ -906,6 +950,8 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [exportOpen, setExportOpen] = useState(false);
   const [cols, setCols] = useState<HCol[]>(["created_at", "action", "actor_email", "target_id", "details"]);
+  const [presets, setPresets] = useState<HistoryPreset[]>([]);
+  const [presetName, setPresetName] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -917,6 +963,13 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
     setLogs(data || []); setLoading(false);
   };
   useEffect(() => { load(); }, [orgId]); // eslint-disable-line
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(historyPresetKey(orgId));
+      const parsed = raw ? JSON.parse(raw) : [];
+      setPresets(Array.isArray(parsed) ? parsed : []);
+    } catch { setPresets([]); }
+  }, [orgId]);
 
   const actions = useMemo(() => Array.from(new Set(logs.map((l) => l.action))).sort(), [logs]);
 
@@ -939,6 +992,31 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
   }, [logs, actionFilter, actorFilter, from, to, sortDir]);
 
   const toggleCol = (k: HCol) => setCols((cs) => cs.includes(k) ? cs.filter((c) => c !== k) : [...cs, k]);
+  const cellOf = (l: any, k: HCol): any => {
+    if (k === "created_at") return new Date(l.created_at).toISOString();
+    if (k === "details") return l.details ? JSON.stringify(l.details) : "";
+    if (k === "claim_id") return l?.details?.claim_id || l?.details?.target_id || "";
+    return l[k] ?? "";
+  };
+
+  const persistPresets = (next: HistoryPreset[]) => {
+    setPresets(next);
+    try { localStorage.setItem(historyPresetKey(orgId), JSON.stringify(next)); } catch { /* noop */ }
+  };
+  const savePreset = () => {
+    const name = presetName.trim();
+    if (!name) { toast.error("Name the preset first"); return; }
+    const nextPreset: HistoryPreset = { id: sanitizeFilePart(name.toLowerCase()), name, actionFilter, actorFilter, from, to, sortDir, cols };
+    persistPresets([nextPreset, ...presets.filter((p) => p.id !== nextPreset.id)].slice(0, 8));
+    setPresetName("");
+    toast.success("History preset saved", { description: name });
+  };
+  const applyPreset = (id: string) => {
+    const p = presets.find((x) => x.id === id);
+    if (!p) return;
+    setActionFilter(p.actionFilter); setActorFilter(p.actorFilter); setFrom(p.from); setTo(p.to); setSortDir(p.sortDir); setCols(p.cols);
+    toast.success("Preset applied", { description: p.name });
+  };
 
   const exportCsv = () => {
     if (cols.length === 0) { toast.error("Pick at least one column"); return; }
@@ -946,12 +1024,6 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
       if (v == null) return "";
       const s = typeof v === "string" ? v : JSON.stringify(v);
       return `"${s.replace(/"/g, '""')}"`;
-    };
-    const cellOf = (l: any, k: HCol): any => {
-      if (k === "created_at") return new Date(l.created_at).toISOString();
-      if (k === "details") return l.details ? JSON.stringify(l.details) : "";
-      if (k === "claim_id") return l?.details?.claim_id || l?.details?.target_id || "";
-      return l[k] ?? "";
     };
     const meta = [
       `# Export generated ${new Date().toISOString()}`,
@@ -972,6 +1044,23 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
     setExportOpen(false);
   };
 
+  const exportPdf = () => {
+    if (cols.length === 0) { toast.error("Pick at least one column"); return; }
+    const label = (k: HCol) => HISTORY_COLUMNS.find((c) => c.k === k)?.label || k;
+    const safe = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Organization audit export</title><style>
+      @page{size:A4 landscape;margin:14mm}body{font-family:Arial,sans-serif;color:#111827}h1{font-size:18px;margin:0 0 6px}p{font-size:10px;color:#475569;margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:10px;font-size:9px}th,td{border:1px solid #cbd5e1;padding:5px;vertical-align:top;word-break:break-word}th{background:#f1f5f9;text-align:left}.details{font-family:monospace;font-size:8px}
+    </style></head><body><h1>Organization audit export</h1>
+      <p>Generated ${safe(new Date().toISOString())} · Organization ${safe(orgId)}</p>
+      <p>Filters: action ${safe(actionFilter || "*")} · actor ${safe(actorFilter || "*")} · from ${safe(from || "*")} · to ${safe(to || "*")} · sort created_at ${safe(sortDir)} · rows ${filtered.length}</p>
+      <table><thead><tr>${cols.map((c) => `<th>${safe(label(c))}</th>`).join("")}</tr></thead><tbody>${filtered.map((l) => `<tr>${cols.map((c) => `<td class="${c === "details" ? "details" : ""}">${safe(cellOf(l, c))}</td>`).join("")}</tr>`).join("")}</tbody></table>
+    </body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) { toast.error("Allow pop-ups to export PDF"); return; }
+    w.document.write(html); w.document.close();
+    w.focus(); setTimeout(() => { w.print(); toast.success(`PDF export opened`, { description: `${filtered.length} rows prepared` }); }, 250);
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -987,6 +1076,10 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
           <button onClick={() => setExportOpen((v) => !v)} disabled={filtered.length === 0}
             className="text-[11px] px-2 py-1 rounded bg-amber-500/15 text-amber-300 disabled:opacity-40 flex items-center gap-1">
             <Download size={11} /> Export CSV
+          </button>
+          <button onClick={exportPdf} disabled={filtered.length === 0}
+            className="text-[11px] px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 disabled:opacity-40 flex items-center gap-1">
+            <FileDown size={11} /> PDF
           </button>
           {exportOpen && (
             <div className="absolute right-0 top-8 z-20 w-64 rounded-xl border border-slate-700 bg-slate-950 shadow-xl p-3 animate-in fade-in slide-in-from-top-1 duration-150">
@@ -1013,6 +1106,18 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
 
       {/* Filters */}
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-2.5 space-y-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <select value="" onChange={(e) => applyPreset(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 flex-1 min-w-[150px]">
+            <option value="">Apply preset…</option>
+            {presets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <input value={presetName} onChange={(e) => setPresetName(e.target.value)} placeholder="Preset name"
+            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 flex-1 min-w-[130px]" />
+          <button onClick={savePreset} className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">
+            Save view
+          </button>
+        </div>
         <div className="flex flex-wrap gap-2">
           <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}
             className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 flex-1 min-w-[140px]">
@@ -1068,6 +1173,9 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
   });
   const [busy, setBusy] = useState(false);
   const [signed, setSigned] = useState<string | null>(null);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState(false);
   const { can, ready } = usePermissions();
   const canVerify = ready && can("payment.verify");
@@ -1081,11 +1189,16 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
 
   useEffect(() => {
     (async () => {
-      if (!sub.payment_receipt_url) { setSigned(null); return; }
+      if (!sub.payment_receipt_url) { setSigned(null); setReceiptLoading(false); return; }
+      setUploadPreviewUrl(null);
+      setReceiptLoading(true);
       const { data } = await supabase.storage.from("org-payments").createSignedUrl(sub.payment_receipt_url, 60 * 10);
       setSigned(data?.signedUrl || null);
+      setReceiptLoading(false);
     })();
   }, [sub.payment_receipt_url]);
+
+  useEffect(() => () => { if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl); }, [uploadPreviewUrl]);
 
   const saveDetails = async () => {
     setBusy(true);
@@ -1101,6 +1214,8 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
   };
 
   const uploadReceipt = async (file: File) => {
+    if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
+    setUploadPreviewUrl(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
     setBusy(true);
     const path = `${orgId}/${sub.id}/${Date.now()}-${file.name}`;
     const { error: upErr } = await supabase.storage.from("org-payments").upload(path, file, { upsert: false });
@@ -1114,7 +1229,22 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
       _action: "org_payment_receipt_uploaded", _target_type: "organization", _target_id: orgId,
       _details: { sub_id: sub.id, filename: file.name, size: file.size },
     });
-    toast.success("Receipt uploaded"); setBusy(false); onChanged();
+    toast.success("Receipt uploaded"); setBusy(false); setDragActive(false); onChanged();
+  };
+
+  const openLightbox = async () => {
+    if (!signed) return;
+    setLightbox(true);
+    await supabase.rpc("log_audit_event", {
+      _action: "org_payment_receipt_viewed", _target_type: "organization", _target_id: orgId,
+      _details: { sub_id: sub.id, filename: sub.payment_receipt_filename, path: sub.payment_receipt_url, viewer: "lightbox" },
+    });
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault(); setDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadReceipt(file);
   };
 
   const verify = async () => {
@@ -1175,11 +1305,17 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           <button
             type="button"
-            onClick={() => signed && setLightbox(true)}
+            onClick={openLightbox}
             className="group relative aspect-square rounded-lg overflow-hidden border border-slate-700 bg-slate-900 hover:border-amber-500/50 transition"
             title={sub.payment_receipt_filename || "Receipt"}
           >
-            {signed && /\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(sub.payment_receipt_url) ? (
+            {(receiptLoading || busy) ? (
+              <div className="w-full h-full animate-pulse bg-slate-800/80 flex items-center justify-center text-slate-600">
+                <Receipt size={18} />
+              </div>
+            ) : uploadPreviewUrl ? (
+              <img src={uploadPreviewUrl} alt="Uploading receipt preview" className="w-full h-full object-cover opacity-80" />
+            ) : signed && /\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(sub.payment_receipt_url) ? (
               <img src={signed} alt={sub.payment_receipt_filename || "Receipt"} className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1">
@@ -1194,6 +1330,18 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
         </div>
       )}
 
+      <label
+        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={handleDrop}
+        className={`flex items-center justify-center gap-2 rounded-xl border border-dashed px-3 py-3 text-[11px] cursor-pointer transition ${dragActive ? "border-amber-500 bg-amber-500/10 text-amber-200" : "border-slate-700 bg-slate-900/40 text-slate-400 hover:border-slate-600 hover:text-slate-200"}`}
+      >
+        <Upload size={13} />
+        {busy ? "Uploading receipt…" : sub.payment_receipt_url ? "Drag receipt here or tap to replace" : "Drag receipt here or tap to upload"}
+        <input type="file" hidden accept=".pdf,.doc,.docx,image/*" disabled={busy}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); e.currentTarget.value = ""; }} />
+      </label>
+
       <div className="flex items-center gap-2 flex-wrap">
         {sub.payment_receipt_url ? (
           <>
@@ -1204,14 +1352,14 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
             <label className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer inline-flex items-center gap-1">
               <Upload size={10} /> Replace
               <input type="file" hidden accept=".pdf,.doc,.docx,image/*" disabled={busy}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); }} />
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); e.currentTarget.value = ""; }} />
             </label>
           </>
         ) : (
           <label className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer inline-flex items-center gap-1">
             <Upload size={10} /> {busy ? "Uploading…" : "Upload receipt"}
             <input type="file" hidden accept=".pdf,.doc,.docx,image/*" disabled={busy}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); }} />
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); e.currentTarget.value = ""; }} />
           </label>
         )}
         {verified ? (

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { lazy, Suspense, useEffect, useState } from "react";
 import LazyOnView from "@/components/LazyOnView";
 import RufayQLogo from "@/components/RufayQLogo";
@@ -25,6 +25,7 @@ const LandingBelow = lazy(() => import("./LandingBelow"));
 
 const Landing = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { mode } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -55,6 +56,8 @@ const Landing = () => {
 
   const isAr = mode === "ar";
   const isBoth = mode === "both";
+  const routeIsAr = location.pathname === "/ar" || location.pathname.startsWith("/ar/");
+  const pricingHref = routeIsAr ? "/ar/pricing" : "/pricing";
 
   // ── CMS overrides (Phase 1: hero CTAs + trust badges) ───────────────
   // Hardcoded defaults below remain as fallback when CMS is empty / loading.
@@ -81,19 +84,18 @@ const Landing = () => {
   const navLinks: { en: string; ar: string; href: string; isRoute?: boolean; anchorId?: string }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
     { en: "How", ar: "كيف يعمل", href: "#how" },
-    // Pricing: prefer in-page #pricing anchor when present (faster, no nav), fall back to /pricing route.
-    { en: "Pricing", ar: "الأسعار", href: isAr ? "/ar/pricing" : "/pricing", isRoute: true, anchorId: "pricing" },
+    { en: "Pricing", ar: "الأسعار", href: pricingHref, isRoute: true },
     { en: "FAQ", ar: "الأسئلة", href: "#faq" },
     { en: "Contact", ar: "تواصل", href: "#contact" },
   ];
 
   // Localize internal route links so visitors on /ar/* stay on /ar/*.
-  const lp = (en: string) => (isAr ? `/ar${en}` : en);
+  const lp = (en: string) => (routeIsAr ? `/ar${en}` : en);
   const goToApp = () => navigate(lp("/app"));
   // The prominent gold CTA in the nav routes to the dedicated News & Articles
   // page (admin-managed via the Site Pages → landing-news slug). The hero
   // "Start free" button still routes to the app.
-  const goToNews = () => navigate(isAr ? "/ar/news" : "/news");
+  const goToNews = () => navigate(routeIsAr ? "/ar/news" : "/news");
 
   return (
     <>
