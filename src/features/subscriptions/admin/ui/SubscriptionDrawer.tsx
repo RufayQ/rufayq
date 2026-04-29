@@ -1233,7 +1233,6 @@ const RefundConfirmDialog = ({
           <RefreshCw size={16} className="text-amber-300" />
           <h3 className="text-base font-semibold text-amber-300">Cancel subscription · refund preview</h3>
         </div>
-        <p className="text-xs text-slate-400 mb-4">
         <p className="text-xs text-slate-400 mb-2">
           Per policy: ≤25% elapsed = full refund, 25–45% = 50%, &gt;45% = no refund. Computed from time elapsed in the current billing period.
         </p>
