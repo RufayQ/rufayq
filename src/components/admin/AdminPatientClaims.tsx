@@ -191,7 +191,14 @@ const AdminPatientClaims = () => {
 
       <div className="space-y-3">
         {visible.map((c) => (
-          <div key={c.id} className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+          <div
+            key={c.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => viewClaim(c)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); viewClaim(c); } }}
+            className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 sm:p-4 hover:border-amber-500/40 cursor-pointer transition"
+          >
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate">{c.org_name || c.organization_id}</p>
@@ -209,7 +216,7 @@ const AdminPatientClaims = () => {
               </span>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-800">
+            <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-800" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => viewClaim(c)}
                 className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1">
                 <Eye size={11} /> View
@@ -246,7 +253,7 @@ const AdminPatientClaims = () => {
 const ClaimDetailDrawer = ({ claim, onClose }: { claim: Claim; onClose: () => void }) => (
   <div className="fixed inset-0 z-50 flex">
     <div className="flex-1 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
-    <aside className="w-full max-w-md bg-slate-950 border-l border-slate-800 overflow-y-auto p-5 space-y-4">
+    <aside className="w-full sm:max-w-md bg-slate-950 border-l border-slate-800 overflow-y-auto p-4 sm:p-5 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-lg font-semibold text-slate-100">Claim details</h3>
