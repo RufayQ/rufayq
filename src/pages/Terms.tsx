@@ -31,14 +31,24 @@ const Terms = () => {
         <li>You agree not to use the App to upload unlawful, infringing, or harmful content.</li>
         <li>You are responsible for keeping your device and account credentials secure.</li>
       </ul> },
-    { icon: Scale, title: "4. Subscriptions, Trials & Payments", titleAr: "الاشتراكات والمدفوعات",
-      body: <ul className="list-disc pl-5 space-y-1">
-        <li>Free tier supports one active trip with limited AI usage.</li>
-        <li>Paid tiers and pay-as-you-go add-ons are billed as displayed on the Pricing page.</li>
-        <li>14-day free trial is available once per device.</li>
-        <li>Refunds within 14 days of upgrade, in line with our money-back guarantee.</li>
-        <li>Local taxes (VAT) may apply per your jurisdiction.</li>
-      </ul> },
+    { icon: Scale, title: "4. Subscriptions, Trials, Payments & Refunds", titleAr: "الاشتراكات والمدفوعات والاسترداد",
+      body: <>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Free tier supports one active trip with limited AI usage.</li>
+          <li>Paid tiers and pay-as-you-go add-ons are billed as displayed on the Pricing page.</li>
+          <li>14-day free trial is available once per device.</li>
+          <li>Local taxes (VAT) may apply per your jurisdiction.</li>
+        </ul>
+        <p className="mt-3"><strong style={{ color: GOLD }}>Refund policy on cancellation</strong> — calculated from the time elapsed in the current billing period:</p>
+        <ul className="list-disc pl-5 mt-1 space-y-1">
+          <li><strong>Full refund (100%)</strong> if you cancel within the first <strong>25%</strong> of the billing period.</li>
+          <li><strong>Partial refund (50%)</strong> if you cancel between <strong>25% and 45%</strong> of the billing period.</li>
+          <li><strong>No refund</strong> after <strong>45%</strong> of the billing period has elapsed.</li>
+        </ul>
+        <p className="mt-2">Refunds are credited to your in-app <strong>RufayQ Wallet</strong> as a credit note and a notification is sent to your app. Bank-payout from the wallet may be requested via support and will be processed manually with receipt evidence.</p>
+        <p className="mt-2"><strong>Add-ons are non-refundable</strong> by default. Our admin team may, at their sole discretion, issue a partial or full add-on refund (fixed amount or percentage) for service issues or goodwill.</p>
+        <p className="mt-2">Disputed cancellations are flagged for admin review and resolved on a case-by-case basis. Contact <a href="mailto:support@rufayq.com" style={{ color: GOLD }}>support@rufayq.com</a> to dispute a refund decision.</p>
+      </> },
     { icon: Scale, title: "5. Intellectual Property", titleAr: "الملكية الفكرية",
       body: <p>All trademarks, logos, designs, AI prompts, and source code in RufayQ are the exclusive property of RufayQ or its licensors.</p> },
     { icon: AlertTriangle, title: "6. Limitation of Liability", titleAr: "حدود المسؤولية",
