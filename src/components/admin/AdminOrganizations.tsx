@@ -145,7 +145,7 @@ const AdminOrganizations = () => {
       {/* Create form */}
       {creating && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Organization name *"
               className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 col-span-2" />
