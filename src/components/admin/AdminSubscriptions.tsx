@@ -12,9 +12,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Calendar, CreditCard, Search, RefreshCw, PauseCircle, PlayCircle, XCircle, User, Mail } from "lucide-react";
+import { Calendar, CreditCard, Search, RefreshCw, PauseCircle, PlayCircle, XCircle, User, Mail, ChevronDown, ChevronUp } from "lucide-react";
 import type { Subscription as Sub, SubscriptionStatus } from "@/shared/types/subscription";
 import { PLAN_CODES, statusTone } from "@/features/subscriptions/logic/statusMachine";
+import { usePermissions } from "@/features/auth";
 
 type Tab = "all" | "active" | "pending_receipt" | "past_due" | "suspended" | "cancelled";
 
