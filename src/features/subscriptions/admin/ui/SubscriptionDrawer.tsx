@@ -1142,4 +1142,179 @@ const NotesTab = ({
   );
 };
 
+/* ── Refund dialogs ───────────────────────────────────────────────────── */
+
+/**
+ * Compute the refund tier locally so admins see the same numbers the
+ * server-side `compute_refund_tier()` function will produce.
+ *
+ * Rules (time-elapsed only):
+ *   ≤ 25%        → FULL refund (100%)
+ *   25% .. 45%   → PARTIAL refund (50%)
+ *   > 45%        → NO refund
+ */
+function computeRefundPreview(sub: Sub): {
+  tier: "full" | "partial" | "none"; pct: number; amount: number; elapsedPct: number;
+} {
+  const start = sub.current_period_start ? new Date(sub.current_period_start).getTime() : 0;
+  const end = sub.current_period_end ? new Date(sub.current_period_end).getTime() : 0;
+  const amount = Number(sub.amount || 0);
+  if (!start || !end || end <= start || amount <= 0) {
+    return { tier: "none", pct: 0, amount: 0, elapsedPct: 100 };
+  }
+  const elapsedPct = Math.max(0, Math.min(100, ((Date.now() - start) / (end - start)) * 100));
+  if (elapsedPct <= 25) return { tier: "full", pct: 100, amount: Math.round(amount * 100) / 100, elapsedPct };
+  if (elapsedPct <= 45) return { tier: "partial", pct: 50, amount: Math.round(amount * 50) / 100, elapsedPct };
+  return { tier: "none", pct: 0, amount: 0, elapsedPct };
+}
+
+/**
+ * Modal shown when an admin clicks Cancel. Lets them pick:
+ *   - "auto"     → trigger-based refund using the policy
+ *   - "review"   → flag for admin review (no auto refund yet)
+ *   - "norefund" → cancel without any refund
+ */
+const RefundConfirmDialog = ({
+  sub, onClose, onConfirm,
+}: {
+  sub: Sub;
+  onClose: () => void;
+  onConfirm: (mode: "auto" | "review" | "norefund") => void;
+}) => {
+  const preview = computeRefundPreview(sub);
+  const tierColor = preview.tier === "full" ? "text-emerald-300"
+                  : preview.tier === "partial" ? "text-amber-300"
+                  : "text-rose-300";
+  const tierLabel = preview.tier === "full" ? "FULL refund (100%)"
+                  : preview.tier === "partial" ? "PARTIAL refund (50%)"
+                  : "NO refund (period > 45%)";
+
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()}
+        className="w-[92%] max-w-md rounded-2xl bg-[#0D1B2A] border border-amber-500/30 p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center gap-2 mb-3">
+          <RefreshCw size={16} className="text-amber-300" />
+          <h3 className="text-base font-semibold text-amber-300">Cancel subscription · refund preview</h3>
+        </div>
+        <p className="text-xs text-slate-400 mb-4">
+          Per policy: ≤25% elapsed = full refund, 25–45% = 50%, &gt;45% = no refund. Computed from time elapsed in the current billing period.
+        </p>
+
+        <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-3 mb-3 space-y-1.5">
+          <div className="flex justify-between text-xs"><span className="text-slate-400">Period elapsed</span><span className="text-slate-200 font-mono">{preview.elapsedPct.toFixed(1)}%</span></div>
+          <div className="flex justify-between text-xs"><span className="text-slate-400">Paid amount</span><span className="text-slate-200 font-mono">{sub.currency} {Number(sub.amount || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between text-sm pt-1 border-t border-slate-800"><span className={tierColor}>{tierLabel}</span><span className={`${tierColor} font-mono font-semibold`}>{sub.currency} {preview.amount.toFixed(2)}</span></div>
+        </div>
+
+        <div className="space-y-2">
+          <button onClick={() => onConfirm("auto")}
+            className="w-full px-3 py-2.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-sm font-medium transition-colors">
+            Cancel & auto-refund {preview.amount > 0 ? `(${sub.currency} ${preview.amount.toFixed(2)} → wallet)` : "(no refund applies)"}
+          </button>
+          <button onClick={() => onConfirm("review")}
+            className="w-full px-3 py-2.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 text-sm font-medium transition-colors">
+            Cancel & flag for refund review (admin dispute)
+          </button>
+          <button onClick={() => onConfirm("norefund")}
+            className="w-full px-3 py-2.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 text-sm font-medium transition-colors">
+            Cancel with NO refund
+          </button>
+          <button onClick={onClose}
+            className="w-full px-3 py-2 rounded-lg text-slate-400 hover:text-slate-200 text-xs">
+            Keep subscription active
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+};
+
+/**
+ * Modal for issuing a manual add-on refund. Add-ons are non-refundable by
+ * default; admins enter either an exact SAR amount or a % of the unit price.
+ */
+const AddonRefundDialog = ({
+  addon, onClose, onConfirm,
+}: {
+  addon: Addon;
+  onClose: () => void;
+  onConfirm: (amount: number, reason: string) => void;
+}) => {
+  const max = Number(addon.unit_price || 0) * Number(addon.quantity || 1);
+  const [mode, setMode] = useState<"amount" | "percent">("percent");
+  const [pct, setPct] = useState(50);
+  const [amt, setAmt] = useState(Math.round(max * 50) / 100);
+  const [reason, setReason] = useState("");
+  const finalAmount = mode === "amount" ? Number(amt) : Math.round(max * pct) / 100;
+  const valid = finalAmount > 0 && finalAmount <= max && reason.trim().length > 0;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()}
+        className="w-[92%] max-w-md rounded-2xl bg-[#0D1B2A] border border-amber-500/30 p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center gap-2 mb-1">
+          <RefreshCw size={16} className="text-amber-300" />
+          <h3 className="text-base font-semibold text-amber-300">Refund add-on (manual)</h3>
+        </div>
+        <p className="text-xs text-slate-400 mb-3">
+          {addon.addon_label} · paid {addon.currency} {max.toFixed(2)}
+        </p>
+
+        <div className="flex gap-1 mb-3 p-1 bg-slate-900/60 rounded-lg">
+          <button onClick={() => setMode("percent")}
+            className={`flex-1 text-xs py-1.5 rounded ${mode === "percent" ? "bg-amber-500/20 text-amber-300" : "text-slate-400"}`}>
+            Percentage
+          </button>
+          <button onClick={() => setMode("amount")}
+            className={`flex-1 text-xs py-1.5 rounded ${mode === "amount" ? "bg-amber-500/20 text-amber-300" : "text-slate-400"}`}>
+            Exact amount
+          </button>
+        </div>
+
+        {mode === "percent" ? (
+          <div className="mb-3">
+            <label className="text-[10px] uppercase tracking-wide text-slate-500">Refund % of {addon.currency} {max.toFixed(2)}</label>
+            <input type="range" min={0} max={100} step={5} value={pct}
+              onChange={(e) => setPct(Number(e.target.value))}
+              className="w-full accent-amber-400 mt-1" />
+            <div className="flex justify-between text-xs mt-1">
+              <span className="text-slate-400">{pct}%</span>
+              <span className="text-amber-300 font-mono">{addon.currency} {(Math.round(max * pct) / 100).toFixed(2)}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-3">
+            <label className="text-[10px] uppercase tracking-wide text-slate-500">Amount ({addon.currency})</label>
+            <input type="number" step="0.01" min={0} max={max} value={amt}
+              onChange={(e) => setAmt(Number(e.target.value))}
+              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 mt-1" />
+            <p className="text-[10px] text-slate-500 mt-1">Max {max.toFixed(2)}</p>
+          </div>
+        )}
+
+        <div className="mb-4">
+          <label className="text-[10px] uppercase tracking-wide text-slate-500">Reason (required)</label>
+          <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. Service not delivered as promised — goodwill refund."
+            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 mt-1" />
+        </div>
+
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 px-3 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm transition-colors">
+            Cancel
+          </button>
+          <button disabled={!valid} onClick={() => onConfirm(finalAmount, reason.trim())}
+            className="flex-1 px-3 py-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-sm font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+            Refund {addon.currency} {finalAmount.toFixed(2)}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+};
+
 export default SubscriptionDrawer;
