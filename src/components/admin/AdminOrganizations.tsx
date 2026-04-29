@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Building2, Plus, Save, X, Search, Filter, Eye, Pencil, Pause, Play, Upload,
   Users, Package, History, FileText, Trash2, ExternalLink, Hash, Mail, Phone, Globe2, MapPin,
-  RefreshCw, Receipt, Download, ShieldCheck, Send, ChevronRight, Maximize2,
+  RefreshCw, Receipt, Download, ShieldCheck, Send, ChevronRight, Maximize2, FileDown,
 } from "lucide-react";
 import CountrySelect from "./CountrySelect";
 import CitySelect from "./CitySelect";
@@ -895,6 +895,20 @@ const HISTORY_COLUMNS = [
   { k: "details", label: "Details (JSON)" },
 ] as const;
 type HCol = (typeof HISTORY_COLUMNS)[number]["k"];
+type HistoryPreset = {
+  id: string;
+  name: string;
+  actionFilter: string;
+  actorFilter: string;
+  from: string;
+  to: string;
+  sortDir: "desc" | "asc";
+  cols: HCol[];
+};
+
+const historyPresetKey = (orgId: string) => `rufayq_org_history_presets_${orgId}`;
+
+const sanitizeFilePart = (value: string) => value.replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "file";
 
 const HistoryTab = ({ orgId }: { orgId: string }) => {
   const [logs, setLogs] = useState<any[]>([]);
