@@ -1173,6 +1173,9 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
   });
   const [busy, setBusy] = useState(false);
   const [signed, setSigned] = useState<string | null>(null);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState(false);
   const { can, ready } = usePermissions();
   const canVerify = ready && can("payment.verify");
@@ -1186,11 +1189,15 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
 
   useEffect(() => {
     (async () => {
-      if (!sub.payment_receipt_url) { setSigned(null); return; }
+      if (!sub.payment_receipt_url) { setSigned(null); setReceiptLoading(false); return; }
+      setReceiptLoading(true);
       const { data } = await supabase.storage.from("org-payments").createSignedUrl(sub.payment_receipt_url, 60 * 10);
       setSigned(data?.signedUrl || null);
+      setReceiptLoading(false);
     })();
   }, [sub.payment_receipt_url]);
+
+  useEffect(() => () => { if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl); }, [uploadPreviewUrl]);
 
   const saveDetails = async () => {
     setBusy(true);
@@ -1206,6 +1213,8 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
   };
 
   const uploadReceipt = async (file: File) => {
+    if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
+    setUploadPreviewUrl(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
     setBusy(true);
     const path = `${orgId}/${sub.id}/${Date.now()}-${file.name}`;
     const { error: upErr } = await supabase.storage.from("org-payments").upload(path, file, { upsert: false });
@@ -1219,7 +1228,22 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
       _action: "org_payment_receipt_uploaded", _target_type: "organization", _target_id: orgId,
       _details: { sub_id: sub.id, filename: file.name, size: file.size },
     });
-    toast.success("Receipt uploaded"); setBusy(false); onChanged();
+    toast.success("Receipt uploaded"); setBusy(false); setDragActive(false); onChanged();
+  };
+
+  const openLightbox = async () => {
+    if (!signed) return;
+    setLightbox(true);
+    await supabase.rpc("log_audit_event", {
+      _action: "org_payment_receipt_viewed", _target_type: "organization", _target_id: orgId,
+      _details: { sub_id: sub.id, filename: sub.payment_receipt_filename, path: sub.payment_receipt_url, viewer: "lightbox" },
+    });
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault(); setDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadReceipt(file);
   };
 
   const verify = async () => {
