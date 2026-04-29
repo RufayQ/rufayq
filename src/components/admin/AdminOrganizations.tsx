@@ -1304,11 +1304,17 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           <button
             type="button"
-            onClick={() => signed && setLightbox(true)}
+            onClick={openLightbox}
             className="group relative aspect-square rounded-lg overflow-hidden border border-slate-700 bg-slate-900 hover:border-amber-500/50 transition"
             title={sub.payment_receipt_filename || "Receipt"}
           >
-            {signed && /\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(sub.payment_receipt_url) ? (
+            {(receiptLoading || busy) ? (
+              <div className="w-full h-full animate-pulse bg-slate-800/80 flex items-center justify-center text-slate-600">
+                <Receipt size={18} />
+              </div>
+            ) : uploadPreviewUrl ? (
+              <img src={uploadPreviewUrl} alt="Uploading receipt preview" className="w-full h-full object-cover opacity-80" />
+            ) : signed && /\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(sub.payment_receipt_url) ? (
               <img src={signed} alt={sub.payment_receipt_filename || "Receipt"} className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1">
@@ -1323,6 +1329,18 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
         </div>
       )}
 
+      <label
+        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={handleDrop}
+        className={`flex items-center justify-center gap-2 rounded-xl border border-dashed px-3 py-3 text-[11px] cursor-pointer transition ${dragActive ? "border-amber-500 bg-amber-500/10 text-amber-200" : "border-slate-700 bg-slate-900/40 text-slate-400 hover:border-slate-600 hover:text-slate-200"}`}
+      >
+        <Upload size={13} />
+        {busy ? "Uploading receipt…" : sub.payment_receipt_url ? "Drag receipt here or tap to replace" : "Drag receipt here or tap to upload"}
+        <input type="file" hidden accept=".pdf,.doc,.docx,image/*" disabled={busy}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); e.currentTarget.value = ""; }} />
+      </label>
+
       <div className="flex items-center gap-2 flex-wrap">
         {sub.payment_receipt_url ? (
           <>
@@ -1333,14 +1351,14 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
             <label className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer inline-flex items-center gap-1">
               <Upload size={10} /> Replace
               <input type="file" hidden accept=".pdf,.doc,.docx,image/*" disabled={busy}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); }} />
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); e.currentTarget.value = ""; }} />
             </label>
           </>
         ) : (
           <label className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer inline-flex items-center gap-1">
             <Upload size={10} /> {busy ? "Uploading…" : "Upload receipt"}
             <input type="file" hidden accept=".pdf,.doc,.docx,image/*" disabled={busy}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); }} />
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); e.currentTarget.value = ""; }} />
           </label>
         )}
         {verified ? (
