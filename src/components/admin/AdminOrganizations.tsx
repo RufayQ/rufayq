@@ -1055,7 +1055,7 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
       <p>Filters: action ${safe(actionFilter || "*")} · actor ${safe(actorFilter || "*")} · from ${safe(from || "*")} · to ${safe(to || "*")} · sort created_at ${safe(sortDir)} · rows ${filtered.length}</p>
       <table><thead><tr>${cols.map((c) => `<th>${safe(label(c))}</th>`).join("")}</tr></thead><tbody>${filtered.map((l) => `<tr>${cols.map((c) => `<td class="${c === "details" ? "details" : ""}">${safe(cellOf(l, c))}</td>`).join("")}</tr>`).join("")}</tbody></table>
     </body></html>`;
-    const w = window.open("", "_blank", "noopener,noreferrer");
+    const w = window.open("", "_blank");
     if (!w) { toast.error("Allow pop-ups to export PDF"); return; }
     w.document.write(html); w.document.close();
     w.focus(); setTimeout(() => { w.print(); toast.success(`PDF export opened`, { description: `${filtered.length} rows prepared` }); }, 250);
