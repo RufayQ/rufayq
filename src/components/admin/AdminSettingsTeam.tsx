@@ -370,6 +370,104 @@ const AdminSettingsTeam = () => {
           </div>
         );
       })()}
+
+      {addOpen && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4"
+          onClick={() => !addBusy && setAddOpen(false)}
+        >
+          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-3">
+              <h3 className="text-sm font-semibold text-slate-100 inline-flex items-center gap-2">
+                <UserPlus size={14} className="text-amber-400" /> Add team member
+              </h3>
+              <button onClick={() => !addBusy && setAddOpen(false)} className="text-slate-500 hover:text-slate-300"><X size={16} /></button>
+            </div>
+            <p className="text-[11px] text-slate-500 mb-4">
+              Creates a staff account or grants the role to an existing user with this email. Idempotent — safe to retry.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Email <span className="text-rose-300">*</span></label>
+                <input
+                  type="email" autoFocus value={addEmail}
+                  onChange={(e) => setAddEmail(e.target.value)}
+                  placeholder="staff@rufayq.com"
+                  className="w-full px-2.5 py-1.5 text-sm rounded-md bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-amber-500/60"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Full name</label>
+                <input
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  placeholder="(optional)"
+                  className="w-full px-2.5 py-1.5 text-sm rounded-md bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-amber-500/60"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Privilege level</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAddRole("moderator")}
+                    className={`p-2.5 rounded-md text-left border transition ${
+                      addRole === "moderator"
+                        ? "border-sky-500/60 bg-sky-500/15"
+                        : "border-slate-700 bg-slate-950 hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-sky-300">
+                      <ShieldCheck size={11} /> Moderator
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1 leading-snug">Operational tasks. Cannot manage staff or roles.</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddRole("admin")}
+                    className={`p-2.5 rounded-md text-left border transition ${
+                      addRole === "admin"
+                        ? "border-amber-500/60 bg-amber-500/15"
+                        : "border-slate-700 bg-slate-950 hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-amber-300">
+                      <Crown size={11} /> Admin
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1 leading-snug">Full access. Can manage other staff and roles.</div>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Temporary password</label>
+                <input
+                  type="text" value={addPassword}
+                  onChange={(e) => setAddPassword(e.target.value)}
+                  placeholder="Leave blank to auto-generate"
+                  className="w-full px-2.5 py-1.5 text-sm rounded-md bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-amber-500/60 font-mono"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Shown once after creation — share it securely with the member.</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={() => !addBusy && setAddOpen(false)} disabled={addBusy}
+                className="px-3 py-1.5 text-xs rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 transition">
+                Cancel
+              </button>
+              <button onClick={submitAdd} disabled={addBusy || !addEmail.trim()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-amber-400 hover:bg-amber-300 text-slate-950 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                {addBusy && <Loader2 size={12} className="animate-spin" />}
+                {addBusy ? "Creating…" : `Add ${addRole}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
