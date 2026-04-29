@@ -16,6 +16,7 @@ Three personas live in one codebase: **Patient** (mobile shell), **Provider/Doct
 | [refund-policy.md](./refund-policy.md) | Product+legal | Refund tiers, ledger, payouts |
 | [api-pattern.md](./api-pattern.md) | Frontend | Data-fetching conventions |
 | [mobile-strategy.md](./mobile-strategy.md) | Mobile | iOS / Android / Android Auto plan |
+| [mobile-setup.md](./mobile-setup.md) | Mobile | Local setup runbook for native builds |
 | [testing.md](./testing.md) | All devs | Vitest setup and refund scenarios |
 | [operations.md](./operations.md) | DevOps | Deploy, env, secrets, monitoring |
 | [conventions.md](./conventions.md) | All devs | Code style, i18n, theming, RTL |
