@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Mail, ShieldCheck, Crown, AlertTriangle, X } from "lucide-react";
+import { Users, Mail, ShieldCheck, Crown, AlertTriangle, X, UserPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import AdminTable, { type AdminTableColumn } from "@/components/admin/shell/AdminTable";
 
@@ -25,8 +25,65 @@ const AdminSettingsTeam = () => {
   const [busy, setBusy] = useState(false);
   const [typed, setTyped] = useState("");
 
+  // Add-member dialog state
+  const [addOpen, setAddOpen] = useState(false);
+  const [addEmail, setAddEmail] = useState("");
+  const [addName, setAddName] = useState("");
+  const [addRole, setAddRole] = useState<"admin" | "moderator">("moderator");
+  const [addPassword, setAddPassword] = useState("");
+  const [addBusy, setAddBusy] = useState(false);
+
   // Reset typed-confirmation field whenever the modal opens/closes.
   useEffect(() => { setTyped(""); }, [confirm]);
+
+  const resetAddForm = () => {
+    setAddEmail(""); setAddName(""); setAddRole("moderator"); setAddPassword("");
+  };
+
+  // Generate a temporary password if admin doesn't supply one.
+  const genPassword = () => {
+    const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$";
+    let s = "";
+    for (let i = 0; i < 14; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+  };
+
+  const submitAdd = async () => {
+    const email = addEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Enter a valid email");
+      return;
+    }
+    setAddBusy(true);
+    const password = addPassword.trim() || genPassword();
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
+        body: {
+          email,
+          password,
+          full_name: addName.trim() || null,
+          role: addRole,
+          provider_type: "internal",
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const existed = (data as any)?.already_existed;
+      toast.success(
+        existed
+          ? `${email} already had an account — granted ${addRole} role`
+          : `${addRole === "admin" ? "Admin" : "Moderator"} created · password: ${password}`,
+        { duration: existed ? 4000 : 12000 }
+      );
+      setAddOpen(false);
+      resetAddForm();
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to add member");
+    } finally {
+      setAddBusy(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
