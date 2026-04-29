@@ -191,7 +191,14 @@ const AdminPatientClaims = () => {
 
       <div className="space-y-3">
         {visible.map((c) => (
-          <div key={c.id} className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+          <div
+            key={c.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => viewClaim(c)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); viewClaim(c); } }}
+            className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 sm:p-4 hover:border-amber-500/40 cursor-pointer transition"
+          >
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate">{c.org_name || c.organization_id}</p>
