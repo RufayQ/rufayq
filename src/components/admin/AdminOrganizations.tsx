@@ -721,8 +721,12 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
             className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200" />
           <div className="flex justify-end gap-1.5">
             <button onClick={() => setAdding(false)} className="text-[11px] px-2 py-1 rounded bg-slate-700 text-slate-300">Cancel</button>
-            <button onClick={sendInvite} className="text-[11px] px-2 py-1 rounded bg-emerald-500 text-slate-950 font-semibold flex items-center gap-1">
-              <Send size={11} /> Send invite
+            <button onClick={() => {
+              const err = validateInvite();
+              if (err) { toast.error(err); return; }
+              setConfirmInvite(true);
+            }} className="text-[11px] px-2 py-1 rounded bg-emerald-500 text-slate-950 font-semibold flex items-center gap-1">
+              <Send size={11} /> Review & send
             </button>
           </div>
         </div>
@@ -781,6 +785,37 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
           ))}
         </div>
       </div>
+    </div>
+  );
+};
+
+      {confirmInvite && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setConfirmInvite(false)} />
+          <div className="relative w-full max-w-sm rounded-2xl border border-amber-500/40 bg-slate-950 shadow-2xl p-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2 mb-3">
+              <Send size={14} className="text-amber-300" />
+              <h3 className="text-sm font-semibold text-slate-100">Confirm invite</h3>
+            </div>
+            <p className="text-[12px] text-slate-300 mb-3">Send an invitation to:</p>
+            <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 space-y-1.5 text-[12px]">
+              <p><span className="text-slate-500">Email:</span> <span className="text-slate-100 font-medium break-all">{form.email}</span></p>
+              <p>
+                <span className="text-slate-500">Role:</span>{" "}
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border ${roleTone(form.invited_role)}`}>{form.invited_role.replace("org_", "")}</span>
+              </p>
+              {form.notes && <p><span className="text-slate-500">Note:</span> <span className="text-slate-300 italic">"{form.notes}"</span></p>}
+            </div>
+            <p className="text-[10px] text-slate-500 mt-2">Outcome will be recorded in the organization activity log.</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setConfirmInvite(false)} className="text-[11px] px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300">Cancel</button>
+              <button onClick={sendInvite} className="text-[11px] px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-semibold flex items-center gap-1">
+                <Send size={11} /> Send invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
