@@ -836,6 +836,19 @@ const ContractTab = ({ org }: { org: Org }) => {
 /* -------------------------------------------------------------------------- */
 /* History tab — pulls related entries from admin_audit_log                   */
 /* -------------------------------------------------------------------------- */
+const HISTORY_COLUMNS = [
+  { k: "created_at", label: "Date" },
+  { k: "action", label: "Action" },
+  { k: "actor_email", label: "Actor email" },
+  { k: "actor_id", label: "Actor ID" },
+  { k: "actor_role", label: "Actor role" },
+  { k: "target_id", label: "Org / target ID" },
+  { k: "target_type", label: "Target type" },
+  { k: "claim_id", label: "Claim ID (from details)" },
+  { k: "details", label: "Details (JSON)" },
+] as const;
+type HCol = (typeof HISTORY_COLUMNS)[number]["k"];
+
 const HistoryTab = ({ orgId }: { orgId: string }) => {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -843,6 +856,9 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
   const [actorFilter, setActorFilter] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [cols, setCols] = useState<HCol[]>(["created_at", "action", "actor_email", "target_id", "details"]);
 
   const load = async () => {
     setLoading(true);
@@ -857,49 +873,94 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
 
   const actions = useMemo(() => Array.from(new Set(logs.map((l) => l.action))).sort(), [logs]);
 
-  const filtered = useMemo(() => logs.filter((l) => {
-    if (actionFilter && l.action !== actionFilter) return false;
-    if (actorFilter) {
-      const a = `${l.actor_email || ""} ${l.actor_id || ""}`.toLowerCase();
-      if (!a.includes(actorFilter.trim().toLowerCase())) return false;
-    }
-    if (from && new Date(l.created_at) < new Date(from)) return false;
-    if (to && new Date(l.created_at) > new Date(`${to}T23:59:59`)) return false;
-    return true;
-  }), [logs, actionFilter, actorFilter, from, to]);
+  const filtered = useMemo(() => {
+    const base = logs.filter((l) => {
+      if (actionFilter && l.action !== actionFilter) return false;
+      if (actorFilter) {
+        const a = `${l.actor_email || ""} ${l.actor_id || ""}`.toLowerCase();
+        if (!a.includes(actorFilter.trim().toLowerCase())) return false;
+      }
+      if (from && new Date(l.created_at) < new Date(from)) return false;
+      if (to && new Date(l.created_at) > new Date(`${to}T23:59:59`)) return false;
+      return true;
+    });
+    return [...base].sort((a, b) => {
+      const da = new Date(a.created_at).getTime();
+      const db = new Date(b.created_at).getTime();
+      return sortDir === "asc" ? da - db : db - da;
+    });
+  }, [logs, actionFilter, actorFilter, from, to, sortDir]);
+
+  const toggleCol = (k: HCol) => setCols((cs) => cs.includes(k) ? cs.filter((c) => c !== k) : [...cs, k]);
 
   const exportCsv = () => {
+    if (cols.length === 0) { toast.error("Pick at least one column"); return; }
     const escape = (v: any) => {
       if (v == null) return "";
       const s = typeof v === "string" ? v : JSON.stringify(v);
       return `"${s.replace(/"/g, '""')}"`;
     };
-    const header = ["created_at", "action", "actor_email", "actor_id", "actor_role", "details"];
-    const rows = filtered.map((l) => [
-      new Date(l.created_at).toISOString(), l.action, l.actor_email || "",
-      l.actor_id || "", l.actor_role || "", l.details ? JSON.stringify(l.details) : "",
-    ]);
-    const csv = [header, ...rows].map((r) => r.map(escape).join(",")).join("\n");
+    const cellOf = (l: any, k: HCol): any => {
+      if (k === "created_at") return new Date(l.created_at).toISOString();
+      if (k === "details") return l.details ? JSON.stringify(l.details) : "";
+      if (k === "claim_id") return l?.details?.claim_id || l?.details?.target_id || "";
+      return l[k] ?? "";
+    };
+    const meta = [
+      `# Export generated ${new Date().toISOString()}`,
+      `# Organization ID: ${orgId}`,
+      `# Filters → action: ${actionFilter || "*"}, actor: ${actorFilter || "*"}, from: ${from || "*"}, to: ${to || "*"}`,
+      `# Sort: created_at ${sortDir}`,
+      `# Rows: ${filtered.length}`,
+    ].join("\n");
+    const header = cols.map((k) => HISTORY_COLUMNS.find((c) => c.k === k)?.label || k);
+    const rows = filtered.map((l) => cols.map((k) => cellOf(l, k)));
+    const csv = meta + "\n" + [header, ...rows].map((r) => r.map(escape).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = `org-audit-${orgId.slice(0, 8)}-${Date.now()}.csv`;
     a.click(); URL.revokeObjectURL(url);
-    toast.success(`Exported ${filtered.length} rows`);
+    toast.success(`Exported ${filtered.length} rows`, { description: `${cols.length} columns · sort ${sortDir}` });
+    setExportOpen(false);
   };
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin activity log</h3>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 relative">
+          <button onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
+            className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">
+            Sort: {sortDir === "desc" ? "Newest" : "Oldest"}
+          </button>
           <button onClick={load} className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center gap-1">
             <RefreshCw size={11} className={loading ? "animate-spin" : ""} /> Refresh
           </button>
-          <button onClick={exportCsv} disabled={filtered.length === 0}
+          <button onClick={() => setExportOpen((v) => !v)} disabled={filtered.length === 0}
             className="text-[11px] px-2 py-1 rounded bg-amber-500/15 text-amber-300 disabled:opacity-40 flex items-center gap-1">
             <Download size={11} /> Export CSV
           </button>
+          {exportOpen && (
+            <div className="absolute right-0 top-8 z-20 w-64 rounded-xl border border-slate-700 bg-slate-950 shadow-xl p-3 animate-in fade-in slide-in-from-top-1 duration-150">
+              <p className="text-[11px] text-slate-300 font-semibold mb-2">Columns to export</p>
+              <ul className="space-y-1 max-h-56 overflow-y-auto">
+                {HISTORY_COLUMNS.map((c) => (
+                  <li key={c.k}>
+                    <label className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer">
+                      <input type="checkbox" checked={cols.includes(c.k)} onChange={() => toggleCol(c.k)} className="accent-amber-500" />
+                      {c.label}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[10px] text-slate-500 mt-2">Includes current filters and sort order.</p>
+              <div className="flex justify-end gap-1.5 mt-2">
+                <button onClick={() => setExportOpen(false)} className="text-[10px] px-2 py-1 rounded bg-slate-800 text-slate-300">Cancel</button>
+                <button onClick={exportCsv} className="text-[10px] px-2 py-1 rounded bg-amber-500 text-slate-950 font-semibold">Download</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
