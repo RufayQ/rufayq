@@ -250,6 +250,46 @@ const SubscriptionDashboard = () => {
               </div>
             </section>
 
+            {/* Wallet — credit notes from cancellation refunds and admin overrides. */}
+            <section className="rounded-2xl p-6" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="font-mono text-[10px] tracking-widest" style={{ color: GOLD }}>{isAr ? "محفظتي" : "MY WALLET"}</p>
+                  <h3 className="font-display text-xl flex items-center gap-2"><Wallet size={16} color={GOLD}/>{isAr ? "رصيد الاسترداد" : "Refund balance"}</h3>
+                </div>
+                <p className="font-display text-2xl font-bold" style={{ color: GOLD }}>
+                  {wallet ? `${wallet.currency} ${wallet.balance.toFixed(2)}` : `${sub.currency} 0.00`}
+                </p>
+              </div>
+              {walletTx.length === 0 ? (
+                <p className="text-xs" style={{ color: MUTED }}>
+                  {isAr ? "لا توجد إشعارات دائنة بعد. يُضاف الاسترداد هنا تلقائيًا عند الإلغاء." : "No credit notes yet. Refunds appear here automatically on cancellation."}
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {walletTx.map((t) => (
+                    <div key={t.id} className="rounded-xl p-3" style={{ background: BG, border: `1px solid ${BORDER}` }}>
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold capitalize">{t.kind.replace(/_/g, " ")}{t.refund_tier && t.refund_tier !== "manual" ? ` · ${t.refund_tier}` : ""}</p>
+                          <p className="text-[10px] font-mono" style={{ color: MUTED }}>{t.reference || "—"} · {new Date(t.created_at).toLocaleDateString()}</p>
+                          {t.reason && <p className="text-[10px] mt-0.5" style={{ color: MUTED }}>{t.reason}</p>}
+                        </div>
+                        <p className={`font-display text-base font-bold ${t.direction === "credit" ? "text-emerald-300" : "text-rose-300"}`}>
+                          {t.direction === "credit" ? "+" : "-"}{t.currency} {Number(t.amount).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px] mt-3" style={{ color: MUTED }}>
+                {isAr
+                  ? "سياسة الاسترداد: حتى 25٪ من المدة = استرداد كامل، 25–45٪ = 50٪، أكثر من 45٪ = لا يوجد استرداد. الإضافات غير قابلة للاسترداد إلا بقرار إداري."
+                  : "Refund policy: ≤25% of period = full refund, 25–45% = 50%, >45% = none. Add-ons are non-refundable unless an admin grants an override."}
+              </p>
+            </section>
+
             {/* Billing history */}
             <section className="rounded-2xl p-6" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
               <div className="mb-3">
