@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, LogOut, Search, ChevronRight, Home } from "lucide-react";
+import { Shield, LogOut, Search, ChevronRight, Home, Menu, X } from "lucide-react";
 
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
