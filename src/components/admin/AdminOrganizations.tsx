@@ -279,6 +279,8 @@ const AdminOrganizations = () => {
 type Tab = "overview" | "subscription" | "employees" | "contract" | "history";
 
 const OrgDrawer = ({ org, initialTab = "overview", onClose }: { org: Org; initialTab?: Tab; onClose: () => void }) => {
+  const { can, ready } = usePermissions();
+  const canModify = ready && can("user.assign_role"); // admin-tier
   const [tab, setTab] = useState<Tab>(initialTab);
   useEffect(() => { setTab(initialTab); }, [initialTab, org.id]);
   const [editing, setEditing] = useState(false);
