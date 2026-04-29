@@ -16,6 +16,7 @@ import AdminOrganizations from "@/components/admin/AdminOrganizations";
 import AdminCreateUser from "@/components/admin/AdminCreateUser";
 import AdminCustomerService from "@/components/admin/AdminCustomerService";
 import AdminAuditLog from "@/components/admin/AdminAuditLog";
+import AdminWalletAudit from "@/components/admin/AdminWalletAudit";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminProviderApplications from "@/components/admin/AdminProviderApplications";
 import AdminPatientClaims from "@/components/admin/AdminPatientClaims";
