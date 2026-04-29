@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, X, Search, Activity, Filter, Eye, Copy, Calendar } from "lucide-react";
+import { Check, X, Search, Activity, Filter, Eye, Copy, Calendar, ChevronRight } from "lucide-react";
 import { useQuickCreateSignal } from "@/components/admin/shell/quickCreateSignal";
 import { useRealtimeChannel } from "@/api";
 import { Can, usePermissions } from "@/features/auth";
@@ -93,26 +93,29 @@ const AdminPatientClaims = () => {
   );
 
   const copyClaim = async (c: Claim) => {
-    const text = [
-      `Claim ID: ${c.id}`,
-      `Organization: ${c.org_name || c.organization_id}`,
-      `Search: ${c.search_type}=${c.search_value}`,
-      `Match: ${c.matched_device_id || "none"}`,
-      `Status: ${c.status}`,
-      `Reason: ${c.reason || "—"}`,
-      `Created: ${new Date(c.created_at).toLocaleString()}`,
-    ].join("\n");
+    const fields: Array<[string, string]> = [
+      ["Claim ID", c.id],
+      ["Organization", c.org_name || c.organization_id],
+      ["Patient match", c.matched_device_id || "none"],
+      ["Search", `${c.search_type}=${c.search_value}`],
+      ["Status", c.status],
+      ["Reason", c.reason || "—"],
+      ["Created", new Date(c.created_at).toLocaleString()],
+    ];
+    const text = fields.map(([k, v]) => `${k}: ${v}`).join("\n");
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Claim info copied");
+      toast.success("Claim info copied", {
+        description: `${fields.length} fields → clipboard · ID ${c.id.slice(0, 8)}…`,
+      });
       await supabase.rpc("log_audit_event", {
         _action: "patient_claim_info_copied",
         _target_type: "patient_claim",
         _target_id: c.id,
-        _details: { fields: 7 },
+        _details: { fields: fields.length },
       });
     } catch {
-      toast.error("Copy failed");
+      toast.error("Copy failed", { description: "Clipboard access was blocked by the browser." });
     }
   };
 
