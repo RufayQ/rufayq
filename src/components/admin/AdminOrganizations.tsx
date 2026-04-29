@@ -9,6 +9,7 @@ import {
 import CountrySelect from "./CountrySelect";
 import CitySelect from "./CitySelect";
 import { COUNTRIES } from "@/data/countries";
+import { usePermissions } from "@/features/auth";
 
 interface Org {
   id: string; name: string; org_type: string;
