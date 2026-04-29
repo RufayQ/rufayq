@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Building2, Plus, Save, X, Search, Filter, Eye, Pencil, Pause, Play, Upload,
   Users, Package, History, FileText, Trash2, ExternalLink, Hash, Mail, Phone, Globe2, MapPin,
-  RefreshCw, Receipt, Download, ShieldCheck, Send,
+  RefreshCw, Receipt, Download, ShieldCheck, Send, ChevronRight, Image as ImageIcon, Maximize2,
 } from "lucide-react";
 import CountrySelect from "./CountrySelect";
 import CitySelect from "./CitySelect";
@@ -202,8 +202,10 @@ const AdminOrganizations = () => {
               tabIndex={0}
               onClick={() => { setActiveTab("overview"); setActive(o); }}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTab("overview"); setActive(o); } }}
-              className="group rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-4 hover:border-amber-500/40 hover:bg-slate-900/60 transition shadow-sm cursor-pointer focus:outline-none focus:border-amber-500/60"
+              aria-label={`Open ${o.name} details`}
+              className="group relative rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-4 hover:border-amber-500/50 hover:bg-slate-900/70 hover:shadow-lg transition shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/50 active:scale-[0.995]"
             >
+              <ChevronRight size={16} className="absolute top-4 right-4 text-slate-600 group-hover:text-amber-400 group-hover:translate-x-0.5 transition" aria-hidden />
               <div className="flex items-start gap-4">
                 {/* Numbering */}
                 <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-amber-300 shrink-0">
