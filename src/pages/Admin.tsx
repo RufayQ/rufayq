@@ -38,6 +38,7 @@ import SecondaryPanel from "@/components/admin/shell/SecondaryPanel";
 import QuickCreateMenu from "@/components/admin/shell/QuickCreateMenu";
 import GlobalSearchPalette from "@/components/admin/shell/GlobalSearchPalette";
 import AdminTopbarPrefs from "@/components/admin/shell/AdminTopbarPrefs";
+import AdminPermissionsDebug from "@/components/admin/shell/AdminPermissionsDebug";
 
 const LS_LEAF = "admin.leaf";
 const LS_COLLAPSED = "admin.submenu.collapsed";
@@ -233,6 +234,7 @@ const Admin = () => {
               </button>
               <QuickCreateMenu onPick={handleQuickCreate} />
               <AdminTopbarPrefs />
+              <AdminPermissionsDebug />
               <span className="hidden sm:inline text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 uppercase tracking-wide">{role}</span>
             </div>
           </div>

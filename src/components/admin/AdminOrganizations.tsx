@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Building2, Plus, Save, X, Search, Filter, Eye, Pencil, Pause, Play, Upload,
   Users, Package, History, FileText, Trash2, ExternalLink, Hash, Mail, Phone, Globe2, MapPin,
-  RefreshCw, Receipt, Download, ShieldCheck, Send,
+  RefreshCw, Receipt, Download, ShieldCheck, Send, ChevronRight, Maximize2,
 } from "lucide-react";
 import CountrySelect from "./CountrySelect";
 import CitySelect from "./CitySelect";
@@ -202,8 +202,10 @@ const AdminOrganizations = () => {
               tabIndex={0}
               onClick={() => { setActiveTab("overview"); setActive(o); }}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTab("overview"); setActive(o); } }}
-              className="group rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-4 hover:border-amber-500/40 hover:bg-slate-900/60 transition shadow-sm cursor-pointer focus:outline-none focus:border-amber-500/60"
+              aria-label={`Open ${o.name} details`}
+              className="group relative rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-4 hover:border-amber-500/50 hover:bg-slate-900/70 hover:shadow-lg transition shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/50 active:scale-[0.995]"
             >
+              <ChevronRight size={16} className="absolute top-4 right-4 text-slate-600 group-hover:text-amber-400 group-hover:translate-x-0.5 transition" aria-hidden />
               <div className="flex items-start gap-4">
                 {/* Numbering */}
                 <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-amber-300 shrink-0">
@@ -324,9 +326,9 @@ const OrgDrawer = ({ org, initialTab = "overview", onClose }: { org: Org; initia
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-50 flex animate-in fade-in duration-200">
       <div className="flex-1 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
-      <aside className="w-full sm:max-w-xl bg-slate-950 border-l border-slate-800 overflow-y-auto">
+      <aside className="w-full sm:max-w-xl bg-slate-950 border-l border-slate-800 overflow-y-auto animate-slide-in-right">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-slate-950/95 backdrop-blur border-b border-slate-800 p-4 sm:p-5 space-y-3">
           <div className="flex items-start justify-between gap-3">
@@ -614,6 +616,7 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
   const [invites, setInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [confirmInvite, setConfirmInvite] = useState(false);
   const [form, setForm] = useState<{ email: string; invited_role: OrgRole; notes: string }>({
     email: "", invited_role: "org_viewer", notes: "",
   });
@@ -632,21 +635,35 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
   };
   useEffect(() => { load(); }, [orgId]); // eslint-disable-line
 
+  const validateInvite = (): string | null => {
+    const email = form.email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(email)) return "Enter a valid email";
+    return null;
+  };
+
   const sendInvite = async () => {
     const email = form.email.trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(email)) { toast.error("Enter a valid email"); return; }
     const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase.from("organization_invites").insert({
       organization_id: orgId, email, invited_role: form.invited_role,
       invited_by: user?.id ?? null, notes: form.notes || null,
     }).select().single();
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error("Invite failed", { description: error.message });
+      await supabase.rpc("log_audit_event", {
+        _action: "org_invite_failed", _target_type: "organization", _target_id: orgId,
+        _details: { email, role: form.invited_role, error: error.message },
+      });
+      setConfirmInvite(false);
+      return;
+    }
     await supabase.rpc("log_audit_event", {
       _action: "org_invite_sent", _target_type: "organization", _target_id: orgId,
-      _details: { invite_id: data?.id, email, role: form.invited_role },
+      _details: { invite_id: data?.id, email, role: form.invited_role, outcome: "sent" },
     });
-    toast.success(`Invite sent to ${email}`);
-    setAdding(false); setForm({ email: "", invited_role: "org_viewer", notes: "" }); load();
+    toast.success(`Invite sent to ${email}`, { description: `Role: ${form.invited_role.replace("org_", "")}` });
+    setConfirmInvite(false); setAdding(false);
+    setForm({ email: "", invited_role: "org_viewer", notes: "" }); load();
   };
 
   const revokeInvite = async (inv: any) => {
@@ -704,8 +721,12 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
             className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200" />
           <div className="flex justify-end gap-1.5">
             <button onClick={() => setAdding(false)} className="text-[11px] px-2 py-1 rounded bg-slate-700 text-slate-300">Cancel</button>
-            <button onClick={sendInvite} className="text-[11px] px-2 py-1 rounded bg-emerald-500 text-slate-950 font-semibold flex items-center gap-1">
-              <Send size={11} /> Send invite
+            <button onClick={() => {
+              const err = validateInvite();
+              if (err) { toast.error(err); return; }
+              setConfirmInvite(true);
+            }} className="text-[11px] px-2 py-1 rounded bg-emerald-500 text-slate-950 font-semibold flex items-center gap-1">
+              <Send size={11} /> Review & send
             </button>
           </div>
         </div>
@@ -764,6 +785,34 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
           ))}
         </div>
       </div>
+
+      {confirmInvite && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setConfirmInvite(false)} />
+          <div className="relative w-full max-w-sm rounded-2xl border border-amber-500/40 bg-slate-950 shadow-2xl p-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2 mb-3">
+              <Send size={14} className="text-amber-300" />
+              <h3 className="text-sm font-semibold text-slate-100">Confirm invite</h3>
+            </div>
+            <p className="text-[12px] text-slate-300 mb-3">Send an invitation to:</p>
+            <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 space-y-1.5 text-[12px]">
+              <p><span className="text-slate-500">Email:</span> <span className="text-slate-100 font-medium break-all">{form.email}</span></p>
+              <p>
+                <span className="text-slate-500">Role:</span>{" "}
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border ${roleTone(form.invited_role)}`}>{form.invited_role.replace("org_", "")}</span>
+              </p>
+              {form.notes && <p><span className="text-slate-500">Note:</span> <span className="text-slate-300 italic">"{form.notes}"</span></p>}
+            </div>
+            <p className="text-[10px] text-slate-500 mt-2">Outcome will be recorded in the organization activity log.</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setConfirmInvite(false)} className="text-[11px] px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300">Cancel</button>
+              <button onClick={sendInvite} className="text-[11px] px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-semibold flex items-center gap-1">
+                <Send size={11} /> Send invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -834,6 +883,19 @@ const ContractTab = ({ org }: { org: Org }) => {
 /* -------------------------------------------------------------------------- */
 /* History tab — pulls related entries from admin_audit_log                   */
 /* -------------------------------------------------------------------------- */
+const HISTORY_COLUMNS = [
+  { k: "created_at", label: "Date" },
+  { k: "action", label: "Action" },
+  { k: "actor_email", label: "Actor email" },
+  { k: "actor_id", label: "Actor ID" },
+  { k: "actor_role", label: "Actor role" },
+  { k: "target_id", label: "Org / target ID" },
+  { k: "target_type", label: "Target type" },
+  { k: "claim_id", label: "Claim ID (from details)" },
+  { k: "details", label: "Details (JSON)" },
+] as const;
+type HCol = (typeof HISTORY_COLUMNS)[number]["k"];
+
 const HistoryTab = ({ orgId }: { orgId: string }) => {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -841,6 +903,9 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
   const [actorFilter, setActorFilter] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [cols, setCols] = useState<HCol[]>(["created_at", "action", "actor_email", "target_id", "details"]);
 
   const load = async () => {
     setLoading(true);
@@ -855,49 +920,94 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
 
   const actions = useMemo(() => Array.from(new Set(logs.map((l) => l.action))).sort(), [logs]);
 
-  const filtered = useMemo(() => logs.filter((l) => {
-    if (actionFilter && l.action !== actionFilter) return false;
-    if (actorFilter) {
-      const a = `${l.actor_email || ""} ${l.actor_id || ""}`.toLowerCase();
-      if (!a.includes(actorFilter.trim().toLowerCase())) return false;
-    }
-    if (from && new Date(l.created_at) < new Date(from)) return false;
-    if (to && new Date(l.created_at) > new Date(`${to}T23:59:59`)) return false;
-    return true;
-  }), [logs, actionFilter, actorFilter, from, to]);
+  const filtered = useMemo(() => {
+    const base = logs.filter((l) => {
+      if (actionFilter && l.action !== actionFilter) return false;
+      if (actorFilter) {
+        const a = `${l.actor_email || ""} ${l.actor_id || ""}`.toLowerCase();
+        if (!a.includes(actorFilter.trim().toLowerCase())) return false;
+      }
+      if (from && new Date(l.created_at) < new Date(from)) return false;
+      if (to && new Date(l.created_at) > new Date(`${to}T23:59:59`)) return false;
+      return true;
+    });
+    return [...base].sort((a, b) => {
+      const da = new Date(a.created_at).getTime();
+      const db = new Date(b.created_at).getTime();
+      return sortDir === "asc" ? da - db : db - da;
+    });
+  }, [logs, actionFilter, actorFilter, from, to, sortDir]);
+
+  const toggleCol = (k: HCol) => setCols((cs) => cs.includes(k) ? cs.filter((c) => c !== k) : [...cs, k]);
 
   const exportCsv = () => {
+    if (cols.length === 0) { toast.error("Pick at least one column"); return; }
     const escape = (v: any) => {
       if (v == null) return "";
       const s = typeof v === "string" ? v : JSON.stringify(v);
       return `"${s.replace(/"/g, '""')}"`;
     };
-    const header = ["created_at", "action", "actor_email", "actor_id", "actor_role", "details"];
-    const rows = filtered.map((l) => [
-      new Date(l.created_at).toISOString(), l.action, l.actor_email || "",
-      l.actor_id || "", l.actor_role || "", l.details ? JSON.stringify(l.details) : "",
-    ]);
-    const csv = [header, ...rows].map((r) => r.map(escape).join(",")).join("\n");
+    const cellOf = (l: any, k: HCol): any => {
+      if (k === "created_at") return new Date(l.created_at).toISOString();
+      if (k === "details") return l.details ? JSON.stringify(l.details) : "";
+      if (k === "claim_id") return l?.details?.claim_id || l?.details?.target_id || "";
+      return l[k] ?? "";
+    };
+    const meta = [
+      `# Export generated ${new Date().toISOString()}`,
+      `# Organization ID: ${orgId}`,
+      `# Filters → action: ${actionFilter || "*"}, actor: ${actorFilter || "*"}, from: ${from || "*"}, to: ${to || "*"}`,
+      `# Sort: created_at ${sortDir}`,
+      `# Rows: ${filtered.length}`,
+    ].join("\n");
+    const header = cols.map((k) => HISTORY_COLUMNS.find((c) => c.k === k)?.label || k);
+    const rows = filtered.map((l) => cols.map((k) => cellOf(l, k)));
+    const csv = meta + "\n" + [header, ...rows].map((r) => r.map(escape).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = `org-audit-${orgId.slice(0, 8)}-${Date.now()}.csv`;
     a.click(); URL.revokeObjectURL(url);
-    toast.success(`Exported ${filtered.length} rows`);
+    toast.success(`Exported ${filtered.length} rows`, { description: `${cols.length} columns · sort ${sortDir}` });
+    setExportOpen(false);
   };
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin activity log</h3>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 relative">
+          <button onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
+            className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">
+            Sort: {sortDir === "desc" ? "Newest" : "Oldest"}
+          </button>
           <button onClick={load} className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center gap-1">
             <RefreshCw size={11} className={loading ? "animate-spin" : ""} /> Refresh
           </button>
-          <button onClick={exportCsv} disabled={filtered.length === 0}
+          <button onClick={() => setExportOpen((v) => !v)} disabled={filtered.length === 0}
             className="text-[11px] px-2 py-1 rounded bg-amber-500/15 text-amber-300 disabled:opacity-40 flex items-center gap-1">
             <Download size={11} /> Export CSV
           </button>
+          {exportOpen && (
+            <div className="absolute right-0 top-8 z-20 w-64 rounded-xl border border-slate-700 bg-slate-950 shadow-xl p-3 animate-in fade-in slide-in-from-top-1 duration-150">
+              <p className="text-[11px] text-slate-300 font-semibold mb-2">Columns to export</p>
+              <ul className="space-y-1 max-h-56 overflow-y-auto">
+                {HISTORY_COLUMNS.map((c) => (
+                  <li key={c.k}>
+                    <label className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer">
+                      <input type="checkbox" checked={cols.includes(c.k)} onChange={() => toggleCol(c.k)} className="accent-amber-500" />
+                      {c.label}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[10px] text-slate-500 mt-2">Includes current filters and sort order.</p>
+              <div className="flex justify-end gap-1.5 mt-2">
+                <button onClick={() => setExportOpen(false)} className="text-[10px] px-2 py-1 rounded bg-slate-800 text-slate-300">Cancel</button>
+                <button onClick={exportCsv} className="text-[10px] px-2 py-1 rounded bg-amber-500 text-slate-950 font-semibold">Download</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -958,6 +1068,9 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
   });
   const [busy, setBusy] = useState(false);
   const [signed, setSigned] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState(false);
+  const { can, ready } = usePermissions();
+  const canVerify = ready && can("payment.verify");
 
   useEffect(() => {
     setForm({
@@ -1057,12 +1170,36 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
         </div>
       )}
 
+      {/* Thumbnail grid for uploaded receipt(s) */}
+      {sub.payment_receipt_url && (
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <button
+            type="button"
+            onClick={() => signed && setLightbox(true)}
+            className="group relative aspect-square rounded-lg overflow-hidden border border-slate-700 bg-slate-900 hover:border-amber-500/50 transition"
+            title={sub.payment_receipt_filename || "Receipt"}
+          >
+            {signed && /\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(sub.payment_receipt_url) ? (
+              <img src={signed} alt={sub.payment_receipt_filename || "Receipt"} className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1">
+                <FileText size={20} />
+                <span className="text-[9px] font-mono px-1 truncate max-w-full">{(sub.payment_receipt_filename || "file").split(".").pop()?.toUpperCase()}</span>
+              </div>
+            )}
+            <span className="absolute inset-0 bg-slate-950/0 group-hover:bg-slate-950/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+              <Maximize2 size={14} className="text-white" />
+            </span>
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 flex-wrap">
         {sub.payment_receipt_url ? (
           <>
             <a href={signed || "#"} target="_blank" rel="noreferrer"
               className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 inline-flex items-center gap-1">
-              <FileText size={10} /> {sub.payment_receipt_filename || "Receipt"} <ExternalLink size={9} />
+              <ExternalLink size={10} /> Open
             </a>
             <label className="text-[10px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer inline-flex items-center gap-1">
               <Upload size={10} /> Replace
@@ -1082,11 +1219,37 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
             <ShieldCheck size={10} /> Verified {new Date(sub.payment_verified_at).toLocaleDateString()}
           </span>
         ) : sub.payment_receipt_url && (
-          <button onClick={verify} className="text-[10px] px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 inline-flex items-center gap-1">
+          <button
+            onClick={() => {
+              if (!canVerify) { toast.error("Permission required", { description: "Your role can't mark payments as verified." }); return; }
+              verify();
+            }}
+            aria-disabled={!canVerify}
+            className={`text-[10px] px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 inline-flex items-center gap-1 ${canVerify ? "" : "opacity-50 cursor-not-allowed"}`}>
             <ShieldCheck size={10} /> Mark verified
           </button>
         )}
       </div>
+
+      {lightbox && signed && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => setLightbox(false)}>
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" />
+          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between mb-2 text-slate-200 text-xs">
+              <span className="font-mono truncate">{sub.payment_receipt_filename}</span>
+              <div className="flex items-center gap-2">
+                <a href={signed} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 inline-flex items-center gap-1"><ExternalLink size={11} /> Open</a>
+                <button onClick={(e) => { e.stopPropagation(); setLightbox(false); }} className="p-1.5 rounded bg-slate-800 hover:bg-slate-700"><X size={13} /></button>
+              </div>
+            </div>
+            {/\.(pdf)(\?|$)/i.test(sub.payment_receipt_url) ? (
+              <iframe src={signed} className="flex-1 w-full bg-white rounded-lg" title="Receipt" onClick={(e) => e.stopPropagation()} />
+            ) : (
+              <img src={signed} alt={sub.payment_receipt_filename || "Receipt"} className="max-h-[85vh] w-full object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
