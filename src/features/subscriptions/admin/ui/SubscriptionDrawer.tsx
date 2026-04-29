@@ -76,19 +76,36 @@ interface EventRow {
   details: Record<string, unknown> | null;
 }
 
-/* ── Add-on catalog (UI-side; addon_key is the canonical id) ─────────── */
+/* ── Add-on catalog: loaded from `pricing_addons` table (admin-managed). ── */
+/*    Fallback list is used only if the DB query fails (offline / RLS).     */
 
-const ADDON_CATALOG: Array<{
-  key: string; label: string; price: number; durationDays: number; icon: string;
-}> = [
+interface CatalogItem { key: string; label: string; price: number; durationDays: number; icon: string }
+
+const FALLBACK_ADDON_CATALOG: CatalogItem[] = [
   { key: "extra_family",      label: "Extra Family Member",        price: 49, durationDays: 30, icon: "👨‍👩‍👧" },
   { key: "consult_pack",      label: "Additional Consultation Pack", price: 199, durationDays: 30, icon: "🩺" },
   { key: "priority_concierge", label: "Priority Concierge",         price: 299, durationDays: 30, icon: "⚡" },
-  { key: "translation_pack",  label: "Medical Translation Pack",    price: 99,  durationDays: 30, icon: "🌐" },
-  { key: "extra_storage",     label: "Extra Document Storage",      price: 29,  durationDays: 30, icon: "📁" },
-  { key: "vip_coordinator",   label: "VIP Care Coordinator",        price: 499, durationDays: 30, icon: "👑" },
-  { key: "express_support",   label: "Express Support",             price: 79,  durationDays: 30, icon: "🚀" },
 ];
+
+const useAddonCatalog = (): CatalogItem[] => {
+  const [items, setItems] = useState<CatalogItem[]>(FALLBACK_ADDON_CATALOG);
+  useEffect(() => {
+    (async () => {
+      const [aRes, pRes] = await Promise.all([
+        supabase.from("pricing_addons").select("*").eq("is_active", true).order("sort_order"),
+        supabase.from("pricing_addon_prices").select("addon_id,currency,amount").eq("currency", "SAR"),
+      ]);
+      if (!aRes.data) return;
+      const px: Record<string, number> = {};
+      (pRes.data || []).forEach((r: any) => { px[r.addon_id] = Number(r.amount); });
+      setItems(aRes.data.map((a: any) => ({
+        key: a.key, label: a.name_en,
+        price: px[a.id] ?? 0, durationDays: 30, icon: a.hero ? "⭐" : "✨",
+      })));
+    })();
+  }, []);
+  return items;
+};
 
 /* ── Helpers ──────────────────────────────────────────────────────────── */
 
