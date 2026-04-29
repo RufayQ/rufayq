@@ -81,14 +81,14 @@ interface EventRow {
 
 interface CatalogItem { key: string; label: string; price: number; durationDays: number; icon: string }
 
-const FALLBACK_ADDON_CATALOG: CatalogItem[] = [
+const FALLBACK_catalog: CatalogItem[] = [
   { key: "extra_family",      label: "Extra Family Member",        price: 49, durationDays: 30, icon: "👨‍👩‍👧" },
   { key: "consult_pack",      label: "Additional Consultation Pack", price: 199, durationDays: 30, icon: "🩺" },
   { key: "priority_concierge", label: "Priority Concierge",         price: 299, durationDays: 30, icon: "⚡" },
 ];
 
 const useAddonCatalog = (): CatalogItem[] => {
-  const [items, setItems] = useState<CatalogItem[]>(FALLBACK_ADDON_CATALOG);
+  const [items, setItems] = useState<CatalogItem[]>(FALLBACK_catalog);
   useEffect(() => {
     (async () => {
       const [aRes, pRes] = await Promise.all([
@@ -820,7 +820,7 @@ const AddonsTab = ({
       <div>
         <p className="text-[10px] uppercase tracking-wide text-slate-500 mb-2">Available add-ons</p>
         <div className="grid gap-2">
-          {ADDON_CATALOG.map((c) => {
+          {catalog.map((c) => {
             const isActive = activeKeys.has(c.key);
             return (
               <Card key={c.key} className={isActive ? "opacity-60" : ""}>
