@@ -24,6 +24,8 @@ const Admin = lazy(() => import("./pages/Admin.tsx"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin.tsx"));
 const AdminApiDocs = lazy(() => import("./pages/AdminApiDocs.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
+const SubscriptionDashboard = lazy(() => import("./pages/SubscriptionDashboard.tsx"));
+const WalletLedger = lazy(() => import("./pages/WalletLedger.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const SitemapPreview = lazy(() => import("./pages/SitemapPreview.tsx"));
 
@@ -97,6 +99,10 @@ const App = () => (
             <Route path="/admin/login" element={<Shelled><AdminLogin /></Shelled>} />
             <Route path="/admin/api-docs" element={<Shelled><AdminApiDocs /></Shelled>} />
             <Route path="/auth" element={<Shelled><Auth /></Shelled>} />
+            <Route path="/app/dashboard/subscription" element={<Shelled><SubscriptionDashboard /></Shelled>} />
+            <Route path="/app/wallet" element={<Shelled><WalletLedger /></Shelled>} />
+            <Route path="/ar/app/dashboard/subscription" element={<Shelled><SubscriptionDashboard /></Shelled>} />
+            <Route path="/ar/app/wallet" element={<Shelled><WalletLedger /></Shelled>} />
 
             {/* SEO QA tools (no /ar mirror — internal use only) */}
             <Route path="/sitemap-preview" element={<SitemapPreview />} />
