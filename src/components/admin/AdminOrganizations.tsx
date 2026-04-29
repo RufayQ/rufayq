@@ -995,12 +995,6 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
       const s = typeof v === "string" ? v : JSON.stringify(v);
       return `"${s.replace(/"/g, '""')}"`;
     };
-    const cellOf = (l: any, k: HCol): any => {
-      if (k === "created_at") return new Date(l.created_at).toISOString();
-      if (k === "details") return l.details ? JSON.stringify(l.details) : "";
-      if (k === "claim_id") return l?.details?.claim_id || l?.details?.target_id || "";
-      return l[k] ?? "";
-    };
     const meta = [
       `# Export generated ${new Date().toISOString()}`,
       `# Organization ID: ${orgId}`,
@@ -1018,6 +1012,23 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
     a.click(); URL.revokeObjectURL(url);
     toast.success(`Exported ${filtered.length} rows`, { description: `${cols.length} columns · sort ${sortDir}` });
     setExportOpen(false);
+  };
+
+  const exportPdf = () => {
+    if (cols.length === 0) { toast.error("Pick at least one column"); return; }
+    const label = (k: HCol) => HISTORY_COLUMNS.find((c) => c.k === k)?.label || k;
+    const safe = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Organization audit export</title><style>
+      @page{size:A4 landscape;margin:14mm}body{font-family:Arial,sans-serif;color:#111827}h1{font-size:18px;margin:0 0 6px}p{font-size:10px;color:#475569;margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:10px;font-size:9px}th,td{border:1px solid #cbd5e1;padding:5px;vertical-align:top;word-break:break-word}th{background:#f1f5f9;text-align:left}.details{font-family:monospace;font-size:8px}
+    </style></head><body><h1>Organization audit export</h1>
+      <p>Generated ${safe(new Date().toISOString())} · Organization ${safe(orgId)}</p>
+      <p>Filters: action ${safe(actionFilter || "*")} · actor ${safe(actorFilter || "*")} · from ${safe(from || "*")} · to ${safe(to || "*")} · sort created_at ${safe(sortDir)} · rows ${filtered.length}</p>
+      <table><thead><tr>${cols.map((c) => `<th>${safe(label(c))}</th>`).join("")}</tr></thead><tbody>${filtered.map((l) => `<tr>${cols.map((c) => `<td class="${c === "details" ? "details" : ""}">${safe(cellOf(l, c))}</td>`).join("")}</tr>`).join("")}</tbody></table>
+    </body></html>`;
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    if (!w) { toast.error("Allow pop-ups to export PDF"); return; }
+    w.document.write(html); w.document.close();
+    w.focus(); setTimeout(() => { w.print(); toast.success(`PDF export opened`, { description: `${filtered.length} rows prepared` }); }, 250);
   };
 
   return (
