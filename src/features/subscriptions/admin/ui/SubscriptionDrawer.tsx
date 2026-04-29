@@ -842,11 +842,13 @@ const PlansTab = ({
 /* ADDONS */
 
 const AddonsTab = ({
-  active, addons, busy, onAdd, onRemove, onExtend,
+  active, addons, busy, onAdd, onRemove, onExtend, onRefund,
 }: {
   active: Sub | null; addons: Addon[]; busy: boolean;
   onAdd: (key: string, label: string, price: number, days: number, complimentary: boolean) => void;
   onRemove: (a: Addon) => void; onExtend: (a: Addon, days: number) => void;
+  /** Open the manual refund dialog for this add-on (admin-only override). */
+  onRefund: (a: Addon) => void;
 }) => {
   const catalog = useAddonCatalog();
   const activeKeys = new Set(addons.filter((a) => a.is_active).map((a) => a.addon_key));
@@ -855,7 +857,11 @@ const AddonsTab = ({
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-400">Toggle add-ons for this customer's <span className="text-slate-200 uppercase">{active.plan}</span> subscription.</p>
+      <p className="text-xs text-slate-400">
+        Toggle add-ons for this customer's <span className="text-slate-200 uppercase">{active.plan}</span> subscription.
+        <br />
+        <span className="text-amber-300/70">Add-ons are non-refundable by default — use “Refund” to issue a manual override.</span>
+      </p>
 
       {/* Active addons */}
       {addons.filter((a) => a.is_active).length > 0 && (
@@ -864,18 +870,28 @@ const AddonsTab = ({
           <div className="space-y-2">
             {addons.filter((a) => a.is_active).map((a) => (
               <Card key={a.id}>
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="min-w-0">
                     <p className="text-sm text-slate-100">{a.addon_label}</p>
                     <p className="text-[10px] text-slate-500">
                       {a.unit_price ? `${a.currency} ${a.unit_price}` : "Complimentary"} · until {fmtDate(a.active_until)}
                     </p>
                   </div>
-                  <div className="flex gap-1.5 shrink-0">
+                  <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
                     <button onClick={() => onExtend(a, 30)} disabled={busy}
-                      className="text-[11px] px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300">+30d</button>
+                      title="Extend by 30 days"
+                      className="text-[11px] px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 transition-colors disabled:opacity-30">
+                      +30d
+                    </button>
+                    {a.unit_price && Number(a.unit_price) > 0 && (
+                      <button onClick={() => onRefund(a)} disabled={busy}
+                        title="Issue a manual refund to wallet"
+                        className="text-[11px] px-2.5 py-1 rounded bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 transition-colors disabled:opacity-30 flex items-center gap-1">
+                        <RefreshCw size={10} /> Refund
+                      </button>
+                    )}
                     <button onClick={() => onRemove(a)} disabled={busy}
-                      className="text-[11px] px-2.5 py-1 rounded bg-rose-500/15 text-rose-300 flex items-center gap-1">
+                      className="text-[11px] px-2.5 py-1 rounded bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 transition-colors disabled:opacity-30 flex items-center gap-1">
                       <Trash2 size={10} /> Remove
                     </button>
                   </div>
