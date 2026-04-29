@@ -509,7 +509,21 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
           {!loading && tab === "addons" && (
             <AddonsTab active={active} addons={addons} busy={busy}
               onAdd={(k, l, p, d, comp) => active && addAddon(active, k, l, p, d, comp)}
-              onRemove={removeAddon} onExtend={extendAddon} />
+              onRemove={removeAddon} onExtend={extendAddon}
+              onRefund={(a) => setRefundingAddon(a)} />
+          )}
+
+          {refundingAddon && (
+            <AddonRefundDialog
+              addon={refundingAddon}
+              onClose={() => setRefundingAddon(null)}
+              onConfirm={async (amt, reason) => {
+                const a = refundingAddon;
+                setRefundingAddon(null);
+                if (!a) return;
+                await issueManualRefund(null, a.id, amt, reason);
+              }}
+            />
           )}
 
           {!loading && tab === "payments" && (
