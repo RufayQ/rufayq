@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Upload, Banknote, Loader2 } from "lucide-react";
+import { Upload, Banknote, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -29,10 +29,49 @@ export const AdminPayoutDialog = ({
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanInfo, setScanInfo] = useState<string | null>(null);
 
   const valid = amount > 0
     && amount <= walletBalance
     && (reference.trim().length > 0 || !!file);
+
+  // OCR — call scan-receipt edge function with image data URL.
+  // Prefills reference / amount / note when confidence is reasonable.
+  const runOcr = async (f: File) => {
+    if (!f.type.startsWith("image/")) return; // PDF not supported by vision
+    setScanning(true); setScanInfo(null);
+    try {
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(f);
+      });
+      const { data, error } = await supabase.functions.invoke("scan-receipt", {
+        body: { image: dataUrl },
+      });
+      if (error) throw error;
+      const out = (data as any)?.data || {};
+      const conf = Number(out.confidence ?? 0);
+      if (conf >= 0.4) {
+        if (out.reference_no && !reference) setReference(String(out.reference_no));
+        if (typeof out.amount === "number" && out.amount > 0 && out.amount <= walletBalance) {
+          setAmount(Number(out.amount));
+        }
+        if (out.reason && !notes) setNotes(String(out.reason));
+        setScanInfo(`Auto-filled (confidence ${(conf * 100).toFixed(0)}%) — please verify.`);
+        toast.success("Receipt scanned");
+      } else {
+        setScanInfo("Could not read clearly. Please enter manually.");
+      }
+    } catch (e: any) {
+      setScanInfo(e?.message || "OCR failed");
+      toast.error(e?.message || "OCR failed");
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const submit = async () => {
     if (!valid) return;
@@ -109,12 +148,21 @@ export const AdminPayoutDialog = ({
 
           <div>
             <label className="text-[10px] uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
-              <Upload size={11}/> Upload receipt (optional)
+              <Upload size={11}/> Upload receipt {scanning && <Loader2 size={10} className="animate-spin text-amber-300"/>}
             </label>
             <input type="file" accept="image/*,application/pdf"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null;
+                setFile(f);
+                if (f) runOcr(f);
+              }}
               className="w-full text-xs text-slate-300 mt-1 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-slate-800 file:text-slate-200"/>
             {file && <p className="text-[10px] text-slate-400 mt-1 truncate">{file.name}</p>}
+            {scanInfo && (
+              <p className="text-[10px] text-amber-300/80 mt-1 inline-flex items-center gap-1">
+                <Sparkles size={10}/> {scanInfo}
+              </p>
+            )}
           </div>
 
           <div>

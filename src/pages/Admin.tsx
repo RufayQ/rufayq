@@ -16,6 +16,7 @@ import AdminOrganizations from "@/components/admin/AdminOrganizations";
 import AdminCreateUser from "@/components/admin/AdminCreateUser";
 import AdminCustomerService from "@/components/admin/AdminCustomerService";
 import AdminAuditLog from "@/components/admin/AdminAuditLog";
+import AdminWalletAudit from "@/components/admin/AdminWalletAudit";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminProviderApplications from "@/components/admin/AdminProviderApplications";
 import AdminPatientClaims from "@/components/admin/AdminPatientClaims";
@@ -278,6 +279,7 @@ const Admin = () => {
               case "cms_media": return gate(isAdmin, "Media Library") ?? <AdminCmsMedia />;
               case "cms_blog_cats": return gate(isAdmin, "Blog Categories") ?? <AdminCmsBlogCategories />;
               case "audit": return <AdminAuditLog />;
+              case "wallet_audit": return gate(isAdmin, "Wallet Audit") ?? <AdminWalletAudit />;
               default: return <ComingSoon title="Coming soon" />;
             }
           })()}

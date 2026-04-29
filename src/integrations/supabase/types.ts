@@ -5438,6 +5438,110 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          amount: number | null
+          created_at: string
+          currency: string | null
+          details: Json
+          device_id: string | null
+          id: string
+          target_id: string | null
+          target_type: string | null
+          user_id: string | null
+          wallet_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          details?: Json
+          device_id?: string | null
+          id?: string
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string | null
+          wallet_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          details?: Json
+          device_id?: string | null
+          id?: string
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string | null
+          wallet_id?: string | null
+        }
+        Relationships: []
+      }
+      wallet_integrity_alerts: {
+        Row: {
+          actual_balance: number
+          created_at: string
+          currency: string
+          device_id: string | null
+          drift: number
+          expected_balance: number
+          id: string
+          notes: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          user_id: string | null
+          wallet_id: string
+        }
+        Insert: {
+          actual_balance: number
+          created_at?: string
+          currency?: string
+          device_id?: string | null
+          drift: number
+          expected_balance: number
+          id?: string
+          notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id?: string | null
+          wallet_id: string
+        }
+        Update: {
+          actual_balance?: number
+          created_at?: string
+          currency?: string
+          device_id?: string | null
+          drift?: number
+          expected_balance?: number
+          id?: string
+          notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_integrity_alerts_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "patient_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallet_payouts: {
         Row: {
           amount: number
@@ -5593,6 +5697,7 @@ export type Database = {
       }
     }
     Functions: {
+      _actor_email_safe: { Args: never; Returns: string }
       admin_create_user_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5740,6 +5845,13 @@ export type Database = {
         Returns: undefined
       }
       rcm_recompute_invoice: { Args: { _visit_id: string }; Returns: undefined }
+      reconcile_wallet_balances: {
+        Args: never
+        Returns: {
+          checked: number
+          flagged: number
+        }[]
+      }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
