@@ -267,6 +267,7 @@ const Admin = () => {
               case "rcm_bulk": return gate(isAdmin, "RCM Bulk Ops") ?? <AdminRcmBulkOps />;
               case "subs": return gate(isAdmin, "Subscriptions") ?? <AdminSubscriptions />;
               case "payments": return gate(isAdmin, "Payments & Receipts") ?? <AdminPayments />;
+              case "pricing": return gate(isAdmin, "Pricing & Catalog") ?? <AdminPricingCatalog />;
               case "ai_usage": return gate(isAdmin, "AI Usage") ?? <AdminAiUsage />;
               case "reviews": return <AdminReviews />;
               case "tickets": return <AdminTickets />;
