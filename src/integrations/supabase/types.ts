@@ -4815,6 +4815,119 @@ export type Database = {
           },
         ]
       }
+      refund_dispute_events: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          created_at: string
+          details: Json | null
+          dispute_id: string
+          event_type: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          details?: Json | null
+          dispute_id: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          details?: Json | null
+          dispute_id?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_dispute_events_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "refund_disputes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refund_disputes: {
+        Row: {
+          addon_id: string | null
+          created_at: string
+          currency: string
+          device_id: string | null
+          elapsed_pct_at_open: number | null
+          id: string
+          preview_amount: number | null
+          reason: string | null
+          refund_tx_id: string | null
+          resolution_note: string | null
+          resolved_amount: number | null
+          resolved_at: string | null
+          reviewer_id: string | null
+          status: string
+          subscription_id: string | null
+          tier_at_open: string | null
+          updated_at: string
+          user_id: string | null
+          user_subscription_id: string | null
+        }
+        Insert: {
+          addon_id?: string | null
+          created_at?: string
+          currency?: string
+          device_id?: string | null
+          elapsed_pct_at_open?: number | null
+          id?: string
+          preview_amount?: number | null
+          reason?: string | null
+          refund_tx_id?: string | null
+          resolution_note?: string | null
+          resolved_amount?: number | null
+          resolved_at?: string | null
+          reviewer_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          tier_at_open?: string | null
+          updated_at?: string
+          user_id?: string | null
+          user_subscription_id?: string | null
+        }
+        Update: {
+          addon_id?: string | null
+          created_at?: string
+          currency?: string
+          device_id?: string | null
+          elapsed_pct_at_open?: number | null
+          id?: string
+          preview_amount?: number | null
+          reason?: string | null
+          refund_tx_id?: string | null
+          resolution_note?: string | null
+          resolved_amount?: number | null
+          resolved_at?: string | null
+          reviewer_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          tier_at_open?: string | null
+          updated_at?: string
+          user_id?: string | null
+          user_subscription_id?: string | null
+        }
+        Relationships: []
+      }
       site_pages: {
         Row: {
           body_md: string
@@ -5325,6 +5438,71 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          device_id: string | null
+          id: string
+          method: string
+          notes: string | null
+          receipt_file_path: string | null
+          reference_no: string | null
+          related_dispute_id: string | null
+          related_tx_id: string | null
+          reviewer_id: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          device_id?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          receipt_file_path?: string | null
+          reference_no?: string | null
+          related_dispute_id?: string | null
+          related_tx_id?: string | null
+          reviewer_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          device_id?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          receipt_file_path?: string | null
+          reference_no?: string | null
+          related_dispute_id?: string | null
+          related_tx_id?: string | null
+          reviewer_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_payouts_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "patient_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallet_transactions: {
         Row: {
           actor_id: string | null
@@ -5437,6 +5615,29 @@ export type Database = {
           _subscription_id: string
         }
         Returns: string
+      }
+      admin_record_payout: {
+        Args: {
+          _amount: number
+          _currency: string
+          _device_id: string
+          _dispute_id?: string
+          _method: string
+          _notes: string
+          _receipt_file_path: string
+          _reference_no: string
+          _user_id: string
+        }
+        Returns: string
+      }
+      admin_resolve_dispute: {
+        Args: {
+          _dispute_id: string
+          _note: string
+          _override_amount: number
+          _to_status: string
+        }
+        Returns: undefined
       }
       admin_user_kpis: {
         Args: never
