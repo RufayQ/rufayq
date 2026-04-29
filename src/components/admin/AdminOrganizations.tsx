@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Building2, Plus, Save, X, Search, Filter, Eye, Pencil, Pause, Play, Upload,
   Users, Package, History, FileText, Trash2, ExternalLink, Hash, Mail, Phone, Globe2, MapPin,
-  RefreshCw, Receipt, Download, ShieldCheck, Send, ChevronRight, Image as ImageIcon, Maximize2,
+  RefreshCw, Receipt, Download, ShieldCheck, Send, ChevronRight, Maximize2,
 } from "lucide-react";
 import CountrySelect from "./CountrySelect";
 import CitySelect from "./CitySelect";
