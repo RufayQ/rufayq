@@ -4,7 +4,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Crown, Users, Sparkles, Receipt, X, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Crown, Users, Sparkles, Receipt, X, Plus, Trash2, AlertTriangle, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrency } from "@/contexts/CurrencyContext";
