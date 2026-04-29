@@ -1234,8 +1234,10 @@ const RefundConfirmDialog = ({
           <h3 className="text-base font-semibold text-amber-300">Cancel subscription · refund preview</h3>
         </div>
         <p className="text-xs text-slate-400 mb-4">
+        <p className="text-xs text-slate-400 mb-2">
           Per policy: ≤25% elapsed = full refund, 25–45% = 50%, &gt;45% = no refund. Computed from time elapsed in the current billing period.
         </p>
+        <div className="mb-3"><RefundPolicyHint isAr={false} tone="card" /></div>
 
         <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-3 mb-3 space-y-1.5">
           <div className="flex justify-between text-xs"><span className="text-slate-400">Period elapsed</span><span className="text-slate-200 font-mono">{preview.elapsedPct.toFixed(1)}%</span></div>
