@@ -26,10 +26,14 @@ interface SubWithProfile extends Sub {
 const PLAN_OPTIONS = PLAN_CODES;
 
 const AdminSubscriptions = () => {
+  const { can, ready } = usePermissions();
+  const canModify = ready && can("subscription.modify");
+  const canCancel = ready && can("subscription.cancel");
   const [tab, setTab] = useState<Tab>("active");
   const [rows, setRows] = useState<SubWithProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
