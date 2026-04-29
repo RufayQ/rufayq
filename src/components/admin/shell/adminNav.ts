@@ -9,7 +9,7 @@ export type LeafKey =
   | "users" | "user_search" | "create" | "verify_assist" | "cs_users"
   | "orgs" | "applications"
   | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk"
-  | "subs" | "payments" | "ai_usage"
+  | "subs" | "payments" | "ai_usage" | "pricing"
   | "reviews" | "tickets"
   | "news" | "pages" | "website_cms"
   | "cms_seo" | "cms_media" | "cms_blog_cats"
