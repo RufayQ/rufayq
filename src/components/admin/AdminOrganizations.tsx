@@ -1190,6 +1190,7 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
   useEffect(() => {
     (async () => {
       if (!sub.payment_receipt_url) { setSigned(null); setReceiptLoading(false); return; }
+      setUploadPreviewUrl(null);
       setReceiptLoading(true);
       const { data } = await supabase.storage.from("org-payments").createSignedUrl(sub.payment_receipt_url, 60 * 10);
       setSigned(data?.signedUrl || null);
