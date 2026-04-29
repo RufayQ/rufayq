@@ -1047,6 +1047,10 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
             className="text-[11px] px-2 py-1 rounded bg-amber-500/15 text-amber-300 disabled:opacity-40 flex items-center gap-1">
             <Download size={11} /> Export CSV
           </button>
+          <button onClick={exportPdf} disabled={filtered.length === 0}
+            className="text-[11px] px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 disabled:opacity-40 flex items-center gap-1">
+            <FileDown size={11} /> PDF
+          </button>
           {exportOpen && (
             <div className="absolute right-0 top-8 z-20 w-64 rounded-xl border border-slate-700 bg-slate-950 shadow-xl p-3 animate-in fade-in slide-in-from-top-1 duration-150">
               <p className="text-[11px] text-slate-300 font-semibold mb-2">Columns to export</p>
@@ -1072,6 +1076,18 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
 
       {/* Filters */}
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-2.5 space-y-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <select value="" onChange={(e) => applyPreset(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 flex-1 min-w-[150px]">
+            <option value="">Apply preset…</option>
+            {presets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <input value={presetName} onChange={(e) => setPresetName(e.target.value)} placeholder="Preset name"
+            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 flex-1 min-w-[130px]" />
+          <button onClick={savePreset} className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">
+            Save view
+          </button>
+        </div>
         <div className="flex flex-wrap gap-2">
           <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}
             className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200 flex-1 min-w-[140px]">
