@@ -326,35 +326,41 @@ const OrgDrawer = ({ org, initialTab = "overview", onClose }: { org: Org; initia
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
-      <aside className="w-full max-w-xl bg-slate-950 border-l border-slate-800 overflow-y-auto">
+      <aside className="w-full sm:max-w-xl bg-slate-950 border-l border-slate-800 overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-slate-950/95 backdrop-blur border-b border-slate-800 p-4 space-y-3">
+        <div className="sticky top-0 z-10 bg-slate-950/95 backdrop-blur border-b border-slate-800 p-4 sm:p-5 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <Building2 size={16} className="text-amber-400" />
+                <Building2 size={16} className="text-amber-400 shrink-0" />
                 <h2 className="font-semibold text-slate-100 truncate">{org.name}</h2>
               </div>
               <p className="text-[11px] font-mono text-slate-400 mt-0.5">{org.org_code}</p>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
+            <button onClick={onClose} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 shrink-0">
               <X size={14} />
             </button>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-[10px] px-2 py-0.5 rounded-full border capitalize ${statusBadge(form.status)}`}>{form.status}</span>
-            {form.status !== "suspended" ? (
+            {canModify && form.status !== "suspended" && (
               <button onClick={() => toggleStatus("suspended")} className="text-[11px] px-2 py-1 rounded-lg bg-rose-500/15 text-rose-300 flex items-center gap-1">
                 <Pause size={11} /> Suspend
               </button>
-            ) : (
+            )}
+            {canModify && form.status === "suspended" && (
               <button onClick={() => toggleStatus("active")} className="text-[11px] px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 flex items-center gap-1">
                 <Play size={11} /> Activate
               </button>
             )}
-            <button onClick={remove} className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/15 hover:text-rose-300 text-slate-400 flex items-center gap-1 ml-auto">
-              <Trash2 size={11} /> Delete
-            </button>
+            {canModify && (
+              <button onClick={remove} className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/15 hover:text-rose-300 text-slate-400 flex items-center gap-1 ml-auto">
+                <Trash2 size={11} /> Delete
+              </button>
+            )}
+            {!canModify && (
+              <span className="text-[10px] text-amber-400/80 ml-auto">Read-only — admin role required</span>
+            )}
           </div>
           <nav className="flex gap-1 text-[11px] overflow-x-auto -mb-1">
             {([
