@@ -326,9 +326,9 @@ const OrgDrawer = ({ org, initialTab = "overview", onClose }: { org: Org; initia
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-50 flex animate-in fade-in duration-200">
       <div className="flex-1 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
-      <aside className="w-full sm:max-w-xl bg-slate-950 border-l border-slate-800 overflow-y-auto">
+      <aside className="w-full sm:max-w-xl bg-slate-950 border-l border-slate-800 overflow-y-auto animate-slide-in-right">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-slate-950/95 backdrop-blur border-b border-slate-800 p-4 sm:p-5 space-y-3">
           <div className="flex items-start justify-between gap-3">
