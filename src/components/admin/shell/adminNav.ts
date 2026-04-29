@@ -83,6 +83,7 @@ export const NAV_MODULES: NavGroup[] = [
     leaves: [
       { key: "subs",     label: "Subscriptions",       icon: CreditCard, adminOnly: true, section: "Revenue" },
       { key: "payments", label: "Payments & Receipts", icon: CreditCard, adminOnly: true, badgeKey: "pending_receipts", section: "Revenue" },
+      { key: "pricing",  label: "Pricing & Catalog",   icon: Sparkles,   adminOnly: true, section: "Revenue", pillTone: "new" },
       { key: "ai_usage", label: "AI Usage",            icon: Activity,   adminOnly: true, section: "Insights" },
     ],
   },
