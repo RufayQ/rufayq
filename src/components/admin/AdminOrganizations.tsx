@@ -616,6 +616,7 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
   const [invites, setInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [confirmInvite, setConfirmInvite] = useState(false);
   const [form, setForm] = useState<{ email: string; invited_role: OrgRole; notes: string }>({
     email: "", invited_role: "org_viewer", notes: "",
   });
@@ -634,21 +635,35 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
   };
   useEffect(() => { load(); }, [orgId]); // eslint-disable-line
 
+  const validateInvite = (): string | null => {
+    const email = form.email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(email)) return "Enter a valid email";
+    return null;
+  };
+
   const sendInvite = async () => {
     const email = form.email.trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(email)) { toast.error("Enter a valid email"); return; }
     const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase.from("organization_invites").insert({
       organization_id: orgId, email, invited_role: form.invited_role,
       invited_by: user?.id ?? null, notes: form.notes || null,
     }).select().single();
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error("Invite failed", { description: error.message });
+      await supabase.rpc("log_audit_event", {
+        _action: "org_invite_failed", _target_type: "organization", _target_id: orgId,
+        _details: { email, role: form.invited_role, error: error.message },
+      });
+      setConfirmInvite(false);
+      return;
+    }
     await supabase.rpc("log_audit_event", {
       _action: "org_invite_sent", _target_type: "organization", _target_id: orgId,
-      _details: { invite_id: data?.id, email, role: form.invited_role },
+      _details: { invite_id: data?.id, email, role: form.invited_role, outcome: "sent" },
     });
-    toast.success(`Invite sent to ${email}`);
-    setAdding(false); setForm({ email: "", invited_role: "org_viewer", notes: "" }); load();
+    toast.success(`Invite sent to ${email}`, { description: `Role: ${form.invited_role.replace("org_", "")}` });
+    setConfirmInvite(false); setAdding(false);
+    setForm({ email: "", invited_role: "org_viewer", notes: "" }); load();
   };
 
   const revokeInvite = async (inv: any) => {
