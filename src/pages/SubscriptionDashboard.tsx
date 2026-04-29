@@ -257,9 +257,14 @@ const SubscriptionDashboard = () => {
                   <p className="font-mono text-[10px] tracking-widest" style={{ color: GOLD }}>{isAr ? "محفظتي" : "MY WALLET"}</p>
                   <h3 className="font-display text-xl flex items-center gap-2"><Wallet size={16} color={GOLD}/>{isAr ? "رصيد الاسترداد" : "Refund balance"}</h3>
                 </div>
-                <p className="font-display text-2xl font-bold" style={{ color: GOLD }}>
-                  {wallet ? `${wallet.currency} ${wallet.balance.toFixed(2)}` : `${sub.currency} 0.00`}
-                </p>
+                <div className="text-right">
+                  <p className="font-display text-2xl font-bold" style={{ color: GOLD }}>
+                    {wallet ? `${wallet.currency} ${wallet.balance.toFixed(2)}` : `${sub.currency} 0.00`}
+                  </p>
+                  <Link to="/app/wallet" className="text-[10px] underline" style={{ color: GOLD }}>
+                    {isAr ? "السجل الكامل ←" : "Full ledger →"}
+                  </Link>
+                </div>
               </div>
               {walletTx.length === 0 ? (
                 <p className="text-xs" style={{ color: MUTED }}>
