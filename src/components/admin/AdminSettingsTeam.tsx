@@ -193,9 +193,17 @@ const AdminSettingsTeam = () => {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-1">
-        <Users size={18} className="text-amber-400" />
-        <h2 className="text-xl font-semibold text-slate-100">Team & Roles</h2>
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <div className="flex items-center gap-2">
+          <Users size={18} className="text-amber-400" />
+          <h2 className="text-xl font-semibold text-slate-100">Team & Roles</h2>
+        </div>
+        <button
+          onClick={() => setAddOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition"
+        >
+          <UserPlus size={12} /> Add team member
+        </button>
       </div>
       <p className="text-xs text-slate-500 mb-4">
         Internal staff with admin or moderator access. {adminCount === 1 && (
