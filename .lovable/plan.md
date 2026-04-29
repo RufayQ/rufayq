@@ -1,55 +1,92 @@
-# Billing revamp — execution plan
+## Answering your questions first
 
-Build the 7 parts in the safest order. After each part the system stays usable, so we can stop if anything regresses.
+**1. Where can add-ons be assigned today?**
 
-## 1. Migration — `payment_receipts` + `user_subscriptions` gaps
-New file: `supabase/migrations/<timestamp>_billing_gaps.sql`
-- `payment_receipts.code_expires_at TIMESTAMPTZ DEFAULT now() + interval '24 hours'`
-- Drop + re-add `payment_receipts_status_check` to allow `code_expired`
-- `user_subscriptions.payment_receipt_id UUID REFERENCES payment_receipts(id) ON DELETE SET NULL`
-- Moderator UPDATE policy on `payment_receipts` (using `has_role(auth.uid(),'moderator')`)
-- Partial index `idx_payment_receipts_expiry ON (code_expires_at) WHERE status='pending'`
+Add-ons exist in **two parallel places** in the codebase right now (this is technical debt worth knowing about):
 
-## 2. Contracts + client — `createPendingReceipt`
-- `src/api/contracts/payments.ts`: add `'code_expired'` to `KNOWN_PAYMENT_STATUSES`; add `code_expires_at: z.string().nullable()` to `PaymentReceiptSchema`.
-- `src/api/clients/payments.client.ts`: add `createPendingReceipt({ device_id, requested_plan, billing_cycle, currency, amount, payment_method, payer_name?, payer_phone?, submission_channel? })`. Inserts a `pending` row, lets the DB trigger assign `payment_reference`, returns the full row including `code_expires_at`.
-- `src/features/payments/logic/receipts.ts`: tone for `code_expired` (slate/orange).
-- `src/shared/types/payment.ts`: extend `PaymentStatus` union.
+- **Admin Subscription Drawer** → `Add-ons` tab (`SubscriptionDrawer.tsx`)
+  - Writes to `user_subscription_addons` table
+  - Catalog is **hardcoded** in `ADDON_CATALOG` inside the file
+  - Admin-only assignment with comp/price/duration controls
+- **Patient `SubscriptionDashboard`** (self-service)
+  - Writes to a different table: `subscription_addons`
+  - Lets the user request add-ons (status `pending_admin`)
 
-## 3. `verifyAndActivate` — link receipt to subscription
-- After inserting the new `user_subscriptions` row, set `payment_receipt_id = receipt.id` on the same insert payload (single statement — no extra round-trip).
+So today there is **no other admin surface** for add-ons besides the per-user drawer. There is **no admin pricing/catalog page at all** — plans live in `src/data/subscriptionPlans.ts` and `src/data/currencyMaster.ts` (static TypeScript), and the landing/Pricing page reads directly from those files.
 
-## 4. Patient flow — `BankTransferCheckout.tsx`
-- On mount, call `createPendingReceipt(...)` once and store the row in state.
-- Replace placeholder `RFQ-PAY-…` with the real `payment_reference` from DB (skeleton while loading).
-- New small component `ExpiryCountdown` (inline in the file): green > 2h, amber 30m–2h, red < 30m, "Code expired" terminal state with **Get new code** button that calls `createPendingReceipt` again.
-- Change the existing submit path from `.insert(...)` to `paymentsClient` update of the existing row: set `receipt_file_path`, `submission_channel`, `bank_name`, `transfer_date`, `payer_*`, `patient_message`, `status='under_review'` via `.eq('id', pendingReceipt.id)`. Add a `paymentsClient.attachAndSubmit(id, patch)` helper to keep raw `supabase.from` out of the component.
-- Disable submit until row exists; if expired, force user to regenerate first.
+**2. Is there admin pricing management that updates the landing site?**
 
-## 5. Admin — Add Receipt + status surfaces
-- New `src/components/admin/AdminAddReceiptPanel.tsx` (Sheet from the right):
-  - Step 1: debounced patient search against `profiles` (`full_name`, `email`, `phone`, `rufayq_id`); result row → captures `device_id` (from latest `user_devices`/profile mapping — read existing pattern in `AdminUserSearch.tsx` to stay consistent).
-  - Step 2: plan radio (Starter/Companion/Family), cycle toggle, currency, amount (auto-fill from `data/subscriptionPlans.ts`, editable), submission channel dropdown, transfer date, bank name.
-  - Step 3: drag/drop upload to `payment-receipts` bucket; "Image not available" checkbox.
-  - Step 4: internal note + patient message.
-  - Submit → `paymentsClient.upload(...)` with `status: 'under_review'` + reviewer fields, then toast.
-- `AdminPayments.tsx` edits:
-  - Header: gold **+ New Receipt** button → opens panel.
-  - Empty state: icon + title + subtitle + same CTA.
-  - Status pill + filter dropdown: add **Code Expired** (orange).
-- `src/features/payments/index.ts`: re-export `AdminAddReceiptPanel`.
+No. Any price change today requires editing source files. The two add-on tables are also disconnected, and neither has a shared catalog.
 
-## 6. Edge function — `expire-pending-payments`
-- `supabase/functions/expire-pending-payments/index.ts`: service-role client, single update `status='code_expired'` where `status='pending' AND code_expires_at < now()`, returns `{ expired: count }`. CORS + JSON.
-- Schedule via `pg_cron` + `pg_net` every 30 min (`*/30 * * * *`) using the project ref + anon key (insert-tool SQL, not migration, per docs).
+---
 
-## 7. Relocation (last, cosmetic)
-- Move `src/components/admin/AdminPayments.tsx` → `src/features/payments/admin/ui/AdminPayments.tsx`.
-- Update `src/features/payments/index.ts` and any direct imports (`src/pages/Admin.tsx`, etc.) found via `rg`.
+## Proposed plan
 
-## Validation after each part
-- `bunx vitest run` on touched areas (`receipts.test.ts`, contracts).
-- Manual: open `/pricing` bank-transfer flow → confirm a real `RFQ-PAY-…` appears and a row exists in `payment_receipts` with `status='pending'`. Then admin sees it in the queue.
+Build a single **Pricing & Catalog** admin module that becomes the source of truth for plans, add-ons, and prices — and have the public Pricing page read from it.
 
-## Out of scope (per audit)
-- No `payment_records` table, no `audit_events`, no rename of existing tables/columns, no global realtime in providers, no status-machine changes.
+### 1. Database (new schema)
+
+- `pricing_plans` — `code` (FREE/STARTER/COMPANION/FAMILY or custom), `name_en/ar`, `description_en/ar`, `recommended`, `sort_order`, `is_active`, `published_at`
+- `pricing_plan_features` — bilingual feature bullets per plan, ordered
+- `pricing_plan_prices` — per `(plan_id, currency, billing_cycle)` → `amount`. Supports SAR / AED / EGP / USD / EUR, monthly / yearly / quarterly
+- `pricing_addons` — `key`, `name_en/ar`, `desc_en/ar`, `unit_en/ar`, `cta_en/ar`, `hero`, `is_active`, `sort_order`
+- `pricing_addon_prices` — per `(addon_id, currency)` → `amount`
+- All tables: admin-only RLS for write, public `select` for active rows
+- Audit triggers logging `pricing_plan_*` / `pricing_addon_*` events into `admin_audit_log`
+- One-shot seed migration that imports the current values from `subscriptionPlans.ts` + `currencyMaster.ts` so nothing breaks on launch
+
+### 2. Unified add-on catalog
+
+- Replace the hardcoded `ADDON_CATALOG` in `SubscriptionDrawer.tsx` with a fetch from `pricing_addons` + `pricing_addon_prices`
+- Patient `SubscriptionDashboard` reads the same table — one catalog, two surfaces
+- Migration aligns the two add-on tables: keep `user_subscription_addons` (admin assignments) and `subscription_addons` (user requests), but both reference `pricing_addons.key`
+
+### 3. New admin page: `Pricing & Catalog`
+
+Added as a new sidebar item under the Subscriptions group in `src/pages/Admin.tsx`. Three tabs:
+
+- **Plans** — list/grid of plans; click to open editor drawer (name, description, features, recommended flag, multi-currency price matrix, active toggle, publish)
+- **Add-ons** — same pattern for add-ons
+- **History** — filtered audit log of pricing changes with CSV export (reuses existing patterns from Organizations history)
+
+UI conventions match the rest of admin: dark/teal styling, permission-gated buttons (`pricing.modify`, `pricing.publish`), confirmation modals, sticky drawer headers, responsive mobile layout.
+
+### 4. Dynamic landing & Pricing page
+
+- New hook `usePricingCatalog()` fetches active plans + add-ons + prices, keyed by currency
+- `src/pages/Pricing.tsx` and `src/pages/LandingBelow.tsx` switch from static `PLANS` import to the hook
+- Keep the static files as a typed fallback (used during loading and as a seed source) so SSR/initial paint stays instant
+- Cache-bust on admin publish via a lightweight `pricing_catalog_version` row that the public page subscribes to (Supabase realtime), so changes appear without a hard refresh — same pattern we used for Organizations
+
+### 5. Permissions
+
+Add to `permissions.ts`:
+- `pricing.view` — admin, moderator
+- `pricing.modify` — admin only
+- `pricing.publish` — admin only
+
+Gate the editor drawer save/publish buttons with `GateButton`, same as elsewhere.
+
+### 6. Out of scope (call out explicitly)
+
+- No payment-processor sync — these are display prices only; bank-transfer flow already accepts arbitrary amounts
+- No A/B testing or scheduled price changes (can be a follow-up)
+- No per-country price overrides beyond the 5 existing currencies
+
+---
+
+### Files to be created
+- `supabase/migrations/<ts>_pricing_catalog.sql` (schema + seed + RLS + audit triggers)
+- `src/components/admin/AdminPricingCatalog.tsx`
+- `src/components/admin/pricing/PlanEditorDrawer.tsx`
+- `src/components/admin/pricing/AddonEditorDrawer.tsx`
+- `src/components/admin/pricing/PricingHistoryTab.tsx`
+- `src/hooks/usePricingCatalog.ts`
+
+### Files to be edited
+- `src/pages/Admin.tsx` (new nav entry + route case)
+- `src/features/auth/logic/permissions.ts` (new permission keys)
+- `src/features/subscriptions/admin/ui/SubscriptionDrawer.tsx` (read add-on catalog from DB)
+- `src/pages/SubscriptionDashboard.tsx` (read add-on catalog from DB)
+- `src/pages/Pricing.tsx` and `src/pages/LandingBelow.tsx` (use `usePricingCatalog`)
+- `src/data/subscriptionPlans.ts` / `src/data/currencyMaster.ts` (kept as fallback constants)

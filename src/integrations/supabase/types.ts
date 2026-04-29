@@ -1232,6 +1232,237 @@ export type Database = {
           },
         ]
       }
+      pricing_addon_prices: {
+        Row: {
+          addon_id: string
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          addon_id: string
+          amount?: number
+          created_at?: string
+          currency: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          addon_id?: string
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_addon_prices_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_addons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_addons: {
+        Row: {
+          created_at: string
+          cta_ar: string | null
+          cta_en: string | null
+          description_ar: string | null
+          description_en: string | null
+          hero: boolean
+          id: string
+          is_active: boolean
+          key: string
+          name_ar: string
+          name_en: string
+          sort_order: number
+          unit_ar: string | null
+          unit_en: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cta_ar?: string | null
+          cta_en?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          hero?: boolean
+          id?: string
+          is_active?: boolean
+          key: string
+          name_ar: string
+          name_en: string
+          sort_order?: number
+          unit_ar?: string | null
+          unit_en?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cta_ar?: string | null
+          cta_en?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          hero?: boolean
+          id?: string
+          is_active?: boolean
+          key?: string
+          name_ar?: string
+          name_en?: string
+          sort_order?: number
+          unit_ar?: string | null
+          unit_en?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pricing_catalog_version: {
+        Row: {
+          id: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          id?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          id?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      pricing_plan_features: {
+        Row: {
+          created_at: string
+          id: string
+          plan_id: string
+          sort_order: number
+          text_ar: string
+          text_en: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan_id: string
+          sort_order?: number
+          text_ar: string
+          text_en: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan_id?: string
+          sort_order?: number
+          text_ar?: string
+          text_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_plan_features_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_plan_prices: {
+        Row: {
+          amount: number
+          billing_cycle: string
+          created_at: string
+          currency: string
+          id: string
+          plan_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          billing_cycle: string
+          created_at?: string
+          currency: string
+          id?: string
+          plan_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          billing_cycle?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_plan_prices_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_plans: {
+        Row: {
+          code: string
+          created_at: string
+          cta_ar: string | null
+          cta_en: string | null
+          description_ar: string | null
+          description_en: string | null
+          id: string
+          is_active: boolean
+          name_ar: string
+          name_en: string
+          published_at: string | null
+          recommended: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          cta_ar?: string | null
+          cta_en?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          name_en: string
+          published_at?: string | null
+          recommended?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          cta_ar?: string | null
+          cta_en?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string
+          published_at?: string | null
+          recommended?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
