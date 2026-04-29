@@ -239,11 +239,18 @@ const AdminUsers = () => {
         const expiringSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7 && subStatus === "active";
         const latestRec = latestReceiptByDevice[p.device_id];
         return (
-          <div key={p.id} className={`rounded-xl border p-4 ${isDeleted ? "border-rose-900/40 bg-rose-950/20 opacity-70" : "border-slate-800 bg-slate-900/50"}`}>
-            <div className="flex items-start justify-between gap-3 mb-2">
+          <div
+            key={p.id}
+            role={!isEditing ? "button" : undefined}
+            tabIndex={!isEditing ? 0 : undefined}
+            onClick={() => { if (!isEditing && !isDeleted) setDrawerUser(p); }}
+            onKeyDown={(e) => { if (!isEditing && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setDrawerUser(p); } }}
+            className={`rounded-xl border p-3 sm:p-4 transition ${isDeleted ? "border-rose-900/40 bg-rose-950/20 opacity-70" : "border-slate-800 bg-slate-900/50 hover:border-amber-500/40 cursor-pointer"}`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
               <div className="min-w-0 flex-1">
                 {isEditing ? (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
                     <input value={editForm.full_name_en || ""} onChange={(e) => setEditForm({ ...editForm, full_name_en: e.target.value })}
                       placeholder="Full name" className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200" />
                     <input value={editForm.nationality || ""} onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })}
@@ -287,17 +294,17 @@ const AdminUsers = () => {
                         <span className="text-[10px] text-slate-500">· {daysLeft}d left</span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-400 break-words">
                       {p.phone || "no phone"} · {p.email || "no email"} · {p.nationality || "—"}
                     </p>
                     {p.organization_id && orgsById[p.organization_id] && (
                       <p className="text-[11px] text-teal-300 mt-0.5">🏢 {orgsById[p.organization_id].name}</p>
                     )}
-                    <p className="text-[10px] text-slate-600 font-mono mt-0.5">{p.device_id.slice(0, 16)}… · joined {new Date(p.created_at).toLocaleDateString()}</p>
+                    <p className="text-[10px] text-slate-600 font-mono mt-0.5 break-all">{p.device_id.slice(0, 16)}… · joined {new Date(p.created_at).toLocaleDateString()}</p>
                   </>
                 )}
               </div>
-              <div className="flex flex-col gap-1.5 shrink-0">
+              <div className="flex flex-row sm:flex-col flex-wrap gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                 {isEditing ? (
                   <>
                     <button onClick={() => saveEdit(p.id)} className="px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[11px] flex items-center gap-1"><Save size={11}/>Save</button>
@@ -305,29 +312,37 @@ const AdminUsers = () => {
                   </>
                 ) : (
                   <>
-                    <button onClick={() => generateOtp(recipient)} disabled={!recipient || isDeleted}
-                      className="px-2.5 py-1 rounded bg-amber-500/15 text-amber-300 text-[11px] flex items-center gap-1 disabled:opacity-30"><KeyRound size={11}/>Send OTP</button>
-                    <button onClick={() => resetPassword(p, "auto")} disabled={!auth_id || isDeleted}
-                      className="px-2.5 py-1 rounded bg-violet-500/15 text-violet-300 text-[11px] flex items-center gap-1 disabled:opacity-30" title="Generate a new random password">
-                      <Shuffle size={11}/>Auto pwd
-                    </button>
-                    <button onClick={() => resetPassword(p, "manual")} disabled={!auth_id || isDeleted}
-                      className="px-2.5 py-1 rounded bg-violet-500/15 text-violet-300 text-[11px] flex items-center gap-1 disabled:opacity-30" title="Set a specific password">
-                      <RotateCw size={11}/>Set pwd
-                    </button>
+                    {canModify && (
+                      <button onClick={() => generateOtp(recipient)} disabled={!recipient || isDeleted}
+                        className="px-2.5 py-1 rounded bg-amber-500/15 text-amber-300 text-[11px] flex items-center gap-1 disabled:opacity-30"><KeyRound size={11}/>Send OTP</button>
+                    )}
+                    {canResetPwd && (
+                      <>
+                        <button onClick={() => resetPassword(p, "auto")} disabled={!auth_id || isDeleted}
+                          className="px-2.5 py-1 rounded bg-violet-500/15 text-violet-300 text-[11px] flex items-center gap-1 disabled:opacity-30" title="Generate a new random password">
+                          <Shuffle size={11}/>Auto pwd
+                        </button>
+                        <button onClick={() => resetPassword(p, "manual")} disabled={!auth_id || isDeleted}
+                          className="px-2.5 py-1 rounded bg-violet-500/15 text-violet-300 text-[11px] flex items-center gap-1 disabled:opacity-30" title="Set a specific password">
+                          <RotateCw size={11}/>Set pwd
+                        </button>
+                      </>
+                    )}
                     <button onClick={() => setDrawerUser(p)} disabled={isDeleted}
                       title="Open subscription management"
                       className="px-2.5 py-1 rounded bg-gradient-to-r from-amber-500/30 to-amber-600/20 text-amber-200 border border-amber-500/40 text-[11px] flex items-center gap-1 disabled:opacity-30 hover:from-amber-500/40 hover:to-amber-600/30 transition-colors">
                       <Crown size={11}/>Subscription
                     </button>
-                    <button onClick={() => startEdit(p)} disabled={isDeleted}
-                      className="px-2.5 py-1 rounded bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1 disabled:opacity-30"><Edit3 size={11}/>Edit</button>
+                    {canModify && (
+                      <button onClick={() => startEdit(p)} disabled={isDeleted}
+                        className="px-2.5 py-1 rounded bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1 disabled:opacity-30"><Edit3 size={11}/>Edit</button>
+                    )}
                   </>
                 )}
               </div>
             </div>
-            {!isEditing && (
-              <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800">
+            {!isEditing && canModify && (
+              <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800" onClick={(e) => e.stopPropagation()}>
                 <button onClick={() => setStatus(p, "active")} disabled={status === "active" || isDeleted}
                   className="px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[10px] disabled:opacity-30 flex items-center gap-1"><Play size={10}/>Activate</button>
                 <button onClick={() => setStatus(p, "on_hold")} disabled={status === "on_hold" || isDeleted}
