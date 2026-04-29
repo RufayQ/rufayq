@@ -49,6 +49,7 @@ const Admin = () => {
   const [leaf, setLeaf] = useState<LeafKey>(() => (localStorage.getItem(LS_LEAF) as LeafKey) || "dashboard");
   const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(LS_COLLAPSED) === "1");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const badges = useAdminBadges(!!role);
 
