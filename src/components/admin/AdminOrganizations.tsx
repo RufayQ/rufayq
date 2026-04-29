@@ -920,6 +920,8 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [exportOpen, setExportOpen] = useState(false);
   const [cols, setCols] = useState<HCol[]>(["created_at", "action", "actor_email", "target_id", "details"]);
+  const [presets, setPresets] = useState<HistoryPreset[]>([]);
+  const [presetName, setPresetName] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -931,6 +933,13 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
     setLogs(data || []); setLoading(false);
   };
   useEffect(() => { load(); }, [orgId]); // eslint-disable-line
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(historyPresetKey(orgId));
+      const parsed = raw ? JSON.parse(raw) : [];
+      setPresets(Array.isArray(parsed) ? parsed : []);
+    } catch { setPresets([]); }
+  }, [orgId]);
 
   const actions = useMemo(() => Array.from(new Set(logs.map((l) => l.action))).sort(), [logs]);
 
@@ -953,6 +962,31 @@ const HistoryTab = ({ orgId }: { orgId: string }) => {
   }, [logs, actionFilter, actorFilter, from, to, sortDir]);
 
   const toggleCol = (k: HCol) => setCols((cs) => cs.includes(k) ? cs.filter((c) => c !== k) : [...cs, k]);
+  const cellOf = (l: any, k: HCol): any => {
+    if (k === "created_at") return new Date(l.created_at).toISOString();
+    if (k === "details") return l.details ? JSON.stringify(l.details) : "";
+    if (k === "claim_id") return l?.details?.claim_id || l?.details?.target_id || "";
+    return l[k] ?? "";
+  };
+
+  const persistPresets = (next: HistoryPreset[]) => {
+    setPresets(next);
+    try { localStorage.setItem(historyPresetKey(orgId), JSON.stringify(next)); } catch { /* noop */ }
+  };
+  const savePreset = () => {
+    const name = presetName.trim();
+    if (!name) { toast.error("Name the preset first"); return; }
+    const nextPreset: HistoryPreset = { id: sanitizeFilePart(name.toLowerCase()), name, actionFilter, actorFilter, from, to, sortDir, cols };
+    persistPresets([nextPreset, ...presets.filter((p) => p.id !== nextPreset.id)].slice(0, 8));
+    setPresetName("");
+    toast.success("History preset saved", { description: name });
+  };
+  const applyPreset = (id: string) => {
+    const p = presets.find((x) => x.id === id);
+    if (!p) return;
+    setActionFilter(p.actionFilter); setActorFilter(p.actorFilter); setFrom(p.from); setTo(p.to); setSortDir(p.sortDir); setCols(p.cols);
+    toast.success("Preset applied", { description: p.name });
+  };
 
   const exportCsv = () => {
     if (cols.length === 0) { toast.error("Pick at least one column"); return; }
