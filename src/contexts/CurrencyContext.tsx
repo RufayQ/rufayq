@@ -287,15 +287,64 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [country]);
 
+  // ── Live admin-managed price overrides (pricing_plan_prices / pricing_addon_prices)
+  // Falls back silently to currencyMaster when the DB has no override.
+  const [planOverride, setPlanOverride] = useState<Record<string, number>>({});
+  const [addonOverride, setAddonOverride] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let cancelled = false;
+    const loadOverrides = async () => {
+      const [plans, planPx, addons, addonPx] = await Promise.all([
+        supabase.from("pricing_plans").select("id,code,is_active"),
+        supabase.from("pricing_plan_prices").select("plan_id,currency,billing_cycle,amount"),
+        supabase.from("pricing_addons").select("id,key,is_active"),
+        supabase.from("pricing_addon_prices").select("addon_id,currency,amount"),
+      ]);
+      if (cancelled) return;
+      const planMap: Record<string, string> = {};
+      (plans.data || []).filter((p: any) => p.is_active).forEach((p: any) => { planMap[p.id] = p.code; });
+      const pOver: Record<string, number> = {};
+      (planPx.data || []).forEach((r: any) => {
+        const code = planMap[r.plan_id]; if (!code) return;
+        // key: TIER|CURRENCY|monthly|annual (annual ↔ yearly)
+        const cycle = r.billing_cycle === "yearly" ? "annual" : r.billing_cycle;
+        pOver[`${code}|${r.currency}|${cycle}`] = Number(r.amount);
+      });
+      setPlanOverride(pOver);
+      const addonMap: Record<string, string> = {};
+      (addons.data || []).filter((a: any) => a.is_active).forEach((a: any) => { addonMap[a.id] = a.key; });
+      const aOver: Record<string, number> = {};
+      (addonPx.data || []).forEach((r: any) => {
+        const k = addonMap[r.addon_id]; if (!k) return;
+        aOver[`${k}|${r.currency}`] = Number(r.amount);
+      });
+      setAddonOverride(aOver);
+    };
+    loadOverrides();
+    const ch = supabase.channel("pricing-catalog-version-currencyctx")
+      .on("postgres_changes",
+          { event: "UPDATE", schema: "public", table: "pricing_catalog_version" },
+          () => loadOverrides())
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, []);
+
   const getPrice = useCallback(
-    (tier: TierId, period: "monthly" | "annual") =>
-      currencyMaster[currency].tiers[tier][period],
-    [currency],
+    (tier: TierId, period: "monthly" | "annual") => {
+      const k = `${TIER_CODE[tier]}|${currency}|${period}`;
+      if (planOverride[k] != null) return planOverride[k];
+      return currencyMaster[currency].tiers[tier][period];
+    },
+    [currency, planOverride],
   );
 
   const getAddon = useCallback(
-    (id: AddOnId) => currencyMaster[currency].addons[id],
-    [currency],
+    (id: AddOnId) => {
+      const k = `${id}|${currency}`;
+      if (addonOverride[k] != null) return addonOverride[k];
+      return currencyMaster[currency].addons[id];
+    },
+    [currency, addonOverride],
   );
 
   const format = useCallback(
