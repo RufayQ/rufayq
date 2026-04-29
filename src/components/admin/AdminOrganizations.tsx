@@ -380,7 +380,7 @@ const OrgDrawer = ({ org, initialTab = "overview", onClose }: { org: Org; initia
           </nav>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 sm:p-5">
           {tab === "overview" && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
