@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Pause, Play, Ban, Trash2, KeyRound, Search, Copy, MessageCircle, Mail, Edit3, Save, X, RotateCw, Shuffle, Crown } from "lucide-react";
 import SubscriptionDrawer from "@/features/subscriptions/admin/ui/SubscriptionDrawer";
 import { statusTone, normalizePlanCode } from "@/features/subscriptions/logic/statusMachine";
+import { usePermissions } from "@/features/auth";
 
 interface Profile {
   id: string; device_id: string; full_name_en: string | null; phone: string | null;
