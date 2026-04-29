@@ -21,7 +21,9 @@ export type Action =
   // Tickets (support moderation)
   | "ticket.view" | "ticket.moderate"
   // Patient claims (CRM)
-  | "claim.view" | "claim.decide";
+  | "claim.view" | "claim.decide"
+  // Pricing & catalog
+  | "pricing.view" | "pricing.modify" | "pricing.publish";
 
 const MATRIX: Record<AppRole, Action[]> = {
   admin: [
