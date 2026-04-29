@@ -27,6 +27,7 @@ export const useSyncLanguageWithRoute = () => {
       else if (location.pathname === "/news" || location.pathname.startsWith("/news/")) lang = "en";
     }
     if (!lang) return; // app shell — leave user's preference intact
-    if (mode !== lang) setMode(lang);
+    if (lang === "ar" && mode === "en") setMode("ar");
+    if (lang === "en" && mode === "ar") setMode("en");
   }, [location.pathname, mode, setMode]);
 };
