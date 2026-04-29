@@ -28,6 +28,7 @@ interface Sub {
 interface FamMember { id: string; full_name: string; full_name_ar: string | null; relationship: string; phone: string | null; status: string; }
 interface Addon { id: string; addon: AddOnId; status: string; qty: number; unit_price: number; currency: string; created_at: string; }
 interface BillEvent { id: string; event_type: string; amount: number | null; currency: string | null; created_at: string; details: any; }
+interface WalletTx { id: string; kind: string; direction: string; amount: number; currency: string; balance_after: number; reference: string | null; reason: string | null; refund_tier: string | null; created_at: string; }
 
 const SubscriptionDashboard = () => {
   const nav = useNavigate();
