@@ -38,6 +38,7 @@ import SecondaryPanel from "@/components/admin/shell/SecondaryPanel";
 import QuickCreateMenu from "@/components/admin/shell/QuickCreateMenu";
 import GlobalSearchPalette from "@/components/admin/shell/GlobalSearchPalette";
 import AdminTopbarPrefs from "@/components/admin/shell/AdminTopbarPrefs";
+import AdminPermissionsDebug from "@/components/admin/shell/AdminPermissionsDebug";
 
 const LS_LEAF = "admin.leaf";
 const LS_COLLAPSED = "admin.submenu.collapsed";
