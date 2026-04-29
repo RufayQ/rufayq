@@ -31,6 +31,8 @@ import {
 } from "lucide-react";
 import { PLANS, type PlanCode } from "@/data/subscriptionPlans";
 import { statusTone, normalizePlanCode } from "@/features/subscriptions/logic/statusMachine";
+import { RefundPolicyHint } from "@/features/refunds/RefundPolicyHint";
+import { AdminPayoutDialog } from "@/features/refunds/AdminPayoutDialog";
 
 /* ── Types ────────────────────────────────────────────────────────────── */
 
@@ -151,6 +153,9 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
   const [cancelTarget, setCancelTarget] = useState<Sub | null>(null);
   /** Add-on currently being manually refunded by admin. */
   const [refundingAddon, setRefundingAddon] = useState<Addon | null>(null);
+  /** Bank/manual payout dialog. */
+  const [payoutOpen, setPayoutOpen] = useState(false);
+  const [walletInfo, setWalletInfo] = useState<{ balance: number; currency: string; user_id: string | null } | null>(null);
 
   /**
    * Issues a manual admin refund for a subscription or add-on.
@@ -202,6 +207,10 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
     } else {
       setAddons([]);
     }
+    // Wallet snapshot for the payout button.
+    const { data: w } = await supabase.from("patient_wallets")
+      .select("balance,currency,user_id").eq("device_id", user.device_id).maybeSingle();
+    setWalletInfo(w ? { balance: Number(w.balance), currency: w.currency, user_id: w.user_id } : null);
     setLoading(false);
   };
 
@@ -527,9 +536,36 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
           )}
 
           {!loading && tab === "payments" && (
-            <PaymentsTab receipts={receipts} busy={busy}
-              onReview={reviewReceipt}
-              onCreate={(plan, cycle) => createPaymentRequest(plan, cycle)} />
+            <>
+              {walletInfo && walletInfo.balance > 0 && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 mb-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-emerald-300/80">Wallet balance</p>
+                    <p className="text-sm font-mono text-emerald-300">{walletInfo.currency} {walletInfo.balance.toFixed(2)}</p>
+                  </div>
+                  <button onClick={() => setPayoutOpen(true)}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 text-xs font-medium">
+                    Record bank payout
+                  </button>
+                </div>
+              )}
+              <RefundPolicyHint isAr={false} tone="card" />
+              <div className="h-3"/>
+              <PaymentsTab receipts={receipts} busy={busy}
+                onReview={reviewReceipt}
+                onCreate={(plan, cycle) => createPaymentRequest(plan, cycle)} />
+            </>
+          )}
+
+          {payoutOpen && walletInfo && (
+            <AdminPayoutDialog
+              userId={walletInfo.user_id}
+              deviceId={user.device_id}
+              walletBalance={walletInfo.balance}
+              currency={walletInfo.currency}
+              onClose={() => setPayoutOpen(false)}
+              onDone={load}
+            />
           )}
 
           {!loading && tab === "history" && <HistoryTab events={events} />}
