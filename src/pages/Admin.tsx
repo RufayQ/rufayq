@@ -279,6 +279,7 @@ const Admin = () => {
               case "cms_media": return gate(isAdmin, "Media Library") ?? <AdminCmsMedia />;
               case "cms_blog_cats": return gate(isAdmin, "Blog Categories") ?? <AdminCmsBlogCategories />;
               case "audit": return <AdminAuditLog />;
+              case "wallet_audit": return gate(isAdmin, "Wallet Audit") ?? <AdminWalletAudit />;
               default: return <ComingSoon title="Coming soon" />;
             }
           })()}

@@ -13,7 +13,7 @@ export type LeafKey =
   | "reviews" | "tickets"
   | "news" | "pages" | "website_cms"
   | "cms_seo" | "cms_media" | "cms_blog_cats"
-  | "audit"
+  | "audit" | "wallet_audit"
   | "settings_general" | "settings_team";
 
 export interface NavLeaf {
@@ -113,9 +113,10 @@ export const NAV_MODULES: NavGroup[] = [
     hint: "Audit, configuration",
     sections: ["Workspace", "Security"],
     leaves: [
-      { key: "settings_general", label: "General",   icon: Settings, section: "Workspace" },
-      { key: "settings_team",    label: "Team & Roles", icon: Users,  section: "Workspace", adminOnly: true },
-      { key: "audit",            label: "Audit Log", icon: Activity, section: "Security" },
+      { key: "settings_general", label: "General",         icon: Settings, section: "Workspace" },
+      { key: "settings_team",    label: "Team & Roles",    icon: Users,    section: "Workspace", adminOnly: true },
+      { key: "audit",            label: "Audit Log",       icon: Activity, section: "Security" },
+      { key: "wallet_audit",     label: "Wallet & Refund Audit", icon: Shield, section: "Security", adminOnly: true, pillTone: "new" },
     ],
   },
 ];
