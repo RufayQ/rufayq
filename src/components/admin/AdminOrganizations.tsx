@@ -785,9 +785,6 @@ const EmployeesTab = ({ orgId }: { orgId: string }) => {
           ))}
         </div>
       </div>
-    </div>
-  );
-};
 
       {confirmInvite && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-in fade-in duration-150">
