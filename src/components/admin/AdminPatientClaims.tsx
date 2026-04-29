@@ -216,7 +216,7 @@ const AdminPatientClaims = () => {
               </span>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-800">
+            <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-800" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => viewClaim(c)}
                 className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] flex items-center gap-1">
                 <Eye size={11} /> View
