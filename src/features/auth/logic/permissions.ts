@@ -35,6 +35,7 @@ const MATRIX: Record<AppRole, Action[]> = {
     "rcm.view", "rcm.modify",
     "ticket.view", "ticket.moderate",
     "claim.view", "claim.decide",
+    "pricing.view", "pricing.modify", "pricing.publish",
   ],
   moderator: [
     "subscription.view", "payment.view",
