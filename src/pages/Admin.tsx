@@ -5,6 +5,7 @@ import { Shield, LogOut, Search, ChevronRight, Home, Menu, X } from "lucide-reac
 
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
+import AdminPricingCatalog from "@/components/admin/AdminPricingCatalog";
 import AdminPayments from "@/features/payments/admin/ui/AdminPayments";
 import AdminReviews from "@/components/admin/AdminReviews";
 import AdminTickets from "@/components/admin/AdminTickets";
@@ -266,6 +267,7 @@ const Admin = () => {
               case "rcm_bulk": return gate(isAdmin, "RCM Bulk Ops") ?? <AdminRcmBulkOps />;
               case "subs": return gate(isAdmin, "Subscriptions") ?? <AdminSubscriptions />;
               case "payments": return gate(isAdmin, "Payments & Receipts") ?? <AdminPayments />;
+              case "pricing": return gate(isAdmin, "Pricing & Catalog") ?? <AdminPricingCatalog />;
               case "ai_usage": return gate(isAdmin, "AI Usage") ?? <AdminAiUsage />;
               case "reviews": return <AdminReviews />;
               case "tickets": return <AdminTickets />;

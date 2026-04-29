@@ -21,7 +21,9 @@ export type Action =
   // Tickets (support moderation)
   | "ticket.view" | "ticket.moderate"
   // Patient claims (CRM)
-  | "claim.view" | "claim.decide";
+  | "claim.view" | "claim.decide"
+  // Pricing & catalog
+  | "pricing.view" | "pricing.modify" | "pricing.publish";
 
 const MATRIX: Record<AppRole, Action[]> = {
   admin: [
@@ -33,6 +35,7 @@ const MATRIX: Record<AppRole, Action[]> = {
     "rcm.view", "rcm.modify",
     "ticket.view", "ticket.moderate",
     "claim.view", "claim.decide",
+    "pricing.view", "pricing.modify", "pricing.publish",
   ],
   moderator: [
     "subscription.view", "payment.view",
@@ -42,6 +45,7 @@ const MATRIX: Record<AppRole, Action[]> = {
     "rcm.view",
     "ticket.view", "ticket.moderate",
     "claim.view",
+    "pricing.view",
   ],
   provider_admin: ["rcm.view", "rcm.modify", "user.view", "claim.view", "claim.decide"],
   provider_staff: ["rcm.view", "claim.view"],
