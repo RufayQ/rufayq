@@ -158,35 +158,38 @@ const AdminSubscriptions = () => {
         {!loading && filtered.length === 0 && (
           <p className="text-slate-500 text-sm">No subscriptions match this filter.</p>
         )}
-        {filtered.map((s) => (
-          <div key={s.id} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+        {filtered.map((s) => {
+          const isOpen = expanded === s.id;
+          return (
+          <div
+            key={s.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => setExpanded(isOpen ? null : s.id)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(isOpen ? null : s.id); } }}
+            className="rounded-xl border border-slate-800 bg-slate-900/50 p-3 sm:p-4 hover:border-amber-500/40 cursor-pointer transition"
+          >
             <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <CreditCard size={14} className="text-amber-300" />
                   <span className="text-sm font-semibold text-white uppercase">{s.plan}</span>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${statusTone(s.status)}`}
-                  >
-                    {s.status}
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                    {s.billing_cycle}
-                  </span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${statusTone(s.status)}`}>{s.status}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">{s.billing_cycle}</span>
                   {s.amount != null && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
                       {s.currency} {Number(s.amount).toLocaleString()}
                     </span>
                   )}
+                  {isOpen ? <ChevronUp size={12} className="ml-auto text-slate-500" /> : <ChevronDown size={12} className="ml-auto text-slate-500" />}
                 </div>
-                {/* Subscriber profile (joined via device_id, graceful fallback) */}
-                <div className="mt-1 mb-1 px-2 py-1.5 rounded-lg bg-slate-950/60 border border-slate-800 inline-flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
+                <div className="mt-1 mb-1 px-2 py-1.5 rounded-lg bg-slate-950/60 border border-slate-800 inline-flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] max-w-full">
                   <span className="inline-flex items-center gap-1 text-slate-200">
                     <User size={11} className="text-amber-300" />
                     {s.profile?.full_name_en || s.profile?.full_name_ar || <span className="italic text-slate-500">unclaimed device</span>}
                   </span>
                   {s.profile?.email && (
-                    <span className="inline-flex items-center gap-1 text-slate-400">
+                    <span className="inline-flex items-center gap-1 text-slate-400 break-all">
                       <Mail size={11} />{s.profile.email}
                     </span>
                   )}
@@ -194,7 +197,7 @@ const AdminSubscriptions = () => {
                     <span className="text-slate-500">· {s.profile.phone}</span>
                   )}
                 </div>
-                <p className="text-[10px] text-slate-500 font-mono">device: {s.device_id}</p>
+                <p className="text-[10px] text-slate-500 font-mono break-all">device: {s.device_id}</p>
                 <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
                   <Calendar size={10} />
                   Created {new Date(s.created_at).toLocaleDateString()}
@@ -202,66 +205,60 @@ const AdminSubscriptions = () => {
                 </p>
                 {s.notes && <p className="text-[11px] text-slate-300 italic mt-2">"{s.notes}"</p>}
               </div>
-              <select
-                value={(PLAN_OPTIONS as readonly string[]).includes(s.plan.toUpperCase()) ? s.plan.toUpperCase() : ""}
-                onChange={(e) => setPlan(s, e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 shrink-0"
-              >
-                {!(PLAN_OPTIONS as readonly string[]).includes(s.plan.toUpperCase()) && (
-                  <option value="">{s.plan}</option>
-                )}
-                {PLAN_OPTIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
+              {canModify && (
+                <select
+                  value={(PLAN_OPTIONS as readonly string[]).includes(s.plan.toUpperCase()) ? s.plan.toUpperCase() : ""}
+                  onChange={(e) => setPlan(s, e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 shrink-0"
+                >
+                  {!(PLAN_OPTIONS as readonly string[]).includes(s.plan.toUpperCase()) && (
+                    <option value="">{s.plan}</option>
+                  )}
+                  {PLAN_OPTIONS.map((p) => (<option key={p} value={p}>{p}</option>))}
+                </select>
+              )}
             </div>
 
-            <div className="flex flex-wrap gap-1.5 pt-3 mt-2 border-t border-slate-800">
-              {s.status !== "active" && (
-                <button
-                  onClick={() =>
-                    setStatus(s, "active", {
-                      activated_at: new Date().toISOString(),
-                      current_period_start: s.current_period_start || new Date().toISOString(),
-                    })
-                  }
-                  className="px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[11px] flex items-center gap-1"
-                >
-                  <PlayCircle size={11} /> Activate
-                </button>
-              )}
-              {s.status === "active" && (
-                <button
-                  onClick={() => setStatus(s, "suspended")}
-                  className="px-2.5 py-1 rounded bg-orange-500/15 text-orange-300 text-[11px] flex items-center gap-1"
-                >
-                  <PauseCircle size={11} /> Suspend
-                </button>
-              )}
-              {s.status === "suspended" && (
-                <button
-                  onClick={() => setStatus(s, "active")}
-                  className="px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[11px] flex items-center gap-1"
-                >
-                  <PlayCircle size={11} /> Resume
-                </button>
-              )}
-              {s.status !== "cancelled" && s.status !== "rejected" && (
-                <button
-                  onClick={() => {
-                    if (confirm(`Cancel ${s.plan} subscription for device ${s.device_id.slice(0, 12)}…?`))
-                      setStatus(s, "cancelled", { cancelled_at: new Date().toISOString() });
-                  }}
-                  className="px-2.5 py-1 rounded bg-rose-500/15 text-rose-300 text-[11px] flex items-center gap-1"
-                >
-                  <XCircle size={11} /> Cancel
-                </button>
-              )}
-            </div>
+            {isOpen && (
+              <div className="flex flex-wrap gap-1.5 pt-3 mt-2 border-t border-slate-800" onClick={(e) => e.stopPropagation()}>
+                {!canModify && !canCancel && (
+                  <p className="text-[11px] text-amber-400/80">Read-only view — your role can't modify subscriptions.</p>
+                )}
+                {canModify && s.status !== "active" && (
+                  <button
+                    onClick={() => setStatus(s, "active", { activated_at: new Date().toISOString(), current_period_start: s.current_period_start || new Date().toISOString() })}
+                    className="px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[11px] flex items-center gap-1">
+                    <PlayCircle size={11} /> Activate
+                  </button>
+                )}
+                {canModify && s.status === "active" && (
+                  <button onClick={() => setStatus(s, "suspended")}
+                    className="px-2.5 py-1 rounded bg-orange-500/15 text-orange-300 text-[11px] flex items-center gap-1">
+                    <PauseCircle size={11} /> Suspend
+                  </button>
+                )}
+                {canModify && s.status === "suspended" && (
+                  <button onClick={() => setStatus(s, "active")}
+                    className="px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[11px] flex items-center gap-1">
+                    <PlayCircle size={11} /> Resume
+                  </button>
+                )}
+                {canCancel && s.status !== "cancelled" && s.status !== "rejected" && (
+                  <button
+                    onClick={() => {
+                      if (confirm(`Cancel ${s.plan} subscription for device ${s.device_id.slice(0, 12)}…?`))
+                        setStatus(s, "cancelled", { cancelled_at: new Date().toISOString() });
+                    }}
+                    className="px-2.5 py-1 rounded bg-rose-500/15 text-rose-300 text-[11px] flex items-center gap-1">
+                    <XCircle size={11} /> Cancel
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
