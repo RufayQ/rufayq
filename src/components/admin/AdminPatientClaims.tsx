@@ -254,9 +254,9 @@ const AdminPatientClaims = () => {
 };
 
 const ClaimDetailDrawer = ({ claim, onClose }: { claim: Claim; onClose: () => void }) => (
-  <div className="fixed inset-0 z-50 flex">
+  <div className="fixed inset-0 z-50 flex animate-in fade-in duration-200">
     <div className="flex-1 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
-    <aside className="w-full sm:max-w-md bg-slate-950 border-l border-slate-800 overflow-y-auto p-4 sm:p-5 space-y-4">
+    <aside className="w-full sm:max-w-md bg-slate-950 border-l border-slate-800 overflow-y-auto p-4 sm:p-5 space-y-4 animate-slide-in-right">
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-lg font-semibold text-slate-100">Claim details</h3>
