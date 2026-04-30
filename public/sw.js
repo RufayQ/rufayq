@@ -1,112 +1,35 @@
 /**
- * Rufayq offline service worker
- * ─────────────────────────────
- * Handwritten (no Workbox runtime) so the bundle stays small. Strategies:
+ * Kill-switch service worker.
  *
- *   - Static assets (JS / CSS / fonts / images) → cache-first
- *   - HTML navigations                          → network-first, fallback to
- *                                                 cached /app shell
- *   - Supabase REST GETs for Home/Journey/Records → stale-while-revalidate
+ * The previous version of this file shipped a real cache. That conflicts
+ * with Lovable's preview iframe model and can serve stale shells to users
+ * who already registered the old SW. This worker replaces it on next
+ * visit, deletes every cache, navigates open windows once to bust state,
+ * and unregisters itself. Keep this file in place for at least one
+ * release cycle, then delete it.
  *
- * Cache versioning uses BUILD_ID. Bumping it (during the build pipeline) is
- * what evicts old assets.
+ * Offline behavior now lives in `src/lib/offline/cache.ts` (in-memory +
+ * sessionStorage), which does not require a service worker.
  */
-const BUILD_ID = "v1";
-const STATIC_CACHE = `rufayq-static-${BUILD_ID}`;
-const RUNTIME_CACHE = `rufayq-runtime-${BUILD_ID}`;
-const API_CACHE = `rufayq-api-${BUILD_ID}`;
-
-const APP_SHELL = ["/", "/app", "/manifest.webmanifest", "/favicon.svg"];
-
-// Endpoints we're allowed to cache for offline reads. Keep this list narrow
-// so we never serve stale clinical data from screens we didn't intend.
-const CACHEABLE_API_PATHS = [
-  "/rest/v1/journeys",
-  "/rest/v1/journey_steps",
-  "/rest/v1/medical_records",
-  "/rest/v1/medications",
-  "/rest/v1/appointments",
-];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then((c) => c.addAll(APP_SHELL)),
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((k) => ![STATIC_CACHE, RUNTIME_CACHE, API_CACHE].includes(k))
-          .map((k) => caches.delete(k)),
-      ),
-    ),
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.method !== "GET") return;
-
-  const url = new URL(req.url);
-
-  // Never cache OAuth round-trip
-  if (url.pathname.startsWith("/~oauth")) return;
-
-  // Supabase REST GETs we care about → SWR
-  if (CACHEABLE_API_PATHS.some((p) => url.pathname.includes(p))) {
-    event.respondWith(staleWhileRevalidate(req, API_CACHE));
-    return;
-  }
-
-  // HTML navigations → network-first w/ shell fallback
-  if (req.mode === "navigate") {
-    event.respondWith(networkFirst(req));
-    return;
-  }
-
-  // Static assets → cache-first
-  if (
-    url.origin === self.location.origin &&
-    /\.(js|css|woff2?|png|jpg|svg|ico)$/.test(url.pathname)
-  ) {
-    event.respondWith(cacheFirst(req, RUNTIME_CACHE));
-  }
-});
-
-async function cacheFirst(req, cacheName) {
-  const cache = await caches.open(cacheName);
-  const hit = await cache.match(req);
-  if (hit) return hit;
-  const res = await fetch(req);
-  if (res.ok) cache.put(req, res.clone());
-  return res;
-}
-
-async function networkFirst(req) {
-  try {
-    const res = await fetch(req);
-    const cache = await caches.open(STATIC_CACHE);
-    cache.put(req, res.clone());
-    return res;
-  } catch {
-    const cache = await caches.open(STATIC_CACHE);
-    return (await cache.match(req)) || (await cache.match("/app")) || Response.error();
-  }
-}
-
-async function staleWhileRevalidate(req, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(req);
-  const network = fetch(req)
-    .then((res) => {
-      if (res.ok) cache.put(req, res.clone());
-      return res;
-    })
-    .catch(() => cached);
-  return cached || network;
-}
+self.addEventListener("install", (e) => e.waitUntil(self.skipWaiting()));
+self.addEventListener("activate", (e) =>
+  e.waitUntil(
+    (async () => {
+      await self.clients.claim();
+      const names = await caches.keys();
+      await Promise.all(names.map((n) => caches.delete(n)));
+      const clients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      await Promise.all(
+        clients.map((c) => {
+          const url = new URL(c.url);
+          url.searchParams.set("sw-cleanup", Date.now().toString());
+          return c.navigate(url.toString());
+        }),
+      );
+      await self.registration.unregister();
+    })(),
+  ),
+);
