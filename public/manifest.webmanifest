@@ -1,0 +1,16 @@
+{
+  "name": "Rufayq",
+  "short_name": "Rufayq",
+  "description": "Bilingual AI medical companion for Saudi patients traveling abroad.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B2A3A",
+  "theme_color": "#0B2A3A",
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -18,6 +18,9 @@ import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
+import RoleSelectorScreen, { ROLE_PREF_KEY, type AppRolePref } from "@/screens/RoleSelectorScreen";
+import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
+import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
 import HomeScreenEmpty from "@/screens/HomeScreenEmpty";
 import TourGuide from "@/components/TourGuide";
@@ -27,7 +30,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import { useTourSystem } from "@/hooks/useTourSystem";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
-type AppView = "onboarding" | "login" | "main" | "medications" | "profile" | "settings" | "pricing" | "support";
+type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support";
 
 const toastMessages: Record<string, { en: string; ar: string }> = {
   flight: { en: "✓ Flight added to your Transport Timeline", ar: "✓ أُضيفت الرحلة إلى جدول تنقلك" },
@@ -94,7 +97,53 @@ const Index = () => {
     setAppView("login");
   };
 
-  const handleLogin = () => setAppView("main");
+  const handleLogin = () => {
+    // After auth, route through role selector if no preference is stored.
+    const existing = localStorage.getItem(ROLE_PREF_KEY) as AppRolePref | null;
+    setAppView(existing ? "main" : "role");
+  };
+
+  const handleRolePicked = (role: AppRolePref) => {
+    if (role === "doctor") {
+      // Doctors live in the provider portal, not the patient shell.
+      navigate("/provider", { replace: true });
+      return;
+    }
+    setAppView("main");
+    // Best-effort native push registration; safe no-op on web.
+    registerPush({
+      rolePref: role,
+      onDeepLink: routeDeepLink,
+    }).catch((e) => console.warn("[push] register skipped", e));
+  };
+
+  /** Route an incoming AA / push deep link into the correct tab/screen. */
+  const routeDeepLink = useCallback((target: DeepLinkTarget) => {
+    switch (target.kind) {
+      case "meds-next":
+        setAppView("medications");
+        break;
+      case "appointment-next":
+      case "journey-current":
+        setActiveTab("journey");
+        setAppView("main");
+        break;
+      case "emergency":
+        setAppView("profile");
+        // Try a native dialer hop; harmless on web.
+        try { window.location.href = "tel:911"; } catch { /* ignore */ }
+        break;
+    }
+  }, []);
+
+  // Subscribe to deep-link events once on mount.
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    onDeepLink((t) => routeDeepLink(t)).then((u) => { unsub = u; });
+    return () => { unsub?.(); };
+  }, [routeDeepLink]);
+
+
   const handleLogout = () => {
     resetFresh();
     localStorage.removeItem("rufayq_onboarded");
@@ -166,6 +215,8 @@ const Index = () => {
         return <OnboardingScreen onComplete={handleOnboardingComplete} />;
       case "login":
         return <LoginScreen onLogin={handleLogin} />;
+      case "role":
+        return <RoleSelectorScreen onSelect={handleRolePicked} />
       case "medications":
         return <MedicationsScreen onBack={() => setAppView("main")} onConsultAI={(ctx) => handleNavigate("chat", ctx)} />;
       case "profile":
