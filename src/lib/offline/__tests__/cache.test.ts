@@ -36,12 +36,13 @@ describe("cachedFetch", () => {
 
   it("falls back to cache when network exhausts retries", async () => {
     await cachedFetch("k3", async () => ({ n: 1 }));
+    await new Promise((r) => setTimeout(r, 5));
     const r = await cachedFetch(
       "k3",
       async () => {
         throw new Error("offline");
       },
-      { retries: 0, staleAfterMs: 0 },
+      { retries: 0, staleAfterMs: 1 },
     );
     expect(r.source).toBe("cache");
     expect(r.stale).toBe(true);
