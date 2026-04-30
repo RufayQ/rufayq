@@ -215,6 +215,8 @@ const Index = () => {
         return <OnboardingScreen onComplete={handleOnboardingComplete} />;
       case "login":
         return <LoginScreen onLogin={handleLogin} />;
+      case "role":
+        return <RoleSelectorScreen onSelect={handleRolePicked} />
       case "medications":
         return <MedicationsScreen onBack={() => setAppView("main")} onConsultAI={(ctx) => handleNavigate("chat", ctx)} />;
       case "profile":
