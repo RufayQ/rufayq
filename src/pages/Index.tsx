@@ -97,7 +97,53 @@ const Index = () => {
     setAppView("login");
   };
 
-  const handleLogin = () => setAppView("main");
+  const handleLogin = () => {
+    // After auth, route through role selector if no preference is stored.
+    const existing = localStorage.getItem(ROLE_PREF_KEY) as AppRolePref | null;
+    setAppView(existing ? "main" : "role");
+  };
+
+  const handleRolePicked = (role: AppRolePref) => {
+    if (role === "doctor") {
+      // Doctors live in the provider portal, not the patient shell.
+      navigate("/provider", { replace: true });
+      return;
+    }
+    setAppView("main");
+    // Best-effort native push registration; safe no-op on web.
+    registerPush({
+      rolePref: role,
+      onDeepLink: routeDeepLink,
+    }).catch((e) => console.warn("[push] register skipped", e));
+  };
+
+  /** Route an incoming AA / push deep link into the correct tab/screen. */
+  const routeDeepLink = useCallback((target: DeepLinkTarget) => {
+    switch (target.kind) {
+      case "meds-next":
+        setAppView("medications");
+        break;
+      case "appointment-next":
+      case "journey-current":
+        setActiveTab("journey");
+        setAppView("main");
+        break;
+      case "emergency":
+        setAppView("profile");
+        // Try a native dialer hop; harmless on web.
+        try { window.location.href = "tel:911"; } catch { /* ignore */ }
+        break;
+    }
+  }, []);
+
+  // Subscribe to deep-link events once on mount.
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    onDeepLink((t) => routeDeepLink(t)).then((u) => { unsub = u; });
+    return () => { unsub?.(); };
+  }, [routeDeepLink]);
+
+
   const handleLogout = () => {
     resetFresh();
     localStorage.removeItem("rufayq_onboarded");
