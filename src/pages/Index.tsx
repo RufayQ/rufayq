@@ -18,7 +18,7 @@ import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
-import RoleSelectorScreen, { ROLE_PREF_KEY, type AppRolePref } from "@/screens/RoleSelectorScreen";
+import RoleSelectorScreen, { getStoredRole, type AppRolePref } from "@/screens/RoleSelectorScreen";
 import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
 import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
@@ -99,7 +99,7 @@ const Index = () => {
 
   const handleLogin = () => {
     // After auth, route through role selector if no preference is stored.
-    const existing = localStorage.getItem(ROLE_PREF_KEY) as AppRolePref | null;
+    const existing = getStoredRole();
     setAppView(existing ? "main" : "role");
   };
 
