@@ -18,6 +18,9 @@ import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
+import RoleSelectorScreen, { ROLE_PREF_KEY, type AppRolePref } from "@/screens/RoleSelectorScreen";
+import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
+import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
 import HomeScreenEmpty from "@/screens/HomeScreenEmpty";
 import TourGuide from "@/components/TourGuide";
@@ -27,7 +30,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import { useTourSystem } from "@/hooks/useTourSystem";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
-type AppView = "onboarding" | "login" | "main" | "medications" | "profile" | "settings" | "pricing" | "support";
+type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support";
 
 const toastMessages: Record<string, { en: string; ar: string }> = {
   flight: { en: "✓ Flight added to your Transport Timeline", ar: "✓ أُضيفت الرحلة إلى جدول تنقلك" },
