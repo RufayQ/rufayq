@@ -1,117 +1,231 @@
 /**
  * RoleSelectorScreen
  * ──────────────────
- * Shown ONCE after the user's first successful sign-in. Lets them pick the
+ * Shown after the user's first successful sign-in. Lets them pick the
  * persona the app should boot into (Patient or Doctor). The choice is
  * persisted in `localStorage` under `rufayq_role` and consumed by
  * `Index.tsx` / `useRolePreference()`.
  *
- * Bilingual EN/AR with RTL handled by parent layout. Uses semantic design
- * tokens only — no hardcoded colors.
+ * Bilingual EN/AR. Honours `LanguageContext`:
+ *   - mode=ar → Arabic-only, RTL
+ *   - mode=en → English-only, LTR
+ *   - mode=both → bilingual stacked (EN above AR)
+ *
+ * Uses semantic design tokens only — no hardcoded colors.
+ *
+ * Validation states surfaced:
+ *   - "untouched"          : Continue button disabled, no message
+ *   - "needs_choice" (after blur of CTA) : inline hint shown
+ *   - "saving"             : button shows spinner, prevents double-submit
+ *   - "error"              : caught storage failure → bilingual toast + retry
  */
-import { useState } from "react";
-import { Stethoscope, HeartPulse, Check } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Stethoscope, HeartPulse, Check, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export type AppRolePref = "patient" | "doctor";
+
+export const ROLE_PREF_KEY = "rufayq_role";
+/** Bumped when the role-selector contract changes; forces a re-pick. */
+export const ROLE_PREF_VERSION = 1;
+const ROLE_VERSION_KEY = "rufayq_role_version";
 
 interface Props {
   onSelect: (role: AppRolePref) => void;
 }
 
-export const ROLE_PREF_KEY = "rufayq_role";
+/** Reads + version-validates the stored preference. */
+export function getStoredRole(): AppRolePref | null {
+  try {
+    const v = Number(localStorage.getItem(ROLE_VERSION_KEY) || "0");
+    if (v !== ROLE_PREF_VERSION) return null;
+    const r = localStorage.getItem(ROLE_PREF_KEY);
+    return r === "patient" || r === "doctor" ? r : null;
+  } catch {
+    return null;
+  }
+}
+
+const STR = {
+  title:    { en: "Welcome to Rufayq",                                    ar: "أهلاً بك في رفايق" },
+  subtitle: { en: "Choose how you'll use the app. You can switch later in Settings.",
+              ar: "اختر طريقة استخدامك للتطبيق. يمكنك تغييرها لاحقاً من الإعدادات." },
+  patient:  { en: "I'm a Patient",                                        ar: "أنا مريض" },
+  patientS: { en: "Track journey, records, meds and care plan",           ar: "تتبّع الرحلة والسجلات والأدوية والخطة العلاجية" },
+  doctor:   { en: "I'm a Doctor",                                         ar: "أنا طبيب" },
+  doctorS:  { en: "Manage patients, claims and approvals",                ar: "إدارة المرضى والمطالبات والموافقات" },
+  cont:     { en: "Continue",                                             ar: "متابعة" },
+  pickHint: { en: "Please select an option to continue",                  ar: "الرجاء اختيار خيار للمتابعة" },
+  saveErr:  { en: "Couldn't save your choice. Please try again.",         ar: "تعذّر حفظ اختيارك. حاول مرة أخرى." },
+};
 
 const RoleSelectorScreen = ({ onSelect }: Props) => {
+  const { showEn, showAr, mode } = useLanguage();
+  const isRtl = mode === "ar";
   const [picked, setPicked] = useState<AppRolePref | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+
+  // Pre-populate if a valid stored choice exists (e.g. user backed out and
+  // re-entered before completing onSelect).
+  useEffect(() => {
+    const existing = getStoredRole();
+    if (existing) setPicked(existing);
+  }, []);
 
   const confirm = () => {
-    if (!picked) return;
-    localStorage.setItem(ROLE_PREF_KEY, picked);
-    onSelect(picked);
+    if (!picked) {
+      setShowHint(true);
+      return;
+    }
+    setSaving(true);
+    try {
+      localStorage.setItem(ROLE_PREF_KEY, picked);
+      localStorage.setItem(ROLE_VERSION_KEY, String(ROLE_PREF_VERSION));
+    } catch {
+      setSaving(false);
+      toast.error(STR.saveErr.en, { description: STR.saveErr.ar });
+      return;
+    }
+    // Yield a frame so the spinner renders before parent unmounts us.
+    requestAnimationFrame(() => onSelect(picked));
   };
 
   return (
     <div
-      className="flex-1 flex flex-col items-center px-6 pt-10 pb-8"
+      dir={isRtl ? "rtl" : "ltr"}
+      className="flex-1 flex flex-col items-stretch px-6 pt-10 pb-8"
       style={{ background: "var(--off-white)" }}
     >
       <h1
         className="text-2xl font-semibold text-center"
         style={{ color: "var(--ink)", fontFamily: "var(--font-display)" }}
       >
-        Welcome to Rufayq
+        {showEn && STR.title.en}
+        {showEn && showAr && <span style={{ opacity: 0.5 }}> · </span>}
+        {showAr && <span dir="rtl">{STR.title.ar}</span>}
       </h1>
-      <p className="text-sm text-center mt-1" style={{ color: "var(--muted)" }} dir="rtl">
-        أهلاً بك في رفايق
-      </p>
-      <p className="text-sm text-center mt-4" style={{ color: "var(--muted)" }}>
-        Choose how you'll use the app. You can switch later in Settings.
+      <p
+        className="text-sm text-center mt-3"
+        style={{ color: "var(--muted)" }}
+      >
+        {showEn && STR.subtitle.en}
+        {showEn && showAr && <br />}
+        {showAr && <span dir="rtl">{STR.subtitle.ar}</span>}
       </p>
 
       <div className="w-full mt-8 flex flex-col gap-4">
         <RoleCard
           active={picked === "patient"}
-          onClick={() => setPicked("patient")}
+          onClick={() => { setPicked("patient"); setShowHint(false); }}
           icon={<HeartPulse size={28} />}
-          title="I'm a Patient"
-          titleAr="أنا مريض"
-          subtitle="Track journey, records, meds and care plan"
-          subtitleAr="تتبّع الرحلة والسجلات والأدوية"
+          title={STR.patient}
+          subtitle={STR.patientS}
+          showEn={showEn}
+          showAr={showAr}
+          isRtl={isRtl}
+          ariaLabel="patient"
         />
         <RoleCard
           active={picked === "doctor"}
-          onClick={() => setPicked("doctor")}
+          onClick={() => { setPicked("doctor"); setShowHint(false); }}
           icon={<Stethoscope size={28} />}
-          title="I'm a Doctor"
-          titleAr="أنا طبيب"
-          subtitle="Manage patients, claims and approvals"
-          subtitleAr="إدارة المرضى والمطالبات"
+          title={STR.doctor}
+          subtitle={STR.doctorS}
+          showEn={showEn}
+          showAr={showAr}
+          isRtl={isRtl}
+          ariaLabel="doctor"
         />
       </div>
 
+      {showHint && !picked && (
+        <p
+          role="alert"
+          className="mt-3 text-xs text-center"
+          style={{ color: "var(--danger, #b3261e)" }}
+        >
+          {showEn && STR.pickHint.en}
+          {showEn && showAr && " · "}
+          {showAr && <span dir="rtl">{STR.pickHint.ar}</span>}
+        </p>
+      )}
+
       <button
         onClick={confirm}
-        disabled={!picked}
-        className="mt-auto w-full rounded-2xl py-4 font-medium transition disabled:opacity-40"
+        disabled={saving}
+        aria-disabled={!picked || saving}
+        className="mt-auto w-full rounded-2xl py-4 font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
         style={{
-          background: "var(--teal-600)",
+          background: picked ? "var(--teal-600)" : "var(--muted)",
           color: "var(--off-white)",
         }}
       >
-        Continue
+        {saving && <Loader2 size={16} className="animate-spin" aria-hidden />}
+        <span>
+          {showEn && STR.cont.en}
+          {showEn && showAr && " · "}
+          {showAr && <span dir="rtl">{STR.cont.ar}</span>}
+        </span>
       </button>
     </div>
   );
 };
 
 const RoleCard = ({
-  active, onClick, icon, title, titleAr, subtitle, subtitleAr,
+  active, onClick, icon, title, subtitle, showEn, showAr, isRtl, ariaLabel,
 }: {
-  active: boolean; onClick: () => void; icon: React.ReactNode;
-  title: string; titleAr: string; subtitle: string; subtitleAr: string;
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: { en: string; ar: string };
+  subtitle: { en: string; ar: string };
+  showEn: boolean;
+  showAr: boolean;
+  isRtl: boolean;
+  ariaLabel: string;
 }) => (
   <button
+    type="button"
     onClick={onClick}
+    aria-pressed={active}
+    aria-label={ariaLabel}
+    dir={isRtl ? "rtl" : "ltr"}
     className="w-full text-start rounded-2xl p-4 border-2 transition flex items-center gap-4"
     style={{
       borderColor: active ? "var(--teal-600)" : "var(--hairline)",
-      background: active ? "color-mix(in oklab, var(--teal-600) 8%, var(--off-white))" : "var(--off-white)",
+      background: active
+        ? "color-mix(in oklab, var(--teal-600) 8%, var(--off-white))"
+        : "var(--off-white)",
     }}
   >
     <div
       className="rounded-xl p-3 shrink-0"
       style={{ background: "var(--teal-600)", color: "var(--off-white)" }}
+      aria-hidden
     >
       {icon}
     </div>
     <div className="flex-1 min-w-0">
-      <div className="flex items-center justify-between">
-        <span style={{ color: "var(--ink)", fontWeight: 600 }}>{title}</span>
-        {active && <Check size={18} style={{ color: "var(--teal-600)" }} />}
+      <div className="flex items-center justify-between gap-2">
+        <span style={{ color: "var(--ink)", fontWeight: 600 }}>
+          {showEn && title.en}
+          {showEn && showAr && <span style={{ opacity: 0.5 }}> · </span>}
+          {showAr && <span dir="rtl">{title.ar}</span>}
+        </span>
+        {active && (
+          <Check size={18} style={{ color: "var(--teal-600)" }} aria-hidden />
+        )}
       </div>
-      <div className="text-xs" style={{ color: "var(--muted)" }}>{subtitle}</div>
-      <div className="text-xs mt-1" dir="rtl" style={{ color: "var(--muted)" }}>
-        {titleAr} · {subtitleAr}
+      <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+        {showEn && subtitle.en}
       </div>
+      {showAr && (
+        <div className="text-xs mt-0.5" dir="rtl" style={{ color: "var(--muted)" }}>
+          {subtitle.ar}
+        </div>
+      )}
     </div>
   </button>
 );
