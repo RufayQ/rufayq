@@ -18,6 +18,8 @@ Three personas live in one codebase: **Patient** (mobile shell), **Provider/Doct
 | [mobile-strategy.md](./mobile-strategy.md) | Mobile | iOS / Android / Android Auto plan |
 | [mobile-setup.md](./mobile-setup.md) | Mobile | Local setup runbook for native builds |
 | [google-play-console-manual.md](./google-play-console-manual.md) | Mobile/Release | End-to-end Google Play submission + Android Auto |
+| [android-release-notes.md](./android-release-notes.md) | Release | Per-release runbook: notes, data-safety map, perms |
+| [android-build-and-qc.md](./android-build-and-qc.md) | Release/QC | How to produce the AAB + smoke/black/white-box plan |
 | [testing.md](./testing.md) | All devs | Vitest setup and refund scenarios |
 | [operations.md](./operations.md) | DevOps | Deploy, env, secrets, monitoring |
 | [conventions.md](./conventions.md) | All devs | Code style, i18n, theming, RTL |
