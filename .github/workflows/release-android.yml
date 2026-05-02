@@ -1,9 +1,14 @@
 name: Android release
 
-# Triggered by pushing a tag like `v1.2.3`. Produces a signed AAB,
-# validates the signing config, attaches the AAB to the GitHub Release,
-# and (if Play Console secrets are present) uploads it to the configured
-# track in **draft** status. Promotion to live rollout stays manual.
+# Triggered by pushing a tag. The tag suffix selects the Play track:
+#
+#   v1.2.3-internal  → internal   (also the default if no suffix)
+#   v1.2.3-alpha     → alpha
+#   v1.2.3-beta      → beta
+#   v1.2.3           → internal   (safe default — promotion is manual)
+#
+# Production rollout is NEVER triggered by a tag. Promote with the
+# `Promote Android release` workflow (manual approval required).
 #
 # Required GitHub secrets:
 #   RUFAYQ_KEYSTORE_B64        base64 of upload keystore (no newlines)
@@ -12,7 +17,13 @@ name: Android release
 #   RUFAYQ_KEY_ALIAS           key alias (default: rufayq)
 #   PLAY_SERVICE_ACCOUNT_JSON  full JSON of the Play publisher service account
 #   PLAY_PACKAGE_NAME          com.rufayq.app
-#   PLAY_TRACK                 internal | alpha | beta  (default: internal)
+#
+# Optional secrets:
+#   PLAY_UPLOAD_CERT_SHA256    expected SHA-256 fingerprint of the *upload*
+#                              cert as registered in Play App Signing.
+#                              When set, CI fails if the local keystore's
+#                              cert does not match (catches wrong-keystore
+#                              uploads before Google rejects them).
 
 on:
   push:
@@ -22,7 +33,90 @@ permissions:
   contents: write
 
 jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 1 — Preflight. Fails fast (and clearly) if any required secret
+  # is missing or malformed. Cheap to run; saves 10+ min of wasted build.
+  # ─────────────────────────────────────────────────────────────────────
+  preflight:
+    name: Preflight · validate secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      track: ${{ steps.track.outputs.track }}
+    steps:
+      - name: Resolve Play track from tag suffix
+        id: track
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          case "$TAG" in
+            *-internal) TRACK=internal ;;
+            *-alpha)    TRACK=alpha ;;
+            *-beta)     TRACK=beta ;;
+            *)          TRACK=internal ;;   # safe default
+          esac
+          echo "Resolved track: $TRACK (from tag $TAG)"
+          echo "track=$TRACK" >> "$GITHUB_OUTPUT"
+
+      - name: Check required Play / signing secrets
+        env:
+          RUFAYQ_KEYSTORE_B64:       ${{ secrets.RUFAYQ_KEYSTORE_B64 }}
+          RUFAYQ_STORE_PASS:         ${{ secrets.RUFAYQ_STORE_PASS }}
+          RUFAYQ_KEY_PASS:           ${{ secrets.RUFAYQ_KEY_PASS }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_PACKAGE_NAME:         ${{ secrets.PLAY_PACKAGE_NAME }}
+        run: |
+          set -e
+          MISSING=()
+          for v in RUFAYQ_KEYSTORE_B64 RUFAYQ_STORE_PASS RUFAYQ_KEY_PASS \
+                   PLAY_SERVICE_ACCOUNT_JSON PLAY_PACKAGE_NAME; do
+            if [ -z "${!v}" ]; then MISSING+=("$v"); fi
+          done
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "::error::Missing required GitHub secrets: ${MISSING[*]}"
+            echo "Add them in: Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+
+          # Validate keystore base64 decodes
+          if ! echo "$RUFAYQ_KEYSTORE_B64" | base64 -d > /tmp/_ks.bin 2>/dev/null; then
+            echo "::error::RUFAYQ_KEYSTORE_B64 is not valid base64."
+            echo "Recreate with:  base64 -w0 rufayq-upload.keystore | pbcopy"
+            exit 1
+          fi
+          if [ ! -s /tmp/_ks.bin ]; then
+            echo "::error::RUFAYQ_KEYSTORE_B64 decoded to an empty file."
+            exit 1
+          fi
+
+          # Validate service-account JSON parses and has the right shape
+          if ! echo "$PLAY_SERVICE_ACCOUNT_JSON" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          for k in ('type','client_email','private_key','token_uri'):
+              assert k in d, f'missing key: {k}'
+          assert d['type'] == 'service_account', 'type must be service_account'
+          assert 'BEGIN PRIVATE KEY' in d['private_key'], 'private_key looks malformed'
+          " 2>/tmp/_jerr.txt; then
+            echo "::error::PLAY_SERVICE_ACCOUNT_JSON is malformed."
+            cat /tmp/_jerr.txt
+            echo "Re-download the JSON from Google Cloud → IAM → Service Accounts → Keys."
+            exit 1
+          fi
+
+          # Validate package name shape
+          if ! echo "$PLAY_PACKAGE_NAME" | grep -Eq '^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$'; then
+            echo "::error::PLAY_PACKAGE_NAME='$PLAY_PACKAGE_NAME' is not a valid Android package id."
+            exit 1
+          fi
+
+          echo "✓ All required secrets present and well-formed."
+          echo "✓ Resolved track: ${{ steps.track.outputs.track }}"
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 2 — Build, sign, verify, upload (draft) to Play Console.
+  # ─────────────────────────────────────────────────────────────────────
   build-and-publish:
+    needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -69,47 +163,65 @@ jobs:
         env:
           KEYSTORE_B64: ${{ secrets.RUFAYQ_KEYSTORE_B64 }}
         run: |
-          if [ -z "$KEYSTORE_B64" ]; then
-            echo "::error::RUFAYQ_KEYSTORE_B64 is empty"; exit 1
-          fi
           echo "$KEYSTORE_B64" | base64 -d > $GITHUB_WORKSPACE/rufayq.keystore
           ls -la $GITHUB_WORKSPACE/rufayq.keystore
 
-      # ── Validate keystore BEFORE we waste time bundling ───────────────
+      # ── Validate keystore + (optional) match against Play upload cert ──
       - name: Validate keystore + signing config
         env:
           RUFAYQ_KEYSTORE: ${{ github.workspace }}/rufayq.keystore
           RUFAYQ_STORE_PASS: ${{ secrets.RUFAYQ_STORE_PASS }}
           RUFAYQ_KEY_PASS:   ${{ secrets.RUFAYQ_KEY_PASS }}
           RUFAYQ_KEY_ALIAS:  ${{ secrets.RUFAYQ_KEY_ALIAS }}
+          PLAY_UPLOAD_CERT_SHA256: ${{ secrets.PLAY_UPLOAD_CERT_SHA256 }}
         run: |
           ALIAS="${RUFAYQ_KEY_ALIAS:-rufayq}"
-          echo "▶ keystore exists?"
           test -s "$RUFAYQ_KEYSTORE" || { echo "::error::keystore missing/empty"; exit 1; }
-          echo "▶ store password opens keystore?"
           keytool -list -keystore "$RUFAYQ_KEYSTORE" -storepass "$RUFAYQ_STORE_PASS" >/dev/null \
             || { echo "::error::store password rejected"; exit 1; }
-          echo "▶ alias '$ALIAS' present?"
           keytool -list -keystore "$RUFAYQ_KEYSTORE" -storepass "$RUFAYQ_STORE_PASS" -alias "$ALIAS" >/dev/null \
-            || { echo "::error::alias '$ALIAS' not found in keystore"; exit 1; }
-          echo "▶ key password opens alias?"
+            || { echo "::error::alias '$ALIAS' not found"; exit 1; }
           keytool -list -v -keystore "$RUFAYQ_KEYSTORE" -storepass "$RUFAYQ_STORE_PASS" \
-            -alias "$ALIAS" -keypass "$RUFAYQ_KEY_PASS" \
-            | tee /tmp/keyinfo.txt >/dev/null \
-            || { echo "::error::key password rejected for alias '$ALIAS'"; exit 1; }
-          echo "▶ certificate fingerprint (record this in your release log):"
-          grep -E "SHA1:|SHA256:|Valid from:" /tmp/keyinfo.txt || true
-          echo "▶ certificate expiry sanity check (>30 days):"
+            -alias "$ALIAS" -keypass "$RUFAYQ_KEY_PASS" | tee /tmp/keyinfo.txt >/dev/null \
+            || { echo "::error::key password rejected"; exit 1; }
+
+          # Extract fingerprints + expiry for the report
+          SHA1=$(grep -E "^\s*SHA1:" /tmp/keyinfo.txt | head -1 | awk '{print $2}')
+          SHA256=$(grep -E "^\s*SHA256:" /tmp/keyinfo.txt | head -1 | awk '{print $2}')
           EXP=$(openssl x509 -in <(keytool -exportcert -rfc -keystore "$RUFAYQ_KEYSTORE" \
                   -storepass "$RUFAYQ_STORE_PASS" -alias "$ALIAS") -noout -enddate | cut -d= -f2)
-          EXP_TS=$(date -d "$EXP" +%s)
-          NOW_TS=$(date +%s)
+          EXP_TS=$(date -d "$EXP" +%s); NOW_TS=$(date +%s)
           DAYS=$(( (EXP_TS - NOW_TS) / 86400 ))
-          echo "  expires: $EXP  (~$DAYS days)"
+          echo "  upload cert SHA1   : $SHA1"
+          echo "  upload cert SHA256 : $SHA256"
+          echo "  expires            : $EXP  (~$DAYS days)"
           if [ "$DAYS" -lt 30 ]; then
-            echo "::error::Upload key expires in <30 days. Rotate via Play App Signing first."
+            echo "::error::Upload key expires in <30 days. Rotate via Play App Signing → Upload key."
             exit 1
           fi
+
+          # If the project has registered the expected upload-cert fingerprint,
+          # enforce it. Catches "wrong keystore in CI" before Google does.
+          if [ -n "$PLAY_UPLOAD_CERT_SHA256" ]; then
+            NORM_LOCAL=$(echo "$SHA256" | tr -d ': ' | tr 'a-f' 'A-F')
+            NORM_EXPECT=$(echo "$PLAY_UPLOAD_CERT_SHA256" | tr -d ': ' | tr 'a-f' 'A-F')
+            if [ "$NORM_LOCAL" != "$NORM_EXPECT" ]; then
+              echo "::error::Keystore cert SHA-256 does not match PLAY_UPLOAD_CERT_SHA256."
+              echo "  expected (Play): $NORM_EXPECT"
+              echo "  got (keystore):  $NORM_LOCAL"
+              echo "Either you uploaded the wrong keystore secret, or Play has a"
+              echo "different upload key registered. See docs/play-app-signing.md."
+              exit 1
+            fi
+            echo "✓ Upload-cert fingerprint matches Play registration."
+          else
+            echo "ℹ PLAY_UPLOAD_CERT_SHA256 not set — skipping cross-check (recommended)."
+          fi
+
+          # Export for later steps / report
+          echo "CERT_SHA1=$SHA1"     >> "$GITHUB_ENV"
+          echo "CERT_SHA256=$SHA256" >> "$GITHUB_ENV"
+          echo "CERT_EXPIRES=$EXP"   >> "$GITHUB_ENV"
 
       - name: Bundle release
         env:
@@ -119,29 +231,125 @@ jobs:
           RUFAYQ_KEY_ALIAS:  ${{ secrets.RUFAYQ_KEY_ALIAS }}
         run: cd android && ./gradlew --no-daemon clean bundleRelease
 
-      - name: Verify AAB signature
+      - name: Verify AAB signature + extract metadata
         run: |
           AAB=android/app/build/outputs/bundle/release/app-release.aab
           test -s "$AAB" || { echo "::error::AAB not produced"; exit 1; }
           BT=$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)
           $ANDROID_HOME/build-tools/$BT/apksigner verify --print-certs --verbose "$AAB" \
             || { echo "::error::AAB signature verification failed"; exit 1; }
-          shasum -a 256 "$AAB"
+          AAB_SHA256=$(shasum -a 256 "$AAB" | awk '{print $1}')
+          AAB_SIZE=$(du -h "$AAB" | cut -f1)
+          VC=$(grep -E '^\s*versionCode\s+' android/app/build.gradle | awk '{print $2}' | head -1)
+          VN=$(grep -E '^\s*versionName\s+' android/app/build.gradle | awk '{print $2}' | tr -d '"' | head -1)
+          PERMS=$($ANDROID_HOME/build-tools/$BT/aapt dump permissions "$AAB" 2>/dev/null \
+                  | grep "uses-permission" | sort -u || true)
+          {
+            echo "AAB_SHA256=$AAB_SHA256"
+            echo "AAB_SIZE=$AAB_SIZE"
+            echo "VERSION_CODE=$VC"
+            echo "VERSION_NAME=$VN"
+          } >> "$GITHUB_ENV"
+          echo "$PERMS" > /tmp/perms.txt
 
-      - name: Attach AAB to GitHub Release
+      # ── Generate per-release report (Markdown + HTML) ─────────────────
+      - name: Generate release report
+        env:
+          TRACK: ${{ needs.preflight.outputs.track }}
+        run: |
+          mkdir -p docs/releases
+          TAG="${GITHUB_REF_NAME}"
+          REPORT_MD="docs/releases/${TAG}.md"
+          REPORT_HTML="docs/releases/${TAG}.html"
+          PERMS_FMT=$(sed 's/^/    /' /tmp/perms.txt)
+
+          cat > "$REPORT_MD" <<EOF
+          # Release Report — ${TAG}
+
+          - **Built**: $(date -u +"%Y-%m-%d %H:%M UTC")
+          - **Commit**: \`${GITHUB_SHA}\`
+          - **Workflow run**: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          - **Resolved Play track**: \`${TRACK}\` (uploaded as **draft**)
+
+          ## Build identity
+
+          | Field | Value |
+          |---|---|
+          | Package name | \`${{ secrets.PLAY_PACKAGE_NAME }}\` |
+          | versionCode  | \`${VERSION_CODE}\` |
+          | versionName  | \`${VERSION_NAME}\` |
+          | AAB size     | ${AAB_SIZE} |
+          | AAB sha256   | \`${AAB_SHA256}\` |
+
+          ## Signing
+
+          | Field | Value |
+          |---|---|
+          | Upload cert SHA-1   | \`${CERT_SHA1}\` |
+          | Upload cert SHA-256 | \`${CERT_SHA256}\` |
+          | Cert expires        | ${CERT_EXPIRES} |
+          | Play upload-cert match | ${{ secrets.PLAY_UPLOAD_CERT_SHA256 != '' && '✅ enforced' || '⚠ not enforced (set PLAY_UPLOAD_CERT_SHA256)' }} |
+
+          > Note: with **Play App Signing** enabled, the certificate above is the
+          > **upload key**. The cert that end-users actually verify is the **app
+          > signing key** held by Google — fetch it from Play Console → Setup →
+          > App integrity. See \`docs/play-app-signing.md\`.
+
+          ## Permissions declared by this AAB
+
+          \`\`\`
+          ${PERMS_FMT}
+          \`\`\`
+
+          ## Data-safety / permissions checklist
+
+          Reviewer must tick before promoting beyond \`internal\`:
+
+          - [ ] Permissions above match \`docs/google-play-console-manual.md\` §3.4
+          - [ ] No new permission added without listing justification
+          - [ ] Data-safety form unchanged, OR updated to reflect new data type
+          - [ ] In-app data-deletion path still functional
+          - [ ] Crash-free sessions ≥ 99.5% on previous internal track
+          - [ ] Bilingual (EN + AR) release notes added to Play Console
+
+          ## Promotion log
+
+          | Date (UTC) | Action | Track | Actor | Notes |
+          |---|---|---|---|---|
+          | $(date -u +%Y-%m-%d) | Uploaded (draft) | ${TRACK} | github-actions | initial CI upload |
+          EOF
+
+          # Minimal HTML rendering for non-markdown viewers
+          {
+            echo "<!doctype html><meta charset=utf-8><title>Release ${TAG}</title>"
+            echo "<style>body{font:14px/1.5 system-ui;max-width:780px;margin:2rem auto;padding:0 1rem}"
+            echo "table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:.4rem .6rem}"
+            echo "code,pre{background:#f4f4f4;padding:.1rem .3rem;border-radius:3px}"
+            echo "pre{padding:.8rem;overflow:auto}</style>"
+            echo "<pre>"
+            cat "$REPORT_MD"
+            echo "</pre>"
+          } > "$REPORT_HTML"
+
+          echo "Report written: $REPORT_MD"
+
+      - name: Attach AAB + report to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: android/app/build/outputs/bundle/release/app-release.aab
           generate_release_notes: true
+          body_path: docs/releases/${{ github.ref_name }}.md
+          files: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            docs/releases/${{ github.ref_name }}.md
+            docs/releases/${{ github.ref_name }}.html
 
       # ── Upload to Play Console (draft, never auto-promoted) ───────────
       - name: Upload to Play Console (draft)
-        if: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ secrets.PLAY_PACKAGE_NAME }}
           releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
-          track: ${{ secrets.PLAY_TRACK }}
+          track: ${{ needs.preflight.outputs.track }}
           status: draft
           changesNotSentForReview: false
