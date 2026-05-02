@@ -20,6 +20,8 @@ Three personas live in one codebase: **Patient** (mobile shell), **Provider/Doct
 | [google-play-console-manual.md](./google-play-console-manual.md) | Mobile/Release | End-to-end Google Play submission + Android Auto |
 | [android-release-notes.md](./android-release-notes.md) | Release | Per-release runbook: notes, data-safety map, perms |
 | [android-build-and-qc.md](./android-build-and-qc.md) | Release/QC | How to produce the AAB + smoke/black/white-box plan |
+| [release-checklist-android.md](./release-checklist-android.md) | Release | Per-tag checklist + data-safety map + track gates |
+| [play-service-account-rotation.md](./play-service-account-rotation.md) | Security/Release | Rotate & revoke the Play CI service account safely |
 | [testing.md](./testing.md) | All devs | Vitest setup and refund scenarios |
 | [operations.md](./operations.md) | DevOps | Deploy, env, secrets, monitoring |
 | [conventions.md](./conventions.md) | All devs | Code style, i18n, theming, RTL |

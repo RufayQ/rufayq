@@ -1,0 +1,147 @@
+name: Android release
+
+# Triggered by pushing a tag like `v1.2.3`. Produces a signed AAB,
+# validates the signing config, attaches the AAB to the GitHub Release,
+# and (if Play Console secrets are present) uploads it to the configured
+# track in **draft** status. Promotion to live rollout stays manual.
+#
+# Required GitHub secrets:
+#   RUFAYQ_KEYSTORE_B64        base64 of upload keystore (no newlines)
+#   RUFAYQ_STORE_PASS          keystore password
+#   RUFAYQ_KEY_PASS            key alias password
+#   RUFAYQ_KEY_ALIAS           key alias (default: rufayq)
+#   PLAY_SERVICE_ACCOUNT_JSON  full JSON of the Play publisher service account
+#   PLAY_PACKAGE_NAME          com.rufayq.app
+#   PLAY_TRACK                 internal | alpha | beta  (default: internal)
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: bun install
+
+      - name: Web build
+        run: bun run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+
+      - name: Strip dev server.url from capacitor config
+        run: |
+          node -e "
+            const fs=require('fs');
+            const p='capacitor.config.ts';
+            let s=fs.readFileSync(p,'utf8');
+            s=s.replace(/\s*server:\s*\{[\s\S]*?\},?/m,'');
+            fs.writeFileSync(p,s);
+          "
+
+      - name: Add android platform
+        run: npx cap add android || true
+
+      - name: Sync capacitor
+        run: npx cap sync android
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.RUFAYQ_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::RUFAYQ_KEYSTORE_B64 is empty"; exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > $GITHUB_WORKSPACE/rufayq.keystore
+          ls -la $GITHUB_WORKSPACE/rufayq.keystore
+
+      # ── Validate keystore BEFORE we waste time bundling ───────────────
+      - name: Validate keystore + signing config
+        env:
+          RUFAYQ_KEYSTORE: ${{ github.workspace }}/rufayq.keystore
+          RUFAYQ_STORE_PASS: ${{ secrets.RUFAYQ_STORE_PASS }}
+          RUFAYQ_KEY_PASS:   ${{ secrets.RUFAYQ_KEY_PASS }}
+          RUFAYQ_KEY_ALIAS:  ${{ secrets.RUFAYQ_KEY_ALIAS }}
+        run: |
+          ALIAS="${RUFAYQ_KEY_ALIAS:-rufayq}"
+          echo "▶ keystore exists?"
+          test -s "$RUFAYQ_KEYSTORE" || { echo "::error::keystore missing/empty"; exit 1; }
+          echo "▶ store password opens keystore?"
+          keytool -list -keystore "$RUFAYQ_KEYSTORE" -storepass "$RUFAYQ_STORE_PASS" >/dev/null \
+            || { echo "::error::store password rejected"; exit 1; }
+          echo "▶ alias '$ALIAS' present?"
+          keytool -list -keystore "$RUFAYQ_KEYSTORE" -storepass "$RUFAYQ_STORE_PASS" -alias "$ALIAS" >/dev/null \
+            || { echo "::error::alias '$ALIAS' not found in keystore"; exit 1; }
+          echo "▶ key password opens alias?"
+          keytool -list -v -keystore "$RUFAYQ_KEYSTORE" -storepass "$RUFAYQ_STORE_PASS" \
+            -alias "$ALIAS" -keypass "$RUFAYQ_KEY_PASS" \
+            | tee /tmp/keyinfo.txt >/dev/null \
+            || { echo "::error::key password rejected for alias '$ALIAS'"; exit 1; }
+          echo "▶ certificate fingerprint (record this in your release log):"
+          grep -E "SHA1:|SHA256:|Valid from:" /tmp/keyinfo.txt || true
+          echo "▶ certificate expiry sanity check (>30 days):"
+          EXP=$(openssl x509 -in <(keytool -exportcert -rfc -keystore "$RUFAYQ_KEYSTORE" \
+                  -storepass "$RUFAYQ_STORE_PASS" -alias "$ALIAS") -noout -enddate | cut -d= -f2)
+          EXP_TS=$(date -d "$EXP" +%s)
+          NOW_TS=$(date +%s)
+          DAYS=$(( (EXP_TS - NOW_TS) / 86400 ))
+          echo "  expires: $EXP  (~$DAYS days)"
+          if [ "$DAYS" -lt 30 ]; then
+            echo "::error::Upload key expires in <30 days. Rotate via Play App Signing first."
+            exit 1
+          fi
+
+      - name: Bundle release
+        env:
+          RUFAYQ_KEYSTORE: ${{ github.workspace }}/rufayq.keystore
+          RUFAYQ_STORE_PASS: ${{ secrets.RUFAYQ_STORE_PASS }}
+          RUFAYQ_KEY_PASS:   ${{ secrets.RUFAYQ_KEY_PASS }}
+          RUFAYQ_KEY_ALIAS:  ${{ secrets.RUFAYQ_KEY_ALIAS }}
+        run: cd android && ./gradlew --no-daemon clean bundleRelease
+
+      - name: Verify AAB signature
+        run: |
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          test -s "$AAB" || { echo "::error::AAB not produced"; exit 1; }
+          BT=$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)
+          $ANDROID_HOME/build-tools/$BT/apksigner verify --print-certs --verbose "$AAB" \
+            || { echo "::error::AAB signature verification failed"; exit 1; }
+          shasum -a 256 "$AAB"
+
+      - name: Attach AAB to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/app/build/outputs/bundle/release/app-release.aab
+          generate_release_notes: true
+
+      # ── Upload to Play Console (draft, never auto-promoted) ───────────
+      - name: Upload to Play Console (draft)
+        if: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ secrets.PLAY_PACKAGE_NAME }}
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ secrets.PLAY_TRACK }}
+          status: draft
+          changesNotSentForReview: false
