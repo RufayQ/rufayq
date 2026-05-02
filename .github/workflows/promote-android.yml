@@ -1,0 +1,98 @@
+name: Promote Android release
+
+# Manually promote a previously uploaded draft from one Play track to
+# another. This workflow does NOT build anything — it only re-routes an
+# existing AAB (identified by versionCode) inside Play Console.
+#
+# Manual approval is enforced via the GitHub Environment named
+# `play-promotion`. Configure required reviewers in:
+#   Settings → Environments → play-promotion → Required reviewers
+#
+# Usage:
+#   1. Ensure preflight criteria met (see docs/release-runbook.md §4).
+#   2. Actions → Promote Android release → Run workflow.
+#   3. Pick `from_track`, `to_track`, `version_code`, `rollout_percent`.
+#   4. Approve the deployment when GitHub prompts.
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_track:
+        description: "Source track (where the draft currently lives)"
+        type: choice
+        default: internal
+        options: [internal, alpha, beta]
+      to_track:
+        description: "Target track to promote into"
+        type: choice
+        default: alpha
+        options: [alpha, beta, production]
+      version_code:
+        description: "versionCode to promote (must already exist in from_track)"
+        required: true
+        type: string
+      rollout_percent:
+        description: "Staged rollout % for the target (1–100). Use 10 for first prod push."
+        required: true
+        default: "10"
+        type: string
+      release_status:
+        description: "Release status on the target track"
+        type: choice
+        default: inProgress
+        options: [draft, inProgress, completed, halted]
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Promote ${{ inputs.from_track }} → ${{ inputs.to_track }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # ↓ This is the manual-approval gate. The job pauses until a reviewer
+    #   listed under the `play-promotion` environment approves.
+    environment:
+      name: play-promotion
+      url: https://play.google.com/console/u/0/developers/-/app/-/tracks/${{ inputs.to_track }}
+    steps:
+      - name: Sanity-check inputs
+        run: |
+          if [ "${{ inputs.from_track }}" = "${{ inputs.to_track }}" ]; then
+            echo "::error::from_track and to_track must differ"; exit 1
+          fi
+          if ! [[ "${{ inputs.rollout_percent }}" =~ ^([1-9][0-9]?|100)$ ]]; then
+            echo "::error::rollout_percent must be 1–100"; exit 1
+          fi
+          if [ "${{ inputs.to_track }}" = "production" ] && \
+             [ "${{ inputs.from_track }}" != "beta" ]; then
+            echo "::warning::Production promotions should typically come from 'beta'."
+          fi
+
+      - name: Promote via Play Developer API
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName:            ${{ secrets.PLAY_PACKAGE_NAME }}
+          track:                  ${{ inputs.to_track }}
+          # No releaseFiles — we're promoting an existing artifact, not uploading.
+          existingEditSkipDuplicates: true
+          status:                 ${{ inputs.release_status }}
+          inAppUpdatePriority:    2
+          userFraction:           ${{ inputs.rollout_percent }}
+          # The action treats `versionCode` (when releaseFiles is omitted) as
+          # "promote this code from any track".
+          # See: https://github.com/r0adkll/upload-google-play
+          releaseName:            "Promoted v${{ inputs.version_code }} → ${{ inputs.to_track }}"
+
+      - name: Append to release report (promotion log)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "✓ Promoted versionCode ${{ inputs.version_code }}"
+          echo "  ${{ inputs.from_track }} → ${{ inputs.to_track }}"
+          echo "  rollout ${{ inputs.rollout_percent }}% · status ${{ inputs.release_status }}"
+          echo "  approved by ${{ github.actor }}"
+          echo ""
+          echo "Remember to manually append a row to docs/releases/<tag>.md"
+          echo "promotion log so the artifact's lineage stays auditable."
