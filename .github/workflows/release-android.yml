@@ -236,14 +236,67 @@ jobs:
           AAB=android/app/build/outputs/bundle/release/app-release.aab
           test -s "$AAB" || { echo "::error::AAB not produced"; exit 1; }
           BT=$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)
-          $ANDROID_HOME/build-tools/$BT/apksigner verify --print-certs --verbose "$AAB" \
-            || { echo "::error::AAB signature verification failed"; exit 1; }
+
+          # Collect every audit artifact under verification/ so it can be
+          # uploaded as a single downloadable bundle for reviewers.
+          mkdir -p verification
+          cp "$AAB" verification/app-release.aab
+
+          # apksigner verify — full text + cert dump captured to a file
+          $ANDROID_HOME/build-tools/$BT/apksigner verify \
+            --print-certs --verbose "$AAB" \
+            > verification/apksigner-verify.txt 2>&1 \
+            || { cat verification/apksigner-verify.txt; \
+                 echo "::error::AAB signature verification failed"; exit 1; }
+
+          # SHA-256 of the AAB itself (sha256sum-compatible format)
+          shasum -a 256 "$AAB" | tee verification/app-release.aab.sha256
+
+          # Upload-cert fingerprints + full keytool dump
+          cp /tmp/keyinfo.txt verification/upload-cert-keytool.txt
+          {
+            echo "Upload key — fingerprints"
+            echo "  SHA-1   : ${CERT_SHA1}"
+            echo "  SHA-256 : ${CERT_SHA256}"
+            echo "  Expires : ${CERT_EXPIRES}"
+          } > verification/upload-cert-fingerprints.txt
+
+          # Permissions declared by the bundle
+          $ANDROID_HOME/build-tools/$BT/aapt dump permissions "$AAB" \
+            > verification/aab-permissions.txt 2>/dev/null || true
+
           AAB_SHA256=$(shasum -a 256 "$AAB" | awk '{print $1}')
           AAB_SIZE=$(du -h "$AAB" | cut -f1)
           VC=$(grep -E '^\s*versionCode\s+' android/app/build.gradle | awk '{print $2}' | head -1)
           VN=$(grep -E '^\s*versionName\s+' android/app/build.gradle | awk '{print $2}' | tr -d '"' | head -1)
-          PERMS=$($ANDROID_HOME/build-tools/$BT/aapt dump permissions "$AAB" 2>/dev/null \
-                  | grep "uses-permission" | sort -u || true)
+          PERMS=$(grep "uses-permission" verification/aab-permissions.txt | sort -u || true)
+
+          # Human-readable index for reviewers opening the artifact zip
+          {
+            echo "Rufayq Android — verification bundle"
+            echo "===================================="
+            echo "tag           : ${GITHUB_REF_NAME}"
+            echo "commit        : ${GITHUB_SHA}"
+            echo "workflow run  : ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "built (UTC)   : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "package       : ${{ secrets.PLAY_PACKAGE_NAME }}"
+            echo "versionCode   : ${VC}"
+            echo "versionName   : ${VN}"
+            echo "aab size      : ${AAB_SIZE}"
+            echo "aab sha256    : ${AAB_SHA256}"
+            echo "upload SHA-1  : ${CERT_SHA1}"
+            echo "upload SHA-256: ${CERT_SHA256}"
+            echo "cert expires  : ${CERT_EXPIRES}"
+            echo ""
+            echo "Files in this bundle:"
+            echo "  app-release.aab               — the artifact uploaded to Play"
+            echo "  app-release.aab.sha256        — sha256sum-format checksum"
+            echo "  apksigner-verify.txt          — apksigner --print-certs --verbose output"
+            echo "  upload-cert-fingerprints.txt  — SHA-1/SHA-256/expiry summary"
+            echo "  upload-cert-keytool.txt       — keytool -list -v dump of upload key"
+            echo "  aab-permissions.txt           — aapt dump permissions output"
+          } > verification/SUMMARY.txt
+
           {
             echo "AAB_SHA256=$AAB_SHA256"
             echo "AAB_SIZE=$AAB_SIZE"
@@ -251,6 +304,17 @@ jobs:
             echo "VERSION_NAME=$VN"
           } >> "$GITHUB_ENV"
           echo "$PERMS" > /tmp/perms.txt
+
+      # ── Downloadable audit bundle on every CI run ─────────────────────
+      # Available under: Actions → run → Artifacts → android-release-…-verification
+      - name: Upload verification bundle as workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-${{ github.ref_name }}-verification
+          path: verification/
+          retention-days: 90
+          if-no-files-found: warn
 
       # ── Generate per-release report (Markdown + HTML) ─────────────────
       - name: Generate release report
