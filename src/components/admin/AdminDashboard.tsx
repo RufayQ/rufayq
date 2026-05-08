@@ -48,6 +48,16 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Quick links */}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          to="/admin/swagger"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-700 bg-slate-900/50 text-xs text-slate-300 hover:text-amber-300 hover:border-amber-500/50 transition"
+        >
+          <BookOpen size={12} /> API Swagger reference
+        </Link>
+      </div>
+
       {/* Top-line summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <SummaryCard label="Total users" value={totalUsers} Icon={Users} tone="text-amber-300" />
