@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Building2, Stethoscope, Heart, Shield, Briefcase, TrendingUp, Activity, MessageSquare, Star } from "lucide-react";
+import { Users, Building2, Stethoscope, Heart, Shield, Briefcase, TrendingUp, Activity, MessageSquare, Star, BookOpen } from "lucide-react";
 
 interface KPIRow { provider_type: string; total: number; new_7d: number; new_30d: number; }
 
