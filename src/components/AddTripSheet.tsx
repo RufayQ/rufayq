@@ -3,6 +3,7 @@ import { X, ChevronDown, ExternalLink, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { pdfToImageDataUrls } from "@/lib/pdfToImages";
 
 export interface FlightInfo {
   airline: string;
@@ -173,17 +174,43 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
   const handleItineraryUpload = async (file: File) => {
     try {
       setScanning(true);
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("File too large (max 10 MB)");
+      if (file.size > 15 * 1024 * 1024) {
+        toast.error("File too large (max 15 MB)");
         return;
       }
-      const dataUrl = await fileToDataUrl(file);
+
+      // Convert PDF → images client-side. The AI gateway only accepts image content.
+      let files: string[] = [];
+      const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+      if (isPdf) {
+        try {
+          files = await pdfToImageDataUrls(file, { maxPages: 3, scale: 2 });
+        } catch (err) {
+          console.error("PDF render failed", err);
+          toast.error("Could not open PDF. Try a screenshot of the ticket instead.");
+          return;
+        }
+        if (files.length === 0) {
+          toast.error("No pages found in PDF.");
+          return;
+        }
+      } else {
+        files = [await fileToDataUrl(file)];
+      }
+
       const { data, error } = await supabase.functions.invoke("scan-itinerary", {
-        body: { file: dataUrl },
+        body: { files },
         headers: { "x-device-id": getDeviceId() },
       });
       if (error) throw error;
       const parsed = (data as any)?.data ?? {};
+      console.debug("[scan-itinerary] parsed payload", parsed);
+
+      if (!parsed.outboundFlight && !parsed.returnFlight) {
+        toast.error("We couldn't read flight details. Try a clearer image or a higher-quality PDF.");
+        return;
+      }
+
       applyLeg(parsed.outboundFlight, "out");
       if (parsed.returnFlight) {
         setShowReturnFlight(true);
@@ -314,7 +341,7 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
     </div>
   );
 
-  const FlightFields = ({ prefix, airline, setAirline, showDrop, setShowDrop, flightNum, setFlightNum, pnr, setPNR, from, setFrom, to, setTo, depDate, setDepDate, depTime, setDepTime, arrDate, setArrDate, arrTime, setArrTime, cls, setCls, seat, setSeat }: any) => (
+  const renderFlightFields = ({ prefix, airline, setAirline, showDrop, setShowDrop, flightNum, setFlightNum, pnr, setPNR, from, setFrom, to, setTo, depDate, setDepDate, depTime, setDepTime, arrDate, setArrDate, arrTime, setArrTime, cls, setCls, seat, setSeat }: any) => (
     <div className="space-y-3">
       <Label en="Airline" ar="شركة الطيران" />
       {renderDropdown(airlines, showDrop, setShowDrop, airline, (en) => setAirline(en))}
@@ -492,17 +519,16 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
 
 
           <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>OUTBOUND FLIGHT · رحلة الذهاب</p>
-          <FlightFields
-            prefix="out" airline={outAirline} setAirline={setOutAirline}
-            showDrop={showAirlineDrop} setShowDrop={setShowAirlineDrop}
-            flightNum={outFlightNum} setFlightNum={setOutFlightNum}
-            pnr={outPNR} setPNR={setOutPNR}
-            from={outFrom} setFrom={setOutFrom} to={outTo} setTo={setOutTo}
-            depDate={outDepDate} setDepDate={setOutDepDate} depTime={outDepTime} setDepTime={setOutDepTime}
-            arrDate={outArrDate} setArrDate={setOutArrDate} arrTime={outArrTime} setArrTime={setOutArrTime}
-            cls={outClass} setCls={setOutClass} seat={outSeat} setSeat={setOutSeat}
-          />
-
+          {renderFlightFields({
+            prefix: "out", airline: outAirline, setAirline: setOutAirline,
+            showDrop: showAirlineDrop, setShowDrop: setShowAirlineDrop,
+            flightNum: outFlightNum, setFlightNum: setOutFlightNum,
+            pnr: outPNR, setPNR: setOutPNR,
+            from: outFrom, setFrom: setOutFrom, to: outTo, setTo: setOutTo,
+            depDate: outDepDate, setDepDate: setOutDepDate, depTime: outDepTime, setDepTime: setOutDepTime,
+            arrDate: outArrDate, setArrDate: setOutArrDate, arrTime: outArrTime, setArrTime: setOutArrTime,
+            cls: outClass, setCls: setOutClass, seat: outSeat, setSeat: setOutSeat,
+          })}
           {/* Return Flight Toggle */}
           <div className="flex items-center justify-between py-2">
             <div>
@@ -517,16 +543,16 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
           {showReturnFlight && (
             <>
               <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>RETURN FLIGHT · رحلة العودة</p>
-              <FlightFields
-                prefix="ret" airline={retAirline} setAirline={setRetAirline}
-                showDrop={showRetAirlineDrop} setShowDrop={setShowRetAirlineDrop}
-                flightNum={retFlightNum} setFlightNum={setRetFlightNum}
-                pnr={retPNR} setPNR={setRetPNR}
-                from={retFrom} setFrom={setRetFrom} to={retTo} setTo={setRetTo}
-                depDate={retDepDate} setDepDate={setRetDepDate} depTime={retDepTime} setDepTime={setRetDepTime}
-                arrDate={retArrDate} setArrDate={setRetArrDate} arrTime={retArrTime} setArrTime={setRetArrTime}
-                cls={retClass} setCls={setRetClass} seat={retSeat} setSeat={setRetSeat}
-              />
+              {renderFlightFields({
+                prefix: "ret", airline: retAirline, setAirline: setRetAirline,
+                showDrop: showRetAirlineDrop, setShowDrop: setShowRetAirlineDrop,
+                flightNum: retFlightNum, setFlightNum: setRetFlightNum,
+                pnr: retPNR, setPNR: setRetPNR,
+                from: retFrom, setFrom: setRetFrom, to: retTo, setTo: setRetTo,
+                depDate: retDepDate, setDepDate: setRetDepDate, depTime: retDepTime, setDepTime: setRetDepTime,
+                arrDate: retArrDate, setArrDate: setRetArrDate, arrTime: retArrTime, setArrTime: setRetArrTime,
+                cls: retClass, setCls: setRetClass, seat: retSeat, setSeat: setRetSeat,
+              })}
             </>
           )}
 

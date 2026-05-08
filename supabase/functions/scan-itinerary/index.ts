@@ -89,11 +89,18 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const fileDataUrl: string | undefined = body?.file;
+    const filesArr: string[] | undefined = Array.isArray(body?.files) ? body.files : undefined;
     const text: string | undefined = body?.text;
 
-    if (!fileDataUrl && !text) return json({ error: "file (data URL) or text required" }, 400);
-    if (fileDataUrl && !/^data:(image\/|application\/pdf)/.test(fileDataUrl)) {
-      return json({ error: "file must be an image or application/pdf data URL" }, 400);
+    const images: string[] = [];
+    if (filesArr) images.push(...filesArr.filter(Boolean));
+    if (fileDataUrl) images.push(fileDataUrl);
+
+    if (images.length === 0 && !text) return json({ error: "file(s) (data URL) or text required" }, 400);
+    for (const u of images) {
+      if (!/^data:image\//.test(u)) {
+        return json({ error: "files must be image data URLs (convert PDF pages to images client-side)" }, 400);
+      }
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -108,7 +115,7 @@ serve(async (req) => {
         "If a value is missing, omit it — never invent data.",
       },
     ];
-    if (fileDataUrl) userContent.push({ type: "image_url", image_url: { url: fileDataUrl } });
+    for (const u of images) userContent.push({ type: "image_url", image_url: { url: u } });
     if (text) userContent.push({ type: "text", text: `Itinerary text:\n${text}` });
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
