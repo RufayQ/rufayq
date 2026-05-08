@@ -21,9 +21,10 @@ name: Android release
 # Optional secrets:
 #   PLAY_UPLOAD_CERT_SHA256    expected SHA-256 fingerprint of the *upload*
 #                              cert as registered in Play App Signing.
-#                              When set, CI fails if the local keystore's
-#                              cert does not match (catches wrong-keystore
-#                              uploads before Google rejects them).
+#   PLAY_UPLOAD_CERT_SHA1      expected SHA-1 fingerprint of the *upload* cert.
+#                              When either is set, CI fails if the local
+#                              keystore's cert does not match (catches
+#                              wrong-keystore uploads before Google does).
 
 on:
   push:
