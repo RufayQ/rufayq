@@ -23,6 +23,14 @@ export const openApiSpec = {
     { name: "Reviews", description: "App reviews moderation." },
     { name: "RCM", description: "Revenue-cycle management claims for patients/providers." },
     { name: "Auth", description: "Current user, roles, and permission checks." },
+    { name: "Patient · Journeys", description: "Treatment trips, timeline steps, and tickets owned by the patient." },
+    { name: "Patient · Medications", description: "Medication schedule, doses, and adherence history." },
+    { name: "Patient · Appointments", description: "Medical visits, reminders, and Smart Scan auto-generated entries." },
+    { name: "Patient · Records", description: "Bilingual medical records vault (lab results, imaging, prescriptions)." },
+    { name: "Patient · Scanner", description: "AI document extraction wizard (5-step OCR + structured output)." },
+    { name: "Patient · Chat", description: "RufayQ AI chat with voice notes and medical record context." },
+    { name: "Provider Portal · EMR", description: "Read-only EMR access for verified providers (insurance, hospitals) — patient consent required." },
+    { name: "Provider Portal · Claims", description: "RCM claim lifecycle: eligibility → authorization → activation → submission → settlement." },
   ],
   components: {
     securitySchemes: {
