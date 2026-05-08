@@ -1,13 +1,13 @@
 /**
  * /admin/swagger — Swagger UI for the RufayQ API.
  *
- * Serves the hand-curated OpenAPI 3.1 spec that mirrors the resources
- * already documented in /admin/api-docs. Swagger UI is loaded from CDN
- * to avoid pulling a multi-MB dependency into the main bundle.
+ * Admin-only. Loads Swagger UI from CDN to keep the bundle slim and exposes
+ * a "Download OpenAPI JSON" button that exports the spec defined in
+ * `src/api/openapi.ts`.
  */
-import { useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, BookOpen } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, BookOpen, Download, Shield } from "lucide-react";
 import { openApiSpec } from "@/api/openapi";
 
 const SWAGGER_VERSION = "5.17.14";
@@ -43,8 +43,24 @@ const loadCss = (href: string) => {
 
 const AdminSwagger = () => {
   const mountRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const [authState, setAuthState] = useState<"checking" | "allowed" | "denied">("checking");
+
+  // ── RBAC gate: admin role required. Server RLS remains source of truth.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { authClient } = await import("@/api");
+      const res = await authClient.current();
+      if (cancelled) return;
+      const isAdmin = !!res.data?.roles.includes("admin");
+      setAuthState(isAdmin ? "allowed" : "denied");
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
+    if (authState !== "allowed") return;
     let cancelled = false;
     loadCss(SWAGGER_CSS);
     Promise.all([loadScript(SWAGGER_BUNDLE), loadScript(SWAGGER_PRESET)])
@@ -65,10 +81,56 @@ const AdminSwagger = () => {
         });
       })
       .catch((e) => console.error("Swagger UI failed to load:", e));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => { cancelled = true; };
+  }, [authState]);
+
+  const downloadSpec = () => {
+    const blob = new Blob([JSON.stringify(openApiSpec, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rufayq-openapi-${(openApiSpec as any).info?.version ?? "1.0.0"}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  if (authState === "checking") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-400 text-sm">
+        Verifying admin access…
+      </div>
+    );
+  }
+
+  if (authState === "denied") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-300 px-6 text-center">
+        <Shield size={42} className="mb-4 text-amber-400" />
+        <h1 className="text-2xl font-semibold mb-2">Admin access required</h1>
+        <p className="text-sm text-slate-400 mb-6">
+          The Swagger reference is restricted to staff with the admin role.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate("/admin/login")}
+            className="px-5 py-2.5 rounded-full bg-amber-500 text-slate-950 text-sm font-semibold"
+          >
+            Sign in as admin
+          </button>
+          <Link
+            to="/admin"
+            className="px-5 py-2.5 rounded-full border border-slate-700 text-slate-300 text-sm font-semibold"
+          >
+            Back to admin
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
@@ -79,24 +141,28 @@ const AdminSwagger = () => {
         >
           <ArrowLeft size={14} /> Back to admin
         </Link>
-        <h1 className="text-2xl font-semibold text-slate-50 flex items-center gap-2">
-          <BookOpen size={22} className="text-amber-400" /> RufayQ API · Swagger
-        </h1>
-        <p className="text-sm text-slate-400 mt-1">
-          OpenAPI 3.1 reference for every resource exposed via{" "}
-          <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-xs">
-            @/api
-          </code>
-          . For prose docs and copy-paste examples see{" "}
-          <Link to="/admin/api-docs" className="text-amber-300 hover:underline">
-            /admin/api-docs
-          </Link>
-          .
-        </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-50 flex items-center gap-2">
+              <BookOpen size={22} className="text-amber-400" /> RufayQ API · Swagger
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              OpenAPI 3.1 reference for every resource exposed via{" "}
+              <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-xs">
+                @/api
+              </code>
+              . Includes Patient app and Provider Portal integration endpoints.
+            </p>
+          </div>
+          <button
+            onClick={downloadSpec}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-amber-500 text-slate-950 text-sm font-semibold hover:bg-amber-400 transition"
+          >
+            <Download size={14} /> Download OpenAPI JSON
+          </button>
+        </div>
       </header>
 
-      {/* Swagger UI ships its own light styling; wrap in a white card so it
-          stays legible inside the dark admin shell. */}
       <div className="max-w-6xl mx-auto px-6 pb-10">
         <div className="rounded-xl bg-white text-slate-900 overflow-hidden">
           <div ref={mountRef} />
