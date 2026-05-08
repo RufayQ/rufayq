@@ -175,6 +175,7 @@ jobs:
           RUFAYQ_KEY_PASS:   ${{ secrets.RUFAYQ_KEY_PASS }}
           RUFAYQ_KEY_ALIAS:  ${{ secrets.RUFAYQ_KEY_ALIAS }}
           PLAY_UPLOAD_CERT_SHA256: ${{ secrets.PLAY_UPLOAD_CERT_SHA256 }}
+          PLAY_UPLOAD_CERT_SHA1:   ${{ secrets.PLAY_UPLOAD_CERT_SHA1 }}
         run: |
           ALIAS="${RUFAYQ_KEY_ALIAS:-rufayq}"
           test -s "$RUFAYQ_KEYSTORE" || { echo "::error::keystore missing/empty"; exit 1; }
