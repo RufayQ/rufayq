@@ -21,9 +21,10 @@ name: Android release
 # Optional secrets:
 #   PLAY_UPLOAD_CERT_SHA256    expected SHA-256 fingerprint of the *upload*
 #                              cert as registered in Play App Signing.
-#                              When set, CI fails if the local keystore's
-#                              cert does not match (catches wrong-keystore
-#                              uploads before Google rejects them).
+#   PLAY_UPLOAD_CERT_SHA1      expected SHA-1 fingerprint of the *upload* cert.
+#                              When either is set, CI fails if the local
+#                              keystore's cert does not match (catches
+#                              wrong-keystore uploads before Google does).
 
 on:
   push:
@@ -174,6 +175,7 @@ jobs:
           RUFAYQ_KEY_PASS:   ${{ secrets.RUFAYQ_KEY_PASS }}
           RUFAYQ_KEY_ALIAS:  ${{ secrets.RUFAYQ_KEY_ALIAS }}
           PLAY_UPLOAD_CERT_SHA256: ${{ secrets.PLAY_UPLOAD_CERT_SHA256 }}
+          PLAY_UPLOAD_CERT_SHA1:   ${{ secrets.PLAY_UPLOAD_CERT_SHA1 }}
         run: |
           ALIAS="${RUFAYQ_KEY_ALIAS:-rufayq}"
           test -s "$RUFAYQ_KEYSTORE" || { echo "::error::keystore missing/empty"; exit 1; }
@@ -200,8 +202,9 @@ jobs:
             exit 1
           fi
 
-          # If the project has registered the expected upload-cert fingerprint,
-          # enforce it. Catches "wrong keystore in CI" before Google does.
+          # If the project has registered the expected upload-cert fingerprints,
+          # enforce them. Catches "wrong keystore in CI" before Google does.
+          MATCHED_ANY=0
           if [ -n "$PLAY_UPLOAD_CERT_SHA256" ]; then
             NORM_LOCAL=$(echo "$SHA256" | tr -d ': ' | tr 'a-f' 'A-F')
             NORM_EXPECT=$(echo "$PLAY_UPLOAD_CERT_SHA256" | tr -d ': ' | tr 'a-f' 'A-F')
@@ -213,9 +216,23 @@ jobs:
               echo "different upload key registered. See docs/play-app-signing.md."
               exit 1
             fi
-            echo "✓ Upload-cert fingerprint matches Play registration."
-          else
-            echo "ℹ PLAY_UPLOAD_CERT_SHA256 not set — skipping cross-check (recommended)."
+            echo "✓ Upload-cert SHA-256 matches Play registration."
+            MATCHED_ANY=1
+          fi
+          if [ -n "$PLAY_UPLOAD_CERT_SHA1" ]; then
+            NORM_LOCAL1=$(echo "$SHA1" | tr -d ': ' | tr 'a-f' 'A-F')
+            NORM_EXPECT1=$(echo "$PLAY_UPLOAD_CERT_SHA1" | tr -d ': ' | tr 'a-f' 'A-F')
+            if [ "$NORM_LOCAL1" != "$NORM_EXPECT1" ]; then
+              echo "::error::Keystore cert SHA-1 does not match PLAY_UPLOAD_CERT_SHA1."
+              echo "  expected (Play): $NORM_EXPECT1"
+              echo "  got (keystore):  $NORM_LOCAL1"
+              exit 1
+            fi
+            echo "✓ Upload-cert SHA-1 matches Play registration."
+            MATCHED_ANY=1
+          fi
+          if [ "$MATCHED_ANY" = "0" ]; then
+            echo "ℹ PLAY_UPLOAD_CERT_SHA1/SHA256 not set — skipping cross-check (recommended to set both)."
           fi
 
           # Export for later steps / report
