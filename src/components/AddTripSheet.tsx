@@ -133,8 +133,85 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
   const [retSeat, setRetSeat] = useState("");
 
   const [errors, setErrors] = useState<string[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!open) return null;
+
+  const fileToDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+
+  const applyLeg = (leg: any, target: "out" | "ret") => {
+    if (!leg) return;
+    const set = target === "out"
+      ? { airline: setOutAirline, num: setOutFlightNum, pnr: setOutPNR, from: setOutFrom, to: setOutTo, dD: setOutDepDate, dT: setOutDepTime, aD: setOutArrDate, aT: setOutArrTime, cls: setOutClass, seat: setOutSeat }
+      : { airline: setRetAirline, num: setRetFlightNum, pnr: setRetPNR, from: setRetFrom, to: setRetTo, dD: setRetDepDate, dT: setRetDepTime, aD: setRetArrDate, aT: setRetArrTime, cls: setRetClass, seat: setRetSeat };
+    if (leg.airline) set.airline(String(leg.airline));
+    if (leg.flightNumber) set.num(String(leg.flightNumber).toUpperCase());
+    if (leg.bookingRef) set.pnr(String(leg.bookingRef).toUpperCase());
+    const fromLabel = [leg.fromAirport, leg.fromCity].filter(Boolean).join(" — ");
+    const toLabel = [leg.toAirport, leg.toCity].filter(Boolean).join(" — ");
+    if (fromLabel) set.from(fromLabel);
+    if (toLabel) set.to(toLabel);
+    if (leg.departureDateTime) {
+      const [d, t] = String(leg.departureDateTime).split("T");
+      if (d) set.dD(d); if (t) set.dT(t.slice(0, 5));
+    }
+    if (leg.arrivalDateTime) {
+      const [d, t] = String(leg.arrivalDateTime).split("T");
+      if (d) set.aD(d); if (t) set.aT(t.slice(0, 5));
+    }
+    if (leg.seatClass) set.cls(String(leg.seatClass).replace(/^./, (c: string) => c.toUpperCase()));
+    if (leg.seatNumber) set.seat(String(leg.seatNumber));
+  };
+
+  const handleItineraryUpload = async (file: File) => {
+    try {
+      setScanning(true);
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File too large (max 10 MB)");
+        return;
+      }
+      const dataUrl = await fileToDataUrl(file);
+      const { data, error } = await supabase.functions.invoke("scan-itinerary", {
+        body: { file: dataUrl },
+        headers: { "x-device-id": getDeviceId() },
+      });
+      if (error) throw error;
+      const parsed = (data as any)?.data ?? {};
+      applyLeg(parsed.outboundFlight, "out");
+      if (parsed.returnFlight) {
+        setShowReturnFlight(true);
+        applyLeg(parsed.returnFlight, "ret");
+      }
+      // Pre-fill destination + departure date if still empty
+      if (!destination && parsed.outboundFlight?.toCity) setDestination(String(parsed.outboundFlight.toCity).split(",")[0]);
+      if (!departureDate && parsed.outboundFlight?.departureDateTime) {
+        setDepartureDate(String(parsed.outboundFlight.departureDateTime).split("T")[0]);
+      }
+      if (!returnDate && parsed.returnFlight?.departureDateTime) {
+        setReturnDate(String(parsed.returnFlight.departureDateTime).split("T")[0]);
+      }
+      const passenger = [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ");
+      const passportPart = parsed.passportNumber ? ` · Passport ${parsed.passportNumber}` : "";
+      toast.success(
+        `Itinerary scanned${passenger ? ` for ${passenger}` : ""}${passportPart} · review the fields below before saving.`,
+        { duration: 7000 },
+      );
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Could not read itinerary. Try a clearer photo or PDF.");
+    } finally {
+      setScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
 
   const validate = () => {
     const e: string[] = [];
