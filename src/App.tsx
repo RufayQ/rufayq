@@ -23,6 +23,7 @@ const ProviderDashboard = lazy(() => import("./pages/ProviderDashboard.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin.tsx"));
 const AdminApiDocs = lazy(() => import("./pages/AdminApiDocs.tsx"));
+const AdminSwagger = lazy(() => import("./pages/AdminSwagger.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const SubscriptionDashboard = lazy(() => import("./pages/SubscriptionDashboard.tsx"));
 const WalletLedger = lazy(() => import("./pages/WalletLedger.tsx"));
