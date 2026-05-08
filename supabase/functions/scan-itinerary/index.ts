@@ -115,7 +115,7 @@ serve(async (req) => {
         "If a value is missing, omit it — never invent data.",
       },
     ];
-    if (fileDataUrl) userContent.push({ type: "image_url", image_url: { url: fileDataUrl } });
+    for (const u of images) userContent.push({ type: "image_url", image_url: { url: u } });
     if (text) userContent.push({ type: "text", text: `Itinerary text:\n${text}` });
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
