@@ -36,6 +36,9 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
 
+      - name: Validate OpenAPI spec
+        run: node scripts/validate-openapi.mjs
+
       - name: Test
         run: bun run test
 
