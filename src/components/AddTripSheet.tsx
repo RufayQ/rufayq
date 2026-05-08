@@ -174,17 +174,43 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
   const handleItineraryUpload = async (file: File) => {
     try {
       setScanning(true);
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("File too large (max 10 MB)");
+      if (file.size > 15 * 1024 * 1024) {
+        toast.error("File too large (max 15 MB)");
         return;
       }
-      const dataUrl = await fileToDataUrl(file);
+
+      // Convert PDF → images client-side. The AI gateway only accepts image content.
+      let files: string[] = [];
+      const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+      if (isPdf) {
+        try {
+          files = await pdfToImageDataUrls(file, { maxPages: 3, scale: 2 });
+        } catch (err) {
+          console.error("PDF render failed", err);
+          toast.error("Could not open PDF. Try a screenshot of the ticket instead.");
+          return;
+        }
+        if (files.length === 0) {
+          toast.error("No pages found in PDF.");
+          return;
+        }
+      } else {
+        files = [await fileToDataUrl(file)];
+      }
+
       const { data, error } = await supabase.functions.invoke("scan-itinerary", {
-        body: { file: dataUrl },
+        body: { files },
         headers: { "x-device-id": getDeviceId() },
       });
       if (error) throw error;
       const parsed = (data as any)?.data ?? {};
+      console.debug("[scan-itinerary] parsed payload", parsed);
+
+      if (!parsed.outboundFlight && !parsed.returnFlight) {
+        toast.error("We couldn't read flight details. Try a clearer image or a higher-quality PDF.");
+        return;
+      }
+
       applyLeg(parsed.outboundFlight, "out");
       if (parsed.returnFlight) {
         setShowReturnFlight(true);
