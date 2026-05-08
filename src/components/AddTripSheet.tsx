@@ -463,6 +463,34 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
             <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>اختياري — أضفها لتتبع رحلتك بالكامل</p>
           </div>
 
+          {/* Upload itinerary (PDF or image) — auto-fills round-trip / one-way fields */}
+          <div className="rounded-xl p-3" style={{ background: "var(--off-white)", border: "1px dashed var(--teal-deep)" }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleItineraryUpload(f); }}
+            />
+            <button
+              type="button"
+              disabled={scanning}
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg btn-press"
+              style={{ background: "var(--teal-deep)", color: "var(--white)", fontFamily: "'DM Sans'", fontSize: 13, opacity: scanning ? 0.7 : 1 }}
+            >
+              {scanning ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              {scanning ? "Reading itinerary…" : "Upload itinerary (PDF / photo)"}
+            </button>
+            <p className="text-[10px] mt-2 text-center" style={{ color: "var(--gray)" }}>
+              We'll auto-fill airline, flight number, PNR, dates, traveler name & passport.
+            </p>
+            <p className="font-arabic text-[10px] text-center" dir="rtl" style={{ color: "var(--gray)" }}>
+              نقرأ التذكرة تلقائياً ونعبئ التفاصيل
+            </p>
+          </div>
+
+
           <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>OUTBOUND FLIGHT · رحلة الذهاب</p>
           <FlightFields
             prefix="out" airline={outAirline} setAirline={setOutAirline}
