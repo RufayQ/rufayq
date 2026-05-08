@@ -607,5 +607,256 @@ export const openApiSpec = {
         },
       },
     },
+
+    /* ── Patient app APIs ──────────────────────────────────────────── */
+    "/rest/v1/trips": {
+      get: {
+        tags: ["Patient · Journeys"],
+        summary: "List the patient's treatment trips.",
+        responses: {
+          "200": {
+            description: "Trips",
+            content: {
+              "application/json": {
+                schema: { type: "array", items: { $ref: "#/components/schemas/Trip" } },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Patient · Journeys"],
+        summary: "Create a new trip via the journey wizard.",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/Trip" } } },
+        },
+        responses: { "201": { description: "Created" } },
+      },
+    },
+    "/rest/v1/medications": {
+      get: {
+        tags: ["Patient · Medications"],
+        summary: "List medications on the patient's bilingual schedule.",
+        responses: {
+          "200": {
+            description: "Medications",
+            content: {
+              "application/json": {
+                schema: { type: "array", items: { $ref: "#/components/schemas/Medication" } },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Patient · Medications"],
+        summary: "Add a medication.",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/Medication" } } },
+        },
+        responses: { "201": { description: "Created" } },
+      },
+    },
+    "/rest/v1/appointments": {
+      get: {
+        tags: ["Patient · Appointments"],
+        summary: "List appointments (manual + Smart Scan auto-generated).",
+        responses: {
+          "200": {
+            description: "Appointments",
+            content: {
+              "application/json": {
+                schema: { type: "array", items: { $ref: "#/components/schemas/Appointment" } },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/rest/v1/medical_records": {
+      get: {
+        tags: ["Patient · Records"],
+        summary: "List bilingual medical records vault items.",
+        responses: {
+          "200": {
+            description: "Records",
+            content: {
+              "application/json": {
+                schema: { type: "array", items: { $ref: "#/components/schemas/MedicalRecord" } },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Patient · Records"],
+        summary: "Upload a record (file or scan output).",
+        requestBody: {
+          required: true,
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                required: ["file", "kind", "title"],
+                properties: {
+                  file: { type: "string", format: "binary" },
+                  kind: { type: "string" },
+                  title: { type: "string" },
+                  title_ar: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: { "201": { description: "Created" } },
+      },
+    },
+    "/functions/v1/scan-receipt": {
+      post: {
+        tags: ["Patient · Scanner"],
+        summary: "5-step document scanner — image enhancement + AI extraction.",
+        requestBody: {
+          required: true,
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                required: ["image"],
+                properties: {
+                  image: { type: "string", format: "binary" },
+                  hint: { type: "string", description: "Doc kind hint (e.g. 'lab', 'prescription')." },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Structured scan result",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ScanResult" } } },
+          },
+        },
+      },
+    },
+    "/functions/v1/chat": {
+      post: {
+        tags: ["Patient · Chat"],
+        summary: "RufayQ AI chat — voice notes, image uploads, record references.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["messages"],
+                properties: {
+                  messages: { type: "array", items: { $ref: "#/components/schemas/ChatMessage" } },
+                  record_ids: {
+                    type: "array",
+                    items: { type: "string", format: "uuid" },
+                    description: "Optional medical record IDs to ground the answer.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Assistant reply",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ChatMessage" } } },
+          },
+        },
+      },
+    },
+
+    /* ── Provider Portal Integration APIs ──────────────────────────── */
+    "/rest/v1/provider_consents": {
+      get: {
+        tags: ["Provider Portal · EMR"],
+        summary: "List active patient consents granted to this provider org.",
+        description:
+          "Used by insurance companies, hospitals, and partner clinics to discover which patients have authorized EMR access.",
+        responses: {
+          "200": {
+            description: "Active consents",
+            content: {
+              "application/json": {
+                schema: { type: "array", items: { $ref: "#/components/schemas/ProviderConsent" } },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Provider Portal · EMR"],
+        summary: "Patient grants a new consent to a provider org.",
+        description:
+          "Called from the patient app's consent flow; provider orgs cannot create consents on behalf of patients.",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ProviderConsent" } } },
+        },
+        responses: { "201": { description: "Consent created" } },
+      },
+    },
+    "/rest/v1/provider_consents/{id}": {
+      delete: {
+        tags: ["Provider Portal · EMR"],
+        summary: "Revoke a previously granted consent.",
+        parameters: [
+          { in: "path", name: "id", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        responses: { "204": { description: "Revoked" } },
+      },
+    },
+    "/functions/v1/provider-emr-bundle": {
+      get: {
+        tags: ["Provider Portal · EMR"],
+        summary: "Fetch the EMR snapshot for a consented patient.",
+        description:
+          "Returns records, medications, appointments, and claims permitted by the consent's `scopes`. Server enforces consent scope + expiry; revoked consents return 403.",
+        parameters: [
+          { in: "query", name: "patient_id", required: true, schema: { type: "string", format: "uuid" } },
+          { in: "query", name: "consent_id", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        responses: {
+          "200": {
+            description: "Aggregated EMR bundle",
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/ProviderEmrBundle" } },
+            },
+          },
+          "403": { description: "Consent expired, revoked, or scope mismatch." },
+        },
+      },
+    },
+    "/rest/v1/provider_claims": {
+      get: {
+        tags: ["Provider Portal · Claims"],
+        summary: "List claims visible to the provider org (per consent).",
+        responses: {
+          "200": {
+            description: "Claims",
+            content: {
+              "application/json": {
+                schema: { type: "array", items: { $ref: "#/components/schemas/PatientClaim" } },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Provider Portal · Claims"],
+        summary: "Submit/update a claim on behalf of a patient (requires `claims.write` scope).",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/PatientClaim" } } },
+        },
+        responses: { "201": { description: "Claim submitted" } },
+      },
+    },
   },
 } as const;
