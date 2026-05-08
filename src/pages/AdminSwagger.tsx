@@ -84,18 +84,39 @@ const AdminSwagger = () => {
     return () => { cancelled = true; };
   }, [authState]);
 
-  const downloadSpec = () => {
-    const blob = new Blob([JSON.stringify(openApiSpec, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `rufayq-openapi-${(openApiSpec as any).info?.version ?? "1.0.0"}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadSpec = async () => {
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert("Sign in as an admin to download the spec.");
+        return;
+      }
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/openapi-spec`;
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+      });
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        alert(`Download failed (${res.status}): ${msg || "unauthorized"}`);
+        return;
+      }
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = `rufayq-openapi-${(openApiSpec as any).info?.version ?? "1.0.0"}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(href);
+    } catch (e) {
+      console.error("openapi download failed", e);
+      alert("Download failed — see console.");
+    }
   };
 
   if (authState === "checking") {
