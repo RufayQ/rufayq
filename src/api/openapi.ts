@@ -151,6 +151,7 @@ export const openApiSpec = {
           currency: { type: "string" },
           updated_at: { type: "string", format: "date-time" },
         },
+      },
       Trip: {
         type: "object",
         properties: {
@@ -272,7 +273,6 @@ export const openApiSpec = {
           claims: { type: "array", items: { $ref: "#/components/schemas/PatientClaim" } },
         },
       },
-    },
       CurrentAuth: {
         type: "object",
         properties: {
