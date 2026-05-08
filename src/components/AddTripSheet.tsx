@@ -543,16 +543,16 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
           {showReturnFlight && (
             <>
               <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>RETURN FLIGHT · رحلة العودة</p>
-              <FlightFields
-                prefix="ret" airline={retAirline} setAirline={setRetAirline}
-                showDrop={showRetAirlineDrop} setShowDrop={setShowRetAirlineDrop}
-                flightNum={retFlightNum} setFlightNum={setRetFlightNum}
-                pnr={retPNR} setPNR={setRetPNR}
-                from={retFrom} setFrom={setRetFrom} to={retTo} setTo={setRetTo}
-                depDate={retDepDate} setDepDate={setRetDepDate} depTime={retDepTime} setDepTime={setRetDepTime}
-                arrDate={retArrDate} setArrDate={setRetArrDate} arrTime={retArrTime} setArrTime={setRetArrTime}
-                cls={retClass} setCls={setRetClass} seat={retSeat} setSeat={setRetSeat}
-              />
+              {renderFlightFields({
+                prefix: "ret", airline: retAirline, setAirline: setRetAirline,
+                showDrop: showRetAirlineDrop, setShowDrop: setShowRetAirlineDrop,
+                flightNum: retFlightNum, setFlightNum: setRetFlightNum,
+                pnr: retPNR, setPNR: setRetPNR,
+                from: retFrom, setFrom: setRetFrom, to: retTo, setTo: setRetTo,
+                depDate: retDepDate, setDepDate: setRetDepDate, depTime: retDepTime, setDepTime: setRetDepTime,
+                arrDate: retArrDate, setArrDate: setRetArrDate, arrTime: retArrTime, setArrTime: setRetArrTime,
+                cls: retClass, setCls: setRetClass, seat: retSeat, setSeat: setRetSeat,
+              })}
             </>
           )}
 
