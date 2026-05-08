@@ -519,17 +519,16 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
 
 
           <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>OUTBOUND FLIGHT · رحلة الذهاب</p>
-          <FlightFields
-            prefix="out" airline={outAirline} setAirline={setOutAirline}
-            showDrop={showAirlineDrop} setShowDrop={setShowAirlineDrop}
-            flightNum={outFlightNum} setFlightNum={setOutFlightNum}
-            pnr={outPNR} setPNR={setOutPNR}
-            from={outFrom} setFrom={setOutFrom} to={outTo} setTo={setOutTo}
-            depDate={outDepDate} setDepDate={setOutDepDate} depTime={outDepTime} setDepTime={setOutDepTime}
-            arrDate={outArrDate} setArrDate={setOutArrDate} arrTime={outArrTime} setArrTime={setOutArrTime}
-            cls={outClass} setCls={setOutClass} seat={outSeat} setSeat={setOutSeat}
-          />
-
+          {renderFlightFields({
+            prefix: "out", airline: outAirline, setAirline: setOutAirline,
+            showDrop: showAirlineDrop, setShowDrop: setShowAirlineDrop,
+            flightNum: outFlightNum, setFlightNum: setOutFlightNum,
+            pnr: outPNR, setPNR: setOutPNR,
+            from: outFrom, setFrom: setOutFrom, to: outTo, setTo: setOutTo,
+            depDate: outDepDate, setDepDate: setOutDepDate, depTime: outDepTime, setDepTime: setOutDepTime,
+            arrDate: outArrDate, setArrDate: setOutArrDate, arrTime: outArrTime, setArrTime: setOutArrTime,
+            cls: outClass, setCls: setOutClass, seat: outSeat, setSeat: setOutSeat,
+          })}
           {/* Return Flight Toggle */}
           <div className="flex items-center justify-between py-2">
             <div>
