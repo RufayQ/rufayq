@@ -151,7 +151,128 @@ export const openApiSpec = {
           currency: { type: "string" },
           updated_at: { type: "string", format: "date-time" },
         },
+      Trip: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          patient_id: { type: "string", format: "uuid" },
+          destination_country: { type: "string" },
+          destination_city: { type: "string" },
+          start_date: { type: "string", format: "date" },
+          end_date: { type: "string", format: "date", nullable: true },
+          purpose: { type: "string" },
+          status: { type: "string", enum: ["planned", "active", "completed", "cancelled"] },
+        },
       },
+      Medication: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          patient_id: { type: "string", format: "uuid" },
+          name: { type: "string" },
+          name_ar: { type: "string", nullable: true },
+          dose: { type: "string" },
+          frequency: { type: "string" },
+          start_date: { type: "string", format: "date" },
+          end_date: { type: "string", format: "date", nullable: true },
+          notes: { type: "string", nullable: true },
+        },
+      },
+      Appointment: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          patient_id: { type: "string", format: "uuid" },
+          provider_name: { type: "string" },
+          location: { type: "string", nullable: true },
+          scheduled_at: { type: "string", format: "date-time" },
+          notes: { type: "string", nullable: true },
+          source: { type: "string", enum: ["manual", "smart_scan"] },
+        },
+      },
+      MedicalRecord: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          patient_id: { type: "string", format: "uuid" },
+          kind: {
+            type: "string",
+            enum: ["lab", "imaging", "prescription", "discharge_summary", "report", "other"],
+          },
+          title: { type: "string" },
+          title_ar: { type: "string", nullable: true },
+          file_url: { type: "string", format: "uri", nullable: true },
+          extracted_text: { type: "string", nullable: true },
+          created_at: { type: "string", format: "date-time" },
+        },
+      },
+      ScanResult: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          step: { type: "integer", minimum: 1, maximum: 5 },
+          enhanced_image_url: { type: "string", format: "uri" },
+          extracted: { type: "object", additionalProperties: true },
+        },
+      },
+      ChatMessage: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          role: { type: "string", enum: ["user", "assistant", "system"] },
+          content: { type: "string" },
+          attachments: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                kind: { type: "string", enum: ["image", "voice", "record_ref"] },
+                url: { type: "string", format: "uri", nullable: true },
+                record_id: { type: "string", format: "uuid", nullable: true },
+              },
+            },
+          },
+          created_at: { type: "string", format: "date-time" },
+        },
+      },
+      ProviderConsent: {
+        type: "object",
+        description:
+          "Patient-granted, time-boxed consent allowing a provider organization (e.g. an insurance company) to access selected EMR resources.",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          patient_id: { type: "string", format: "uuid" },
+          provider_org_id: { type: "string", format: "uuid" },
+          scopes: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: [
+                "records.read",
+                "medications.read",
+                "appointments.read",
+                "claims.read",
+                "claims.write",
+              ],
+            },
+          },
+          expires_at: { type: "string", format: "date-time" },
+          revoked_at: { type: "string", format: "date-time", nullable: true },
+        },
+      },
+      ProviderEmrBundle: {
+        type: "object",
+        description: "Aggregated EMR snapshot returned to a consented provider.",
+        properties: {
+          patient_id: { type: "string", format: "uuid" },
+          consent_id: { type: "string", format: "uuid" },
+          records: { type: "array", items: { $ref: "#/components/schemas/MedicalRecord" } },
+          medications: { type: "array", items: { $ref: "#/components/schemas/Medication" } },
+          appointments: { type: "array", items: { $ref: "#/components/schemas/Appointment" } },
+          claims: { type: "array", items: { $ref: "#/components/schemas/PatientClaim" } },
+        },
+      },
+    },
       CurrentAuth: {
         type: "object",
         properties: {
