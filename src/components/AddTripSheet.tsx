@@ -341,7 +341,7 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
     </div>
   );
 
-  const FlightFields = ({ prefix, airline, setAirline, showDrop, setShowDrop, flightNum, setFlightNum, pnr, setPNR, from, setFrom, to, setTo, depDate, setDepDate, depTime, setDepTime, arrDate, setArrDate, arrTime, setArrTime, cls, setCls, seat, setSeat }: any) => (
+  const renderFlightFields = ({ prefix, airline, setAirline, showDrop, setShowDrop, flightNum, setFlightNum, pnr, setPNR, from, setFrom, to, setTo, depDate, setDepDate, depTime, setDepTime, arrDate, setArrDate, arrTime, setArrTime, cls, setCls, seat, setSeat }: any) => (
     <div className="space-y-3">
       <Label en="Airline" ar="شركة الطيران" />
       {renderDropdown(airlines, showDrop, setShowDrop, airline, (en) => setAirline(en))}
