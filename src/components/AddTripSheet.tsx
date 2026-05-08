@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { X, ChevronDown, ExternalLink } from "lucide-react";
+import { useRef, useState } from "react";
+import { X, ChevronDown, ExternalLink, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { getDeviceId } from "@/hooks/useDeviceId";
 
 export interface FlightInfo {
   airline: string;
