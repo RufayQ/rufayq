@@ -5,7 +5,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 import { FileUploadPreview } from "@/shared/ui";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
-import { pdfToBestFlightImages } from "@/lib/pdfToImages";
+import { analyzePdfPages, renderPdfPagesAtScale, type PdfAnalysis } from "@/lib/pdfToImages";
 import { normalizeParsedLeg } from "@/lib/flightParsing";
 import type { FlightInfo } from "@/components/AddTripSheet";
 
@@ -481,7 +481,7 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
 };
 
 /* ─── STEP 4: AI REVIEW & DATA EXTRACT ─── */
-type OcrStatus = "idle" | "scanning" | "success" | "failed";
+type OcrStatus = "idle" | "analyzing-pdf" | "pick-pages" | "scanning" | "success" | "failed";
 
 interface FlightFields {
   Airline: string; "Flight No.": string; From: string; To: string;
@@ -514,6 +514,10 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   // Generic (non-flight) demo fields
   const [genericFields, setGenericFields] = useState<{ label: string; value: string }[] | null>(null);
 
+  // PDF preview / page picker state (flight + PDF only)
+  const [pdfAnalysis, setPdfAnalysis] = useState<PdfAnalysis | null>(null);
+  const [selectedPages, setSelectedPages] = useState<number[]>([]);
+
   const cat = categories.find(c => c.id === category);
   const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
 
@@ -524,10 +528,91 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
   const runRef = useRef<number>(0);
   const [retryNonce, setRetryNonce] = useState(0);
+  const cancelRef = useRef(false);
+
+  // Run the OCR call against a chosen set of image data URLs. Shared by
+  // both the auto-pick flow and the manual-pick "Run OCR" button.
+  const runOcr = async (files: string[], myRun: number) => {
+    try {
+      if (cancelRef.current || runRef.current !== myRun) return;
+      if (files.length === 0) throw new Error("empty-file");
+      setOcrStatus("scanning");
+      setProcessStep(2);
+
+      const { data, error } = await supabase.functions.invoke("scan-itinerary", {
+        body: { files },
+        headers: { "x-device-id": getDeviceId() },
+      });
+      if (cancelRef.current || runRef.current !== myRun) return;
+      if (error) {
+        console.error("[scanner] scan-itinerary edge error", error);
+        throw new Error("ocr-failed");
+      }
+      const parsed = (data as any)?.data ?? null;
+      if (!parsed || typeof parsed !== "object") {
+        console.error("[scanner] scan-itinerary returned no data", data);
+        throw new Error("ocr-failed");
+      }
+      setProcessStep(3);
+
+      const out = parsed.outboundFlight ? normalizeParsedLeg(parsed.outboundFlight) : null;
+      const ret = parsed.returnFlight ? normalizeParsedLeg(parsed.returnFlight) : null;
+      if (!out && !ret) {
+        console.error("[scanner] no flight legs in response", parsed);
+        throw new Error("no-legs");
+      }
+
+      const fmtDate = (s: string) => {
+        if (!s) return "";
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? s.split("T")[0] : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      };
+      const fmtTime = (s: string) => (s && s.includes("T") ? s.split("T")[1].slice(0, 5) : "");
+      const toFields = (leg: FlightInfo): FlightFields => ({
+        Airline: leg.airline || "",
+        "Flight No.": leg.flightNumber || "",
+        From: [leg.fromAirport, leg.fromCity].filter(Boolean).join(" — "),
+        To: [leg.toAirport, leg.toCity].filter(Boolean).join(" — "),
+        Date: fmtDate(leg.departureDateTime),
+        Time: fmtTime(leg.departureDateTime),
+        PNR: leg.bookingRef || "",
+        Class: leg.seatClass || "",
+      });
+
+      if (out) setOutboundFields(toFields(out));
+      if (ret) setReturnFields(toFields(ret));
+      setActiveLeg(out ? "outbound" : "return");
+
+      const lang: string | undefined = parsed.detectedLanguage;
+      const translated = !!parsed.translated && !!lang && lang.toLowerCase() !== "english";
+      setDetectedLanguage(lang || null);
+      setWasTranslated(translated);
+
+      setProcessStep(4);
+      onParsed?.({
+        outbound: out,
+        return: ret,
+        rawOutbound: parsed.outboundFlight ?? null,
+        rawReturn: parsed.returnFlight ?? null,
+        passenger: {
+          name: [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ") || undefined,
+          passport: parsed.passportNumber || undefined,
+        },
+      });
+      setTimeout(() => {
+        if (cancelRef.current || runRef.current !== myRun) return;
+        setOcrStatus("success");
+      }, 400);
+    } catch (e: any) {
+      console.error("[scanner] OCR failed", e);
+      if (cancelRef.current || runRef.current !== myRun) return;
+      onParsed?.(null);
+      setOcrStatus("failed");
+    }
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    const cleanups: Array<() => void> = [];
+    cancelRef.current = false;
     const myRun = ++runRef.current;
 
     // Reset all parsed/cached state for a fresh scan
@@ -536,127 +621,94 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     setGenericFields(null);
     setDetectedLanguage(null);
     setWasTranslated(false);
-    setOcrStatus("scanning");
+    setPdfAnalysis(null);
+    setSelectedPages([]);
     setProcessStep(0);
     onParsed?.(null);
 
     async function run() {
+      // Non-flight: keep the existing fake animated flow
       if (!realFile || category !== "flight") {
+        setOcrStatus("scanning");
         const t = [
-          setTimeout(() => !cancelled && setProcessStep(1), 700),
-          setTimeout(() => !cancelled && setProcessStep(2), 1500),
-          setTimeout(() => !cancelled && setProcessStep(3), 2400),
-          setTimeout(() => !cancelled && setProcessStep(4), 3200),
+          setTimeout(() => !cancelRef.current && setProcessStep(1), 700),
+          setTimeout(() => !cancelRef.current && setProcessStep(2), 1500),
+          setTimeout(() => !cancelRef.current && setProcessStep(3), 2400),
+          setTimeout(() => !cancelRef.current && setProcessStep(4), 3200),
           setTimeout(() => {
-            if (cancelled || runRef.current !== myRun) return;
+            if (cancelRef.current || runRef.current !== myRun) return;
             setGenericFields(extractedFieldsByCategory[category || ""] ?? null);
             setOcrStatus("success");
           }, 4000),
         ];
-        cleanups.push(() => t.forEach(clearTimeout));
+        return () => t.forEach(clearTimeout);
+      }
+
+      const isPdf = realFile.type === "application/pdf" || /\.pdf$/i.test(realFile.name);
+
+      if (isPdf) {
+        // Multi-page flow: analyse → show preview → user confirms → OCR.
+        setOcrStatus("analyzing-pdf");
+        try {
+          const analysis = await analyzePdfPages(realFile, { hardCap: 12, topN: 2 });
+          if (cancelRef.current || runRef.current !== myRun) return;
+          setPdfAnalysis(analysis);
+          setSelectedPages(analysis.recommended.length > 0 ? analysis.recommended : [1]);
+          setOcrStatus("pick-pages");
+        } catch (e) {
+          console.error("[scanner] PDF analysis failed", e);
+          setOcrStatus("failed");
+        }
         return;
       }
 
+      // Image flight ticket: skip the picker, OCR straight away.
+      setOcrStatus("scanning");
+      setProcessStep(1);
       try {
-        setProcessStep(1);
-        const isPdf = realFile.type === "application/pdf" || /\.pdf$/i.test(realFile.name);
-        let files: string[] = [];
-        if (isPdf) {
-          const picked = await pdfToBestFlightImages(realFile, { topN: 2, hardCap: 12, scale: 2 });
-          files = picked.images;
-          console.info("[scanner] PDF page selection", { totalPages: picked.totalPages, picked: picked.pages.map(p => ({ page: p.pageIndex, score: p.score })) });
-        } else {
-          const dataUrl: string = await new Promise((resolve, reject) => {
-            const r = new FileReader();
-            r.onload = () => resolve(r.result as string);
-            r.onerror = reject;
-            r.readAsDataURL(realFile);
-          });
-          files = [dataUrl];
-        }
-        if (cancelled || runRef.current !== myRun) return;
-        if (files.length === 0) throw new Error("empty-file");
-        setProcessStep(2);
-
-        const { data, error } = await supabase.functions.invoke("scan-itinerary", {
-          body: { files },
-          headers: { "x-device-id": getDeviceId() },
+        const dataUrl: string = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(r.result as string);
+          r.onerror = reject;
+          r.readAsDataURL(realFile);
         });
-        if (cancelled || runRef.current !== myRun) return;
-        // BUG 1+2: any non-2xx / invoke error → failed state, no parse, no raw msg in UI
-        if (error) {
-          console.error("[scanner] scan-itinerary edge error", error);
-          throw new Error("ocr-failed");
-        }
-        const parsed = (data as any)?.data ?? null;
-        if (!parsed || typeof parsed !== "object") {
-          console.error("[scanner] scan-itinerary returned no data", data);
-          throw new Error("ocr-failed");
-        }
-        setProcessStep(3);
-
-        const out = parsed.outboundFlight ? normalizeParsedLeg(parsed.outboundFlight) : null;
-        const ret = parsed.returnFlight ? normalizeParsedLeg(parsed.returnFlight) : null;
-        if (!out && !ret) {
-          console.error("[scanner] no flight legs in response", parsed);
-          throw new Error("no-legs");
-        }
-
-        const fmtDate = (s: string) => {
-          if (!s) return "";
-          const d = new Date(s);
-          return isNaN(d.getTime()) ? s.split("T")[0] : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-        };
-        const fmtTime = (s: string) => (s && s.includes("T") ? s.split("T")[1].slice(0, 5) : "");
-        const toFields = (leg: FlightInfo): FlightFields => ({
-          Airline: leg.airline || "",
-          "Flight No.": leg.flightNumber || "",
-          From: [leg.fromAirport, leg.fromCity].filter(Boolean).join(" — "),
-          To: [leg.toAirport, leg.toCity].filter(Boolean).join(" — "),
-          Date: fmtDate(leg.departureDateTime),
-          Time: fmtTime(leg.departureDateTime),
-          PNR: leg.bookingRef || "",
-          Class: leg.seatClass || "",
-        });
-
-        if (out) setOutboundFields(toFields(out));
-        if (ret) setReturnFields(toFields(ret));
-        setActiveLeg(out ? "outbound" : "return");
-
-        // BUG 3: real language from OCR result
-        const lang: string | undefined = parsed.detectedLanguage;
-        const translated = !!parsed.translated && !!lang && lang.toLowerCase() !== "english";
-        setDetectedLanguage(lang || null);
-        setWasTranslated(translated);
-
-        setProcessStep(4);
-        onParsed?.({
-          outbound: out,
-          return: ret,
-          rawOutbound: parsed.outboundFlight ?? null,
-          rawReturn: parsed.returnFlight ?? null,
-          passenger: {
-            name: [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ") || undefined,
-            passport: parsed.passportNumber || undefined,
-          },
-        });
-        const t = setTimeout(() => {
-          if (cancelled || runRef.current !== myRun) return;
-          setOcrStatus("success");
-        }, 400);
-        cleanups.push(() => clearTimeout(t));
-      } catch (e: any) {
-        // BUG 1: never expose raw error text to the patient UI
-        console.error("[scanner] OCR failed", e);
-        if (cancelled || runRef.current !== myRun) return;
-        onParsed?.(null);
-        setOcrStatus("failed");
+        if (cancelRef.current || runRef.current !== myRun) return;
+        await runOcr([dataUrl], myRun);
+      } catch (e) {
+        console.error("[scanner] read image failed", e);
+        if (!cancelRef.current && runRef.current === myRun) setOcrStatus("failed");
       }
     }
     void run();
-    return () => { cancelled = true; cleanups.forEach(fn => fn()); };
+    return () => { cancelRef.current = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, realFile, retryNonce]);
+
+  // User confirmed page selection in the picker → render at full scale + OCR.
+  const confirmPages = async () => {
+    if (!realFile || selectedPages.length === 0) return;
+    const myRun = runRef.current;
+    setOcrStatus("scanning");
+    setProcessStep(1);
+    try {
+      const images = await renderPdfPagesAtScale(realFile, selectedPages, 2);
+      if (cancelRef.current || runRef.current !== myRun) return;
+      console.info("[scanner] PDF pages chosen for OCR", selectedPages);
+      await runOcr(images, myRun);
+    } catch (e) {
+      console.error("[scanner] render selected pages failed", e);
+      if (!cancelRef.current && runRef.current === myRun) setOcrStatus("failed");
+    }
+  };
+
+  const togglePage = (pageIndex: number) => {
+    setSelectedPages(prev => prev.includes(pageIndex)
+      ? prev.filter(p => p !== pageIndex)
+      : [...prev, pageIndex].sort((a, b) => a - b));
+  };
+  const resetToRecommended = () => {
+    if (pdfAnalysis) setSelectedPages(pdfAnalysis.recommended);
+  };
 
   const tryAgain = () => setRetryNonce(n => n + 1);
 
@@ -678,6 +730,137 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     { emoji: "🧠", en: "Extracting key information", ar: "استخراج المعلومات" },
     { emoji: "📍", en: "Mapping to your journey", ar: "ربطها برحلتك العلاجية" },
   ];
+
+  // PDF analysis spinner — short, lives between scanning category and pick-pages.
+  if (ocrStatus === "analyzing-pdf") {
+    return (
+      <div className="flex flex-col items-center justify-center px-6" style={{ minHeight: "100%", background: "var(--scanner-bg)" }}>
+        <div className="logo-pulse"><RufayQLogo size={56} variant="gold" /></div>
+        <p className="text-[16px] text-white mt-4 text-center" style={{ fontFamily: "'DM Sans'" }}>
+          Analysing document pages…
+        </p>
+        <p className="font-arabic text-[14px] mt-1 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>
+          نحلّل صفحات الوثيقة...
+        </p>
+      </div>
+    );
+  }
+
+  // Manual page picker — shows thumbnails + scores; user can override the auto-pick.
+  if (ocrStatus === "pick-pages" && pdfAnalysis) {
+    const total = pdfAnalysis.totalPages;
+    const recommendedSet = new Set(pdfAnalysis.recommended);
+    return (
+      <div className="pb-8" style={{ background: "var(--off-white)", minHeight: "100%" }}>
+        <div className="px-5 pt-4">
+          <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>STEP 4 · PICK PAGES</p>
+          <h2 className="text-[18px] font-bold mt-1" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
+            Confirm pages to extract
+          </h2>
+          <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>أكّد الصفحات للاستخراج</p>
+          <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
+            We picked the page(s) most likely to contain your flight ticket
+            {pdfAnalysis.scannedFallback ? " (scanned PDF — using image analysis)." : "."}
+            {" "}Tap a page to include or exclude it.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 px-4 mt-4">
+          {pdfAnalysis.pages.map(p => {
+            const isSelected = selectedPages.includes(p.pageIndex);
+            const isRecommended = recommendedSet.has(p.pageIndex);
+            return (
+              <button
+                key={p.pageIndex}
+                onClick={() => togglePage(p.pageIndex)}
+                className="text-left rounded-xl overflow-hidden btn-press transition-all"
+                style={{
+                  background: "var(--white)",
+                  border: isSelected ? "2px solid var(--teal-deep)" : "2px solid transparent",
+                  boxShadow: isSelected ? "0 4px 14px rgba(0,77,91,0.18)" : "0 2px 8px rgba(0,0,0,0.06)",
+                }}
+              >
+                <div style={{ position: "relative", background: "#f4f4f4" }}>
+                  <img
+                    src={p.thumbDataUrl}
+                    alt={`Page ${p.pageIndex} of ${total}`}
+                    style={{ width: "100%", display: "block", aspectRatio: p.aspect || 0.75 }}
+                  />
+                  <div style={{
+                    position: "absolute", top: 6, left: 6,
+                    background: "rgba(0,0,0,0.65)", color: "#fff",
+                    fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 999,
+                  }}>
+                    {p.pageIndex} / {total}
+                  </div>
+                  {isRecommended && (
+                    <div style={{
+                      position: "absolute", top: 6, right: 6,
+                      background: "var(--gold)", color: "#0D1B2A",
+                      fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 999,
+                    }}>
+                      ★ Best pick
+                    </div>
+                  )}
+                  <div style={{
+                    position: "absolute", bottom: 6, left: 6, right: 6,
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                  }}>
+                    <span style={{
+                      background: "rgba(255,255,255,0.92)", color: "var(--navy)",
+                      fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+                      fontFamily: "monospace",
+                    }}>
+                      score {p.score.toFixed(1)}
+                    </span>
+                    <span style={{
+                      width: 18, height: 18, borderRadius: 999,
+                      background: isSelected ? "var(--teal-deep)" : "rgba(255,255,255,0.92)",
+                      border: isSelected ? "none" : "1.5px solid var(--gray)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontSize: 11, fontWeight: 700,
+                    }}>
+                      {isSelected ? "✓" : ""}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="px-4 mt-5 flex items-center gap-2">
+          <button
+            onClick={resetToRecommended}
+            className="text-[11px] font-bold px-3 py-2 rounded-full btn-press"
+            style={{ background: "transparent", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}
+          >
+            Reset to best pick
+          </button>
+          <p className="text-[11px] ml-auto" style={{ color: "var(--gray)" }}>
+            {selectedPages.length} of {total} selected
+          </p>
+        </div>
+
+        <div className="px-4 mt-4">
+          <button
+            onClick={confirmPages}
+            disabled={selectedPages.length === 0}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white btn-press"
+            style={{
+              background: selectedPages.length === 0 ? "var(--gray-light)" : "var(--gold)",
+              color: selectedPages.length === 0 ? "var(--gray)" : "#fff",
+              height: 50,
+            }}
+          >
+            <span>Run OCR on selected page{selectedPages.length === 1 ? "" : "s"}</span>
+            <span className="font-arabic text-[12px]" style={{ opacity: 0.8 }}>تشغيل OCR</span>
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (ocrStatus === "scanning") {
     return (
