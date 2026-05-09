@@ -1257,6 +1257,21 @@ const Step5Success = ({ category, payload, onViewSection, onScanAnother, onDone 
         </div>
       </div>
 
+      {/* Flight journey preview — confirms what will be added to the timeline */}
+      {journey && journey.legs.length > 0 && (
+        <div className="w-full mt-4" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.8s" }}>
+          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+            ✈️ FLIGHT JOURNEY · <span className="font-arabic">رحلتك</span>
+          </p>
+          <JourneyTimeline journey={journey} compact />
+          {journey.source === "manual" && (
+            <p className="mt-2 text-[10px] text-center" style={{ color: "rgba(255,255,255,0.5)" }}>
+              ✎ Manual Entry · <span className="font-arabic">إدخال يدوي</span>
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Navigation buttons */}
       <div className="w-full mt-6 space-y-3" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.9s" }}>
         <button onClick={onViewSection} className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white btn-press" style={{ background: "var(--gold)", height: 48 }}>
