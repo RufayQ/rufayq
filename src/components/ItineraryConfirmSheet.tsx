@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { X, Plane, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Fragment, useEffect, useState } from "react";
+import { X, Plane, AlertTriangle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import type { FlightInfo } from "./AddTripSheet";
 import { validateFlight, type FlightValidationIssue } from "@/lib/flightParsing";
 
@@ -7,6 +7,9 @@ interface Props {
   open: boolean;
   outbound: FlightInfo | null;
   returnLeg: FlightInfo | null;
+  /** Raw scanner output before normalization — used for the diff toggle. */
+  rawOutbound?: any | null;
+  rawReturn?: any | null;
   passengerName?: string;
   passportNumber?: string;
   onCancel: () => void;
@@ -73,11 +76,12 @@ const LegEditor = ({ title, value, onChange }: { title: string; value: FlightInf
   );
 };
 
-const ItineraryConfirmSheet = ({ open, outbound, returnLeg, passengerName, passportNumber, onCancel, onConfirm }: Props) => {
+const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawReturn, passengerName, passportNumber, onCancel, onConfirm }: Props) => {
   const [out, setOut] = useState<FlightInfo | null>(outbound);
   const [ret, setRet] = useState<FlightInfo | null>(returnLeg);
+  const [showRaw, setShowRaw] = useState(false);
 
-  useEffect(() => { setOut(outbound); setRet(returnLeg); }, [outbound, returnLeg, open]);
+  useEffect(() => { setOut(outbound); setRet(returnLeg); setShowRaw(false); }, [outbound, returnLeg, open]);
 
   if (!open) return null;
 
@@ -87,6 +91,37 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, passengerName, passp
   ];
   const errors = issues.filter(i => i.level === "error");
   const warnings = issues.filter(i => i.level === "warning");
+
+  const renderDiff = (raw: any, norm: FlightInfo | null, label: string) => {
+    if (!raw || !norm) return null;
+    const rows: { k: string; raw: string; norm: string; changed: boolean }[] = [
+      { k: "From IATA", raw: String(raw.fromAirport ?? ""), norm: norm.fromAirport },
+      { k: "From city", raw: String(raw.fromCity ?? ""), norm: norm.fromCity },
+      { k: "From airport", raw: String(raw.fromAirportFull ?? ""), norm: norm.fromAirportFull },
+      { k: "To IATA", raw: String(raw.toAirport ?? ""), norm: norm.toAirport },
+      { k: "To city", raw: String(raw.toCity ?? ""), norm: norm.toCity },
+      { k: "To airport", raw: String(raw.toAirportFull ?? ""), norm: norm.toAirportFull },
+      { k: "Flight #", raw: String(raw.flightNumber ?? ""), norm: norm.flightNumber },
+      { k: "PNR", raw: String(raw.bookingRef ?? ""), norm: norm.bookingRef },
+    ].map(r => ({ ...r, changed: r.raw.trim() !== r.norm.trim() }));
+    return (
+      <div className="rounded-xl p-2.5 space-y-1" style={{ background: "var(--off-white)", border: "1px dashed var(--gray-light)" }}>
+        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>{label} — RAW vs NORMALIZED</p>
+        <div className="grid grid-cols-[90px_1fr_1fr] gap-1 text-[10px]">
+          <span className="font-mono" style={{ color: "var(--gray)" }}>FIELD</span>
+          <span className="font-mono" style={{ color: "var(--gray)" }}>SCANNED</span>
+          <span className="font-mono" style={{ color: "var(--gray)" }}>NORMALIZED</span>
+          {rows.map(r => (
+            <Fragment key={r.k}>
+              <span style={{ color: "var(--navy)" }}>{r.k}</span>
+              <span style={{ color: r.changed ? "var(--gray)" : "var(--navy)", textDecoration: r.changed ? "line-through" : "none" }}>{r.raw || "—"}</span>
+              <span style={{ color: r.changed ? "var(--success)" : "var(--navy)", fontWeight: r.changed ? 600 : 400 }}>{r.norm || "—"}</span>
+            </Fragment>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="absolute inset-0 z-[60] flex flex-col justify-end" onClick={onCancel}>
@@ -133,6 +168,20 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, passengerName, passp
               ))}
             </div>
           )}
+
+          {(rawOutbound || rawReturn) && (
+            <button
+              onClick={() => setShowRaw(s => !s)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] btn-press"
+              style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--teal-deep)" }}
+            >
+              {showRaw ? <EyeOff size={12} /> : <Eye size={12} />}
+              {showRaw ? "Hide raw scan" : "Compare raw scan vs normalized"}
+              <span className="font-arabic text-[10px]" dir="rtl"> · مقارنة المسح الأصلي</span>
+            </button>
+          )}
+          {showRaw && renderDiff(rawOutbound, out, "Outbound · ذهاب")}
+          {showRaw && renderDiff(rawReturn, ret, "Return · عودة")}
 
           {out && <LegEditor title="OUTBOUND · رحلة الذهاب" value={out} onChange={setOut} />}
           {ret && <LegEditor title="RETURN · رحلة العودة" value={ret} onChange={setRet} />}

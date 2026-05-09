@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard } from "lucide-react";
@@ -99,6 +99,26 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     setTimeout(() => setFlashTripId(null), 1100);
   };
 
+  // Refs to each rendered timeline step card (for scroll-into-view).
+  const stepRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  const registerStepRef = (id: number, el: HTMLDivElement | null) => { stepRefs.current.set(id, el); };
+
+  const markStepDone = (id: number) => {
+    setJourneySteps(prev => prev.map(s => s.id === id ? { ...s, status: "done" } : s));
+    flashStep(id);
+    toast.success("Step marked as done · تم وضعها كمنجزة", { duration: 2500 });
+  };
+
+  const jumpToStep = (id: number) => {
+    setExpanded(id);
+    flashStep(id);
+    // Defer scroll until expansion has rendered
+    requestAnimationFrame(() => {
+      const el = stepRefs.current.get(id);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
   // Reorder steps within the same phase via HTML5 drag-drop
   const handleReorderStep = (sourceId: number, targetId: number) => {
     if (sourceId === targetId) return;
@@ -116,6 +136,34 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   };
 
   const activeTrip = trips.find((t) => t.status === "active") || trips[0] || null;
+
+  // Prompt the user to mark flight-related steps as done once their flight has
+  // already departed/arrived. We fire this once per app session per stepId.
+  const promptedRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (!activeTrip) return;
+    const now = Date.now();
+    const checks: { stepId: number; flight: FlightInfo | null; label: string; labelAr: string }[] = [
+      { stepId: 3, flight: activeTrip.outboundFlight, label: "outbound flight", labelAr: "رحلة الذهاب" },
+      { stepId: 8, flight: activeTrip.returnFlight, label: "return flight", labelAr: "رحلة العودة" },
+    ];
+    checks.forEach(({ stepId, flight, label, labelAr }) => {
+      if (!flight?.departureDateTime) return;
+      const arr = flight.arrivalDateTime ? new Date(flight.arrivalDateTime).getTime() : new Date(flight.departureDateTime).getTime();
+      if (isNaN(arr) || arr > now) return;
+      const step = journeySteps.find(s => s.id === stepId);
+      if (!step || step.status === "done") return;
+      if (promptedRef.current.has(stepId)) return;
+      promptedRef.current.add(stepId);
+      toast(`Your ${label} appears completed`, {
+        description: `${labelAr} — mark "${step.titleEn}" as done?`,
+        duration: 8000,
+        action: { label: "Mark done", onClick: () => markStepDone(stepId) },
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTrip?.id, activeTrip?.outboundFlight?.arrivalDateTime, activeTrip?.returnFlight?.arrivalDateTime, journeySteps.length]);
+
 
   const requireProForAddTrip = () => {
     // Free tier: 1 trip. If user already has any trip, gate behind paywall unless trial is active.
@@ -257,6 +305,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
             onEditTrip={() => setShowEditTrip(true)}
             onEditStep={(s) => setEditingStep(s)}
             onAddStep={handleAddStep}
+            registerStepRef={registerStepRef}
+            onJumpToStep={jumpToStep}
           />
         )}
       </div>
@@ -808,6 +858,7 @@ const StepsTab = ({
   expanded, setExpanded, activeTrip, trips, steps,
   flashStepId, flashTripId, dragStepId, setDragStepId, onReorderStep,
   onAddTrip, onEditTrip, onEditStep, onAddStep,
+  registerStepRef, onJumpToStep,
 }: {
   expanded: number | null;
   setExpanded: (v: number | null) => void;
@@ -823,6 +874,8 @@ const StepsTab = ({
   onEditTrip: () => void;
   onEditStep: (s: JourneyStep) => void;
   onAddStep: () => void;
+  registerStepRef: (id: number, el: HTMLDivElement | null) => void;
+  onJumpToStep: (id: number) => void;
 }) => (
   <div>
     {/* PROMINENT ADD-TRIP CTA at top */}
@@ -879,7 +932,7 @@ const StepsTab = ({
       </div>
     )}
     {/* Visual journey-step cards (departure / hospital / return) — tap for details */}
-    <JourneyStepCards trip={activeTrip} />
+    <JourneyStepCards trip={activeTrip} onJumpToStep={onJumpToStep} />
 
     {/* Phase Badges */}
     <div className="flex gap-2 px-4 py-3">
@@ -920,6 +973,7 @@ const StepsTab = ({
                 return (
                   <div key={step.id}>
                     <div
+                      ref={(el) => registerStepRef(step.id, el)}
                       className={`relative mb-2.5 ${flashStepId === step.id ? "animate-flash-gold rounded-xl" : ""}`}
                       draggable
                       onDragStart={() => setDragStepId(step.id)}
@@ -1182,12 +1236,30 @@ const FlightDetailModal = ({ flight, type, onClose }: { flight: FlightInfo; type
   </div>
 );
 
-const JourneyStepCards = ({ trip }: { trip: TripData | null }) => {
+const formatCardDateTime = (iso?: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+};
+
+const JourneyStepCards = ({ trip, onJumpToStep }: { trip: TripData | null; onJumpToStep?: (id: number) => void }) => {
   const [detail, setDetail] = useState<{ flight: FlightInfo; type: "outbound" | "return" } | null>(null);
   if (!trip) return null;
   const out = trip.outboundFlight;
   const ret = trip.returnFlight;
   const cards: React.ReactNode[] = [];
+
+  const flightSubtitle = (f: FlightInfo) => {
+    const parts: string[] = [];
+    if (f.airline || f.flightNumber) parts.push(`${f.airline || "Flight"} ${f.flightNumber || ""}`.trim());
+    if (f.departureDateTime) {
+      const dt = formatCardDateTime(f.departureDateTime);
+      if (dt) parts.push(`🕒 ${dt}`);
+    }
+    if (f.bookingRef) parts.push(`PNR ${f.bookingRef}`);
+    return parts.join(" · ");
+  };
 
   if (out) {
     cards.push(
@@ -1197,10 +1269,10 @@ const JourneyStepCards = ({ trip }: { trip: TripData | null }) => {
         tag="DEPARTING"
         tagAr="مغادرة"
         title={`${out.fromAirport || out.fromCity || "—"} → ${out.toAirport || out.toCity || "—"}`}
-        subtitle={`${out.airline || "Flight"} ${out.flightNumber || ""}${out.bookingRef ? ` · PNR ${out.bookingRef}` : ""}`}
+        subtitle={flightSubtitle(out)}
         date={formatCardDate(out.departureDateTime || trip.departureDate)}
         accent="linear-gradient(135deg, var(--teal-deep), var(--teal-mid))"
-        onTap={() => setDetail({ flight: out, type: "outbound" })}
+        onTap={() => { onJumpToStep?.(3); setDetail({ flight: out, type: "outbound" }); }}
       />
     );
   }
@@ -1215,7 +1287,7 @@ const JourneyStepCards = ({ trip }: { trip: TripData | null }) => {
         subtitle={`${trip.specialtyEmoji || "🏥"} ${trip.specialty || "Treatment"}${trip.treatingDoctor ? ` · ${trip.treatingDoctor}` : ""}`}
         date={formatCardDate(trip.departureDate)}
         accent="linear-gradient(135deg, var(--gold), #B8884D)"
-        onTap={() => toast.info("Open Care Hub for treatment details · افتح مركز العناية")}
+        onTap={() => { onJumpToStep?.(7); toast.info("Open Care Hub for treatment details · افتح مركز العناية"); }}
       />
     );
   }
@@ -1227,10 +1299,10 @@ const JourneyStepCards = ({ trip }: { trip: TripData | null }) => {
         tag="RETURNING"
         tagAr="عودة"
         title={`${ret.fromAirport || ret.fromCity || "—"} → ${ret.toAirport || ret.toCity || "—"}`}
-        subtitle={`${ret.airline || "Flight"} ${ret.flightNumber || ""}${ret.bookingRef ? ` · PNR ${ret.bookingRef}` : ""}`}
+        subtitle={flightSubtitle(ret)}
         date={formatCardDate(ret.departureDateTime || trip.returnDate)}
         accent="linear-gradient(135deg, var(--teal-bright), var(--teal-deep))"
-        onTap={() => setDetail({ flight: ret, type: "return" })}
+        onTap={() => { onJumpToStep?.(8); setDetail({ flight: ret, type: "return" }); }}
       />
     );
   }

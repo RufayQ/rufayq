@@ -1,7 +1,7 @@
 {
-  "name": "Rufayq",
-  "short_name": "Rufayq",
-  "description": "Bilingual AI medical companion for Saudi patients traveling abroad.",
+  "name": "RufayQ — Your AI Medical Companion",
+  "short_name": "RufayQ",
+  "description": "Bilingual AI medical companion for Saudi & Gulf patients travelling for treatment. You're never alone abroad.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",
@@ -11,6 +11,8 @@
   "lang": "en",
   "dir": "ltr",
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/app-icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

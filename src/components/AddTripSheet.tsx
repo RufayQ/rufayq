@@ -142,6 +142,8 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
   // Confirmation preview state — populated after a successful scan, before applying.
   const [pendingOut, setPendingOut] = useState<FlightInfo | null>(null);
   const [pendingRet, setPendingRet] = useState<FlightInfo | null>(null);
+  const [pendingRawOut, setPendingRawOut] = useState<any>(null);
+  const [pendingRawRet, setPendingRawRet] = useState<any>(null);
   const [pendingPassenger, setPendingPassenger] = useState<{ name?: string; passport?: string }>({});
   const [showConfirmItinerary, setShowConfirmItinerary] = useState(false);
 
@@ -224,6 +226,8 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
 
       setPendingOut(normOut);
       setPendingRet(normRet);
+      setPendingRawOut(parsed.outboundFlight ?? null);
+      setPendingRawRet(parsed.returnFlight ?? null);
       setPendingPassenger({
         name: [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ") || undefined,
         passport: parsed.passportNumber || undefined,
@@ -617,6 +621,8 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
         open={showConfirmItinerary}
         outbound={pendingOut}
         returnLeg={pendingRet}
+        rawOutbound={pendingRawOut}
+        rawReturn={pendingRawRet}
         passengerName={pendingPassenger.name}
         passportNumber={pendingPassenger.passport}
         onCancel={() => setShowConfirmItinerary(false)}
