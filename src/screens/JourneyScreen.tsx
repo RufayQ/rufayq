@@ -94,6 +94,86 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       setJourneySteps(defaultJourneySteps);
     }
   }, [isGuest, trips.length, journeySteps.length]);
+
+  // Drain any pending flight scan handed off from the Scanner Wizard.
+  // Builds TransportSegments (one per leg) so the Tickets tab shows real
+  // parsed flights immediately after scanning, instead of demo data.
+  useEffect(() => {
+    const consume = (raw?: any) => {
+      let payload = raw;
+      if (!payload) {
+        try {
+          const s = sessionStorage.getItem("rufayq_pending_flight");
+          if (s) payload = JSON.parse(s);
+        } catch { /* ignore */ }
+      }
+      if (!payload) return;
+      sessionStorage.removeItem("rufayq_pending_flight");
+
+      const legToSegment = (leg: FlightInfo, idx: number): TransportSegment => ({
+        id: `seg-${Date.now()}-${idx}`,
+        type: "flight",
+        status: "upcoming",
+        fromCode: leg.fromAirport || "—",
+        fromCity: leg.fromCity || leg.fromAirport || "TBD",
+        fromFull: leg.fromAirportFull,
+        toCode: leg.toAirport || "—",
+        toCity: leg.toCity || leg.toAirport || "TBD",
+        toFull: leg.toAirportFull,
+        departureDateTime: leg.departureDateTime || new Date().toISOString(),
+        arrivalDateTime: leg.arrivalDateTime || leg.departureDateTime || new Date().toISOString(),
+        bookingRef: leg.bookingRef,
+        airline: leg.airline,
+        flightNumber: leg.flightNumber,
+        seatClass: leg.seatClass,
+        seatNumber: leg.seatNumber,
+      });
+
+      const newSegs: TransportSegment[] = [];
+      if (payload.outbound) newSegs.push(legToSegment(payload.outbound, 0));
+      if (payload.return) newSegs.push(legToSegment(payload.return, 1));
+      if (newSegs.length === 0) return;
+
+      setTransportSegments(prev => [...prev, ...newSegs]);
+      setActiveSubTab("tickets");
+      toast.success("✈️ Flight added to your timeline", {
+        description: `${newSegs[0].airline || ""} ${newSegs[0].flightNumber || ""} · ${newSegs[0].fromCode} → ${newSegs[0].toCode}`,
+        duration: 4000,
+      });
+
+      // Seed a trip if user has none yet, so the Steps tab + journey cards render.
+      setTrips(prev => {
+        if (prev.length > 0) return prev;
+        const out = payload.outbound as FlightInfo | undefined;
+        const ret = payload.return as FlightInfo | undefined;
+        const seed: TripData = {
+          id: `trip-${Date.now()}`,
+          destination: out?.toCity || ret?.fromCity || "Destination",
+          hospital: "",
+          specialty: "",
+          specialtyEmoji: "🏥",
+          departureDate: (out?.departureDateTime || "").split("T")[0],
+          returnDate: (ret?.departureDateTime || "").split("T")[0],
+          treatingDoctor: "",
+          companion: false,
+          companionName: payload.passenger?.name || "",
+          insuranceRef: "",
+          status: "active",
+          outboundFlight: out || null,
+          returnFlight: ret || null,
+        };
+        return [seed];
+      });
+    };
+
+    // Drain anything already in sessionStorage (e.g. user just landed on Journey).
+    consume();
+
+    const handler = (e: Event) => consume((e as CustomEvent).detail);
+    window.addEventListener("rufayq:pending-flight", handler);
+    return () => window.removeEventListener("rufayq:pending-flight", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
   const [flashStepId, setFlashStepId] = useState<number | null>(null);
   const [flashTripId, setFlashTripId] = useState<string | null>(null);
@@ -377,20 +457,32 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
               onOpenScanner?.("flight");
               return;
             }
+            // Build a sensible draft segment with type-specific defaults so the
+            // ticket card has real, editable values instead of "TBD".
             const dep = new Date(Date.now() + 24 * 3600 * 1000);
             const arr = new Date(dep.getTime() + 2 * 3600 * 1000);
+            const type = opt.en.toLowerCase() as TransportSegment["type"];
             const seg: TransportSegment = {
               id: `seg-${Date.now()}`,
-              type: opt.en.toLowerCase() as TransportSegment["type"],
+              type,
               status: "upcoming",
               departureDateTime: dep.toISOString(),
               arrivalDateTime: arr.toISOString(),
-              fromCity: "TBD", toCity: "TBD",
+              fromCity: "From", toCity: "To",
               fromCode: "—", toCode: "—",
-              airline: opt.en,
+              ...(type === "train" && { trainOperator: "Operator", trainNumber: "—" }),
+              ...(type === "bus" && { busOperator: "Operator", busNumber: "—" }),
+              ...(type === "taxi" && { taxiProvider: opt.en, driverName: "—" }),
+              ...(type === "rental" && { rentalCompany: "Rental Co.", carModel: "—" }),
+              ...(type === "medical" && { mobilityType: "Wheelchair Transfer", arrangedBy: "Hospital" }),
+              ...(type === "flight" && { airline: opt.en, flightNumber: "—" }),
             } as TransportSegment;
             setTransportSegments(prev => [...prev, seg]);
-            toast.success(`${opt.icon} ${opt.en} draft added · المسودة أُضيفت`, { description: "Tap the card to edit details." });
+            setActiveSubTab("tickets");
+            toast.success(`${opt.icon} ${opt.en} added · تم الإضافة`, {
+              description: "Tap the card to edit pickup, drop-off and details.",
+              duration: 4000,
+            });
           }}
         />
       )}
