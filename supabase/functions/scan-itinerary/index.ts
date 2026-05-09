@@ -108,11 +108,19 @@ serve(async (req) => {
 
     const userContent: any[] = [
       { type: "text", text:
-        "Extract the flight itinerary. Detect whether it is one_way, round_trip or multi_city. " +
-        "Capture passenger first/last name and passport/ID if shown. " +
-        "For each flight (outbound + return when present) capture airline, flight number, PNR, " +
-        "from/to IATA + city + airport, departure & arrival date/time in ISO 8601, cabin class and seat. " +
-        "If a value is missing, omit it — never invent data.",
+        "Extract the flight itinerary from this airline ticket / boarding pass / e-ticket. " +
+        "Detect tripType (one_way | round_trip | multi_city). For each leg capture:\n" +
+        "- airline (full carrier name e.g. 'Saudia', not the IATA code)\n" +
+        "- flightNumber (e.g. 'SV301', 'G9 164')\n" +
+        "- bookingRef (PNR, 5-7 chars)\n" +
+        "- fromAirport: the 3-letter IATA code ONLY (e.g. 'RUH'). Never put a city name here.\n" +
+        "- fromCity: the city name ONLY (e.g. 'Riyadh'). Never put an airport name or IATA code here.\n" +
+        "- toAirport / toCity: same rules.\n" +
+        "- departureDateTime / arrivalDateTime in strict ISO 8601 (YYYY-MM-DDTHH:mm), local airport time.\n" +
+        "- seatClass + seatNumber when shown.\n" +
+        "Also capture passengerFirstName, passengerLastName, passportNumber, dateOfBirth.\n" +
+        "If a value is missing or unreadable, OMIT the field entirely — never invent or guess. " +
+        "If the document shows two flights with the same passenger and the second one returns to the first origin, treat the second as returnFlight.",
       },
     ];
     for (const u of images) userContent.push({ type: "image_url", image_url: { url: u } });
