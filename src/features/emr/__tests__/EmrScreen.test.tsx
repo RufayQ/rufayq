@@ -62,6 +62,7 @@ describe("EmrScreen — sub-tab accessibility", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Radiology/i }));
     const sel = screen.getByRole("tab", { selected: true });
     expect(sel).toHaveAttribute("id", "emr-tab-radiology");
-    expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", "emr-tab-radiology");
+    const panel = document.getElementById("emr-panel-radiology");
+    expect(panel).toHaveAttribute("aria-labelledby", "emr-tab-radiology");
   });
 });
