@@ -481,32 +481,126 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
 };
 
 /* ─── STEP 4: AI REVIEW & DATA EXTRACT ─── */
-const Step4AIReview = ({ category, fileName, onSave }: {
-  category: string | null; fileName: string; onSave: () => void;
+const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
+  category: string | null;
+  fileName: string;
+  realFile?: File | null;
+  onParsed?: (p: { outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } } | null) => void;
+  onSave: () => void;
 }) => {
   const [processing, setProcessing] = useState(true);
   const [processStep, setProcessStep] = useState(0);
   const [destinations, setDestinations] = useState<boolean[]>([]);
+  const [parsedFields, setParsedFields] = useState<{ label: string; value: string }[] | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
 
   const cat = categories.find(c => c.id === category);
-  const fields = extractedFieldsByCategory[category || ""] || extractedFieldsByCategory["flight"];
+  // Use real OCR-extracted fields when available; fall back to demo fields for
+  // categories that don't yet have a backend OCR endpoint.
+  const fields = parsedFields ?? extractedFieldsByCategory[category || ""] ?? extractedFieldsByCategory["flight"];
   const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
 
   useEffect(() => {
     setDestinations(dests.map(d => d.checked));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
+  // Real OCR path — flights only for now (matches the scan-itinerary edge fn).
   useEffect(() => {
-    if (!processing) return;
-    const timers = [
-      setTimeout(() => setProcessStep(1), 800),
-      setTimeout(() => setProcessStep(2), 1800),
-      setTimeout(() => setProcessStep(3), 3000),
-      setTimeout(() => setProcessStep(4), 4200),
-      setTimeout(() => setProcessing(false), 5500),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, [processing]);
+    let cancelled = false;
+    const cleanups: Array<() => void> = [];
+    async function run() {
+      if (!realFile || category !== "flight") {
+        // Animated demo progress for non-flight categories (no backend yet).
+        const t = [
+          setTimeout(() => !cancelled && setProcessStep(1), 700),
+          setTimeout(() => !cancelled && setProcessStep(2), 1500),
+          setTimeout(() => !cancelled && setProcessStep(3), 2400),
+          setTimeout(() => !cancelled && setProcessStep(4), 3200),
+          setTimeout(() => !cancelled && setProcessing(false), 4000),
+        ];
+        cleanups.push(() => t.forEach(clearTimeout));
+        return;
+      }
+
+      try {
+        setProcessStep(1);
+        const isPdf = realFile.type === "application/pdf" || /\.pdf$/i.test(realFile.name);
+        let files: string[] = [];
+        if (isPdf) {
+          files = await pdfToImageDataUrls(realFile, { maxPages: 3, scale: 2 });
+        } else {
+          const dataUrl: string = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(r.result as string);
+            r.onerror = reject;
+            r.readAsDataURL(realFile);
+          });
+          files = [dataUrl];
+        }
+        if (cancelled) return;
+        if (files.length === 0) throw new Error("Could not read file");
+        setProcessStep(2);
+
+        const { data, error } = await supabase.functions.invoke("scan-itinerary", {
+          body: { files },
+          headers: { "x-device-id": getDeviceId() },
+        });
+        if (cancelled) return;
+        if (error) throw error;
+        const parsed = (data as any)?.data ?? {};
+        setProcessStep(3);
+
+        const out = parsed.outboundFlight ? normalizeParsedLeg(parsed.outboundFlight) : null;
+        const ret = parsed.returnFlight ? normalizeParsedLeg(parsed.returnFlight) : null;
+        if (!out && !ret) throw new Error("We couldn't read flight details. Try a clearer photo or PDF.");
+
+        const fmtDate = (s: string) => {
+          if (!s) return "—";
+          const d = new Date(s);
+          return isNaN(d.getTime()) ? s.split("T")[0] : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+        };
+        const fmtTime = (s: string) => (s && s.includes("T") ? s.split("T")[1].slice(0, 5) : "—");
+
+        const primary = out ?? ret!;
+        const newFields: { label: string; value: string }[] = [
+          { label: "Airline", value: primary.airline || "—" },
+          { label: "Flight No.", value: primary.flightNumber || "—" },
+          { label: "From", value: [primary.fromAirport, primary.fromCity].filter(Boolean).join(" — ") || "—" },
+          { label: "To", value: [primary.toAirport, primary.toCity].filter(Boolean).join(" — ") || "—" },
+          { label: "Date", value: fmtDate(primary.departureDateTime) },
+          { label: "Time", value: fmtTime(primary.departureDateTime) },
+          { label: "PNR", value: primary.bookingRef || "—" },
+          { label: "Class", value: primary.seatClass || "—" },
+        ];
+        if (ret && out) {
+          newFields.push({ label: "Return Flight", value: ret.flightNumber || "—" });
+          newFields.push({ label: "Return Date", value: fmtDate(ret.departureDateTime) });
+        }
+        setParsedFields(newFields);
+        setProcessStep(4);
+        onParsed?.({
+          outbound: out,
+          return: ret,
+          passenger: {
+            name: [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ") || undefined,
+            passport: parsed.passportNumber || undefined,
+          },
+        });
+        const t = setTimeout(() => !cancelled && setProcessing(false), 500);
+        cleanups.push(() => clearTimeout(t));
+      } catch (e: any) {
+        console.error("[scanner] OCR failed", e);
+        if (cancelled) return;
+        setParseError(e?.message || "Could not read this document.");
+        toast.error(e?.message || "Could not read this document. Try a clearer photo.");
+        setProcessing(false);
+      }
+    }
+    void run();
+    return () => { cancelled = true; cleanups.forEach(fn => fn()); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, realFile]);
 
   const toggleDest = (i: number) => {
     setDestinations(prev => prev.map((v, idx) => idx === i ? !v : v));
