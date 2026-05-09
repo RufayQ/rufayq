@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { pdfToImageDataUrls } from "@/lib/pdfToImages";
+import { normalizeParsedLeg, validateFlight } from "@/lib/flightParsing";
+import ItineraryConfirmSheet from "@/components/ItineraryConfirmSheet";
 
 export interface FlightInfo {
   airline: string;
@@ -136,6 +138,12 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
   const [errors, setErrors] = useState<string[]>([]);
   const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Confirmation preview state — populated after a successful scan, before applying.
+  const [pendingOut, setPendingOut] = useState<FlightInfo | null>(null);
+  const [pendingRet, setPendingRet] = useState<FlightInfo | null>(null);
+  const [pendingPassenger, setPendingPassenger] = useState<{ name?: string; passport?: string }>({});
+  const [showConfirmItinerary, setShowConfirmItinerary] = useState(false);
 
   if (!open) return null;
 
