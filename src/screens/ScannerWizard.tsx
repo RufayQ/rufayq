@@ -862,6 +862,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     );
   }
 
+  if (ocrStatus === "scanning") {
     return (
       <div className="flex flex-col items-center justify-center px-6" style={{ minHeight: "100%", background: "var(--scanner-bg)" }}>
         <div className="logo-pulse">
