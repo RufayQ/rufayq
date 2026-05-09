@@ -14,6 +14,8 @@ import { PlaneTakeoff, PlaneLanding, Hotel, Stethoscope, ChevronRight, X as XIco
 import type { FlightInfo } from "@/components/AddTripSheet";
 import TransportCard, { LayoverIndicator, type TransportSegment } from "@/components/TransportCard";
 import TicketDetailSheet, { type OverrideAnnotation, type SmartReminder, getSystemReminders } from "@/components/TicketDetailSheet";
+import ItineraryConfirmSheet from "@/components/ItineraryConfirmSheet";
+import EditTransportSheet from "@/components/EditTransportSheet";
 import AppointmentFormSheet, { type AppointmentFormData } from "@/components/AppointmentFormSheet";
 import PaywallModal from "@/components/PaywallModal";
 import { useTrial } from "@/hooks/useTrial";
