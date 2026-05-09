@@ -114,12 +114,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const registerStepRef = (id: number, el: HTMLDivElement | null) => { stepRefs.current.set(id, el); };
 
   const markStepDone = (id: number) => {
-    setJourneySteps(prev => prev.map(s => s.id === id ? { ...s, status: "done" } : s));
-    flashStep(id);
-    toast.success("Step marked as done · تم وضعها كمنجزة", { duration: 2500 });
-  };
-
-  const markStepDone = (id: number) => {
     let prevStatus: JourneyStep["status"] = "pending";
     setJourneySteps(prev => prev.map(s => {
       if (s.id !== id) return s;
