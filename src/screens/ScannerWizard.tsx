@@ -687,8 +687,23 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{cat?.en || "Document"}</p>
           <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>{fileName}</p>
         </div>
-        <span className="text-[9px] px-2 py-1 rounded-full font-bold" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Processed</span>
+        <span className="text-[9px] px-2 py-1 rounded-full font-bold" style={{ background: parseError ? "rgba(217,79,79,0.1)" : "rgba(61,170,110,0.1)", color: parseError ? "var(--error)" : "#3DAA6E" }}>{parseError ? "⚠ Failed" : "✓ Processed"}</span>
       </div>
+
+      {parseError && (
+        <div className="mx-4 mt-3 rounded-2xl p-4 space-y-3" style={{ background: "var(--white)", border: "1px solid rgba(217,79,79,0.25)" }}>
+          <p className="text-[13px] font-bold" style={{ color: "var(--error)" }}>OCR couldn't read this document</p>
+          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>تعذّر قراءة هذه الوثيقة</p>
+          <p className="text-[11px]" style={{ color: "var(--gray)" }}>{parseError}</p>
+          <button
+            onClick={tryAgain}
+            className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white btn-press flex items-center justify-center gap-2"
+            style={{ background: "var(--teal-deep)" }}
+          >
+            <RotateCw size={14} /> Try OCR again · <span className="font-arabic text-[11px]">إعادة المحاولة</span>
+          </button>
+        </div>
+      )}
 
       {/* Extracted Data */}
       <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
