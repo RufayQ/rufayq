@@ -932,7 +932,7 @@ const StepsTab = ({
       </div>
     )}
     {/* Visual journey-step cards (departure / hospital / return) — tap for details */}
-    <JourneyStepCards trip={activeTrip} />
+    <JourneyStepCards trip={activeTrip} onJumpToStep={onJumpToStep} />
 
     {/* Phase Badges */}
     <div className="flex gap-2 px-4 py-3">
@@ -973,6 +973,7 @@ const StepsTab = ({
                 return (
                   <div key={step.id}>
                     <div
+                      ref={(el) => registerStepRef(step.id, el)}
                       className={`relative mb-2.5 ${flashStepId === step.id ? "animate-flash-gold rounded-xl" : ""}`}
                       draggable
                       onDragStart={() => setDragStepId(step.id)}
