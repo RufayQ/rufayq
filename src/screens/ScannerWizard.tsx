@@ -508,6 +508,23 @@ const emptyFlightFields = (): FlightFields => ({
   Airline: "", "Flight No.": "", From: "", To: "", Date: "", Time: "", PNR: "", Class: "",
 });
 
+const fmtDateLite = (s: string) => {
+  if (!s) return "";
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? s.split("T")[0] || "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
+const fmtTimeLite = (s: string) => (s && s.includes("T") ? s.split("T")[1].slice(0, 5) : "");
+const toFlightFieldsLite = (leg: FlightInfo): FlightFields => ({
+  Airline: leg.airline || "",
+  "Flight No.": leg.flightNumber || "",
+  From: [leg.fromAirport, leg.fromCity].filter(Boolean).join(" — "),
+  To: [leg.toAirport, leg.toCity].filter(Boolean).join(" — "),
+  Date: fmtDateLite(leg.departureDateTime),
+  Time: fmtTimeLite(leg.departureDateTime),
+  PNR: leg.bookingRef || "",
+  Class: leg.seatClass || "",
+});
+
 const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   category: string | null;
   fileName: string;
