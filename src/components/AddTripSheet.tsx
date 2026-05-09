@@ -268,17 +268,44 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
       return;
     }
 
+    const splitEndpoint = (raw: string) => {
+      // "RUH — Riyadh" / "RUH - Riyadh, KKIA" / "BER Berlin Brandenburg"
+      const m = raw.match(/^\s*([A-Z]{3})\b[\s\-—:,]*(.*)$/);
+      if (m) return { code: m[1], city: m[2].split(/[—,-]/)[0].trim() || m[2].trim(), full: m[2].trim() };
+      return { code: "", city: raw.trim(), full: raw.trim() };
+    };
+
     const buildFlight = (airline: string, num: string, pnr: string, from: string, to: string, depD: string, depT: string, arrD: string, arrT: string, cls: string, seat: string): FlightInfo | null => {
-      if (!airline && !num) return null;
+      if (!airline && !num && !from && !to) return null;
+      const f = splitEndpoint(from);
+      const t = splitEndpoint(to);
       return {
         airline, flightNumber: num, bookingRef: pnr,
-        fromAirport: from.split(" ")[0] || from, fromCity: from, fromAirportFull: from,
-        toAirport: to.split(" ")[0] || to, toCity: to, toAirportFull: to,
+        fromAirport: f.code, fromCity: f.city, fromAirportFull: f.full,
+        toAirport: t.code, toCity: t.city, toAirportFull: t.full,
         departureDateTime: depD && depT ? `${depD}T${depT}` : depD,
         arrivalDateTime: arrD && arrT ? `${arrD}T${arrT}` : arrD,
-        seatClass: cls, seatNumber: seat,
+        seatClass: cls || "Economy", seatNumber: seat,
       };
     };
+
+    const outboundFlight = buildFlight(outAirline, outFlightNum, outPNR, outFrom, outTo, outDepDate, outDepTime, outArrDate, outArrTime, outClass, outSeat);
+    const returnFlight = showReturnFlight
+      ? buildFlight(retAirline, retFlightNum, retPNR, retFrom, retTo, retDepDate, retDepTime, retArrDate, retArrTime, retClass, retSeat)
+      : null;
+
+    // Block save if a flight section was started but is invalid/inconsistent.
+    const flightIssues = [
+      ...(outboundFlight ? validateFlight(outboundFlight, "Outbound") : []),
+      ...(returnFlight ? validateFlight(returnFlight, "Return") : []),
+    ].filter(i => i.level === "error");
+    if (flightIssues.length > 0) {
+      toast.error(flightIssues[0].message, {
+        description: flightIssues.length > 1 ? `+${flightIssues.length - 1} more issue(s) — fix flight details before saving.` : "Fix the flight details before saving.",
+        duration: 6000,
+      });
+      return;
+    }
 
     const validCompanions = companions.filter((c) => c.name.trim());
     const trip: TripData = {
@@ -291,8 +318,8 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
       companions: validCompanions.length > 0 ? validCompanions : undefined,
       insuranceRef,
       status: "active",
-      outboundFlight: buildFlight(outAirline, outFlightNum, outPNR, outFrom, outTo, outDepDate, outDepTime, outArrDate, outArrTime, outClass, outSeat),
-      returnFlight: showReturnFlight ? buildFlight(retAirline, retFlightNum, retPNR, retFrom, retTo, retDepDate, retDepTime, retArrDate, retArrTime, retClass, retSeat) : null,
+      outboundFlight,
+      returnFlight,
     };
 
     onSubmit(trip);
