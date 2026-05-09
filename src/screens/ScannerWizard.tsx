@@ -14,7 +14,7 @@ interface ScannerWizardProps {
   preselectedCategory?: string | null;
   /** Called on save. For flights, payload contains the parsed legs so the
    * caller can inject them into the Journey timeline. */
-  onSave?: (category: string | null, payload?: { outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } }) => void;
+  onSave?: (category: string | null, payload?: { outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } }) => void;
 }
 
 const categories = [
@@ -130,7 +130,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   const progress = (step / totalSteps) * 100;
 
   // Saved parsed payload from real OCR (only for flight category right now).
-  const [scannedPayload, setScannedPayload] = useState<{ outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } } | null>(null);
+  const [scannedPayload, setScannedPayload] = useState<{ outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } } | null>(null);
 
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
@@ -485,7 +485,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   category: string | null;
   fileName: string;
   realFile?: File | null;
-  onParsed?: (p: { outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } } | null) => void;
+  onParsed?: (p: { outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } } | null) => void;
   onSave: () => void;
 }) => {
   const [processing, setProcessing] = useState(true);
@@ -506,6 +506,11 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   }, [category]);
 
   // Real OCR path — flights only for now (matches the scan-itinerary edge fn).
+  // Refactored into a ref-callable runner so the "Try OCR again" button on
+  // the AI review screen can re-run scan-itinerary on the same uploaded file
+  // without forcing the user to re-upload.
+  const runRef = useRef<(() => void) | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   useEffect(() => {
     let cancelled = false;
     const cleanups: Array<() => void> = [];
@@ -582,6 +587,8 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
         onParsed?.({
           outbound: out,
           return: ret,
+          rawOutbound: parsed.outboundFlight ?? null,
+          rawReturn: parsed.returnFlight ?? null,
           passenger: {
             name: [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ") || undefined,
             passport: parsed.passportNumber || undefined,
@@ -600,7 +607,16 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     void run();
     return () => { cancelled = true; cleanups.forEach(fn => fn()); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, realFile]);
+  }, [category, realFile, retryNonce]);
+
+  const tryAgain = () => {
+    setParseError(null);
+    setParsedFields(null);
+    setProcessing(true);
+    setProcessStep(0);
+    onParsed?.(null);
+    setRetryNonce(n => n + 1);
+  };
 
   const toggleDest = (i: number) => {
     setDestinations(prev => prev.map((v, idx) => idx === i ? !v : v));
@@ -673,8 +689,23 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{cat?.en || "Document"}</p>
           <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>{fileName}</p>
         </div>
-        <span className="text-[9px] px-2 py-1 rounded-full font-bold" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Processed</span>
+        <span className="text-[9px] px-2 py-1 rounded-full font-bold" style={{ background: parseError ? "rgba(217,79,79,0.1)" : "rgba(61,170,110,0.1)", color: parseError ? "var(--error)" : "#3DAA6E" }}>{parseError ? "⚠ Failed" : "✓ Processed"}</span>
       </div>
+
+      {parseError && (
+        <div className="mx-4 mt-3 rounded-2xl p-4 space-y-3" style={{ background: "var(--white)", border: "1px solid rgba(217,79,79,0.25)" }}>
+          <p className="text-[13px] font-bold" style={{ color: "var(--error)" }}>OCR couldn't read this document</p>
+          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>تعذّر قراءة هذه الوثيقة</p>
+          <p className="text-[11px]" style={{ color: "var(--gray)" }}>{parseError}</p>
+          <button
+            onClick={tryAgain}
+            className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white btn-press flex items-center justify-center gap-2"
+            style={{ background: "var(--teal-deep)" }}
+          >
+            <RotateCw size={14} /> Try OCR again · <span className="font-arabic text-[11px]">إعادة المحاولة</span>
+          </button>
+        </div>
+      )}
 
       {/* Extracted Data */}
       <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>

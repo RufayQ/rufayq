@@ -155,7 +155,7 @@ const Index = () => {
     setShowScanner(true);
   };
 
-  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; passenger?: { name?: string; passport?: string } }) => {
+  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } }) => {
     setShowScanner(false);
     const msg = toastMessages[category || "other"] || toastMessages.other;
 
