@@ -329,13 +329,11 @@ export function scoreFlightImage(
   if (width < 4 || height < 4) return 0;
   const stride = Math.max(1, opts?.stride ?? PDF_SCORING_CONFIG.IMAGE_SAMPLE_STRIDE);
 
-  // Per-row darkness using strided sampling — every Nth row, every Nth col.
-  // Rows that aren't sampled are linearly interpolated from neighbours so the
-  // variance/crossings stats stay statistically equivalent to the full scan.
-  const rowDark = new Float32Array(height);
-  let sampledRows = 0;
+  // Compute per-sampled-row darkness using strided columns. We keep stats
+  // in terms of *sampled* rows only — no interpolation, which avoids
+  // aliasing artefacts when the page has periodic horizontal banding.
+  const samples: number[] = [];
   let totalDark = 0;
-  const sampledIndices: number[] = [];
   for (let y = 0; y < height; y += stride) {
     let sum = 0;
     let n = 0;
@@ -347,47 +345,32 @@ export function scoreFlightImage(
       n++;
     }
     const v = n > 0 ? sum / n : 0;
-    rowDark[y] = v;
+    samples.push(v);
     totalDark += v;
-    sampledRows++;
-    sampledIndices.push(y);
   }
-  // Linear interpolation for skipped rows.
-  for (let s = 0; s < sampledIndices.length - 1; s++) {
-    const y0 = sampledIndices[s];
-    const y1 = sampledIndices[s + 1];
-    const v0 = rowDark[y0];
-    const v1 = rowDark[y1];
-    const span = y1 - y0;
-    for (let y = y0 + 1; y < y1; y++) {
-      rowDark[y] = v0 + ((v1 - v0) * (y - y0)) / span;
-    }
-  }
-  // Tail rows beyond the last sample copy the last sampled value.
-  const lastSampled = sampledIndices[sampledIndices.length - 1];
-  for (let y = lastSampled + 1; y < height; y++) rowDark[y] = rowDark[lastSampled];
-
-  const meanDark = totalDark / Math.max(1, sampledRows);
+  const sampled = samples.length;
+  if (sampled < 2) return 0;
+  const meanDark = totalDark / sampled;
   const inkRatio = meanDark / 255;
 
   if (inkRatio < 0.015) return 0;
   if (inkRatio > 0.55) return 1;
 
   let varSum = 0;
-  for (let y = 0; y < height; y++) {
-    const d = rowDark[y] - meanDark;
+  for (let i = 0; i < sampled; i++) {
+    const d = samples[i] - meanDark;
     varSum += d * d;
   }
-  const variance = varSum / height;
+  const variance = varSum / sampled;
   const std = Math.sqrt(variance);
 
   let crossings = 0;
-  for (let y = 1; y < height; y++) {
-    const a = rowDark[y - 1] - meanDark;
-    const b = rowDark[y] - meanDark;
+  for (let i = 1; i < sampled; i++) {
+    const a = samples[i - 1] - meanDark;
+    const b = samples[i] - meanDark;
     if ((a < 0 && b >= 0) || (a >= 0 && b < 0)) crossings++;
   }
-  const crossingsRatio = crossings / height;
+  const crossingsRatio = crossings / sampled;
 
   let score = Math.min(15, std / 4);
   score += Math.min(10, crossingsRatio * 40);
