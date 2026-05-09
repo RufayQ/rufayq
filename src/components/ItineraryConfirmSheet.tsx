@@ -198,6 +198,15 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawRetu
               <span className="font-arabic text-[10px]" dir="rtl"> · مقارنة المسح الأصلي</span>
             </button>
           )}
+          {showRaw && (rawOutbound || rawReturn) && (
+            <label className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer btn-press"
+                   style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              <span className="text-[11px]" style={{ color: "var(--navy)" }}>
+                Show only changed · <span className="font-arabic" dir="rtl">إظهار المتغيّرات فقط</span>
+              </span>
+              <input type="checkbox" checked={onlyChanged} onChange={e => setOnlyChanged(e.target.checked)} />
+            </label>
+          )}
           {showRaw && renderDiff(rawOutbound, out, "Outbound · ذهاب")}
           {showRaw && renderDiff(rawReturn, ret, "Return · عودة")}
 
