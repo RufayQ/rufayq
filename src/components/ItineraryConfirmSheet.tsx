@@ -76,12 +76,22 @@ const LegEditor = ({ title, value, onChange }: { title: string; value: FlightInf
   );
 };
 
+const RAW_TOGGLE_KEY = "rufayq_itinerary_show_raw";
+const ONLY_CHANGED_KEY = "rufayq_itinerary_only_changed";
+
 const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawReturn, passengerName, passportNumber, onCancel, onConfirm }: Props) => {
   const [out, setOut] = useState<FlightInfo | null>(outbound);
   const [ret, setRet] = useState<FlightInfo | null>(returnLeg);
-  const [showRaw, setShowRaw] = useState(false);
+  const [showRaw, setShowRaw] = useState<boolean>(() => {
+    try { return localStorage.getItem(RAW_TOGGLE_KEY) === "1"; } catch { return false; }
+  });
+  const [onlyChanged, setOnlyChanged] = useState<boolean>(() => {
+    try { return localStorage.getItem(ONLY_CHANGED_KEY) === "1"; } catch { return false; }
+  });
 
-  useEffect(() => { setOut(outbound); setRet(returnLeg); setShowRaw(false); }, [outbound, returnLeg, open]);
+  useEffect(() => { setOut(outbound); setRet(returnLeg); }, [outbound, returnLeg, open]);
+  useEffect(() => { try { localStorage.setItem(RAW_TOGGLE_KEY, showRaw ? "1" : "0"); } catch { /* noop */ } }, [showRaw]);
+  useEffect(() => { try { localStorage.setItem(ONLY_CHANGED_KEY, onlyChanged ? "1" : "0"); } catch { /* noop */ } }, [onlyChanged]);
 
   if (!open) return null;
 
@@ -94,7 +104,7 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawRetu
 
   const renderDiff = (raw: any, norm: FlightInfo | null, label: string) => {
     if (!raw || !norm) return null;
-    const rows: { k: string; raw: string; norm: string; changed: boolean }[] = [
+    const allRows = [
       { k: "From IATA", raw: String(raw.fromAirport ?? ""), norm: norm.fromAirport },
       { k: "From city", raw: String(raw.fromCity ?? ""), norm: norm.fromCity },
       { k: "From airport", raw: String(raw.fromAirportFull ?? ""), norm: norm.fromAirportFull },
@@ -104,21 +114,29 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawRetu
       { k: "Flight #", raw: String(raw.flightNumber ?? ""), norm: norm.flightNumber },
       { k: "PNR", raw: String(raw.bookingRef ?? ""), norm: norm.bookingRef },
     ].map(r => ({ ...r, changed: r.raw.trim() !== r.norm.trim() }));
+    const rows = onlyChanged ? allRows.filter(r => r.changed) : allRows;
+    const changedCount = allRows.filter(r => r.changed).length;
     return (
       <div className="rounded-xl p-2.5 space-y-1" style={{ background: "var(--off-white)", border: "1px dashed var(--gray-light)" }}>
-        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>{label} — RAW vs NORMALIZED</p>
-        <div className="grid grid-cols-[90px_1fr_1fr] gap-1 text-[10px]">
-          <span className="font-mono" style={{ color: "var(--gray)" }}>FIELD</span>
-          <span className="font-mono" style={{ color: "var(--gray)" }}>SCANNED</span>
-          <span className="font-mono" style={{ color: "var(--gray)" }}>NORMALIZED</span>
-          {rows.map(r => (
-            <Fragment key={r.k}>
-              <span style={{ color: "var(--navy)" }}>{r.k}</span>
-              <span style={{ color: r.changed ? "var(--gray)" : "var(--navy)", textDecoration: r.changed ? "line-through" : "none" }}>{r.raw || "—"}</span>
-              <span style={{ color: r.changed ? "var(--success)" : "var(--navy)", fontWeight: r.changed ? 600 : 400 }}>{r.norm || "—"}</span>
-            </Fragment>
-          ))}
-        </div>
+        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>
+          {label} — RAW vs NORMALIZED · {changedCount} changed
+        </p>
+        {rows.length === 0 ? (
+          <p className="text-[10px] italic py-1" style={{ color: "var(--gray)" }}>No differences — scanner output matched the normalized values.</p>
+        ) : (
+          <div className="grid grid-cols-[90px_1fr_1fr] gap-1 text-[10px]">
+            <span className="font-mono" style={{ color: "var(--gray)" }}>FIELD</span>
+            <span className="font-mono" style={{ color: "var(--gray)" }}>SCANNED</span>
+            <span className="font-mono" style={{ color: "var(--gray)" }}>NORMALIZED</span>
+            {rows.map(r => (
+              <Fragment key={r.k}>
+                <span style={{ color: "var(--navy)" }}>{r.k}</span>
+                <span style={{ color: r.changed ? "var(--gray)" : "var(--navy)", textDecoration: r.changed ? "line-through" : "none" }}>{r.raw || "—"}</span>
+                <span style={{ color: r.changed ? "var(--success)" : "var(--navy)", fontWeight: r.changed ? 600 : 400 }}>{r.norm || "—"}</span>
+              </Fragment>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -179,6 +197,15 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawRetu
               {showRaw ? "Hide raw scan" : "Compare raw scan vs normalized"}
               <span className="font-arabic text-[10px]" dir="rtl"> · مقارنة المسح الأصلي</span>
             </button>
+          )}
+          {showRaw && (rawOutbound || rawReturn) && (
+            <label className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer btn-press"
+                   style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              <span className="text-[11px]" style={{ color: "var(--navy)" }}>
+                Show only changed · <span className="font-arabic" dir="rtl">إظهار المتغيّرات فقط</span>
+              </span>
+              <input type="checkbox" checked={onlyChanged} onChange={e => setOnlyChanged(e.target.checked)} />
+            </label>
           )}
           {showRaw && renderDiff(rawOutbound, out, "Outbound · ذهاب")}
           {showRaw && renderDiff(rawReturn, ret, "Return · عودة")}
