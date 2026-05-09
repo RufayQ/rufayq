@@ -506,6 +506,11 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   }, [category]);
 
   // Real OCR path — flights only for now (matches the scan-itinerary edge fn).
+  // Refactored into a ref-callable runner so the "Try OCR again" button on
+  // the AI review screen can re-run scan-itinerary on the same uploaded file
+  // without forcing the user to re-upload.
+  const runRef = useRef<(() => void) | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   useEffect(() => {
     let cancelled = false;
     const cleanups: Array<() => void> = [];
