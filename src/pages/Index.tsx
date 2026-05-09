@@ -9,7 +9,7 @@ import HomeScreen from "@/screens/HomeScreen";
 import JourneyScreen from "@/screens/JourneyScreen";
 import RecordsScreen from "@/screens/RecordsScreen";
 import ChatScreen from "@/screens/ChatScreen";
-import CareHubScreen from "@/screens/CareHubScreen";
+import { CareHubScreen } from "@/features/carehub";
 import MedicationsScreen from "@/screens/MedicationsScreen";
 import PricingScreen from "@/screens/PricingScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
@@ -19,7 +19,7 @@ import ScannerWizard from "@/screens/ScannerWizard";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import { EmrScreen } from "@/features/emr";
-import RoleSelectorScreen, { getStoredRole, type AppRolePref } from "@/screens/RoleSelectorScreen";
+import RoleSelectorScreen, { getStoredRole, clearStoredRole, type AppRolePref } from "@/screens/RoleSelectorScreen";
 import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
 import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
@@ -69,17 +69,20 @@ const Index = () => {
     const seen = localStorage.getItem("rufayq_onboarded");
     if (!seen) return "onboarding";
     if (forceSignIn) return "login";
+    // New flow: pick role BEFORE sign in. If no stored role, show role screen first.
+    if (!getStoredRole()) return "role";
     return "main";
   });
 
-  // If user arrives at /app with no Supabase session, route them through LoginScreen.
-  // Guests can still tap "Continue as guest" inside LoginScreen.
+  // If user arrives at /app with no Supabase session, route them through
+  // role-selector → LoginScreen. Guests can still tap "Continue as guest"
+  // inside LoginScreen.
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user && (forceSignIn || appView === "main")) {
         if (forceSignIn || !localStorage.getItem("rufayq_guest_ok")) {
-          setAppView("login");
+          setAppView(getStoredRole() ? "login" : "role");
         }
       }
     })();
@@ -95,27 +98,75 @@ const Index = () => {
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("rufayq_onboarded", "true");
-    setAppView("login");
+    // Route to role selector first; sign-in follows.
+    setAppView(getStoredRole() ? "login" : "role");
   };
 
-  const handleLogin = () => {
-    // After auth, route through role selector if no preference is stored.
-    const existing = getStoredRole();
-    setAppView(existing ? "main" : "role");
-  };
+  /**
+   * Post sign-in role validation.
+   * The user picked a role BEFORE login; here we cross-check it against the
+   * `user_roles` table. Mismatches sign the user out and bounce them back so
+   * the wrong persona can never enter the wrong shell.
+   */
+  const handleLogin = async () => {
+    const stored = getStoredRole();
+    if (!stored) { setAppView("role"); return; }
 
-  const handleRolePicked = (role: AppRolePref) => {
-    if (role === "doctor") {
-      // Doctors live in the provider portal, not the patient shell.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      // Guest path — patient shell only.
+      if (stored === "doctor") {
+        toast.error("Doctor accounts require sign-in", { description: "حسابات الأطباء تتطلب تسجيل الدخول" });
+        setAppView("login");
+        return;
+      }
+      setAppView("main");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id);
+
+    if (error) {
+      toast.error("Couldn't verify your account role", { description: error.message });
+      setAppView("login");
+      return;
+    }
+
+    const roles = (data || []).map((r: { role: string }) => r.role);
+    const hasProvider = roles.some((r) => r === "provider_admin" || r === "provider_staff" || r === "admin" || r === "moderator");
+
+    if (stored === "doctor") {
+      if (!hasProvider) {
+        toast.error("This account is not registered as a doctor", {
+          description: "هذا الحساب غير مسجّل كطبيب — الرجاء استخدام حساب طبيب",
+        });
+        await supabase.auth.signOut();
+        clearStoredRole();
+        setAppView("role");
+        return;
+      }
       navigate("/provider", { replace: true });
       return;
     }
+
+    // Patient path. Block staff from entering the patient shell with a
+    // doctor-style account by mistake.
     setAppView("main");
-    // Best-effort native push registration; safe no-op on web.
     registerPush({
-      rolePref: role,
+      rolePref: stored,
       onDeepLink: routeDeepLink,
     }).catch((e) => console.warn("[push] register skipped", e));
+  };
+
+  const handleRolePicked = (role: AppRolePref) => {
+    // The actual provider redirect happens AFTER sign-in (see handleLogin).
+    // From here we just send the user to the login screen with their pick
+    // already persisted via getStoredRole().
+    void role;
+    setAppView("login");
   };
 
   /** Route an incoming AA / push deep link into the correct tab/screen. */

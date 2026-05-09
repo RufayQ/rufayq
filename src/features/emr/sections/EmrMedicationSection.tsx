@@ -1,5 +1,5 @@
 import EmrSectionShell from "./EmrSectionShell";
-import { EMR_SECTIONS } from "../index";
+import { EMR_SECTIONS } from "../sections.config";
 
 const meta = EMR_SECTIONS.find((s) => s.key === "medication")!;
 

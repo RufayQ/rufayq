@@ -1,26 +1,25 @@
 /**
  * RoleSelectorScreen
  * ──────────────────
- * Shown after the user's first successful sign-in. Lets them pick the
- * persona the app should boot into (Patient or Doctor). The choice is
- * persisted in `localStorage` under `rufayq_role` and consumed by
- * `Index.tsx` / `useRolePreference()`.
+ * Shown BEFORE sign-in so the user picks the persona they want to log into
+ * (Patient or Doctor). The chosen role is persisted in `localStorage`
+ * (`rufayq_role`) and later validated against the user's `user_roles`
+ * records during the post-login handshake in `Index.tsx`.
  *
- * Bilingual EN/AR. Honours `LanguageContext`:
- *   - mode=ar → Arabic-only, RTL
- *   - mode=en → English-only, LTR
- *   - mode=both → bilingual stacked (EN above AR)
+ *  flow:
+ *  onboarding → role → login → DB role check → main / provider portal
  *
- * Uses semantic design tokens only — no hardcoded colors.
+ * Bilingual EN/AR. Honours `LanguageContext`. Uses semantic design tokens
+ * only — no hardcoded colors.
  *
- * Validation states surfaced:
- *   - "untouched"          : Continue button disabled, no message
- *   - "needs_choice" (after blur of CTA) : inline hint shown
- *   - "saving"             : button shows spinner, prevents double-submit
- *   - "error"              : caught storage failure → bilingual toast + retry
+ * Validation states:
+ *   - "untouched"   : Continue is disabled but always visible
+ *   - "needs_choice": inline hint shown after attempting to continue
+ *   - "saving"      : button shows spinner, prevents double-submit
+ *   - "error"       : caught storage failure → bilingual toast + retry
  */
 import { useEffect, useState } from "react";
-import { Stethoscope, HeartPulse, Check, Loader2 } from "lucide-react";
+import { Stethoscope, HeartPulse, Check, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -33,6 +32,8 @@ const ROLE_VERSION_KEY = "rufayq_role_version";
 
 interface Props {
   onSelect: (role: AppRolePref) => void;
+  /** Optional: lets the user back out if they already had a session. */
+  onBack?: () => void;
 }
 
 /** Reads + version-validates the stored preference. */
@@ -47,15 +48,22 @@ export function getStoredRole(): AppRolePref | null {
   }
 }
 
+export function clearStoredRole() {
+  try {
+    localStorage.removeItem(ROLE_PREF_KEY);
+    localStorage.removeItem(ROLE_VERSION_KEY);
+  } catch { /* noop */ }
+}
+
 const STR = {
   title:    { en: "Welcome to Rufayq",                                    ar: "أهلاً بك في رفايق" },
-  subtitle: { en: "Choose how you'll use the app. You can switch later in Settings.",
-              ar: "اختر طريقة استخدامك للتطبيق. يمكنك تغييرها لاحقاً من الإعدادات." },
+  subtitle: { en: "Choose how you'll sign in. We'll verify your account matches.",
+              ar: "اختر طريقة دخولك وسنتحقق من تطابق حسابك." },
   patient:  { en: "I'm a Patient",                                        ar: "أنا مريض" },
   patientS: { en: "Track journey, records, meds and care plan",           ar: "تتبّع الرحلة والسجلات والأدوية والخطة العلاجية" },
   doctor:   { en: "I'm a Doctor",                                         ar: "أنا طبيب" },
   doctorS:  { en: "Manage patients, claims and approvals",                ar: "إدارة المرضى والمطالبات والموافقات" },
-  cont:     { en: "Continue",                                             ar: "متابعة" },
+  cont:     { en: "Continue to sign in",                                  ar: "متابعة لتسجيل الدخول" },
   pickHint: { en: "Please select an option to continue",                  ar: "الرجاء اختيار خيار للمتابعة" },
   saveErr:  { en: "Couldn't save your choice. Please try again.",         ar: "تعذّر حفظ اختيارك. حاول مرة أخرى." },
 };
@@ -67,8 +75,6 @@ const RoleSelectorScreen = ({ onSelect }: Props) => {
   const [saving, setSaving] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
-  // Pre-populate if a valid stored choice exists (e.g. user backed out and
-  // re-entered before completing onSelect).
   useEffect(() => {
     const existing = getStoredRole();
     if (existing) setPicked(existing);
@@ -88,19 +94,19 @@ const RoleSelectorScreen = ({ onSelect }: Props) => {
       toast.error(STR.saveErr.en, { description: STR.saveErr.ar });
       return;
     }
-    // Yield a frame so the spinner renders before parent unmounts us.
     requestAnimationFrame(() => onSelect(picked));
   };
 
   return (
     <div
       dir={isRtl ? "rtl" : "ltr"}
-      className="flex-1 flex flex-col items-stretch px-6 pt-10 pb-8"
+      data-testid="role-selector"
+      className="flex-1 flex flex-col px-6 pt-10 pb-6 overflow-y-auto"
       style={{ background: "var(--off-white)" }}
     >
       <h1
         className="text-2xl font-semibold text-center"
-        style={{ color: "var(--ink)", fontFamily: "var(--font-display)" }}
+        style={{ color: "var(--ink, var(--navy))", fontFamily: "var(--font-display)" }}
       >
         {showEn && STR.title.en}
         {showEn && showAr && <span style={{ opacity: 0.5 }}> · </span>}
@@ -108,7 +114,7 @@ const RoleSelectorScreen = ({ onSelect }: Props) => {
       </h1>
       <p
         className="text-sm text-center mt-3"
-        style={{ color: "var(--muted)" }}
+        style={{ color: "var(--muted, var(--gray))" }}
       >
         {showEn && STR.subtitle.en}
         {showEn && showAr && <br />}
@@ -126,6 +132,7 @@ const RoleSelectorScreen = ({ onSelect }: Props) => {
           showAr={showAr}
           isRtl={isRtl}
           ariaLabel="patient"
+          testId="role-patient"
         />
         <RoleCard
           active={picked === "doctor"}
@@ -137,6 +144,7 @@ const RoleSelectorScreen = ({ onSelect }: Props) => {
           showAr={showAr}
           isRtl={isRtl}
           ariaLabel="doctor"
+          testId="role-doctor"
         />
       </div>
 
@@ -152,29 +160,38 @@ const RoleSelectorScreen = ({ onSelect }: Props) => {
         </p>
       )}
 
-      <button
-        onClick={confirm}
-        disabled={saving}
-        aria-disabled={!picked || saving}
-        className="mt-auto w-full rounded-2xl py-4 font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
-        style={{
-          background: picked ? "var(--teal-600)" : "var(--muted)",
-          color: "var(--off-white)",
-        }}
-      >
-        {saving && <Loader2 size={16} className="animate-spin" aria-hidden />}
-        <span>
-          {showEn && STR.cont.en}
-          {showEn && showAr && " · "}
-          {showAr && <span dir="rtl">{STR.cont.ar}</span>}
-        </span>
-      </button>
+      {/* Footer pinned to bottom but always visible — no mt-auto reliance. */}
+      <div className="mt-8 pt-2 sticky bottom-0" style={{ background: "var(--off-white)" }}>
+        <button
+          type="button"
+          data-testid="role-continue"
+          onClick={confirm}
+          disabled={saving}
+          aria-disabled={!picked || saving}
+          className="w-full rounded-2xl py-4 font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
+          style={{
+            background: picked ? "var(--teal-deep, var(--teal-600))" : "var(--gray-light, var(--muted))",
+            color: "var(--white, var(--off-white))",
+          }}
+        >
+          {saving ? (
+            <Loader2 size={16} className="animate-spin" aria-hidden />
+          ) : (
+            <ArrowRight size={16} aria-hidden />
+          )}
+          <span>
+            {showEn && STR.cont.en}
+            {showEn && showAr && " · "}
+            {showAr && <span dir="rtl">{STR.cont.ar}</span>}
+          </span>
+        </button>
+      </div>
     </div>
   );
 };
 
 const RoleCard = ({
-  active, onClick, icon, title, subtitle, showEn, showAr, isRtl, ariaLabel,
+  active, onClick, icon, title, subtitle, showEn, showAr, isRtl, ariaLabel, testId,
 }: {
   active: boolean;
   onClick: () => void;
@@ -185,44 +202,46 @@ const RoleCard = ({
   showAr: boolean;
   isRtl: boolean;
   ariaLabel: string;
+  testId?: string;
 }) => (
   <button
     type="button"
+    data-testid={testId}
     onClick={onClick}
     aria-pressed={active}
     aria-label={ariaLabel}
     dir={isRtl ? "rtl" : "ltr"}
     className="w-full text-start rounded-2xl p-4 border-2 transition flex items-center gap-4"
     style={{
-      borderColor: active ? "var(--teal-600)" : "var(--hairline)",
+      borderColor: active ? "var(--teal-deep, var(--teal-600))" : "var(--gray-light, var(--hairline))",
       background: active
-        ? "color-mix(in oklab, var(--teal-600) 8%, var(--off-white))"
-        : "var(--off-white)",
+        ? "color-mix(in oklab, var(--teal-deep, var(--teal-600)) 8%, var(--off-white))"
+        : "var(--white, var(--off-white))",
     }}
   >
     <div
       className="rounded-xl p-3 shrink-0"
-      style={{ background: "var(--teal-600)", color: "var(--off-white)" }}
+      style={{ background: "var(--teal-deep, var(--teal-600))", color: "var(--white, var(--off-white))" }}
       aria-hidden
     >
       {icon}
     </div>
     <div className="flex-1 min-w-0">
       <div className="flex items-center justify-between gap-2">
-        <span style={{ color: "var(--ink)", fontWeight: 600 }}>
+        <span style={{ color: "var(--navy, var(--ink))", fontWeight: 600 }}>
           {showEn && title.en}
           {showEn && showAr && <span style={{ opacity: 0.5 }}> · </span>}
           {showAr && <span dir="rtl">{title.ar}</span>}
         </span>
         {active && (
-          <Check size={18} style={{ color: "var(--teal-600)" }} aria-hidden />
+          <Check size={18} style={{ color: "var(--teal-deep, var(--teal-600))" }} aria-hidden />
         )}
       </div>
-      <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+      <div className="text-xs mt-0.5" style={{ color: "var(--gray, var(--muted))" }}>
         {showEn && subtitle.en}
       </div>
       {showAr && (
-        <div className="text-xs mt-0.5" dir="rtl" style={{ color: "var(--muted)" }}>
+        <div className="text-xs mt-0.5" dir="rtl" style={{ color: "var(--gray, var(--muted))" }}>
           {subtitle.ar}
         </div>
       )}
