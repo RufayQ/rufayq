@@ -26,6 +26,47 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerUrl;
 
+// ─── Tunable configuration ─────────────────────────────────────────────
+// Single source of truth — never inline magic numbers elsewhere in the file.
+export const PDF_SCORING_CONFIG = {
+  MAX_PAGES_ANALYZED: 25,        // hard cap on pages rendered for scoring
+  ANALYSIS_RENDER_SCALE: 0.6,    // thumbnail scale for scoring pass only
+  OCR_RENDER_SCALE: 2.0,         // full scale for pages sent to OCR
+  IMAGE_SAMPLE_STRIDE: 4,        // sample every Nth row/col in image scoring
+  EARLY_EXIT_MIN_CHARS: 40,      // skip image scoring if text < this length
+  SAMPLE_FIRST_N: 5,             // pages always included from the start
+  SAMPLE_LAST_N: 3,              // pages always included from the end
+} as const;
+
+/**
+ * Choose which page indices (1-based) to actually render and score when a
+ * document exceeds MAX_PAGES_ANALYZED. Always includes the first N and
+ * last N pages, then fills the remainder with an evenly strided sample
+ * across the middle so we never miss a flight page sitting deep inside a
+ * 60-page itinerary bundle.
+ */
+export function pickPagesToAnalyze(totalPages: number, cap: number = PDF_SCORING_CONFIG.MAX_PAGES_ANALYZED): number[] {
+  if (totalPages <= cap) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const firstN = Math.min(PDF_SCORING_CONFIG.SAMPLE_FIRST_N, cap);
+  const lastN = Math.min(PDF_SCORING_CONFIG.SAMPLE_LAST_N, Math.max(0, cap - firstN));
+  const set = new Set<number>();
+  for (let i = 1; i <= firstN; i++) set.add(i);
+  for (let i = totalPages - lastN + 1; i <= totalPages; i++) set.add(i);
+  const remaining = cap - set.size;
+  if (remaining > 0) {
+    const middleStart = firstN + 1;
+    const middleEnd = totalPages - lastN;
+    const middleCount = Math.max(0, middleEnd - middleStart + 1);
+    if (middleCount > 0) {
+      const stride = Math.max(1, Math.ceil(middleCount / remaining));
+      for (let i = middleStart; i <= middleEnd && set.size < cap; i += stride) set.add(i);
+    }
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────
 
 export interface PdfPageInfo {
@@ -68,25 +109,28 @@ export async function pdfToImageDataUrls(file: File, opts?: { maxPages?: number;
 }
 
 /**
- * Analyse every page of a PDF: text-score, image-score, and a thumbnail
- * we can render in the preview/manual-pick UI.
+ * Analyse pages of a PDF: text-score, image-score, and a thumbnail
+ * we can render in the preview/manual-pick UI. For documents larger
+ * than the configured cap we sample first/last/middle pages instead
+ * of rendering everything.
  */
 export async function analyzePdfPages(
   file: File,
   opts?: { hardCap?: number; thumbScale?: number; topN?: number },
 ): Promise<PdfAnalysis> {
-  const hardCap = opts?.hardCap ?? 12;
-  const thumbScale = opts?.thumbScale ?? 0.45;
+  const hardCap = opts?.hardCap ?? PDF_SCORING_CONFIG.MAX_PAGES_ANALYZED;
+  const thumbScale = opts?.thumbScale ?? PDF_SCORING_CONFIG.ANALYSIS_RENDER_SCALE;
   const topN = opts?.topN ?? 2;
 
   const pdf = await loadPdf(file);
   const totalPages = pdf.numPages as number;
-  const pageCount = Math.min(totalPages, hardCap);
+  const indicesToScan = pickPagesToAnalyze(totalPages, hardCap);
 
   const pages: PdfPageInfo[] = [];
   let scannedFallback = true;
+  const textCache = new WeakMap<object, string>();
 
-  for (let i = 1; i <= pageCount; i++) {
+  for (const i of indicesToScan) {
     const page = await pdf.getPage(i);
 
     // Render thumbnail (also used for the image heuristic)
@@ -99,32 +143,37 @@ export async function analyzePdfPages(
     await page.render({ canvasContext: ctx, viewport }).promise;
     const thumbDataUrl = canvas.toDataURL("image/jpeg", 0.7);
 
-    // Text layer (some PDFs have none → rely on image score).
-    let text = "";
-    try {
-      const tc = await page.getTextContent();
-      text = (tc.items || []).map((it: any) => it.str || "").join(" ");
-    } catch {
-      text = "";
+    // Text layer (memoized per page reference to avoid re-extraction).
+    let text = textCache.get(page as object) ?? "";
+    if (!text) {
+      try {
+        const tc = await page.getTextContent();
+        text = (tc.items || []).map((it: any) => it.str || "").join(" ");
+      } catch {
+        text = "";
+      }
+      textCache.set(page as object, text);
     }
     const hasText = text.trim().length > 20;
     if (hasText) scannedFallback = false;
 
     const textScore = hasText ? scoreFlightText(text) : 0;
 
-    // Image heuristic (always computed; primary signal when no text layer).
+    // Early exit for blank/cover pages — skip image scoring entirely.
+    const hasIata = /\b[A-Z]{3}\b/.test(text);
+    const skipImageScore =
+      text.length < PDF_SCORING_CONFIG.EARLY_EXIT_MIN_CHARS && !hasIata;
+
     let imageScore = 0;
-    try {
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      imageScore = scoreFlightImage(imgData);
-    } catch (e) {
-      // canvas could be tainted in rare cases — fall back to neutral
-      imageScore = 0;
+    if (!skipImageScore) {
+      try {
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        imageScore = scoreFlightImage(imgData);
+      } catch {
+        imageScore = 0;
+      }
     }
 
-    // Composite: when text is present, trust it; otherwise use image score.
-    // Always blend a small slice of imageScore so a strongly-tabular page
-    // wins over a text-only page that's mostly legalese.
     const score = hasText ? textScore + imageScore * 0.3 : imageScore;
 
     pages.push({
@@ -142,9 +191,9 @@ export async function analyzePdfPages(
 
   console.info(
     "[analyzePdfPages] total=%d analysed=%d scannedFallback=%s recommended=%o",
-    totalPages, pageCount, scannedFallback, recommended.map(i => ({
+    totalPages, pages.length, scannedFallback, recommended.map(i => ({
       page: i,
-      score: pages[i - 1]?.score?.toFixed(2),
+      score: pages.find(p => p.pageIndex === i)?.score?.toFixed(2),
     })),
   );
 
@@ -155,7 +204,7 @@ export async function analyzePdfPages(
 export async function renderPdfPagesAtScale(
   file: File,
   pageIndices: number[],
-  scale = 2,
+  scale: number = PDF_SCORING_CONFIG.OCR_RENDER_SCALE,
 ): Promise<string[]> {
   if (pageIndices.length === 0) return [];
   const pdf = await loadPdf(file);
@@ -176,11 +225,11 @@ export async function pdfToBestFlightImages(
   file: File,
   opts?: { topN?: number; hardCap?: number; scale?: number },
 ): Promise<{ images: string[]; pages: { pageIndex: number; score: number }[]; totalPages: number }> {
-  const analysis = await analyzePdfPages(file, { hardCap: opts?.hardCap ?? 12, topN: opts?.topN ?? 2 });
-  const images = await renderPdfPagesAtScale(file, analysis.recommended, opts?.scale ?? 2);
+  const analysis = await analyzePdfPages(file, { hardCap: opts?.hardCap, topN: opts?.topN ?? 2 });
+  const images = await renderPdfPagesAtScale(file, analysis.recommended, opts?.scale ?? PDF_SCORING_CONFIG.OCR_RENDER_SCALE);
   return {
     images,
-    pages: analysis.recommended.map(i => ({ pageIndex: i, score: analysis.pages[i - 1]?.score ?? 0 })),
+    pages: analysis.recommended.map(i => ({ pageIndex: i, score: analysis.pages.find(p => p.pageIndex === i)?.score ?? 0 })),
     totalPages: analysis.totalPages,
   };
 }
@@ -191,8 +240,11 @@ export function recommendPages(pages: PdfPageInfo[], topN: number): number[] {
   if (pages.length === 0) return [];
   const anyScore = pages.some(p => p.score > 0);
   if (!anyScore) {
-    // No signals at all — default to the first N pages.
-    return pages.slice(0, topN).map(p => p.pageIndex);
+    // No signals at all — default to the first N pages (in document order).
+    return [...pages]
+      .sort((a, b) => a.pageIndex - b.pageIndex)
+      .slice(0, topN)
+      .map(p => p.pageIndex);
   }
   // Pick the top scorers, then return them in document order.
   return [...pages]
@@ -269,61 +321,64 @@ export function scoreFlightText(raw: string): number {
  *
  * Output: roughly 0..30, comparable in magnitude to scoreFlightText.
  */
-export function scoreFlightImage(imgData: { data: Uint8ClampedArray | number[]; width: number; height: number }): number {
+export function scoreFlightImage(
+  imgData: { data: Uint8ClampedArray | number[]; width: number; height: number },
+  opts?: { stride?: number },
+): number {
   const { data, width, height } = imgData;
   if (width < 4 || height < 4) return 0;
+  const requested = Math.max(1, opts?.stride ?? PDF_SCORING_CONFIG.IMAGE_SAMPLE_STRIDE);
+  // Adaptive: never sample fewer than ~60 rows; prevents stride aliasing
+  // with periodic content on small thumbnails.
+  const stride = Math.max(1, Math.min(requested, Math.floor(height / 60) || 1));
 
-  // Per-row darkness (0..255). darkness = 255 - avg luminance.
-  const rowDark = new Float32Array(height);
+  // Compute per-sampled-row darkness using strided columns. We keep stats
+  // in terms of *sampled* rows only — no interpolation, which avoids
+  // aliasing artefacts when the page has periodic horizontal banding.
+  const samples: number[] = [];
   let totalDark = 0;
-  for (let y = 0; y < height; y++) {
+  for (let y = 0; y < height; y += stride) {
     let sum = 0;
+    let n = 0;
     const yOff = y * width * 4;
-    for (let x = 0; x < width; x++) {
+    for (let x = 0; x < width; x += stride) {
       const i = yOff + x * 4;
-      // Quick luminance approximation
       const lum = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) | 0;
       sum += 255 - lum;
+      n++;
     }
-    rowDark[y] = sum / width;
-    totalDark += rowDark[y];
+    const v = n > 0 ? sum / n : 0;
+    samples.push(v);
+    totalDark += v;
   }
-  const meanDark = totalDark / height;
-  const inkRatio = meanDark / 255; // 0..1
+  const sampled = samples.length;
+  if (sampled < 2) return 0;
+  const meanDark = totalDark / sampled;
+  const inkRatio = meanDark / 255;
 
-  // Pages too blank or too saturated → not an itinerary
-  if (inkRatio < 0.015) return 0;          // basically empty page
-  if (inkRatio > 0.55) return 1;           // photo / dark cover
+  if (inkRatio < 0.015) return 0;
+  if (inkRatio > 0.55) return 1;
 
-  // Row-darkness variance: text pages have alternating dark (text) and
-  // light (gutter) rows, giving high variance. Photo pages and solid
-  // colour pages have uniformly distributed darkness → low variance.
   let varSum = 0;
-  for (let y = 0; y < height; y++) {
-    const d = rowDark[y] - meanDark;
+  for (let i = 0; i < sampled; i++) {
+    const d = samples[i] - meanDark;
     varSum += d * d;
   }
-  const variance = varSum / height;
+  const variance = varSum / sampled;
   const std = Math.sqrt(variance);
 
-  // Count "text-like" row transitions: how many rows cross the mean.
   let crossings = 0;
-  for (let y = 1; y < height; y++) {
-    const a = rowDark[y - 1] - meanDark;
-    const b = rowDark[y] - meanDark;
+  for (let i = 1; i < sampled; i++) {
+    const a = samples[i - 1] - meanDark;
+    const b = samples[i] - meanDark;
     if ((a < 0 && b >= 0) || (a >= 0 && b < 0)) crossings++;
   }
-  // Expected: roughly 2 crossings per text line → many lines → many crossings.
-  const crossingsRatio = crossings / height; // 0..1
+  const crossingsRatio = crossings / sampled;
 
-  // Compose a score in roughly the same magnitude as scoreFlightText:
-  //   - std contributes up to ~15
-  //   - crossingsRatio contributes up to ~10
-  //   - mid-range ink density gets a small bonus, very-light/very-dark a penalty
   let score = Math.min(15, std / 4);
   score += Math.min(10, crossingsRatio * 40);
-  if (inkRatio >= 0.05 && inkRatio <= 0.3) score += 4; // ticket-ish density
-  if (inkRatio > 0.4) score -= 4;                       // probably an image
+  if (inkRatio >= 0.05 && inkRatio <= 0.3) score += 4;
+  if (inkRatio > 0.4) score -= 4;
   return Math.max(0, score);
 }
 
