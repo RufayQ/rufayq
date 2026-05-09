@@ -119,9 +119,33 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     toast.success("Step marked as done · تم وضعها كمنجزة", { duration: 2500 });
   };
 
+  const markStepDone = (id: number) => {
+    let prevStatus: JourneyStep["status"] = "pending";
+    setJourneySteps(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      prevStatus = s.status;
+      return { ...s, status: "done" };
+    }));
+    flashStep(id);
+    const stepTitle = journeySteps.find(s => s.id === id)?.titleEn || "Step";
+    toast.success(`${stepTitle} marked as done · تم وضعها كمنجزة`, {
+      duration: 5000,
+      action: {
+        label: "Undo · تراجع",
+        onClick: () => {
+          setJourneySteps(prev => prev.map(s => s.id === id ? { ...s, status: prevStatus } : s));
+          flashStep(id);
+          toast.info("Reverted · تم التراجع", { duration: 1800 });
+        },
+      },
+    });
+  };
+
   const jumpToStep = (id: number) => {
     setExpanded(id);
     flashStep(id);
+    const step = journeySteps.find(s => s.id === id);
+    if (step) setLiveAnnouncement(`Jumped to step: ${step.titleEn}. ${step.titleAr}`);
     // Defer scroll until expansion has rendered
     requestAnimationFrame(() => {
       const el = stepRefs.current.get(id);
