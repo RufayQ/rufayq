@@ -485,7 +485,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   category: string | null;
   fileName: string;
   realFile?: File | null;
-  onParsed?: (p: { outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } } | null) => void;
+  onParsed?: (p: { outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } } | null) => void;
   onSave: () => void;
 }) => {
   const [processing, setProcessing] = useState(true);
