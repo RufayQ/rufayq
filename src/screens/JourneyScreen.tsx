@@ -1553,3 +1553,38 @@ const JourneyStepCards = ({ trip, onJumpToStep }: { trip: TripData | null; onJum
 };
 
 export default JourneyScreen;
+
+/**
+ * Compact summary derived from the current flight transport segments.
+ * Hidden when no flights have been added yet (so the empty-state stays clean).
+ */
+const FlightTripSummary = ({ segments }: { segments: TransportSegment[] }) => {
+  const flights = segments.filter(s => s.type === "flight");
+  if (flights.length === 0) return null;
+  const journey = parseFlightJourney(
+    {
+      legs: flights.map(s => ({
+        airline: s.airline || "",
+        flightNumber: s.flightNumber || "",
+        bookingRef: s.bookingRef || "",
+        fromAirport: s.fromCode || "",
+        fromCity: s.fromCity || "",
+        fromAirportFull: s.fromFull || "",
+        toAirport: s.toCode || "",
+        toCity: s.toCity || "",
+        toAirportFull: s.toFull || "",
+        departureDateTime: s.departureDateTime || "",
+        arrivalDateTime: s.arrivalDateTime || "",
+        seatClass: s.seatClass || "",
+        seatNumber: s.seatNumber || "",
+      })),
+    },
+    flights[0].documentSource === "Manual Entry" ? "manual" : "ocr",
+  );
+  if (journey.legs.length === 0) return null;
+  return (
+    <div className="px-4 pt-3">
+      <TripSummaryCard journey={journey} />
+    </div>
+  );
+};
