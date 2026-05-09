@@ -20,6 +20,7 @@ import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import { EmrScreen } from "@/features/emr";
 import RoleSelectorScreen, { getStoredRole, clearStoredRole, type AppRolePref } from "@/screens/RoleSelectorScreen";
+import { validateLoginRole } from "@/lib/roleValidation";
 import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
 import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
@@ -110,36 +111,24 @@ const Index = () => {
    */
   const handleLogin = async () => {
     const stored = getStoredRole();
-    if (!stored) { setAppView("role"); return; }
+    const outcome = await validateLoginRole(supabase, stored);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      // Guest path — patient shell only.
-      if (stored === "doctor") {
+    switch (outcome.kind) {
+      case "needs_role":
+        setAppView("role");
+        return;
+      case "guest_doctor_blocked":
         toast.error("Doctor accounts require sign-in", { description: "حسابات الأطباء تتطلب تسجيل الدخول" });
         setAppView("login");
         return;
-      }
-      setAppView("main");
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", session.user.id);
-
-    if (error) {
-      toast.error("Couldn't verify your account role", { description: error.message });
-      setAppView("login");
-      return;
-    }
-
-    const roles = (data || []).map((r: { role: string }) => r.role);
-    const hasProvider = roles.some((r) => r === "provider_admin" || r === "provider_staff" || r === "admin" || r === "moderator");
-
-    if (stored === "doctor") {
-      if (!hasProvider) {
+      case "guest_patient":
+        setAppView("main");
+        return;
+      case "lookup_error":
+        toast.error("Couldn't verify your account role", { description: outcome.message });
+        setAppView("login");
+        return;
+      case "doctor_rejected":
         toast.error("This account is not registered as a doctor", {
           description: "هذا الحساب غير مسجّل كطبيب — الرجاء استخدام حساب طبيب",
         });
@@ -147,14 +136,13 @@ const Index = () => {
         clearStoredRole();
         setAppView("role");
         return;
-      }
-      navigate("/provider", { replace: true });
-      return;
+      case "doctor_ok":
+        navigate("/provider", { replace: true });
+        return;
+      case "patient_ok":
+        setAppView("main");
+        break;
     }
-
-    // Patient path. Block staff from entering the patient shell with a
-    // doctor-style account by mistake.
-    setAppView("main");
     registerPush({
       rolePref: stored,
       onDeepLink: routeDeepLink,
