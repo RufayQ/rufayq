@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { X, AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { TransportSegment } from "./TransportCard";
+import {
+  validateTransportSegment,
+  fieldErrorMap,
+  type TransportIssue,
+} from "@/lib/transportValidation";
 
 interface Props {
   open: boolean;
@@ -31,31 +36,7 @@ const splitDT = (iso: string): [string, string] => {
 };
 const joinDT = (d: string, t: string) => (d && t ? `${d}T${t}:00` : d || "");
 
-interface Issue { field: string; message: string; level: "error" | "warning" }
-
-function validate(s: TransportSegment): Issue[] {
-  const out: Issue[] = [];
-  if (!s.fromCity?.trim()) out.push({ field: "fromCity", message: "Departure city is required", level: "error" });
-  if (!s.toCity?.trim()) out.push({ field: "toCity", message: "Arrival city is required", level: "error" });
-  if (s.fromCity && s.toCity && s.fromCity.trim().toLowerCase() === s.toCity.trim().toLowerCase()) {
-    out.push({ field: "route", message: "From and To must be different", level: "error" });
-  }
-  if (!s.departureDateTime) out.push({ field: "departureDateTime", message: "Departure date/time required", level: "error" });
-  if (!s.arrivalDateTime) out.push({ field: "arrivalDateTime", message: "Arrival date/time required", level: "error" });
-  if (s.departureDateTime && s.arrivalDateTime) {
-    const dep = new Date(s.departureDateTime).getTime();
-    const arr = new Date(s.arrivalDateTime).getTime();
-    if (!isNaN(dep) && !isNaN(arr) && arr <= dep) {
-      out.push({ field: "arrivalDateTime", message: "Arrival must be after departure", level: "error" });
-    }
-  }
-  if (s.type === "train" && !s.trainNumber) out.push({ field: "trainNumber", message: "Train number missing", level: "warning" });
-  if (s.type === "bus" && !s.busNumber) out.push({ field: "busNumber", message: "Bus number missing", level: "warning" });
-  if (s.type === "taxi" && !s.taxiProvider) out.push({ field: "taxiProvider", message: "Taxi provider missing", level: "warning" });
-  if (s.type === "rental" && !s.rentalCompany) out.push({ field: "rentalCompany", message: "Rental company missing", level: "warning" });
-  if (s.type === "medical" && !s.mobilityType) out.push({ field: "mobilityType", message: "Mobility / transfer type missing", level: "warning" });
-  return out;
-}
+type Issue = TransportIssue;
 
 const titles: Record<TransportSegment["type"], { en: string; ar: string; icon: string }> = {
   flight:  { en: "Flight",   ar: "رحلة",   icon: "✈️" },
@@ -74,7 +55,8 @@ const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete }: Props
 
   const [depD, depT] = splitDT(s.departureDateTime);
   const [arrD, arrT] = splitDT(s.arrivalDateTime);
-  const issues = validate(s);
+  const issues = validateTransportSegment(s);
+  void fieldErrorMap(issues); // reserved for future inline highlighting
   const errors = issues.filter(i => i.level === "error");
   const warnings = issues.filter(i => i.level === "warning");
   const t = titles[s.type];

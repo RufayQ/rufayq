@@ -18,6 +18,7 @@ import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
+import { EmrScreen } from "@/features/emr";
 import RoleSelectorScreen, { getStoredRole, type AppRolePref } from "@/screens/RoleSelectorScreen";
 import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
 import { registerPush } from "@/lib/native/push";
@@ -30,7 +31,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import { useTourSystem } from "@/hooks/useTourSystem";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
-type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support";
+type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
 
 const toastMessages: Record<string, { en: string; ar: string }> = {
   flight: { en: "✓ Flight added to your Transport Timeline", ar: "✓ أُضيفت الرحلة إلى جدول تنقلك" },
@@ -202,6 +203,8 @@ const Index = () => {
       setAppView("pricing");
     } else if (tab === "support") {
       setAppView("support");
+    } else if (tab === "emr") {
+      setAppView("emr");
     } else if (tab === "chat" && context) {
       setChatContext(context);
       setActiveTab("chat");
@@ -237,6 +240,8 @@ const Index = () => {
         return <PricingScreen onBack={() => setAppView("main")} />;
       case "support":
         return <SupportScreen onBack={() => setAppView("main")} />;
+      case "emr":
+        return <EmrScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
       case "main":
         switch (activeTab) {
           case "home":
