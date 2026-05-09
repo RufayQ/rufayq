@@ -23,7 +23,19 @@ export type Action =
   // Patient claims (CRM)
   | "claim.view" | "claim.decide"
   // Pricing & catalog
-  | "pricing.view" | "pricing.modify" | "pricing.publish";
+  | "pricing.view" | "pricing.modify" | "pricing.publish"
+  // Provider portal — clinical & RCM granular actions
+  | "provider.patient.link" | "provider.patient.unlink"
+  | "provider.clinical.write"
+  | "provider.rcm.eligibility.recheck"
+  | "provider.rcm.auth.submit" | "provider.rcm.auth.followup"
+  | "provider.rcm.claim.create" | "provider.rcm.claim.submit"
+  | "provider.rcm.claim.payment.record" | "provider.rcm.claim.void"
+  | "provider.rcm.denial.appeal.raise" | "provider.rcm.denial.appeal.approve"
+  | "provider.rcm.remittance.import"
+  | "provider.rcm.discharge.signoff" | "provider.rcm.discharge.advance_financial"
+  | "provider.emr.view" | "provider.emr.request_access"
+  | "provider.org.manage_members" | "provider.org.edit";
 
 const MATRIX: Record<AppRole, Action[]> = {
   admin: [
@@ -36,6 +48,17 @@ const MATRIX: Record<AppRole, Action[]> = {
     "ticket.view", "ticket.moderate",
     "claim.view", "claim.decide",
     "pricing.view", "pricing.modify", "pricing.publish",
+    "provider.patient.link", "provider.patient.unlink",
+    "provider.clinical.write",
+    "provider.rcm.eligibility.recheck",
+    "provider.rcm.auth.submit", "provider.rcm.auth.followup",
+    "provider.rcm.claim.create", "provider.rcm.claim.submit",
+    "provider.rcm.claim.payment.record", "provider.rcm.claim.void",
+    "provider.rcm.denial.appeal.raise", "provider.rcm.denial.appeal.approve",
+    "provider.rcm.remittance.import",
+    "provider.rcm.discharge.signoff", "provider.rcm.discharge.advance_financial",
+    "provider.emr.view", "provider.emr.request_access",
+    "provider.org.manage_members", "provider.org.edit",
   ],
   moderator: [
     "subscription.view", "payment.view",
@@ -47,8 +70,33 @@ const MATRIX: Record<AppRole, Action[]> = {
     "claim.view",
     "pricing.view",
   ],
-  provider_admin: ["rcm.view", "rcm.modify", "user.view", "claim.view", "claim.decide"],
-  provider_staff: ["rcm.view", "claim.view"],
+  provider_admin: [
+    "rcm.view", "rcm.modify", "user.view", "claim.view", "claim.decide",
+    "provider.patient.link", "provider.patient.unlink",
+    "provider.clinical.write",
+    "provider.rcm.eligibility.recheck",
+    "provider.rcm.auth.submit", "provider.rcm.auth.followup",
+    "provider.rcm.claim.create", "provider.rcm.claim.submit",
+    "provider.rcm.claim.payment.record", "provider.rcm.claim.void",
+    "provider.rcm.denial.appeal.raise", "provider.rcm.denial.appeal.approve",
+    "provider.rcm.remittance.import",
+    "provider.rcm.discharge.signoff", "provider.rcm.discharge.advance_financial",
+    "provider.emr.view", "provider.emr.request_access",
+    "provider.org.manage_members", "provider.org.edit",
+  ],
+  provider_staff: [
+    "rcm.view", "claim.view",
+    "provider.patient.link",
+    "provider.clinical.write",
+    "provider.rcm.eligibility.recheck",
+    "provider.rcm.auth.submit", "provider.rcm.auth.followup",
+    "provider.rcm.claim.create", "provider.rcm.claim.submit",
+    "provider.rcm.claim.payment.record",
+    "provider.rcm.denial.appeal.raise",
+    "provider.rcm.remittance.import",
+    "provider.rcm.discharge.signoff",
+    "provider.emr.view", "provider.emr.request_access",
+  ],
   user: [],
 };
 
