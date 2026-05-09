@@ -169,6 +169,20 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawRetu
             </div>
           )}
 
+          {(rawOutbound || rawReturn) && (
+            <button
+              onClick={() => setShowRaw(s => !s)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] btn-press"
+              style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--teal-deep)" }}
+            >
+              {showRaw ? <EyeOff size={12} /> : <Eye size={12} />}
+              {showRaw ? "Hide raw scan" : "Compare raw scan vs normalized"}
+              <span className="font-arabic text-[10px]" dir="rtl"> · مقارنة المسح الأصلي</span>
+            </button>
+          )}
+          {showRaw && renderDiff(rawOutbound, out, "Outbound · ذهاب")}
+          {showRaw && renderDiff(rawReturn, ret, "Return · عودة")}
+
           {out && <LegEditor title="OUTBOUND · رحلة الذهاب" value={out} onChange={setOut} />}
           {ret && <LegEditor title="RETURN · رحلة العودة" value={ret} onChange={setRet} />}
 
