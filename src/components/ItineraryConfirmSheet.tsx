@@ -76,11 +76,12 @@ const LegEditor = ({ title, value, onChange }: { title: string; value: FlightInf
   );
 };
 
-const ItineraryConfirmSheet = ({ open, outbound, returnLeg, passengerName, passportNumber, onCancel, onConfirm }: Props) => {
+const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawReturn, passengerName, passportNumber, onCancel, onConfirm }: Props) => {
   const [out, setOut] = useState<FlightInfo | null>(outbound);
   const [ret, setRet] = useState<FlightInfo | null>(returnLeg);
+  const [showRaw, setShowRaw] = useState(false);
 
-  useEffect(() => { setOut(outbound); setRet(returnLeg); }, [outbound, returnLeg, open]);
+  useEffect(() => { setOut(outbound); setRet(returnLeg); setShowRaw(false); }, [outbound, returnLeg, open]);
 
   if (!open) return null;
 
@@ -90,6 +91,37 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, passengerName, passp
   ];
   const errors = issues.filter(i => i.level === "error");
   const warnings = issues.filter(i => i.level === "warning");
+
+  const renderDiff = (raw: any, norm: FlightInfo | null, label: string) => {
+    if (!raw || !norm) return null;
+    const rows: { k: string; raw: string; norm: string; changed: boolean }[] = [
+      { k: "From IATA", raw: String(raw.fromAirport ?? ""), norm: norm.fromAirport },
+      { k: "From city", raw: String(raw.fromCity ?? ""), norm: norm.fromCity },
+      { k: "From airport", raw: String(raw.fromAirportFull ?? ""), norm: norm.fromAirportFull },
+      { k: "To IATA", raw: String(raw.toAirport ?? ""), norm: norm.toAirport },
+      { k: "To city", raw: String(raw.toCity ?? ""), norm: norm.toCity },
+      { k: "To airport", raw: String(raw.toAirportFull ?? ""), norm: norm.toAirportFull },
+      { k: "Flight #", raw: String(raw.flightNumber ?? ""), norm: norm.flightNumber },
+      { k: "PNR", raw: String(raw.bookingRef ?? ""), norm: norm.bookingRef },
+    ].map(r => ({ ...r, changed: r.raw.trim() !== r.norm.trim() }));
+    return (
+      <div className="rounded-xl p-2.5 space-y-1" style={{ background: "var(--off-white)", border: "1px dashed var(--gray-light)" }}>
+        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>{label} — RAW vs NORMALIZED</p>
+        <div className="grid grid-cols-[90px_1fr_1fr] gap-1 text-[10px]">
+          <span className="font-mono" style={{ color: "var(--gray)" }}>FIELD</span>
+          <span className="font-mono" style={{ color: "var(--gray)" }}>SCANNED</span>
+          <span className="font-mono" style={{ color: "var(--gray)" }}>NORMALIZED</span>
+          {rows.map(r => (
+            <>
+              <span key={`k-${r.k}`} style={{ color: "var(--navy)" }}>{r.k}</span>
+              <span key={`r-${r.k}`} style={{ color: r.changed ? "var(--gray)" : "var(--navy)", textDecoration: r.changed ? "line-through" : "none" }}>{r.raw || "—"}</span>
+              <span key={`n-${r.k}`} style={{ color: r.changed ? "var(--success)" : "var(--navy)", fontWeight: r.changed ? 600 : 400 }}>{r.norm || "—"}</span>
+            </>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="absolute inset-0 z-[60] flex flex-col justify-end" onClick={onCancel}>
