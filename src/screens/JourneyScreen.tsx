@@ -137,6 +137,34 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
 
   const activeTrip = trips.find((t) => t.status === "active") || trips[0] || null;
 
+  // Prompt the user to mark flight-related steps as done once their flight has
+  // already departed/arrived. We fire this once per app session per stepId.
+  const promptedRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (!activeTrip) return;
+    const now = Date.now();
+    const checks: { stepId: number; flight: FlightInfo | null; label: string; labelAr: string }[] = [
+      { stepId: 3, flight: activeTrip.outboundFlight, label: "outbound flight", labelAr: "رحلة الذهاب" },
+      { stepId: 8, flight: activeTrip.returnFlight, label: "return flight", labelAr: "رحلة العودة" },
+    ];
+    checks.forEach(({ stepId, flight, label, labelAr }) => {
+      if (!flight?.departureDateTime) return;
+      const arr = flight.arrivalDateTime ? new Date(flight.arrivalDateTime).getTime() : new Date(flight.departureDateTime).getTime();
+      if (isNaN(arr) || arr > now) return;
+      const step = journeySteps.find(s => s.id === stepId);
+      if (!step || step.status === "done") return;
+      if (promptedRef.current.has(stepId)) return;
+      promptedRef.current.add(stepId);
+      toast(`Your ${label} appears completed`, {
+        description: `${labelAr} — mark "${step.titleEn}" as done?`,
+        duration: 8000,
+        action: { label: "Mark done", onClick: () => markStepDone(stepId) },
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTrip?.id, activeTrip?.outboundFlight?.arrivalDateTime, activeTrip?.returnFlight?.arrivalDateTime, journeySteps.length]);
+
+
   const requireProForAddTrip = () => {
     // Free tier: 1 trip. If user already has any trip, gate behind paywall unless trial is active.
     if (trips.length >= 1 && !trialActive) {
