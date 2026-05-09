@@ -878,6 +878,9 @@ const StepsTab = ({
         </div>
       </div>
     )}
+    {/* Visual journey-step cards (departure / hospital / return) — tap for details */}
+    <JourneyStepCards trip={activeTrip} />
+
     {/* Phase Badges */}
     <div className="flex gap-2 px-4 py-3">
       {phases.map((p) => (
