@@ -14,6 +14,9 @@ import RcmOpErWorklist from "@/components/provider/RcmOpErWorklist";
 import RcmIpDcWorklist from "@/components/provider/RcmIpDcWorklist";
 import RcmClaimsWorklist from "@/components/provider/RcmClaimsWorklist";
 import ProviderEmrViewer from "@/features/provider/emr/ProviderEmrViewer";
+import { FindPatientTab, AccessRequestsInbox, RemittanceImporter } from "@/features/provider";
+import { useProviderRealtime } from "@/api/realtime/providerChannels";
+import { Inbox as InboxIcon, FileSpreadsheet } from "lucide-react";
 
 interface Org { id: string; name: string; org_type: string; }
 interface Patient {
@@ -21,7 +24,7 @@ interface Patient {
   patient_email: string | null; patient_phone: string | null; status: string; notes: string | null;
 }
 
-type Tab = "patients" | "find" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation" | "rcm_auth" | "rcm_oper" | "rcm_ipdc" | "rcm_claims";
+type Tab = "patients" | "find" | "inbox" | "instructions" | "medications" | "appointments" | "rcm_eligibility" | "rcm_activation" | "rcm_auth" | "rcm_oper" | "rcm_ipdc" | "rcm_claims" | "rcm_remit";
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
@@ -69,13 +72,14 @@ const ProviderDashboard = () => {
     })();
   }, [navigate]);
 
-  useEffect(() => {
+  const reloadPatients = async () => {
     if (!activeOrg) return;
-    (async () => {
-      const { data } = await supabase.from("provider_patients").select("*").eq("organization_id", activeOrg).order("created_at", { ascending: false });
-      setPatients((data as Patient[]) || []);
-    })();
-  }, [activeOrg]);
+    const { data } = await supabase.from("provider_patients").select("*").eq("organization_id", activeOrg).order("created_at", { ascending: false });
+    setPatients((data as Patient[]) || []);
+  };
+  useEffect(() => { reloadPatients(); /* eslint-disable-next-line */ }, [activeOrg]);
+  // Realtime: refresh patient list when provider_patients changes for this org
+  useProviderRealtime(activeOrg, "provider_patients", reloadPatients);
 
   useEffect(() => {
     if (!selectedPatient || !activeOrg) { setHistory({ instructions: [], meds: [], appts: [] }); return; }
@@ -155,6 +159,7 @@ const ProviderDashboard = () => {
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "patients", label: "Patients", icon: Users },
     { id: "find", label: "Find Patient", icon: Search },
+    { id: "inbox", label: "Access Inbox", icon: InboxIcon },
     { id: "instructions", label: "Instructions", icon: FileText },
     { id: "medications", label: "Medications", icon: Pill },
     { id: "appointments", label: "Appointments", icon: Calendar },
@@ -164,6 +169,7 @@ const ProviderDashboard = () => {
     { id: "rcm_oper", label: "RCM · OP/ER Billing", icon: DollarSign },
     { id: "rcm_ipdc", label: "RCM · IP/DC Admissions", icon: Activity },
     { id: "rcm_claims", label: "RCM · Claims", icon: Receipt },
+    { id: "rcm_remit", label: "RCM · Remittance", icon: FileSpreadsheet },
   ];
 
   const inputCls = "w-full px-3 py-2 rounded-lg text-sm outline-none";
@@ -211,11 +217,15 @@ const ProviderDashboard = () => {
       <main className="max-w-7xl mx-auto px-6 py-6">
         {tab === "find" ? (
           <div className="max-w-2xl mx-auto">
-            {activeOrg && <PatientSearch organizationId={activeOrg} />}
+            {activeOrg && <FindPatientTab organizationId={activeOrg} />}
             <p className="text-xs mt-4 text-center" style={{ color: MUTED }}>
               Submitted claims appear in the admin Patient Claims queue. Once admin and patient both approve, the patient will appear in your Patients list.
             </p>
           </div>
+        ) : tab === "inbox" ? (
+          <div className="max-w-3xl mx-auto">{activeOrg && <AccessRequestsInbox organizationId={activeOrg} />}</div>
+        ) : tab === "rcm_remit" ? (
+          <div className="max-w-3xl mx-auto">{activeOrg && <RemittanceImporter organizationId={activeOrg} />}</div>
         ) : tab === "rcm_eligibility" ? (
           <div className="max-w-3xl mx-auto">{activeOrg && <RcmEligibilityWorklist organizationId={activeOrg} />}</div>
         ) : tab === "rcm_activation" ? (

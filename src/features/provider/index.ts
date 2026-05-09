@@ -1,8 +1,9 @@
-/**
- * features/provider — public API barrel for the enterprise/provider portal.
- */
-export { default as ProviderDashboard } from "@/pages/ProviderDashboard";
-export { default as ProviderLogin } from "@/pages/ProviderLogin";
-export { default as PatientSearch } from "@/components/provider/PatientSearch";
-export { default as ProviderFeedCard } from "@/components/ProviderFeedCard";
-export { useProviderFeed } from "@/hooks/useProviderFeed";
+export { default as ProviderEmrViewer } from "./emr/ProviderEmrViewer";
+export { default as RemittanceImporter } from "./rcm/RemittanceImporter";
+export { default as DenialAppealForm } from "./rcm/DenialAppealForm";
+export { default as AuthFollowUpTimer } from "./rcm/AuthFollowUpTimer";
+export { default as VoidClaimDialog } from "./rcm/VoidClaimDialog";
+export { default as DischargeSignoffCard } from "./rcm/DischargeSignoffCard";
+export { default as RequestAccessSheet } from "./access/RequestAccessSheet";
+export { default as AccessRequestsInbox } from "./access/AccessRequestsInbox";
+export { default as FindPatientTab } from "./access/FindPatientTab";
