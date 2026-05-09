@@ -321,35 +321,58 @@ export function scoreFlightText(raw: string): number {
  *
  * Output: roughly 0..30, comparable in magnitude to scoreFlightText.
  */
-export function scoreFlightImage(imgData: { data: Uint8ClampedArray | number[]; width: number; height: number }): number {
+export function scoreFlightImage(
+  imgData: { data: Uint8ClampedArray | number[]; width: number; height: number },
+  opts?: { stride?: number },
+): number {
   const { data, width, height } = imgData;
   if (width < 4 || height < 4) return 0;
+  const stride = Math.max(1, opts?.stride ?? PDF_SCORING_CONFIG.IMAGE_SAMPLE_STRIDE);
 
-  // Per-row darkness (0..255). darkness = 255 - avg luminance.
+  // Per-row darkness using strided sampling — every Nth row, every Nth col.
+  // Rows that aren't sampled are linearly interpolated from neighbours so the
+  // variance/crossings stats stay statistically equivalent to the full scan.
   const rowDark = new Float32Array(height);
+  let sampledRows = 0;
   let totalDark = 0;
-  for (let y = 0; y < height; y++) {
+  const sampledIndices: number[] = [];
+  for (let y = 0; y < height; y += stride) {
     let sum = 0;
+    let n = 0;
     const yOff = y * width * 4;
-    for (let x = 0; x < width; x++) {
+    for (let x = 0; x < width; x += stride) {
       const i = yOff + x * 4;
-      // Quick luminance approximation
       const lum = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) | 0;
       sum += 255 - lum;
+      n++;
     }
-    rowDark[y] = sum / width;
-    totalDark += rowDark[y];
+    const v = n > 0 ? sum / n : 0;
+    rowDark[y] = v;
+    totalDark += v;
+    sampledRows++;
+    sampledIndices.push(y);
   }
-  const meanDark = totalDark / height;
-  const inkRatio = meanDark / 255; // 0..1
+  // Linear interpolation for skipped rows.
+  for (let s = 0; s < sampledIndices.length - 1; s++) {
+    const y0 = sampledIndices[s];
+    const y1 = sampledIndices[s + 1];
+    const v0 = rowDark[y0];
+    const v1 = rowDark[y1];
+    const span = y1 - y0;
+    for (let y = y0 + 1; y < y1; y++) {
+      rowDark[y] = v0 + ((v1 - v0) * (y - y0)) / span;
+    }
+  }
+  // Tail rows beyond the last sample copy the last sampled value.
+  const lastSampled = sampledIndices[sampledIndices.length - 1];
+  for (let y = lastSampled + 1; y < height; y++) rowDark[y] = rowDark[lastSampled];
 
-  // Pages too blank or too saturated → not an itinerary
-  if (inkRatio < 0.015) return 0;          // basically empty page
-  if (inkRatio > 0.55) return 1;           // photo / dark cover
+  const meanDark = totalDark / Math.max(1, sampledRows);
+  const inkRatio = meanDark / 255;
 
-  // Row-darkness variance: text pages have alternating dark (text) and
-  // light (gutter) rows, giving high variance. Photo pages and solid
-  // colour pages have uniformly distributed darkness → low variance.
+  if (inkRatio < 0.015) return 0;
+  if (inkRatio > 0.55) return 1;
+
   let varSum = 0;
   for (let y = 0; y < height; y++) {
     const d = rowDark[y] - meanDark;
@@ -358,24 +381,18 @@ export function scoreFlightImage(imgData: { data: Uint8ClampedArray | number[]; 
   const variance = varSum / height;
   const std = Math.sqrt(variance);
 
-  // Count "text-like" row transitions: how many rows cross the mean.
   let crossings = 0;
   for (let y = 1; y < height; y++) {
     const a = rowDark[y - 1] - meanDark;
     const b = rowDark[y] - meanDark;
     if ((a < 0 && b >= 0) || (a >= 0 && b < 0)) crossings++;
   }
-  // Expected: roughly 2 crossings per text line → many lines → many crossings.
-  const crossingsRatio = crossings / height; // 0..1
+  const crossingsRatio = crossings / height;
 
-  // Compose a score in roughly the same magnitude as scoreFlightText:
-  //   - std contributes up to ~15
-  //   - crossingsRatio contributes up to ~10
-  //   - mid-range ink density gets a small bonus, very-light/very-dark a penalty
   let score = Math.min(15, std / 4);
   score += Math.min(10, crossingsRatio * 40);
-  if (inkRatio >= 0.05 && inkRatio <= 0.3) score += 4; // ticket-ish density
-  if (inkRatio > 0.4) score -= 4;                       // probably an image
+  if (inkRatio >= 0.05 && inkRatio <= 0.3) score += 4;
+  if (inkRatio > 0.4) score -= 4;
   return Math.max(0, score);
 }
 
