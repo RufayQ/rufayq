@@ -14,7 +14,7 @@ interface ScannerWizardProps {
   preselectedCategory?: string | null;
   /** Called on save. For flights, payload contains the parsed legs so the
    * caller can inject them into the Journey timeline. */
-  onSave?: (category: string | null, payload?: { outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } }) => void;
+  onSave?: (category: string | null, payload?: { outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } }) => void;
 }
 
 const categories = [
