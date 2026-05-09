@@ -371,6 +371,27 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
           title="Add Transport" titleAr="إضافة وسيلة تنقل"
           options={transportTypeOptions}
           onClose={() => setShowAddTransport(false)}
+          onPick={(opt) => {
+            setShowAddTransport(false);
+            if (opt.en === "Flight") {
+              onOpenScanner?.("flight");
+              return;
+            }
+            const dep = new Date(Date.now() + 24 * 3600 * 1000);
+            const arr = new Date(dep.getTime() + 2 * 3600 * 1000);
+            const seg: TransportSegment = {
+              id: `seg-${Date.now()}`,
+              type: opt.en.toLowerCase() as TransportSegment["type"],
+              status: "upcoming",
+              departureDateTime: dep.toISOString(),
+              arrivalDateTime: arr.toISOString(),
+              fromCity: "TBD", toCity: "TBD",
+              fromCode: "—", toCode: "—",
+              airline: opt.en,
+            } as TransportSegment;
+            setTransportSegments(prev => [...prev, seg]);
+            toast.success(`${opt.icon} ${opt.en} draft added · المسودة أُضيفت`, { description: "Tap the card to edit details." });
+          }}
         />
       )}
 
@@ -380,17 +401,29 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
           title="Add Accommodation" titleAr="إضافة إقامة"
           options={stayTypeOptions}
           onClose={() => setShowAddStay(false)}
+          onPick={(opt) => {
+            setShowAddStay(false);
+            toast.success(`${opt.icon} ${opt.en} selected · تم الاختيار`, {
+              description: "Open the trip editor to add full accommodation details.",
+              action: { label: "Edit trip", onClick: () => activeTrip ? setShowEditTrip(true) : setShowAddTrip(true) },
+              duration: 5000,
+            });
+          }}
         />
       )}
+
+      {/* aria-live announcement for jump-to-step accessibility */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">{liveAnnouncement}</div>
     </div>
   );
 };
 
 /* ─── TYPE PICKER BOTTOM SHEET ─── */
-const TypePickerSheet = ({ title, titleAr, options, onClose }: {
+const TypePickerSheet = ({ title, titleAr, options, onClose, onPick }: {
   title: string; titleAr: string;
   options: { icon: string; en: string; ar: string }[];
   onClose: () => void;
+  onPick?: (opt: { icon: string; en: string; ar: string }) => void;
 }) => (
   <div className="absolute inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
     <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.5)" }} />
@@ -402,7 +435,13 @@ const TypePickerSheet = ({ title, titleAr, options, onClose }: {
       </div>
       <div className="px-5 pb-6" style={{ display: "grid", gridTemplateColumns: options.length > 4 ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
         {options.map((o) => (
-          <button key={o.en} className="rounded-xl flex flex-col items-center justify-center gap-1 card-press" style={{ height: 70, background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+          <button
+            key={o.en}
+            onClick={() => onPick?.(o)}
+            aria-label={`${o.en} · ${o.ar}`}
+            className="rounded-xl flex flex-col items-center justify-center gap-1 card-press"
+            style={{ height: 70, background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+          >
             <span className="text-[26px]">{o.icon}</span>
             <span className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>{o.en}</span>
             <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>{o.ar}</span>
