@@ -1,12 +1,20 @@
 import { useState, useRef, useEffect } from "react";
 import { X, RotateCw, Sun, Contrast, Crop, Palette } from "lucide-react";
+import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import { FileUploadPreview } from "@/shared/ui";
+import { supabase } from "@/integrations/supabase/client";
+import { getDeviceId } from "@/hooks/useDeviceId";
+import { pdfToImageDataUrls } from "@/lib/pdfToImages";
+import { normalizeParsedLeg } from "@/lib/flightParsing";
+import type { FlightInfo } from "@/components/AddTripSheet";
 
 interface ScannerWizardProps {
   onClose: () => void;
   preselectedCategory?: string | null;
-  onSave?: (category: string | null) => void;
+  /** Called on save. For flights, payload contains the parsed legs so the
+   * caller can inject them into the Journey timeline. */
+  onSave?: (category: string | null, payload?: { outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } }) => void;
 }
 
 const categories = [
