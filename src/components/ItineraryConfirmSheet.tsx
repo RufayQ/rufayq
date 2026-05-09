@@ -76,12 +76,22 @@ const LegEditor = ({ title, value, onChange }: { title: string; value: FlightInf
   );
 };
 
+const RAW_TOGGLE_KEY = "rufayq_itinerary_show_raw";
+const ONLY_CHANGED_KEY = "rufayq_itinerary_only_changed";
+
 const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawReturn, passengerName, passportNumber, onCancel, onConfirm }: Props) => {
   const [out, setOut] = useState<FlightInfo | null>(outbound);
   const [ret, setRet] = useState<FlightInfo | null>(returnLeg);
-  const [showRaw, setShowRaw] = useState(false);
+  const [showRaw, setShowRaw] = useState<boolean>(() => {
+    try { return localStorage.getItem(RAW_TOGGLE_KEY) === "1"; } catch { return false; }
+  });
+  const [onlyChanged, setOnlyChanged] = useState<boolean>(() => {
+    try { return localStorage.getItem(ONLY_CHANGED_KEY) === "1"; } catch { return false; }
+  });
 
-  useEffect(() => { setOut(outbound); setRet(returnLeg); setShowRaw(false); }, [outbound, returnLeg, open]);
+  useEffect(() => { setOut(outbound); setRet(returnLeg); }, [outbound, returnLeg, open]);
+  useEffect(() => { try { localStorage.setItem(RAW_TOGGLE_KEY, showRaw ? "1" : "0"); } catch { /* noop */ } }, [showRaw]);
+  useEffect(() => { try { localStorage.setItem(ONLY_CHANGED_KEY, onlyChanged ? "1" : "0"); } catch { /* noop */ } }, [onlyChanged]);
 
   if (!open) return null;
 
