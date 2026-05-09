@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { X, Plane, AlertTriangle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import type { FlightInfo } from "./AddTripSheet";
 import { validateFlight, type FlightValidationIssue } from "@/lib/flightParsing";
@@ -112,11 +112,11 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawRetu
           <span className="font-mono" style={{ color: "var(--gray)" }}>SCANNED</span>
           <span className="font-mono" style={{ color: "var(--gray)" }}>NORMALIZED</span>
           {rows.map(r => (
-            <>
-              <span key={`k-${r.k}`} style={{ color: "var(--navy)" }}>{r.k}</span>
-              <span key={`r-${r.k}`} style={{ color: r.changed ? "var(--gray)" : "var(--navy)", textDecoration: r.changed ? "line-through" : "none" }}>{r.raw || "—"}</span>
-              <span key={`n-${r.k}`} style={{ color: r.changed ? "var(--success)" : "var(--navy)", fontWeight: r.changed ? 600 : 400 }}>{r.norm || "—"}</span>
-            </>
+            <Fragment key={r.k}>
+              <span style={{ color: "var(--navy)" }}>{r.k}</span>
+              <span style={{ color: r.changed ? "var(--gray)" : "var(--navy)", textDecoration: r.changed ? "line-through" : "none" }}>{r.raw || "—"}</span>
+              <span style={{ color: r.changed ? "var(--success)" : "var(--navy)", fontWeight: r.changed ? 600 : 400 }}>{r.norm || "—"}</span>
+            </Fragment>
           ))}
         </div>
       </div>
