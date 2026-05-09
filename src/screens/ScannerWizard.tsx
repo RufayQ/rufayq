@@ -5,7 +5,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 import { FileUploadPreview } from "@/shared/ui";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
-import { pdfToImageDataUrls } from "@/lib/pdfToImages";
+import { pdfToBestFlightImages } from "@/lib/pdfToImages";
 import { normalizeParsedLeg } from "@/lib/flightParsing";
 import type { FlightInfo } from "@/components/AddTripSheet";
 
