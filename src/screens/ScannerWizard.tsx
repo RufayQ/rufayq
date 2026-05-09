@@ -196,20 +196,24 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
           <Step4AIReview
             category={selectedCategory}
             fileName={capturedFile?.name || "document"}
+            realFile={realFile}
+            onParsed={setScannedPayload}
             onSave={() => setStep(5)}
           />
         )}
         {step === 5 && (
           <Step5Success
             category={selectedCategory}
-            onViewSection={() => { if (onSave) onSave(selectedCategory); else onClose(); }}
+            onViewSection={() => { if (onSave) onSave(selectedCategory, scannedPayload ?? undefined); else onClose(); }}
             onScanAnother={() => {
               setStep(1);
               setCapturedFile(null);
+              setRealFile(null);
+              setScannedPayload(null);
               setSelectedCategory(preselectedCategory || null);
               setSelectedSub(null);
             }}
-            onDone={() => { if (onSave) onSave(selectedCategory); else onClose(); }}
+            onDone={() => { if (onSave) onSave(selectedCategory, scannedPayload ?? undefined); else onClose(); }}
           />
         )}
       </div>
