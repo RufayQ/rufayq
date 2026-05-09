@@ -1236,12 +1236,30 @@ const FlightDetailModal = ({ flight, type, onClose }: { flight: FlightInfo; type
   </div>
 );
 
-const JourneyStepCards = ({ trip }: { trip: TripData | null }) => {
+const formatCardDateTime = (iso?: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+};
+
+const JourneyStepCards = ({ trip, onJumpToStep }: { trip: TripData | null; onJumpToStep?: (id: number) => void }) => {
   const [detail, setDetail] = useState<{ flight: FlightInfo; type: "outbound" | "return" } | null>(null);
   if (!trip) return null;
   const out = trip.outboundFlight;
   const ret = trip.returnFlight;
   const cards: React.ReactNode[] = [];
+
+  const flightSubtitle = (f: FlightInfo) => {
+    const parts: string[] = [];
+    if (f.airline || f.flightNumber) parts.push(`${f.airline || "Flight"} ${f.flightNumber || ""}`.trim());
+    if (f.departureDateTime) {
+      const dt = formatCardDateTime(f.departureDateTime);
+      if (dt) parts.push(`🕒 ${dt}`);
+    }
+    if (f.bookingRef) parts.push(`PNR ${f.bookingRef}`);
+    return parts.join(" · ");
+  };
 
   if (out) {
     cards.push(
@@ -1251,10 +1269,10 @@ const JourneyStepCards = ({ trip }: { trip: TripData | null }) => {
         tag="DEPARTING"
         tagAr="مغادرة"
         title={`${out.fromAirport || out.fromCity || "—"} → ${out.toAirport || out.toCity || "—"}`}
-        subtitle={`${out.airline || "Flight"} ${out.flightNumber || ""}${out.bookingRef ? ` · PNR ${out.bookingRef}` : ""}`}
+        subtitle={flightSubtitle(out)}
         date={formatCardDate(out.departureDateTime || trip.departureDate)}
         accent="linear-gradient(135deg, var(--teal-deep), var(--teal-mid))"
-        onTap={() => setDetail({ flight: out, type: "outbound" })}
+        onTap={() => { onJumpToStep?.(3); setDetail({ flight: out, type: "outbound" }); }}
       />
     );
   }
@@ -1269,7 +1287,7 @@ const JourneyStepCards = ({ trip }: { trip: TripData | null }) => {
         subtitle={`${trip.specialtyEmoji || "🏥"} ${trip.specialty || "Treatment"}${trip.treatingDoctor ? ` · ${trip.treatingDoctor}` : ""}`}
         date={formatCardDate(trip.departureDate)}
         accent="linear-gradient(135deg, var(--gold), #B8884D)"
-        onTap={() => toast.info("Open Care Hub for treatment details · افتح مركز العناية")}
+        onTap={() => { onJumpToStep?.(7); toast.info("Open Care Hub for treatment details · افتح مركز العناية"); }}
       />
     );
   }
@@ -1281,10 +1299,10 @@ const JourneyStepCards = ({ trip }: { trip: TripData | null }) => {
         tag="RETURNING"
         tagAr="عودة"
         title={`${ret.fromAirport || ret.fromCity || "—"} → ${ret.toAirport || ret.toCity || "—"}`}
-        subtitle={`${ret.airline || "Flight"} ${ret.flightNumber || ""}${ret.bookingRef ? ` · PNR ${ret.bookingRef}` : ""}`}
+        subtitle={flightSubtitle(ret)}
         date={formatCardDate(ret.departureDateTime || trip.returnDate)}
         accent="linear-gradient(135deg, var(--teal-bright), var(--teal-deep))"
-        onTap={() => setDetail({ flight: ret, type: "return" })}
+        onTap={() => { onJumpToStep?.(8); setDetail({ flight: ret, type: "return" }); }}
       />
     );
   }
