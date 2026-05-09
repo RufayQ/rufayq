@@ -155,7 +155,7 @@ const Index = () => {
     setShowScanner(true);
   };
 
-  const handleScannerSave = useCallback((category: string | null) => {
+  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; passenger?: { name?: string; passport?: string } }) => {
     setShowScanner(false);
     const msg = toastMessages[category || "other"] || toastMessages.other;
 
@@ -164,6 +164,16 @@ const Index = () => {
 
     // Set badge on Records
     setBadges(prev => ({ ...prev, records: true }));
+
+    // For flight scans, hand off the parsed legs to the Journey screen via a
+    // CustomEvent so the timeline + transport list reflect the scan
+    // immediately. JourneyScreen subscribes to this event.
+    if (category === "flight" && payload && (payload.outbound || payload.return)) {
+      try {
+        sessionStorage.setItem("rufayq_pending_flight", JSON.stringify(payload));
+        window.dispatchEvent(new CustomEvent("rufayq:pending-flight", { detail: payload }));
+      } catch (e) { console.warn("[scanner] could not store pending flight", e); }
+    }
 
     // Navigate based on category
     if (category === "flight" || category === "train") {
