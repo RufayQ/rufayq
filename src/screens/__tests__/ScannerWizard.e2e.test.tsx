@@ -93,9 +93,12 @@ const uploadFile = async (file: File) => {
 };
 
 const advanceToOcr = async () => {
-  // Step 2 → "Use This"
+  // Step 2 → "Use This" (advances to category step)
   const useBtn = await screen.findByText(/Use This/i);
   fireEvent.click(useBtn.closest("button")!);
+  // Step 3 → "Continue" (preselectedCategory keeps the button enabled)
+  const continueBtn = await screen.findByText(/Continue →/i);
+  fireEvent.click(continueBtn.closest("button")!);
 };
 
 beforeEach(() => {
