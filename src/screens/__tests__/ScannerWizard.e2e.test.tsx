@@ -130,18 +130,17 @@ describe("ScannerWizard E2E — flight flow", () => {
     await uploadFile(makeImageFile());
     await advanceToOcr();
 
-    // OCR success → success view shows extracted info; click Save → Step 5
+    // OCR success → success view; click "Save to RufayQ" → Step 5
     await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(1), { timeout: 4000 });
-    const saveBtn = await screen.findByText(/Save & Continue|Save → Continue|Save/i, { selector: "button, button *" }).catch(() => null);
-    // Fall back: click any button that progresses the flow
-    if (saveBtn) fireEvent.click((saveBtn as HTMLElement).closest("button")!);
+    const saveBtn = await screen.findByText(/Save to RufayQ/i, undefined, { timeout: 4000 });
+    fireEvent.click((saveBtn as HTMLElement).closest("button")!);
 
-    // Step 5 shows the JourneyTimeline
+    // Step 5 shows the JourneyTimeline preview
     await waitFor(() => {
       expect(screen.getByTestId("journey-timeline")).toBeInTheDocument();
     }, { timeout: 4000 });
-    expect(screen.getByText(/JED/)).toBeInTheDocument();
-    expect(screen.getByText(/LHR/)).toBeInTheDocument();
+    expect(screen.getAllByText(/JED/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/LHR/).length).toBeGreaterThan(0);
   });
 
   it("OCR failure → manual entry → onSave receives source=manual + valid leg", async () => {
