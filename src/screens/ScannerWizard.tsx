@@ -129,18 +129,18 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
 
+  // Saved parsed payload from real OCR (only for flight category right now).
+  const [scannedPayload, setScannedPayload] = useState<{ outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } } | null>(null);
+
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
       fileInputRef.current.accept = accept;
       fileInputRef.current.click();
     }
-    // Demo fallback: if file dialog is dismissed or unavailable, use mock after short delay
-    setTimeout(() => {
-      if (!capturedFile) {
-        setCapturedFile({ name: "document_scan.pdf", type: "application/pdf", size: "1.2 MB" });
-        setStep(2);
-      }
-    }, 1500);
+    // NOTE: removed the 1.5s "demo fallback" — it overwrote a real selected
+    // file with a fake "document_scan.pdf" because the closure captured a
+    // stale `capturedFile === null`, which is why scans appeared as the
+    // hardcoded RUH→BER demo.
   };
 
   const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,6 +148,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
     if (file) {
       setCapturedFile({ name: file.name, type: file.type, size: `${(file.size / 1024).toFixed(1)} KB` });
       setRealFile(file);
+      setScannedPayload(null);
       setStep(2);
     }
   };
