@@ -9,7 +9,7 @@ import HomeScreen from "@/screens/HomeScreen";
 import JourneyScreen from "@/screens/JourneyScreen";
 import RecordsScreen from "@/screens/RecordsScreen";
 import ChatScreen from "@/screens/ChatScreen";
-import CareHubScreen from "@/screens/CareHubScreen";
+import { CareHubScreen } from "@/features/carehub";
 import MedicationsScreen from "@/screens/MedicationsScreen";
 import PricingScreen from "@/screens/PricingScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
