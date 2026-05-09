@@ -587,6 +587,8 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
         onParsed?.({
           outbound: out,
           return: ret,
+          rawOutbound: parsed.outboundFlight ?? null,
+          rawReturn: parsed.returnFlight ?? null,
           passenger: {
             name: [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ") || undefined,
             passport: parsed.passportNumber || undefined,
