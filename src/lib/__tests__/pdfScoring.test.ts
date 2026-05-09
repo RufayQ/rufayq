@@ -224,9 +224,10 @@ describe("scoreFlightImage — scanned-PDF fallback", () => {
     expect(sText).toBeGreaterThan(scoreFlightImage(photo));
   });
 
-  it("ranks a denser text page above a sparse one", () => {
-    const dense = makeImageData(60, 80, (_x, y) => (y % 3 === 0 ? 40 : 245));
-    const sparse = makeImageData(60, 80, (_x, y) => (y % 12 === 0 ? 40 : 252));
+  it("ranks a moderately-dense text page above a very sparse one", () => {
+    // Sparse drops below saturation; dense uses normal text spacing.
+    const dense = makeImageData(60, 120, (_x, y) => (y % 4 === 0 ? 40 : 245));
+    const sparse = makeImageData(60, 120, (_x, y) => (y < 8 && (y % 2 === 0) ? 40 : 252));
     expect(scoreFlightImage(dense)).toBeGreaterThan(scoreFlightImage(sparse));
   });
 
