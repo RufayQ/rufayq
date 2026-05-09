@@ -1185,12 +1185,23 @@ const EditableField = ({ label, value, onChange }: { label: string; value: strin
 };
 
 /* ─── STEP 5: SUCCESS ─── */
-const Step5Success = ({ category, onViewSection, onScanAnother, onDone }: {
-  category: string | null; onViewSection: () => void; onScanAnother: () => void; onDone: () => void;
+const Step5Success = ({ category, payload, onViewSection, onScanAnother, onDone }: {
+  category: string | null;
+  payload?: ScannerSavePayload | null;
+  onViewSection: () => void;
+  onScanAnother: () => void;
+  onDone: () => void;
 }) => {
   const [showContent, setShowContent] = useState(false);
   const cat = categories.find(c => c.id === category);
   const section = sectionLabels[category || ""] || "Records";
+
+  const journey = category === "flight" && payload
+    ? parseFlightJourney(
+        { outbound: payload.outbound ?? null, return: payload.return ?? null, legs: payload.legs, passenger: payload.passenger },
+        payload.source ?? "ocr",
+      )
+    : null;
 
   const actionsTaken: { en: string; ar: string }[] = [];
   const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
