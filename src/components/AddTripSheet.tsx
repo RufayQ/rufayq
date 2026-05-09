@@ -612,6 +612,16 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
           </button>
         </div>
       </div>
+
+      <ItineraryConfirmSheet
+        open={showConfirmItinerary}
+        outbound={pendingOut}
+        returnLeg={pendingRet}
+        passengerName={pendingPassenger.name}
+        passportNumber={pendingPassenger.passport}
+        onCancel={() => setShowConfirmItinerary(false)}
+        onConfirm={handleConfirmItinerary}
+      />
     </div>
   );
 };
