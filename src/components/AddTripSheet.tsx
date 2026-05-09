@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { pdfToImageDataUrls } from "@/lib/pdfToImages";
+import { normalizeParsedLeg, validateFlight } from "@/lib/flightParsing";
+import ItineraryConfirmSheet from "@/components/ItineraryConfirmSheet";
 
 export interface FlightInfo {
   airline: string;
@@ -137,6 +139,12 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
   const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Confirmation preview state — populated after a successful scan, before applying.
+  const [pendingOut, setPendingOut] = useState<FlightInfo | null>(null);
+  const [pendingRet, setPendingRet] = useState<FlightInfo | null>(null);
+  const [pendingPassenger, setPendingPassenger] = useState<{ name?: string; passport?: string }>({});
+  const [showConfirmItinerary, setShowConfirmItinerary] = useState(false);
+
   if (!open) return null;
 
   const fileToDataUrl = (file: File) =>
@@ -147,28 +155,27 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
       r.readAsDataURL(file);
     });
 
-  const applyLeg = (leg: any, target: "out" | "ret") => {
-    if (!leg) return;
+  const applyLeg = (leg: FlightInfo, target: "out" | "ret") => {
     const set = target === "out"
       ? { airline: setOutAirline, num: setOutFlightNum, pnr: setOutPNR, from: setOutFrom, to: setOutTo, dD: setOutDepDate, dT: setOutDepTime, aD: setOutArrDate, aT: setOutArrTime, cls: setOutClass, seat: setOutSeat }
       : { airline: setRetAirline, num: setRetFlightNum, pnr: setRetPNR, from: setRetFrom, to: setRetTo, dD: setRetDepDate, dT: setRetDepTime, aD: setRetArrDate, aT: setRetArrTime, cls: setRetClass, seat: setRetSeat };
-    if (leg.airline) set.airline(String(leg.airline));
-    if (leg.flightNumber) set.num(String(leg.flightNumber).toUpperCase());
-    if (leg.bookingRef) set.pnr(String(leg.bookingRef).toUpperCase());
-    const fromLabel = [leg.fromAirport, leg.fromCity].filter(Boolean).join(" — ");
-    const toLabel = [leg.toAirport, leg.toCity].filter(Boolean).join(" — ");
-    if (fromLabel) set.from(fromLabel);
-    if (toLabel) set.to(toLabel);
+    set.airline(leg.airline || "");
+    set.num(leg.flightNumber || "");
+    set.pnr(leg.bookingRef || "");
+    const fromLabel = [leg.fromAirport, leg.fromCity || leg.fromAirportFull].filter(Boolean).join(" — ");
+    const toLabel = [leg.toAirport, leg.toCity || leg.toAirportFull].filter(Boolean).join(" — ");
+    set.from(fromLabel);
+    set.to(toLabel);
     if (leg.departureDateTime) {
-      const [d, t] = String(leg.departureDateTime).split("T");
-      if (d) set.dD(d); if (t) set.dT(t.slice(0, 5));
+      const [d, t] = leg.departureDateTime.split("T");
+      set.dD(d || ""); set.dT((t || "").slice(0, 5));
     }
     if (leg.arrivalDateTime) {
-      const [d, t] = String(leg.arrivalDateTime).split("T");
-      if (d) set.aD(d); if (t) set.aT(t.slice(0, 5));
+      const [d, t] = leg.arrivalDateTime.split("T");
+      set.aD(d || ""); set.aT((t || "").slice(0, 5));
     }
-    if (leg.seatClass) set.cls(String(leg.seatClass).replace(/^./, (c: string) => c.toUpperCase()));
-    if (leg.seatNumber) set.seat(String(leg.seatNumber));
+    set.cls(leg.seatClass || "Economy");
+    set.seat(leg.seatNumber || "");
   };
 
   const handleItineraryUpload = async (file: File) => {
@@ -211,25 +218,17 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
         return;
       }
 
-      applyLeg(parsed.outboundFlight, "out");
-      if (parsed.returnFlight) {
-        setShowReturnFlight(true);
-        applyLeg(parsed.returnFlight, "ret");
-      }
-      // Pre-fill destination + departure date if still empty
-      if (!destination && parsed.outboundFlight?.toCity) setDestination(String(parsed.outboundFlight.toCity).split(",")[0]);
-      if (!departureDate && parsed.outboundFlight?.departureDateTime) {
-        setDepartureDate(String(parsed.outboundFlight.departureDateTime).split("T")[0]);
-      }
-      if (!returnDate && parsed.returnFlight?.departureDateTime) {
-        setReturnDate(String(parsed.returnFlight.departureDateTime).split("T")[0]);
-      }
-      const passenger = [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ");
-      const passportPart = parsed.passportNumber ? ` · Passport ${parsed.passportNumber}` : "";
-      toast.success(
-        `Itinerary scanned${passenger ? ` for ${passenger}` : ""}${passportPart} · review the fields below before saving.`,
-        { duration: 7000 },
-      );
+      // Normalize (resolves IATA → city/airport, swaps misplaced fields)
+      const normOut = parsed.outboundFlight ? normalizeParsedLeg(parsed.outboundFlight) : null;
+      const normRet = parsed.returnFlight ? normalizeParsedLeg(parsed.returnFlight) : null;
+
+      setPendingOut(normOut);
+      setPendingRet(normRet);
+      setPendingPassenger({
+        name: [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ") || undefined,
+        passport: parsed.passportNumber || undefined,
+      });
+      setShowConfirmItinerary(true);
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message || "Could not read itinerary. Try a clearer photo or PDF.");
@@ -237,6 +236,19 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
       setScanning(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleConfirmItinerary = (out: FlightInfo | null, ret: FlightInfo | null) => {
+    if (out) applyLeg(out, "out");
+    if (ret) {
+      setShowReturnFlight(true);
+      applyLeg(ret, "ret");
+    }
+    if (!destination && out?.toCity) setDestination(out.toCity);
+    if (!departureDate && out?.departureDateTime) setDepartureDate(out.departureDateTime.split("T")[0]);
+    if (!returnDate && ret?.departureDateTime) setReturnDate(ret.departureDateTime.split("T")[0]);
+    setShowConfirmItinerary(false);
+    toast.success("Itinerary applied · review and save your trip", { duration: 4000 });
   };
 
 
@@ -256,17 +268,44 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
       return;
     }
 
+    const splitEndpoint = (raw: string) => {
+      // "RUH — Riyadh" / "RUH - Riyadh, KKIA" / "BER Berlin Brandenburg"
+      const m = raw.match(/^\s*([A-Z]{3})\b[\s\-—:,]*(.*)$/);
+      if (m) return { code: m[1], city: m[2].split(/[—,-]/)[0].trim() || m[2].trim(), full: m[2].trim() };
+      return { code: "", city: raw.trim(), full: raw.trim() };
+    };
+
     const buildFlight = (airline: string, num: string, pnr: string, from: string, to: string, depD: string, depT: string, arrD: string, arrT: string, cls: string, seat: string): FlightInfo | null => {
-      if (!airline && !num) return null;
+      if (!airline && !num && !from && !to) return null;
+      const f = splitEndpoint(from);
+      const t = splitEndpoint(to);
       return {
         airline, flightNumber: num, bookingRef: pnr,
-        fromAirport: from.split(" ")[0] || from, fromCity: from, fromAirportFull: from,
-        toAirport: to.split(" ")[0] || to, toCity: to, toAirportFull: to,
+        fromAirport: f.code, fromCity: f.city, fromAirportFull: f.full,
+        toAirport: t.code, toCity: t.city, toAirportFull: t.full,
         departureDateTime: depD && depT ? `${depD}T${depT}` : depD,
         arrivalDateTime: arrD && arrT ? `${arrD}T${arrT}` : arrD,
-        seatClass: cls, seatNumber: seat,
+        seatClass: cls || "Economy", seatNumber: seat,
       };
     };
+
+    const outboundFlight = buildFlight(outAirline, outFlightNum, outPNR, outFrom, outTo, outDepDate, outDepTime, outArrDate, outArrTime, outClass, outSeat);
+    const returnFlight = showReturnFlight
+      ? buildFlight(retAirline, retFlightNum, retPNR, retFrom, retTo, retDepDate, retDepTime, retArrDate, retArrTime, retClass, retSeat)
+      : null;
+
+    // Block save if a flight section was started but is invalid/inconsistent.
+    const flightIssues = [
+      ...(outboundFlight ? validateFlight(outboundFlight, "Outbound") : []),
+      ...(returnFlight ? validateFlight(returnFlight, "Return") : []),
+    ].filter(i => i.level === "error");
+    if (flightIssues.length > 0) {
+      toast.error(flightIssues[0].message, {
+        description: flightIssues.length > 1 ? `+${flightIssues.length - 1} more issue(s) — fix flight details before saving.` : "Fix the flight details before saving.",
+        duration: 6000,
+      });
+      return;
+    }
 
     const validCompanions = companions.filter((c) => c.name.trim());
     const trip: TripData = {
@@ -279,8 +318,8 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
       companions: validCompanions.length > 0 ? validCompanions : undefined,
       insuranceRef,
       status: "active",
-      outboundFlight: buildFlight(outAirline, outFlightNum, outPNR, outFrom, outTo, outDepDate, outDepTime, outArrDate, outArrTime, outClass, outSeat),
-      returnFlight: showReturnFlight ? buildFlight(retAirline, retFlightNum, retPNR, retFrom, retTo, retDepDate, retDepTime, retArrDate, retArrTime, retClass, retSeat) : null,
+      outboundFlight,
+      returnFlight,
     };
 
     onSubmit(trip);
@@ -573,6 +612,16 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
           </button>
         </div>
       </div>
+
+      <ItineraryConfirmSheet
+        open={showConfirmItinerary}
+        outbound={pendingOut}
+        returnLeg={pendingRet}
+        passengerName={pendingPassenger.name}
+        passportNumber={pendingPassenger.passport}
+        onCancel={() => setShowConfirmItinerary(false)}
+        onConfirm={handleConfirmItinerary}
+      />
     </div>
   );
 };
