@@ -305,6 +305,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
             onEditTrip={() => setShowEditTrip(true)}
             onEditStep={(s) => setEditingStep(s)}
             onAddStep={handleAddStep}
+            registerStepRef={registerStepRef}
+            onJumpToStep={jumpToStep}
           />
         )}
       </div>
@@ -856,6 +858,7 @@ const StepsTab = ({
   expanded, setExpanded, activeTrip, trips, steps,
   flashStepId, flashTripId, dragStepId, setDragStepId, onReorderStep,
   onAddTrip, onEditTrip, onEditStep, onAddStep,
+  registerStepRef, onJumpToStep,
 }: {
   expanded: number | null;
   setExpanded: (v: number | null) => void;
@@ -871,6 +874,8 @@ const StepsTab = ({
   onEditTrip: () => void;
   onEditStep: (s: JourneyStep) => void;
   onAddStep: () => void;
+  registerStepRef: (id: number, el: HTMLDivElement | null) => void;
+  onJumpToStep: (id: number) => void;
 }) => (
   <div>
     {/* PROMINENT ADD-TRIP CTA at top */}
