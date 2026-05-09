@@ -605,7 +605,16 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     void run();
     return () => { cancelled = true; cleanups.forEach(fn => fn()); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, realFile]);
+  }, [category, realFile, retryNonce]);
+
+  const tryAgain = () => {
+    setParseError(null);
+    setParsedFields(null);
+    setProcessing(true);
+    setProcessStep(0);
+    onParsed?.(null);
+    setRetryNonce(n => n + 1);
+  };
 
   const toggleDest = (i: number) => {
     setDestinations(prev => prev.map((v, idx) => idx === i ? !v : v));
