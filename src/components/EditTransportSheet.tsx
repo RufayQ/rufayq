@@ -56,7 +56,7 @@ const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete }: Props
   const [depD, depT] = splitDT(s.departureDateTime);
   const [arrD, arrT] = splitDT(s.arrivalDateTime);
   const issues = validateTransportSegment(s);
-  const errMap = fieldErrorMap(issues);
+  void fieldErrorMap(issues); // reserved for future inline highlighting
   const errors = issues.filter(i => i.level === "error");
   const warnings = issues.filter(i => i.level === "warning");
   const t = titles[s.type];
