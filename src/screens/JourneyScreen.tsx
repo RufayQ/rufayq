@@ -473,8 +473,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
               onOpenScanner?.("flight");
               return;
             }
-            // Build a sensible draft segment with type-specific defaults so the
-            // ticket card has real, editable values instead of "TBD".
+            // Build a draft segment with type-specific defaults, then open the
+            // editor so the user can fill required fields (validated on save).
             const dep = new Date(Date.now() + 24 * 3600 * 1000);
             const arr = new Date(dep.getTime() + 2 * 3600 * 1000);
             const type = opt.en.toLowerCase() as TransportSegment["type"];
@@ -484,24 +484,55 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
               status: "upcoming",
               departureDateTime: dep.toISOString(),
               arrivalDateTime: arr.toISOString(),
-              fromCity: "From", toCity: "To",
-              fromCode: "—", toCode: "—",
-              ...(type === "train" && { trainOperator: "Operator", trainNumber: "—" }),
-              ...(type === "bus" && { busOperator: "Operator", busNumber: "—" }),
-              ...(type === "taxi" && { taxiProvider: opt.en, driverName: "—" }),
-              ...(type === "rental" && { rentalCompany: "Rental Co.", carModel: "—" }),
-              ...(type === "medical" && { mobilityType: "Wheelchair Transfer", arrangedBy: "Hospital" }),
-              ...(type === "flight" && { airline: opt.en, flightNumber: "—" }),
+              fromCity: "", toCity: "",
+              fromCode: "", toCode: "",
+              ...(type === "train" && { trainOperator: "", trainNumber: "" }),
+              ...(type === "bus" && { busOperator: "", busNumber: "" }),
+              ...(type === "taxi" && { taxiProvider: opt.en, driverName: "" }),
+              ...(type === "rental" && { rentalCompany: "", carModel: "" }),
+              ...(type === "medical" && { mobilityType: "", arrangedBy: "" }),
+              ...(type === "flight" && { airline: opt.en, flightNumber: "" }),
             } as TransportSegment;
-            setTransportSegments(prev => [...prev, seg]);
-            setActiveSubTab("tickets");
-            toast.success(`${opt.icon} ${opt.en} added · تم الإضافة`, {
-              description: "Tap the card to edit pickup, drop-off and details.",
-              duration: 4000,
-            });
+            setIsNewSegment(true);
+            setEditingSegment(seg);
           }}
         />
       )}
+
+      {/* Itinerary preview/confirm — shown after a successful flight scan */}
+      <ItineraryConfirmSheet
+        open={!!pendingScan}
+        outbound={pendingScan?.outbound ?? null}
+        returnLeg={pendingScan?.return ?? null}
+        rawOutbound={pendingScan?.rawOutbound ?? null}
+        rawReturn={pendingScan?.rawReturn ?? null}
+        passengerName={pendingScan?.passenger?.name}
+        passportNumber={pendingScan?.passenger?.passport}
+        onCancel={() => setPendingScan(null)}
+        onConfirm={(out, ret) => applyConfirmedScan(out, ret)}
+      />
+
+      {/* Transport segment editor — handles draft creation + later edits */}
+      <EditTransportSheet
+        open={!!editingSegment}
+        segment={editingSegment}
+        onCancel={() => { setEditingSegment(null); setIsNewSegment(false); }}
+        onSave={(seg) => {
+          setTransportSegments(prev => {
+            const exists = prev.some(p => p.id === seg.id);
+            return exists ? prev.map(p => p.id === seg.id ? seg : p) : [...prev, seg];
+          });
+          setActiveSubTab("tickets");
+          toast.success(isNewSegment ? "Transport added · تم الإضافة" : "Transport updated · تم التحديث");
+          setEditingSegment(null);
+          setIsNewSegment(false);
+        }}
+        onDelete={isNewSegment ? undefined : (id) => {
+          setTransportSegments(prev => prev.filter(p => p.id !== id));
+          setEditingSegment(null);
+        }}
+      />
+
 
       {/* Add Stay Sheet */}
       {showAddStay && (
