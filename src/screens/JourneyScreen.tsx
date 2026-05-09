@@ -13,6 +13,8 @@ import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard
 import { PlaneTakeoff, PlaneLanding, Hotel, Stethoscope, ChevronRight, X as XIcon } from "lucide-react";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import TransportCard, { LayoverIndicator, type TransportSegment } from "@/components/TransportCard";
+import TripSummaryCard from "@/components/TripSummaryCard";
+import { parseFlightJourney } from "@/lib/flightJourney";
 import TicketDetailSheet, { type OverrideAnnotation, type SmartReminder, getSystemReminders } from "@/components/TicketDetailSheet";
 import ItineraryConfirmSheet from "@/components/ItineraryConfirmSheet";
 import EditTransportSheet from "@/components/EditTransportSheet";
@@ -103,9 +105,11 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const [pendingScan, setPendingScan] = useState<{
     outbound?: FlightInfo | null;
     return?: FlightInfo | null;
+    legs?: FlightInfo[];
     rawOutbound?: any;
     rawReturn?: any;
     passenger?: { name?: string; passport?: string };
+    source?: "ocr" | "manual";
   } | null>(null);
 
   // Editor state for transport segments (non-flight in particular). Opens
@@ -125,13 +129,16 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       }
       if (!payload) return;
       sessionStorage.removeItem("rufayq_pending_flight");
-      if (!payload.outbound && !payload.return) return;
+      const hasMulti = Array.isArray(payload.legs) && payload.legs.length > 0;
+      if (!payload.outbound && !payload.return && !hasMulti) return;
       setPendingScan({
-        outbound: payload.outbound ?? null,
-        return: payload.return ?? null,
+        outbound: payload.outbound ?? (hasMulti ? payload.legs[0] : null),
+        return: payload.return ?? (hasMulti && payload.legs.length === 2 ? payload.legs[1] : null),
+        legs: hasMulti ? payload.legs : undefined,
         rawOutbound: payload.rawOutbound ?? payload.outbound ?? null,
         rawReturn: payload.rawReturn ?? payload.return ?? null,
         passenger: payload.passenger,
+        source: payload.source ?? "ocr",
       });
     };
     consume();
@@ -142,6 +149,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   }, []);
 
   const applyConfirmedScan = (out: FlightInfo | null, ret: FlightInfo | null) => {
+    const docSource: TransportSegment["documentSource"] =
+      pendingScan?.source === "manual" ? "Manual Entry" : "OCR Scanned";
     const legToSegment = (leg: FlightInfo, idx: number): TransportSegment => ({
       id: `seg-${Date.now()}-${idx}`,
       type: "flight",
@@ -159,31 +168,41 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       flightNumber: leg.flightNumber,
       seatClass: leg.seatClass,
       seatNumber: leg.seatNumber,
+      documentSource: docSource,
     });
-    const newSegs: TransportSegment[] = [];
-    if (out) newSegs.push(legToSegment(out, 0));
-    if (ret) newSegs.push(legToSegment(ret, 1));
+    // Prefer multi-city `legs` if present (covers >2 legs); otherwise fall
+    // back to the legacy outbound/return shape from the confirm sheet.
+    const sourceLegs: FlightInfo[] = pendingScan?.legs && pendingScan.legs.length > 0
+      ? pendingScan.legs
+      : ([out, ret].filter(Boolean) as FlightInfo[]);
+    const newSegs: TransportSegment[] = sourceLegs.map((l, i) => legToSegment(l, i));
     if (newSegs.length === 0) { setPendingScan(null); return; }
 
     setTransportSegments(prev => [...prev, ...newSegs]);
     setActiveSubTab("tickets");
-    toast.success("✈️ Flight added to your timeline", {
-      description: `${newSegs[0].airline || ""} ${newSegs[0].flightNumber || ""} · ${newSegs[0].fromCode} → ${newSegs[0].toCode}`,
-      duration: 4000,
-    });
+    toast.success(
+      pendingScan?.source === "manual"
+        ? "✈️ Flight added to your timeline (manual entry)"
+        : "✈️ Flight added to your timeline",
+      {
+        description: `${newSegs[0].airline || ""} ${newSegs[0].flightNumber || ""} · ${newSegs[0].fromCode} → ${newSegs[0].toCode}`,
+        duration: 4000,
+      },
+    );
 
     setTrips(prev => {
       if (prev.length > 0) return prev;
       const seed: TripData = {
         id: `trip-${Date.now()}`,
-        destination: out?.toCity || ret?.fromCity || "Destination",
+        destination: out?.toCity || ret?.fromCity || sourceLegs[sourceLegs.length - 1]?.toCity || "Destination",
         hospital: "", specialty: "", specialtyEmoji: "🏥",
-        departureDate: (out?.departureDateTime || "").split("T")[0],
-        returnDate: (ret?.departureDateTime || "").split("T")[0],
+        departureDate: (out?.departureDateTime || sourceLegs[0]?.departureDateTime || "").split("T")[0],
+        returnDate: (ret?.departureDateTime || sourceLegs[sourceLegs.length - 1]?.departureDateTime || "").split("T")[0],
         treatingDoctor: "", companion: false,
         companionName: pendingScan?.passenger?.name || "",
         insuranceRef: "", status: "active",
-        outboundFlight: out || null, returnFlight: ret || null,
+        outboundFlight: out || sourceLegs[0] || null,
+        returnFlight: ret || (sourceLegs.length > 1 ? sourceLegs[sourceLegs.length - 1] : null),
       };
       return [seed];
     });
@@ -413,7 +432,12 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
 
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-        {activeSubTab === "tickets" && <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />}
+        {activeSubTab === "tickets" && (
+          <>
+            <FlightTripSummary segments={transportSegments} />
+            <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />
+          </>
+        )}
         {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
         {activeSubTab === "appointments" && <AppointmentsTab onOpenScanner={onOpenScanner} />}
         {activeSubTab === "steps" && (
@@ -1529,3 +1553,38 @@ const JourneyStepCards = ({ trip, onJumpToStep }: { trip: TripData | null; onJum
 };
 
 export default JourneyScreen;
+
+/**
+ * Compact summary derived from the current flight transport segments.
+ * Hidden when no flights have been added yet (so the empty-state stays clean).
+ */
+const FlightTripSummary = ({ segments }: { segments: TransportSegment[] }) => {
+  const flights = segments.filter(s => s.type === "flight");
+  if (flights.length === 0) return null;
+  const journey = parseFlightJourney(
+    {
+      legs: flights.map(s => ({
+        airline: s.airline || "",
+        flightNumber: s.flightNumber || "",
+        bookingRef: s.bookingRef || "",
+        fromAirport: s.fromCode || "",
+        fromCity: s.fromCity || "",
+        fromAirportFull: s.fromFull || "",
+        toAirport: s.toCode || "",
+        toCity: s.toCity || "",
+        toAirportFull: s.toFull || "",
+        departureDateTime: s.departureDateTime || "",
+        arrivalDateTime: s.arrivalDateTime || "",
+        seatClass: s.seatClass || "",
+        seatNumber: s.seatNumber || "",
+      })),
+    },
+    flights[0].documentSource === "Manual Entry" ? "manual" : "ocr",
+  );
+  if (journey.legs.length === 0) return null;
+  return (
+    <div className="px-4 pt-3">
+      <TripSummaryCard journey={journey} />
+    </div>
+  );
+};

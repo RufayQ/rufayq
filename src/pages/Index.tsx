@@ -208,7 +208,7 @@ const Index = () => {
     // For flight scans, hand off the parsed legs to the Journey screen via a
     // CustomEvent so the timeline + transport list reflect the scan
     // immediately. JourneyScreen subscribes to this event.
-    if (category === "flight" && payload && (payload.outbound || payload.return)) {
+    if (category === "flight" && payload && (payload.outbound || payload.return || (Array.isArray((payload as any).legs) && (payload as any).legs.length > 0))) {
       try {
         sessionStorage.setItem("rufayq_pending_flight", JSON.stringify(payload));
         window.dispatchEvent(new CustomEvent("rufayq:pending-flight", { detail: payload }));

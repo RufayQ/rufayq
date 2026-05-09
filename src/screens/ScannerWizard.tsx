@@ -7,14 +7,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { analyzePdfPages, renderPdfPagesAtScale, type PdfAnalysis } from "@/lib/pdfToImages";
 import { normalizeParsedLeg } from "@/lib/flightParsing";
+import { parseFlightJourney } from "@/lib/flightJourney";
+import JourneyTimeline from "@/components/JourneyTimeline";
+import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
 import type { FlightInfo } from "@/components/AddTripSheet";
+
+export interface ScannerSavePayload {
+  outbound?: FlightInfo | null;
+  return?: FlightInfo | null;
+  legs?: FlightInfo[];
+  rawOutbound?: any;
+  rawReturn?: any;
+  passenger?: { name?: string; passport?: string };
+  /** Where the data came from. "manual" tags the document as Manual Entry. */
+  source?: "ocr" | "manual";
+}
 
 interface ScannerWizardProps {
   onClose: () => void;
   preselectedCategory?: string | null;
   /** Called on save. For flights, payload contains the parsed legs so the
    * caller can inject them into the Journey timeline. */
-  onSave?: (category: string | null, payload?: { outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } }) => void;
+  onSave?: (category: string | null, payload?: ScannerSavePayload) => void;
 }
 
 const categories = [
@@ -129,8 +143,8 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
 
-  // Saved parsed payload from real OCR (only for flight category right now).
-  const [scannedPayload, setScannedPayload] = useState<{ outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } } | null>(null);
+  // Saved parsed payload from real OCR or manual entry (flight category).
+  const [scannedPayload, setScannedPayload] = useState<ScannerSavePayload | null>(null);
 
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
@@ -204,6 +218,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
         {step === 5 && (
           <Step5Success
             category={selectedCategory}
+            payload={scannedPayload}
             onViewSection={() => { if (onSave) onSave(selectedCategory, scannedPayload ?? undefined); else onClose(); }}
             onScanAnother={() => {
               setStep(1);
@@ -493,16 +508,34 @@ const emptyFlightFields = (): FlightFields => ({
   Airline: "", "Flight No.": "", From: "", To: "", Date: "", Time: "", PNR: "", Class: "",
 });
 
+const fmtDateLite = (s: string) => {
+  if (!s) return "";
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? s.split("T")[0] || "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
+const fmtTimeLite = (s: string) => (s && s.includes("T") ? s.split("T")[1].slice(0, 5) : "");
+const toFlightFieldsLite = (leg: FlightInfo): FlightFields => ({
+  Airline: leg.airline || "",
+  "Flight No.": leg.flightNumber || "",
+  From: [leg.fromAirport, leg.fromCity].filter(Boolean).join(" — "),
+  To: [leg.toAirport, leg.toCity].filter(Boolean).join(" — "),
+  Date: fmtDateLite(leg.departureDateTime),
+  Time: fmtTimeLite(leg.departureDateTime),
+  PNR: leg.bookingRef || "",
+  Class: leg.seatClass || "",
+});
+
 const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   category: string | null;
   fileName: string;
   realFile?: File | null;
-  onParsed?: (p: { outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } } | null) => void;
+  onParsed?: (p: ScannerSavePayload | null) => void;
   onSave: () => void;
 }) => {
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>("scanning");
   const [processStep, setProcessStep] = useState(0);
   const [destinations, setDestinations] = useState<boolean[]>([]);
+  const [showManualSheet, setShowManualSheet] = useState(false);
 
   // Flight-specific parsed state
   const [outboundFields, setOutboundFields] = useState<FlightFields | null>(null);
@@ -598,6 +631,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           name: [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ") || undefined,
           passport: parsed.passportNumber || undefined,
         },
+        source: "ocr",
       });
       setTimeout(() => {
         if (cancelRef.current || runRef.current !== myRun) return;
@@ -912,6 +946,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
   // BUG 5: when failed → render ONLY the document strip + error card. Nothing below.
   if (ocrStatus === "failed") {
+    const isFlightCat = category === "flight";
     return (
       <div className="pb-8" style={{ background: "var(--off-white)" }}>
         <div className="mx-4 mt-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
@@ -933,12 +968,49 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           </p>
           <button
             onClick={tryAgain}
+            data-testid="retry-ocr"
             className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white btn-press flex items-center justify-center gap-2"
             style={{ background: "var(--teal-deep)" }}
           >
             <RotateCw size={14} /> Try OCR again · <span className="font-arabic text-[11px]">إعادة المحاولة</span>
           </button>
+          {isFlightCat && (
+            <button
+              onClick={() => setShowManualSheet(true)}
+              data-testid="open-manual-entry"
+              className="w-full py-2.5 rounded-xl text-[13px] font-bold btn-press flex items-center justify-center gap-2"
+              style={{ background: "transparent", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}
+            >
+              Enter flight details manually → · <span className="font-arabic text-[11px]">أدخل التفاصيل يدويًا</span>
+            </button>
+          )}
         </div>
+
+        {showManualSheet && (
+          <ManualFlightEntrySheet
+            initial={null}
+            onClose={() => setShowManualSheet(false)}
+            onSubmit={(payload) => {
+              setShowManualSheet(false);
+              const out = payload.outbound ? normalizeParsedLeg(payload.outbound) : null;
+              const ret = payload.return ? normalizeParsedLeg(payload.return) : null;
+              const legs = payload.legs?.map(normalizeParsedLeg);
+              if (out) setOutboundFields(toFlightFieldsLite(out));
+              if (ret) setReturnFields(toFlightFieldsLite(ret));
+              setActiveLeg(out ? "outbound" : "return");
+              onParsed?.({
+                outbound: out,
+                return: ret,
+                legs,
+                rawOutbound: payload.outbound ?? null,
+                rawReturn: payload.return ?? null,
+                passenger: payload.passenger,
+                source: "manual",
+              });
+              setOcrStatus("success");
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -1113,12 +1185,23 @@ const EditableField = ({ label, value, onChange }: { label: string; value: strin
 };
 
 /* ─── STEP 5: SUCCESS ─── */
-const Step5Success = ({ category, onViewSection, onScanAnother, onDone }: {
-  category: string | null; onViewSection: () => void; onScanAnother: () => void; onDone: () => void;
+const Step5Success = ({ category, payload, onViewSection, onScanAnother, onDone }: {
+  category: string | null;
+  payload?: ScannerSavePayload | null;
+  onViewSection: () => void;
+  onScanAnother: () => void;
+  onDone: () => void;
 }) => {
   const [showContent, setShowContent] = useState(false);
   const cat = categories.find(c => c.id === category);
   const section = sectionLabels[category || ""] || "Records";
+
+  const journey = category === "flight" && payload
+    ? parseFlightJourney(
+        { outbound: payload.outbound ?? null, return: payload.return ?? null, legs: payload.legs, passenger: payload.passenger },
+        payload.source ?? "ocr",
+      )
+    : null;
 
   const actionsTaken: { en: string; ar: string }[] = [];
   const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
@@ -1173,6 +1256,21 @@ const Step5Success = ({ category, onViewSection, onScanAnother, onDone }: {
           ))}
         </div>
       </div>
+
+      {/* Flight journey preview — confirms what will be added to the timeline */}
+      {journey && journey.legs.length > 0 && (
+        <div className="w-full mt-4" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.8s" }}>
+          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+            ✈️ FLIGHT JOURNEY · <span className="font-arabic">رحلتك</span>
+          </p>
+          <JourneyTimeline journey={journey} compact />
+          {journey.source === "manual" && (
+            <p className="mt-2 text-[10px] text-center" style={{ color: "rgba(255,255,255,0.5)" }}>
+              ✎ Manual Entry · <span className="font-arabic">إدخال يدوي</span>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Navigation buttons */}
       <div className="w-full mt-6 space-y-3" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.9s" }}>
