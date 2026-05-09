@@ -481,6 +481,18 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
 };
 
 /* ─── STEP 4: AI REVIEW & DATA EXTRACT ─── */
+type OcrStatus = "idle" | "scanning" | "success" | "failed";
+
+interface FlightFields {
+  Airline: string; "Flight No.": string; From: string; To: string;
+  Date: string; Time: string; PNR: string; Class: string;
+}
+const FLIGHT_FIELD_ORDER: (keyof FlightFields)[] = ["Airline", "Flight No.", "From", "To", "Date", "Time", "PNR", "Class"];
+
+const emptyFlightFields = (): FlightFields => ({
+  Airline: "", "Flight No.": "", From: "", To: "", Date: "", Time: "", PNR: "", Class: "",
+});
+
 const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   category: string | null;
   fileName: string;
@@ -488,16 +500,21 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   onParsed?: (p: { outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } } | null) => void;
   onSave: () => void;
 }) => {
-  const [processing, setProcessing] = useState(true);
+  const [ocrStatus, setOcrStatus] = useState<OcrStatus>("scanning");
   const [processStep, setProcessStep] = useState(0);
   const [destinations, setDestinations] = useState<boolean[]>([]);
-  const [parsedFields, setParsedFields] = useState<{ label: string; value: string }[] | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
+
+  // Flight-specific parsed state
+  const [outboundFields, setOutboundFields] = useState<FlightFields | null>(null);
+  const [returnFields, setReturnFields] = useState<FlightFields | null>(null);
+  const [activeLeg, setActiveLeg] = useState<"outbound" | "return">("outbound");
+  const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
+  const [wasTranslated, setWasTranslated] = useState(false);
+
+  // Generic (non-flight) demo fields
+  const [genericFields, setGenericFields] = useState<{ label: string; value: string }[] | null>(null);
 
   const cat = categories.find(c => c.id === category);
-  // Use real OCR-extracted fields when available; fall back to demo fields for
-  // categories that don't yet have a backend OCR endpoint.
-  const fields = parsedFields ?? extractedFieldsByCategory[category || ""] ?? extractedFieldsByCategory["flight"];
   const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
 
   useEffect(() => {
@@ -505,24 +522,36 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
-  // Real OCR path — flights only for now (matches the scan-itinerary edge fn).
-  // Refactored into a ref-callable runner so the "Try OCR again" button on
-  // the AI review screen can re-run scan-itinerary on the same uploaded file
-  // without forcing the user to re-upload.
-  const runRef = useRef<(() => void) | null>(null);
+  const runRef = useRef<number>(0);
   const [retryNonce, setRetryNonce] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
     const cleanups: Array<() => void> = [];
+    const myRun = ++runRef.current;
+
+    // Reset all parsed/cached state for a fresh scan
+    setOutboundFields(null);
+    setReturnFields(null);
+    setGenericFields(null);
+    setDetectedLanguage(null);
+    setWasTranslated(false);
+    setOcrStatus("scanning");
+    setProcessStep(0);
+    onParsed?.(null);
+
     async function run() {
       if (!realFile || category !== "flight") {
-        // Animated demo progress for non-flight categories (no backend yet).
         const t = [
           setTimeout(() => !cancelled && setProcessStep(1), 700),
           setTimeout(() => !cancelled && setProcessStep(2), 1500),
           setTimeout(() => !cancelled && setProcessStep(3), 2400),
           setTimeout(() => !cancelled && setProcessStep(4), 3200),
-          setTimeout(() => !cancelled && setProcessing(false), 4000),
+          setTimeout(() => {
+            if (cancelled || runRef.current !== myRun) return;
+            setGenericFields(extractedFieldsByCategory[category || ""] ?? null);
+            setOcrStatus("success");
+          }, 4000),
         ];
         cleanups.push(() => t.forEach(clearTimeout));
         return;
@@ -543,46 +572,61 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           });
           files = [dataUrl];
         }
-        if (cancelled) return;
-        if (files.length === 0) throw new Error("Could not read file");
+        if (cancelled || runRef.current !== myRun) return;
+        if (files.length === 0) throw new Error("empty-file");
         setProcessStep(2);
 
         const { data, error } = await supabase.functions.invoke("scan-itinerary", {
           body: { files },
           headers: { "x-device-id": getDeviceId() },
         });
-        if (cancelled) return;
-        if (error) throw error;
-        const parsed = (data as any)?.data ?? {};
+        if (cancelled || runRef.current !== myRun) return;
+        // BUG 1+2: any non-2xx / invoke error → failed state, no parse, no raw msg in UI
+        if (error) {
+          console.error("[scanner] scan-itinerary edge error", error);
+          throw new Error("ocr-failed");
+        }
+        const parsed = (data as any)?.data ?? null;
+        if (!parsed || typeof parsed !== "object") {
+          console.error("[scanner] scan-itinerary returned no data", data);
+          throw new Error("ocr-failed");
+        }
         setProcessStep(3);
 
         const out = parsed.outboundFlight ? normalizeParsedLeg(parsed.outboundFlight) : null;
         const ret = parsed.returnFlight ? normalizeParsedLeg(parsed.returnFlight) : null;
-        if (!out && !ret) throw new Error("We couldn't read flight details. Try a clearer photo or PDF.");
+        if (!out && !ret) {
+          console.error("[scanner] no flight legs in response", parsed);
+          throw new Error("no-legs");
+        }
 
         const fmtDate = (s: string) => {
-          if (!s) return "—";
+          if (!s) return "";
           const d = new Date(s);
           return isNaN(d.getTime()) ? s.split("T")[0] : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         };
-        const fmtTime = (s: string) => (s && s.includes("T") ? s.split("T")[1].slice(0, 5) : "—");
+        const fmtTime = (s: string) => (s && s.includes("T") ? s.split("T")[1].slice(0, 5) : "");
+        const toFields = (leg: FlightInfo): FlightFields => ({
+          Airline: leg.airline || "",
+          "Flight No.": leg.flightNumber || "",
+          From: [leg.fromAirport, leg.fromCity].filter(Boolean).join(" — "),
+          To: [leg.toAirport, leg.toCity].filter(Boolean).join(" — "),
+          Date: fmtDate(leg.departureDateTime),
+          Time: fmtTime(leg.departureDateTime),
+          PNR: leg.bookingRef || "",
+          Class: leg.seatClass || "",
+        });
 
-        const primary = out ?? ret!;
-        const newFields: { label: string; value: string }[] = [
-          { label: "Airline", value: primary.airline || "—" },
-          { label: "Flight No.", value: primary.flightNumber || "—" },
-          { label: "From", value: [primary.fromAirport, primary.fromCity].filter(Boolean).join(" — ") || "—" },
-          { label: "To", value: [primary.toAirport, primary.toCity].filter(Boolean).join(" — ") || "—" },
-          { label: "Date", value: fmtDate(primary.departureDateTime) },
-          { label: "Time", value: fmtTime(primary.departureDateTime) },
-          { label: "PNR", value: primary.bookingRef || "—" },
-          { label: "Class", value: primary.seatClass || "—" },
-        ];
-        if (ret && out) {
-          newFields.push({ label: "Return Flight", value: ret.flightNumber || "—" });
-          newFields.push({ label: "Return Date", value: fmtDate(ret.departureDateTime) });
-        }
-        setParsedFields(newFields);
+        if (out) setOutboundFields(toFields(out));
+        if (ret) setReturnFields(toFields(ret));
+        setActiveLeg(out ? "outbound" : "return");
+
+        // BUG 3: real language from OCR result
+        const lang: string | undefined = parsed.detectedLanguage;
+        const translated = !!parsed.translated && !!lang && lang.toLowerCase() !== "english";
+        setDetectedLanguage(lang || null);
+        setWasTranslated(translated);
+
         setProcessStep(4);
         onParsed?.({
           outbound: out,
@@ -594,14 +638,17 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
             passport: parsed.passportNumber || undefined,
           },
         });
-        const t = setTimeout(() => !cancelled && setProcessing(false), 500);
+        const t = setTimeout(() => {
+          if (cancelled || runRef.current !== myRun) return;
+          setOcrStatus("success");
+        }, 400);
         cleanups.push(() => clearTimeout(t));
       } catch (e: any) {
+        // BUG 1: never expose raw error text to the patient UI
         console.error("[scanner] OCR failed", e);
-        if (cancelled) return;
-        setParseError(e?.message || "Could not read this document.");
-        toast.error(e?.message || "Could not read this document. Try a clearer photo.");
-        setProcessing(false);
+        if (cancelled || runRef.current !== myRun) return;
+        onParsed?.(null);
+        setOcrStatus("failed");
       }
     }
     void run();
@@ -609,17 +656,18 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, realFile, retryNonce]);
 
-  const tryAgain = () => {
-    setParseError(null);
-    setParsedFields(null);
-    setProcessing(true);
-    setProcessStep(0);
-    onParsed?.(null);
-    setRetryNonce(n => n + 1);
-  };
+  const tryAgain = () => setRetryNonce(n => n + 1);
 
   const toggleDest = (i: number) => {
     setDestinations(prev => prev.map((v, idx) => idx === i ? !v : v));
+  };
+
+  const updateField = (key: keyof FlightFields, value: string) => {
+    if (activeLeg === "outbound") {
+      setOutboundFields(prev => ({ ...(prev ?? emptyFlightFields()), [key]: value }));
+    } else {
+      setReturnFields(prev => ({ ...(prev ?? emptyFlightFields()), [key]: value }));
+    }
   };
 
   const processingSteps = [
@@ -629,7 +677,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     { emoji: "📍", en: "Mapping to your journey", ar: "ربطها برحلتك العلاجية" },
   ];
 
-  if (processing) {
+  if (ocrStatus === "scanning") {
     return (
       <div className="flex flex-col items-center justify-center px-6" style={{ minHeight: "100%", background: "var(--scanner-bg)" }}>
         <div className="logo-pulse">
@@ -677,7 +725,46 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     );
   }
 
-  // Results view
+  // BUG 5: when failed → render ONLY the document strip + error card. Nothing below.
+  if (ocrStatus === "failed") {
+    return (
+      <div className="pb-8" style={{ background: "var(--off-white)" }}>
+        <div className="mx-4 mt-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-[18px]" style={{ background: cat?.paleBg || "#E0F4F5" }}>
+            {cat?.emoji || "📄"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{cat?.en || "Document"}</p>
+            <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>{fileName}</p>
+          </div>
+          <span className="text-[9px] px-2 py-1 rounded-full font-bold" style={{ background: "rgba(217,79,79,0.1)", color: "var(--error)" }}>⚠ Failed</span>
+        </div>
+
+        <div className="mx-4 mt-3 rounded-2xl p-4 space-y-3" style={{ background: "var(--white)", border: "1px solid rgba(217,79,79,0.25)" }}>
+          <p className="text-[13px] font-bold" style={{ color: "var(--error)" }}>We couldn't read this document</p>
+          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>تعذّر قراءة هذه الوثيقة</p>
+          <p className="text-[11px]" style={{ color: "var(--gray)" }}>
+            Please try again or upload a clearer version.
+          </p>
+          <button
+            onClick={tryAgain}
+            className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white btn-press flex items-center justify-center gap-2"
+            style={{ background: "var(--teal-deep)" }}
+          >
+            <RotateCw size={14} /> Try OCR again · <span className="font-arabic text-[11px]">إعادة المحاولة</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // SUCCESS view
+  const isFlight = category === "flight";
+  const hasReturn = isFlight && !!returnFields;
+  const activeFields: FlightFields | null = isFlight
+    ? (activeLeg === "outbound" ? outboundFields : returnFields)
+    : null;
+
   return (
     <div className="pb-8" style={{ background: "var(--off-white)" }}>
       {/* Document Preview Strip */}
@@ -689,41 +776,69 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{cat?.en || "Document"}</p>
           <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>{fileName}</p>
         </div>
-        <span className="text-[9px] px-2 py-1 rounded-full font-bold" style={{ background: parseError ? "rgba(217,79,79,0.1)" : "rgba(61,170,110,0.1)", color: parseError ? "var(--error)" : "#3DAA6E" }}>{parseError ? "⚠ Failed" : "✓ Processed"}</span>
+        <span className="text-[9px] px-2 py-1 rounded-full font-bold" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Processed</span>
       </div>
-
-      {parseError && (
-        <div className="mx-4 mt-3 rounded-2xl p-4 space-y-3" style={{ background: "var(--white)", border: "1px solid rgba(217,79,79,0.25)" }}>
-          <p className="text-[13px] font-bold" style={{ color: "var(--error)" }}>OCR couldn't read this document</p>
-          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>تعذّر قراءة هذه الوثيقة</p>
-          <p className="text-[11px]" style={{ color: "var(--gray)" }}>{parseError}</p>
-          <button
-            onClick={tryAgain}
-            className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white btn-press flex items-center justify-center gap-2"
-            style={{ background: "var(--teal-deep)" }}
-          >
-            <RotateCw size={14} /> Try OCR again · <span className="font-arabic text-[11px]">إعادة المحاولة</span>
-          </button>
-        </div>
-      )}
 
       {/* Extracted Data */}
       <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-        <p className="font-mono text-[9px] tracking-widest mb-3" style={{ color: "var(--gold)" }}>EXTRACTED INFORMATION</p>
-        <p className="font-arabic text-[10px] mb-3" dir="rtl" style={{ color: "var(--gray)" }}>المعلومات المستخرجة</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-          {fields.map((f, i) => (
-            <div key={i}>
-              <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{f.label}</p>
-              <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{f.value}</p>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>EXTRACTED INFORMATION</p>
+            <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>المعلومات المستخرجة</p>
+          </div>
+          {isFlight && hasReturn && (
+            <div className="flex rounded-full overflow-hidden" style={{ border: "1px solid var(--teal-deep)" }}>
+              {(["outbound", "return"] as const).map(leg => (
+                <button
+                  key={leg}
+                  onClick={() => setActiveLeg(leg)}
+                  className="px-3 py-1 text-[10px] font-bold btn-press"
+                  style={{
+                    background: activeLeg === leg ? "var(--teal-deep)" : "transparent",
+                    color: activeLeg === leg ? "#fff" : "var(--teal-deep)",
+                  }}
+                >
+                  {leg === "outbound" ? "Outbound" : "Return"}
+                </button>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-        <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: "1px solid var(--gray-light)" }}>
-          <span className="text-[9px]">🌐</span>
-          <p className="text-[10px]" style={{ color: "var(--gray)" }}>Language: <strong style={{ color: "var(--navy)" }}>German / English</strong></p>
-          <span className="text-[9px] px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Translated</span>
-        </div>
+
+        {isFlight && activeFields ? (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+            {FLIGHT_FIELD_ORDER.map((key) => (
+              <EditableField
+                key={`${activeLeg}-${key}`}
+                label={key}
+                value={activeFields[key]}
+                onChange={(v) => updateField(key, v)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+            {(genericFields ?? []).map((f, i) => (
+              <div key={i}>
+                <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{f.label}</p>
+                <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{f.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* BUG 3: language chip — only when we actually detected a language */}
+        {detectedLanguage && (
+          <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: "1px solid var(--gray-light)" }}>
+            <span className="text-[9px]">🌐</span>
+            <p className="text-[10px]" style={{ color: "var(--gray)" }}>
+              Language: <strong style={{ color: "var(--navy)" }}>{detectedLanguage}</strong>
+            </p>
+            {wasTranslated && (
+              <span className="text-[9px] px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Translated</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Edit note */}
@@ -766,6 +881,48 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           <span className="ml-1">→</span>
         </button>
       </div>
+    </div>
+  );
+};
+
+/* Tap-to-edit field for the Extracted Information card */
+const EditableField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => { setDraft(value); }, [value]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const commit = () => {
+    setEditing(false);
+    if (draft !== value) onChange(draft);
+  };
+
+  return (
+    <div>
+      <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label}</p>
+      {editing ? (
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); commit(); }
+            else if (e.key === "Escape") { setDraft(value); setEditing(false); }
+          }}
+          className="w-full text-[13px] font-bold bg-transparent outline-none"
+          style={{ color: "var(--navy)", borderBottom: "1.5px solid var(--gold)" }}
+        />
+      ) : (
+        <button
+          onClick={() => setEditing(true)}
+          className="text-left w-full text-[13px] font-bold btn-press"
+          style={{ color: "var(--navy)" }}
+        >
+          {value || "—"}
+        </button>
+      )}
     </div>
   );
 };
