@@ -97,9 +97,23 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     }
   }, [isGuest, trips.length, journeySteps.length]);
 
-  // Drain any pending flight scan handed off from the Scanner Wizard.
-  // Builds TransportSegments (one per leg) so the Tickets tab shows real
-  // parsed flights immediately after scanning, instead of demo data.
+  // Staged scan payload — populated when a flight scan arrives. Shows the
+  // ItineraryConfirmSheet preview so the user can review/edit the parsed
+  // outbound + return legs BEFORE we write them into Journey segments.
+  const [pendingScan, setPendingScan] = useState<{
+    outbound?: FlightInfo | null;
+    return?: FlightInfo | null;
+    rawOutbound?: any;
+    rawReturn?: any;
+    passenger?: { name?: string; passport?: string };
+  } | null>(null);
+
+  // Editor state for transport segments (non-flight in particular). Opens
+  // immediately after creating a draft segment so all fields are editable
+  // and validated before being saved into the timeline.
+  const [editingSegment, setEditingSegment] = useState<TransportSegment | null>(null);
+  const [isNewSegment, setIsNewSegment] = useState(false);
+
   useEffect(() => {
     const consume = (raw?: any) => {
       let payload = raw;
@@ -111,71 +125,71 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       }
       if (!payload) return;
       sessionStorage.removeItem("rufayq_pending_flight");
-
-      const legToSegment = (leg: FlightInfo, idx: number): TransportSegment => ({
-        id: `seg-${Date.now()}-${idx}`,
-        type: "flight",
-        status: "upcoming",
-        fromCode: leg.fromAirport || "—",
-        fromCity: leg.fromCity || leg.fromAirport || "TBD",
-        fromFull: leg.fromAirportFull,
-        toCode: leg.toAirport || "—",
-        toCity: leg.toCity || leg.toAirport || "TBD",
-        toFull: leg.toAirportFull,
-        departureDateTime: leg.departureDateTime || new Date().toISOString(),
-        arrivalDateTime: leg.arrivalDateTime || leg.departureDateTime || new Date().toISOString(),
-        bookingRef: leg.bookingRef,
-        airline: leg.airline,
-        flightNumber: leg.flightNumber,
-        seatClass: leg.seatClass,
-        seatNumber: leg.seatNumber,
-      });
-
-      const newSegs: TransportSegment[] = [];
-      if (payload.outbound) newSegs.push(legToSegment(payload.outbound, 0));
-      if (payload.return) newSegs.push(legToSegment(payload.return, 1));
-      if (newSegs.length === 0) return;
-
-      setTransportSegments(prev => [...prev, ...newSegs]);
-      setActiveSubTab("tickets");
-      toast.success("✈️ Flight added to your timeline", {
-        description: `${newSegs[0].airline || ""} ${newSegs[0].flightNumber || ""} · ${newSegs[0].fromCode} → ${newSegs[0].toCode}`,
-        duration: 4000,
-      });
-
-      // Seed a trip if user has none yet, so the Steps tab + journey cards render.
-      setTrips(prev => {
-        if (prev.length > 0) return prev;
-        const out = payload.outbound as FlightInfo | undefined;
-        const ret = payload.return as FlightInfo | undefined;
-        const seed: TripData = {
-          id: `trip-${Date.now()}`,
-          destination: out?.toCity || ret?.fromCity || "Destination",
-          hospital: "",
-          specialty: "",
-          specialtyEmoji: "🏥",
-          departureDate: (out?.departureDateTime || "").split("T")[0],
-          returnDate: (ret?.departureDateTime || "").split("T")[0],
-          treatingDoctor: "",
-          companion: false,
-          companionName: payload.passenger?.name || "",
-          insuranceRef: "",
-          status: "active",
-          outboundFlight: out || null,
-          returnFlight: ret || null,
-        };
-        return [seed];
+      if (!payload.outbound && !payload.return) return;
+      setPendingScan({
+        outbound: payload.outbound ?? null,
+        return: payload.return ?? null,
+        rawOutbound: payload.rawOutbound ?? payload.outbound ?? null,
+        rawReturn: payload.rawReturn ?? payload.return ?? null,
+        passenger: payload.passenger,
       });
     };
-
-    // Drain anything already in sessionStorage (e.g. user just landed on Journey).
     consume();
-
     const handler = (e: Event) => consume((e as CustomEvent).detail);
     window.addEventListener("rufayq:pending-flight", handler);
     return () => window.removeEventListener("rufayq:pending-flight", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const applyConfirmedScan = (out: FlightInfo | null, ret: FlightInfo | null) => {
+    const legToSegment = (leg: FlightInfo, idx: number): TransportSegment => ({
+      id: `seg-${Date.now()}-${idx}`,
+      type: "flight",
+      status: "upcoming",
+      fromCode: leg.fromAirport || "—",
+      fromCity: leg.fromCity || leg.fromAirport || "TBD",
+      fromFull: leg.fromAirportFull,
+      toCode: leg.toAirport || "—",
+      toCity: leg.toCity || leg.toAirport || "TBD",
+      toFull: leg.toAirportFull,
+      departureDateTime: leg.departureDateTime || new Date().toISOString(),
+      arrivalDateTime: leg.arrivalDateTime || leg.departureDateTime || new Date().toISOString(),
+      bookingRef: leg.bookingRef,
+      airline: leg.airline,
+      flightNumber: leg.flightNumber,
+      seatClass: leg.seatClass,
+      seatNumber: leg.seatNumber,
+    });
+    const newSegs: TransportSegment[] = [];
+    if (out) newSegs.push(legToSegment(out, 0));
+    if (ret) newSegs.push(legToSegment(ret, 1));
+    if (newSegs.length === 0) { setPendingScan(null); return; }
+
+    setTransportSegments(prev => [...prev, ...newSegs]);
+    setActiveSubTab("tickets");
+    toast.success("✈️ Flight added to your timeline", {
+      description: `${newSegs[0].airline || ""} ${newSegs[0].flightNumber || ""} · ${newSegs[0].fromCode} → ${newSegs[0].toCode}`,
+      duration: 4000,
+    });
+
+    setTrips(prev => {
+      if (prev.length > 0) return prev;
+      const seed: TripData = {
+        id: `trip-${Date.now()}`,
+        destination: out?.toCity || ret?.fromCity || "Destination",
+        hospital: "", specialty: "", specialtyEmoji: "🏥",
+        departureDate: (out?.departureDateTime || "").split("T")[0],
+        returnDate: (ret?.departureDateTime || "").split("T")[0],
+        treatingDoctor: "", companion: false,
+        companionName: pendingScan?.passenger?.name || "",
+        insuranceRef: "", status: "active",
+        outboundFlight: out || null, returnFlight: ret || null,
+      };
+      return [seed];
+    });
+    setPendingScan(null);
+  };
+
   const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
   const [flashStepId, setFlashStepId] = useState<number | null>(null);
   const [flashTripId, setFlashTripId] = useState<string | null>(null);
