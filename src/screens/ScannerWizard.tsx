@@ -562,7 +562,9 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
         const isPdf = realFile.type === "application/pdf" || /\.pdf$/i.test(realFile.name);
         let files: string[] = [];
         if (isPdf) {
-          files = await pdfToImageDataUrls(realFile, { maxPages: 3, scale: 2 });
+          const picked = await pdfToBestFlightImages(realFile, { topN: 2, hardCap: 12, scale: 2 });
+          files = picked.images;
+          console.info("[scanner] PDF page selection", { totalPages: picked.totalPages, picked: picked.pages.map(p => ({ page: p.pageIndex, score: p.score })) });
         } else {
           const dataUrl: string = await new Promise((resolve, reject) => {
             const r = new FileReader();
