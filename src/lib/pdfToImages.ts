@@ -327,7 +327,10 @@ export function scoreFlightImage(
 ): number {
   const { data, width, height } = imgData;
   if (width < 4 || height < 4) return 0;
-  const stride = Math.max(1, opts?.stride ?? PDF_SCORING_CONFIG.IMAGE_SAMPLE_STRIDE);
+  const requested = Math.max(1, opts?.stride ?? PDF_SCORING_CONFIG.IMAGE_SAMPLE_STRIDE);
+  // Adaptive: never sample fewer than ~60 rows; prevents stride aliasing
+  // with periodic content on small thumbnails.
+  const stride = Math.max(1, Math.min(requested, Math.floor(height / 60) || 1));
 
   // Compute per-sampled-row darkness using strided columns. We keep stats
   // in terms of *sampled* rows only — no interpolation, which avoids
