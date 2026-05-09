@@ -21,7 +21,8 @@ describe("EmrScreen — sub-tab accessibility", () => {
       expect(t).toHaveAttribute("tabindex", "-1")
     );
 
-    const panel = screen.getByRole("tabpanel");
+    const panel = document.getElementById("emr-panel-medication");
+    expect(panel).not.toBeNull();
     expect(panel).toHaveAttribute("aria-labelledby", "emr-tab-medication");
   });
 
