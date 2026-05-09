@@ -84,6 +84,16 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
   const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(isGuest ? defaultJourneySteps : []);
+  const [liveAnnouncement, setLiveAnnouncement] = useState("");
+
+  // Seed the default 10-step journey timeline once the user creates their first
+  // trip — otherwise the Steps tab shows an empty timeline after scanning a
+  // ticket. Guests already have the seed data.
+  useEffect(() => {
+    if (!isGuest && trips.length > 0 && journeySteps.length === 0) {
+      setJourneySteps(defaultJourneySteps);
+    }
+  }, [isGuest, trips.length, journeySteps.length]);
   const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
   const [flashStepId, setFlashStepId] = useState<number | null>(null);
   const [flashTripId, setFlashTripId] = useState<string | null>(null);
