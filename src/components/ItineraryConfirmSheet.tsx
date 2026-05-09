@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Plane, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { X, Plane, AlertTriangle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import type { FlightInfo } from "./AddTripSheet";
 import { validateFlight, type FlightValidationIssue } from "@/lib/flightParsing";
 
@@ -7,6 +7,9 @@ interface Props {
   open: boolean;
   outbound: FlightInfo | null;
   returnLeg: FlightInfo | null;
+  /** Raw scanner output before normalization — used for the diff toggle. */
+  rawOutbound?: any | null;
+  rawReturn?: any | null;
   passengerName?: string;
   passportNumber?: string;
   onCancel: () => void;
