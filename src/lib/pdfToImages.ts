@@ -45,7 +45,7 @@ export const PDF_SCORING_CONFIG = {
  * across the middle so we never miss a flight page sitting deep inside a
  * 60-page itinerary bundle.
  */
-export function pickPagesToAnalyze(totalPages: number, cap = PDF_SCORING_CONFIG.MAX_PAGES_ANALYZED): number[] {
+export function pickPagesToAnalyze(totalPages: number, cap: number = PDF_SCORING_CONFIG.MAX_PAGES_ANALYZED): number[] {
   if (totalPages <= cap) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }
