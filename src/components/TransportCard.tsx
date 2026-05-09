@@ -54,6 +54,8 @@ export interface TransportSegment {
   layoverAfter?: { duration: string; airport: string; code: string };
   // Companions (family/care companion travelling on same ticket reference)
   companions?: { name: string; relation: string; seatNumber?: string }[];
+  /** Origin tag — used by Journey UI to label "OCR Scanned" vs "Manual Entry". */
+  documentSource?: "OCR Scanned" | "Manual Entry";
 }
 
 const statusColors: Record<string, string> = {
