@@ -457,20 +457,32 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
               onOpenScanner?.("flight");
               return;
             }
+            // Build a sensible draft segment with type-specific defaults so the
+            // ticket card has real, editable values instead of "TBD".
             const dep = new Date(Date.now() + 24 * 3600 * 1000);
             const arr = new Date(dep.getTime() + 2 * 3600 * 1000);
+            const type = opt.en.toLowerCase() as TransportSegment["type"];
             const seg: TransportSegment = {
               id: `seg-${Date.now()}`,
-              type: opt.en.toLowerCase() as TransportSegment["type"],
+              type,
               status: "upcoming",
               departureDateTime: dep.toISOString(),
               arrivalDateTime: arr.toISOString(),
-              fromCity: "TBD", toCity: "TBD",
+              fromCity: "From", toCity: "To",
               fromCode: "—", toCode: "—",
-              airline: opt.en,
+              ...(type === "train" && { trainOperator: "Operator", trainNumber: "—" }),
+              ...(type === "bus" && { busOperator: "Operator", busNumber: "—" }),
+              ...(type === "taxi" && { taxiProvider: opt.en, driverName: "—" }),
+              ...(type === "rental" && { rentalCompany: "Rental Co.", carModel: "—" }),
+              ...(type === "medical" && { mobilityType: "Wheelchair Transfer", arrangedBy: "Hospital" }),
+              ...(type === "flight" && { airline: opt.en, flightNumber: "—" }),
             } as TransportSegment;
             setTransportSegments(prev => [...prev, seg]);
-            toast.success(`${opt.icon} ${opt.en} draft added · المسودة أُضيفت`, { description: "Tap the card to edit details." });
+            setActiveSubTab("tickets");
+            toast.success(`${opt.icon} ${opt.en} added · تم الإضافة`, {
+              description: "Tap the card to edit pickup, drop-off and details.",
+              duration: 4000,
+            });
           }}
         />
       )}
