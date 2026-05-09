@@ -614,6 +614,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           name: [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ") || undefined,
           passport: parsed.passportNumber || undefined,
         },
+        source: "ocr",
       });
       setTimeout(() => {
         if (cancelRef.current || runRef.current !== myRun) return;
@@ -928,6 +929,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
   // BUG 5: when failed → render ONLY the document strip + error card. Nothing below.
   if (ocrStatus === "failed") {
+    const isFlightCat = category === "flight";
     return (
       <div className="pb-8" style={{ background: "var(--off-white)" }}>
         <div className="mx-4 mt-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
@@ -949,12 +951,49 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           </p>
           <button
             onClick={tryAgain}
+            data-testid="retry-ocr"
             className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white btn-press flex items-center justify-center gap-2"
             style={{ background: "var(--teal-deep)" }}
           >
             <RotateCw size={14} /> Try OCR again · <span className="font-arabic text-[11px]">إعادة المحاولة</span>
           </button>
+          {isFlightCat && (
+            <button
+              onClick={() => setShowManualSheet(true)}
+              data-testid="open-manual-entry"
+              className="w-full py-2.5 rounded-xl text-[13px] font-bold btn-press flex items-center justify-center gap-2"
+              style={{ background: "transparent", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}
+            >
+              Enter flight details manually → · <span className="font-arabic text-[11px]">أدخل التفاصيل يدويًا</span>
+            </button>
+          )}
         </div>
+
+        {showManualSheet && (
+          <ManualFlightEntrySheet
+            initial={null}
+            onClose={() => setShowManualSheet(false)}
+            onSubmit={(payload) => {
+              setShowManualSheet(false);
+              const out = payload.outbound ? normalizeParsedLeg(payload.outbound) : null;
+              const ret = payload.return ? normalizeParsedLeg(payload.return) : null;
+              const legs = payload.legs?.map(normalizeParsedLeg);
+              if (out) setOutboundFields(toFlightFieldsLite(out));
+              if (ret) setReturnFields(toFlightFieldsLite(ret));
+              setActiveLeg(out ? "outbound" : "return");
+              onParsed?.({
+                outbound: out,
+                return: ret,
+                legs,
+                rawOutbound: payload.outbound ?? null,
+                rawReturn: payload.return ?? null,
+                passenger: payload.passenger,
+                source: "manual",
+              });
+              setOcrStatus("success");
+            }}
+          />
+        )}
       </div>
     );
   }
