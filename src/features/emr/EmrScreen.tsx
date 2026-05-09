@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent } from "react";
-import { EMR_SECTIONS, type EmrSectionKey } from "./index";
+import { EMR_SECTIONS, type EmrSectionKey } from "./sections.config";
 import EmrMedicationSection from "./sections/EmrMedicationSection";
 import EmrLaboratorySection from "./sections/EmrLaboratorySection";
 import EmrRadiologySection from "./sections/EmrRadiologySection";
