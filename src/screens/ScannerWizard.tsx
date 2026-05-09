@@ -481,7 +481,7 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
 };
 
 /* ─── STEP 4: AI REVIEW & DATA EXTRACT ─── */
-type OcrStatus = "idle" | "scanning" | "success" | "failed";
+type OcrStatus = "idle" | "analyzing-pdf" | "pick-pages" | "scanning" | "success" | "failed";
 
 interface FlightFields {
   Airline: string; "Flight No.": string; From: string; To: string;
