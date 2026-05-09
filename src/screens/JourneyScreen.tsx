@@ -1123,4 +1123,131 @@ const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => 
   );
 };
 
+/* ─── JOURNEY STEP CARDS (visual stack of major milestones) ─── */
+const formatCardDate = (iso?: string) => {
+  if (!iso) return "TBD";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+};
+
+interface StepCardProps {
+  icon: React.ReactNode;
+  tag: string;
+  tagAr: string;
+  title: string;
+  subtitle: string;
+  date: string;
+  accent: string;
+  onTap: () => void;
+}
+const StepCard = ({ icon, tag, tagAr, title, subtitle, date, accent, onTap }: StepCardProps) => (
+  <button
+    onClick={onTap}
+    className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 card-press text-left"
+    style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}
+  >
+    <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: accent }}>
+      {icon}
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+        {tag} · <span className="font-arabic">{tagAr}</span>
+      </p>
+      <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{title}</p>
+      <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>{subtitle}</p>
+    </div>
+    <div className="text-right shrink-0">
+      <p className="font-mono text-[10px]" style={{ color: "var(--teal-deep)" }}>{date}</p>
+      <ChevronRight size={14} style={{ color: "var(--gray)", marginLeft: "auto", marginTop: 2 }} />
+    </div>
+  </button>
+);
+
+const FlightDetailModal = ({ flight, type, onClose }: { flight: FlightInfo; type: "outbound" | "return"; onClose: () => void }) => (
+  <div className="absolute inset-0 z-[60] flex flex-col justify-end" onClick={onClose}>
+    <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.55)" }} />
+    <div className="relative animate-slide-up rounded-t-3xl pb-4" style={{ background: "var(--off-white)", maxHeight: "92%", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+      <div className="flex justify-center pt-3"><div style={{ width: 36, height: 4, background: "#DEE4E9", borderRadius: 2 }} /></div>
+      <div className="flex items-center justify-between px-5 pt-3 pb-2">
+        <p className="font-display text-lg" style={{ color: "var(--navy)" }}>
+          {type === "outbound" ? "Departing flight · رحلة الذهاب" : "Return flight · رحلة العودة"}
+        </p>
+        <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center btn-press" style={{ background: "var(--white)" }}>
+          <XIcon size={16} color="var(--gray)" />
+        </button>
+      </div>
+      <FlightTicketCard flight={flight} type={type} />
+    </div>
+  </div>
+);
+
+const JourneyStepCards = ({ trip }: { trip: TripData | null }) => {
+  const [detail, setDetail] = useState<{ flight: FlightInfo; type: "outbound" | "return" } | null>(null);
+  if (!trip) return null;
+  const out = trip.outboundFlight;
+  const ret = trip.returnFlight;
+  const cards: React.ReactNode[] = [];
+
+  if (out) {
+    cards.push(
+      <StepCard
+        key="dep"
+        icon={<PlaneTakeoff size={20} color="white" />}
+        tag="DEPARTING"
+        tagAr="مغادرة"
+        title={`${out.fromAirport || out.fromCity || "—"} → ${out.toAirport || out.toCity || "—"}`}
+        subtitle={`${out.airline || "Flight"} ${out.flightNumber || ""}${out.bookingRef ? ` · PNR ${out.bookingRef}` : ""}`}
+        date={formatCardDate(out.departureDateTime || trip.departureDate)}
+        accent="linear-gradient(135deg, var(--teal-deep), var(--teal-mid))"
+        onTap={() => setDetail({ flight: out, type: "outbound" })}
+      />
+    );
+  }
+  if (trip.hospital) {
+    cards.push(
+      <StepCard
+        key="hosp"
+        icon={<Stethoscope size={20} color="white" />}
+        tag="TREATMENT"
+        tagAr="العلاج"
+        title={trip.hospital}
+        subtitle={`${trip.specialtyEmoji || "🏥"} ${trip.specialty || "Treatment"}${trip.treatingDoctor ? ` · ${trip.treatingDoctor}` : ""}`}
+        date={formatCardDate(trip.departureDate)}
+        accent="linear-gradient(135deg, var(--gold), #B8884D)"
+        onTap={() => toast.info("Open Care Hub for treatment details · افتح مركز العناية")}
+      />
+    );
+  }
+  if (ret) {
+    cards.push(
+      <StepCard
+        key="ret"
+        icon={<PlaneLanding size={20} color="white" />}
+        tag="RETURNING"
+        tagAr="عودة"
+        title={`${ret.fromAirport || ret.fromCity || "—"} → ${ret.toAirport || ret.toCity || "—"}`}
+        subtitle={`${ret.airline || "Flight"} ${ret.flightNumber || ""}${ret.bookingRef ? ` · PNR ${ret.bookingRef}` : ""}`}
+        date={formatCardDate(ret.departureDateTime || trip.returnDate)}
+        accent="linear-gradient(135deg, var(--teal-bright), var(--teal-deep))"
+        onTap={() => setDetail({ flight: ret, type: "return" })}
+      />
+    );
+  }
+
+  if (cards.length === 0) return null;
+
+  return (
+    <div className="px-4 pt-3 space-y-2">
+      <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gray)" }}>
+        TRIP MILESTONES · <span className="font-arabic">محطات الرحلة</span>
+      </p>
+      {cards}
+      {detail && (
+        <FlightDetailModal flight={detail.flight} type={detail.type} onClose={() => setDetail(null)} />
+      )}
+    </div>
+  );
+};
+
 export default JourneyScreen;
