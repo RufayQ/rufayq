@@ -285,6 +285,26 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             <ExternalLink size={13} style={{ color: "var(--gray)" }} />
           </button>
 
+          {/* Replay onboarding slides */}
+          <button
+            onClick={() => {
+              try { localStorage.removeItem("rufayq_onboarded"); } catch { /* noop */ }
+              toast.success("Onboarding will replay · ستُعاد شاشات الترحيب", { duration: 2000 });
+              setTimeout(() => { window.location.reload(); }, 400);
+            }}
+            className="w-full flex items-center justify-between py-3 px-4 btn-press rounded-xl mt-2"
+            style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+          >
+            <div className="flex items-center gap-3">
+              <PlayCircle size={15} style={{ color: "var(--teal-deep)" }} />
+              <div className="text-left">
+                <p className="text-[13px]" style={{ color: "var(--navy)" }}>Replay onboarding slides</p>
+                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>إعادة عرض شاشات الترحيب</p>
+              </div>
+            </div>
+            <RotateCcw size={13} style={{ color: "var(--gray)" }} />
+          </button>
+
           {/* On-demand tour list */}
           {replayableTours.length > 0 && (
             <div className="mt-3 rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
