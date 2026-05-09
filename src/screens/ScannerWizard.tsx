@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { X, RotateCw, Sun, Contrast, Crop, Palette } from "lucide-react";
-import { toast } from "sonner";
+
 import RufayQLogo from "@/components/RufayQLogo";
 import { FileUploadPreview } from "@/shared/ui";
 import { supabase } from "@/integrations/supabase/client";
