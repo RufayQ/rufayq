@@ -26,6 +26,47 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerUrl;
 
+// ─── Tunable configuration ─────────────────────────────────────────────
+// Single source of truth — never inline magic numbers elsewhere in the file.
+export const PDF_SCORING_CONFIG = {
+  MAX_PAGES_ANALYZED: 25,        // hard cap on pages rendered for scoring
+  ANALYSIS_RENDER_SCALE: 0.6,    // thumbnail scale for scoring pass only
+  OCR_RENDER_SCALE: 2.0,         // full scale for pages sent to OCR
+  IMAGE_SAMPLE_STRIDE: 4,        // sample every Nth row/col in image scoring
+  EARLY_EXIT_MIN_CHARS: 40,      // skip image scoring if text < this length
+  SAMPLE_FIRST_N: 5,             // pages always included from the start
+  SAMPLE_LAST_N: 3,              // pages always included from the end
+} as const;
+
+/**
+ * Choose which page indices (1-based) to actually render and score when a
+ * document exceeds MAX_PAGES_ANALYZED. Always includes the first N and
+ * last N pages, then fills the remainder with an evenly strided sample
+ * across the middle so we never miss a flight page sitting deep inside a
+ * 60-page itinerary bundle.
+ */
+export function pickPagesToAnalyze(totalPages: number, cap = PDF_SCORING_CONFIG.MAX_PAGES_ANALYZED): number[] {
+  if (totalPages <= cap) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const firstN = Math.min(PDF_SCORING_CONFIG.SAMPLE_FIRST_N, cap);
+  const lastN = Math.min(PDF_SCORING_CONFIG.SAMPLE_LAST_N, Math.max(0, cap - firstN));
+  const set = new Set<number>();
+  for (let i = 1; i <= firstN; i++) set.add(i);
+  for (let i = totalPages - lastN + 1; i <= totalPages; i++) set.add(i);
+  const remaining = cap - set.size;
+  if (remaining > 0) {
+    const middleStart = firstN + 1;
+    const middleEnd = totalPages - lastN;
+    const middleCount = Math.max(0, middleEnd - middleStart + 1);
+    if (middleCount > 0) {
+      const stride = Math.max(1, Math.ceil(middleCount / remaining));
+      for (let i = middleStart; i <= middleEnd && set.size < cap; i += stride) set.add(i);
+    }
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────
 
 export interface PdfPageInfo {
