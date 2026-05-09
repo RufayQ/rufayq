@@ -561,3 +561,86 @@ describe("recommendPages — stopovers, multi-city, mixed airlines", () => {
     expect([...picked].sort((a, b) => a - b)).toEqual(picked);
   });
 });
+
+// ─── Slice 1: perf tuning — sampling, scale, strided image scoring ────
+
+import { PDF_SCORING_CONFIG, pickPagesToAnalyze } from "../pdfToImages";
+
+describe("PDF_SCORING_CONFIG sanity", () => {
+  it("analysis scale stays well below OCR scale", () => {
+    expect(PDF_SCORING_CONFIG.ANALYSIS_RENDER_SCALE).toBeLessThan(1.0);
+    expect(PDF_SCORING_CONFIG.OCR_RENDER_SCALE).toBeGreaterThanOrEqual(1.5);
+  });
+
+  it("hard cap is a positive integer", () => {
+    expect(Number.isInteger(PDF_SCORING_CONFIG.MAX_PAGES_ANALYZED)).toBe(true);
+    expect(PDF_SCORING_CONFIG.MAX_PAGES_ANALYZED).toBeGreaterThan(0);
+  });
+});
+
+describe("pickPagesToAnalyze", () => {
+  it("returns all pages when below the cap", () => {
+    expect(pickPagesToAnalyze(8, 25)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  it("never exceeds the cap for very large documents", () => {
+    const picked = pickPagesToAnalyze(60, 25);
+    expect(picked.length).toBeLessThanOrEqual(25);
+    expect(picked[0]).toBe(1);
+    expect(picked[picked.length - 1]).toBe(60);
+  });
+
+  it("includes evenly-strided middle pages so a flight page deep in the doc isn't missed", () => {
+    const picked = pickPagesToAnalyze(60, 25);
+    // page 32 sits in the middle third — should be reachable via the stride
+    const middle = picked.filter(p => p > 5 && p < 58);
+    expect(middle.length).toBeGreaterThan(5);
+    // adjacent gap should never exceed totalPages / cap * 2 (loose upper bound)
+    for (let i = 1; i < picked.length; i++) {
+      expect(picked[i] - picked[i - 1]).toBeLessThanOrEqual(6);
+    }
+  });
+
+  it("returns sorted, deduplicated indices", () => {
+    const picked = pickPagesToAnalyze(40, 25);
+    expect(new Set(picked).size).toBe(picked.length);
+    expect([...picked].sort((a, b) => a - b)).toEqual(picked);
+  });
+});
+
+describe("scoreFlightImage strided sampling parity", () => {
+  // Synthetic ticket-like image: alternating dark and light bands.
+  function makeBandedImage(width: number, height: number, period = 6) {
+    const data = new Uint8ClampedArray(width * height * 4);
+    for (let y = 0; y < height; y++) {
+      const dark = Math.floor(y / period) % 2 === 0;
+      const v = dark ? 30 : 240;
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        data[i] = data[i + 1] = data[i + 2] = v;
+        data[i + 3] = 255;
+      }
+    }
+    return { data, width, height };
+  }
+
+  it("stride=1 and stride=4 produce comparable ticket-like scores", () => {
+    const img = makeBandedImage(120, 160);
+    const full = scoreFlightImage(img, { stride: 1 });
+    const strided = scoreFlightImage(img, { stride: 4 });
+    expect(full).toBeGreaterThan(5);
+    expect(strided).toBeGreaterThan(5);
+    // Allow a generous tolerance — the contract is "same magnitude / same pick".
+    expect(Math.abs(full - strided)).toBeLessThan(8);
+  });
+
+  it("blank page scores 0 regardless of stride", () => {
+    const blank = {
+      data: new Uint8ClampedArray(120 * 160 * 4).fill(255),
+      width: 120,
+      height: 160,
+    };
+    expect(scoreFlightImage(blank, { stride: 1 })).toBe(0);
+    expect(scoreFlightImage(blank, { stride: 4 })).toBe(0);
+  });
+});
