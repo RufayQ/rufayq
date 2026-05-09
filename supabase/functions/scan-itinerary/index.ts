@@ -49,6 +49,8 @@ const TOOL = {
         ticketNumbers: { type: "array", items: { type: "string" } },
         outboundFlight: FLIGHT_LEG,
         returnFlight: FLIGHT_LEG,
+        detectedLanguage: { type: "string", description: "Primary language detected in the document (e.g. 'English', 'Arabic', 'German', 'Turkish'). Use the English name of the language." },
+        translated: { type: "boolean", description: "True if the source document was non-English and values were translated to English." },
         confidence: { type: "number", description: "0..1 overall extraction confidence." },
       },
       required: ["confidence"],
