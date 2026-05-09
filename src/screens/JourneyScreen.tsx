@@ -99,6 +99,26 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     setTimeout(() => setFlashTripId(null), 1100);
   };
 
+  // Refs to each rendered timeline step card (for scroll-into-view).
+  const stepRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  const registerStepRef = (id: number, el: HTMLDivElement | null) => { stepRefs.current.set(id, el); };
+
+  const markStepDone = (id: number) => {
+    setJourneySteps(prev => prev.map(s => s.id === id ? { ...s, status: "done" } : s));
+    flashStep(id);
+    toast.success("Step marked as done · تم وضعها كمنجزة", { duration: 2500 });
+  };
+
+  const jumpToStep = (id: number) => {
+    setExpanded(id);
+    flashStep(id);
+    // Defer scroll until expansion has rendered
+    requestAnimationFrame(() => {
+      const el = stepRefs.current.get(id);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
   // Reorder steps within the same phase via HTML5 drag-drop
   const handleReorderStep = (sourceId: number, targetId: number) => {
     if (sourceId === targetId) return;
