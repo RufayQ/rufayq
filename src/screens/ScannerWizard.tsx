@@ -731,7 +731,137 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     { emoji: "📍", en: "Mapping to your journey", ar: "ربطها برحلتك العلاجية" },
   ];
 
-  if (ocrStatus === "scanning") {
+  // PDF analysis spinner — short, lives between scanning category and pick-pages.
+  if (ocrStatus === "analyzing-pdf") {
+    return (
+      <div className="flex flex-col items-center justify-center px-6" style={{ minHeight: "100%", background: "var(--scanner-bg)" }}>
+        <div className="logo-pulse"><RufayQLogo size={56} variant="gold" /></div>
+        <p className="text-[16px] text-white mt-4 text-center" style={{ fontFamily: "'DM Sans'" }}>
+          Analysing document pages…
+        </p>
+        <p className="font-arabic text-[14px] mt-1 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>
+          نحلّل صفحات الوثيقة...
+        </p>
+      </div>
+    );
+  }
+
+  // Manual page picker — shows thumbnails + scores; user can override the auto-pick.
+  if (ocrStatus === "pick-pages" && pdfAnalysis) {
+    const total = pdfAnalysis.totalPages;
+    const recommendedSet = new Set(pdfAnalysis.recommended);
+    return (
+      <div className="pb-8" style={{ background: "var(--off-white)", minHeight: "100%" }}>
+        <div className="px-5 pt-4">
+          <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>STEP 4 · PICK PAGES</p>
+          <h2 className="text-[18px] font-bold mt-1" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
+            Confirm pages to extract
+          </h2>
+          <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>أكّد الصفحات للاستخراج</p>
+          <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
+            We picked the page(s) most likely to contain your flight ticket
+            {pdfAnalysis.scannedFallback ? " (scanned PDF — using image analysis)." : "."}
+            {" "}Tap a page to include or exclude it.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 px-4 mt-4">
+          {pdfAnalysis.pages.map(p => {
+            const isSelected = selectedPages.includes(p.pageIndex);
+            const isRecommended = recommendedSet.has(p.pageIndex);
+            return (
+              <button
+                key={p.pageIndex}
+                onClick={() => togglePage(p.pageIndex)}
+                className="text-left rounded-xl overflow-hidden btn-press transition-all"
+                style={{
+                  background: "var(--white)",
+                  border: isSelected ? "2px solid var(--teal-deep)" : "2px solid transparent",
+                  boxShadow: isSelected ? "0 4px 14px rgba(0,77,91,0.18)" : "0 2px 8px rgba(0,0,0,0.06)",
+                }}
+              >
+                <div style={{ position: "relative", background: "#f4f4f4" }}>
+                  <img
+                    src={p.thumbDataUrl}
+                    alt={`Page ${p.pageIndex} of ${total}`}
+                    style={{ width: "100%", display: "block", aspectRatio: p.aspect || 0.75 }}
+                  />
+                  <div style={{
+                    position: "absolute", top: 6, left: 6,
+                    background: "rgba(0,0,0,0.65)", color: "#fff",
+                    fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 999,
+                  }}>
+                    {p.pageIndex} / {total}
+                  </div>
+                  {isRecommended && (
+                    <div style={{
+                      position: "absolute", top: 6, right: 6,
+                      background: "var(--gold)", color: "#0D1B2A",
+                      fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 999,
+                    }}>
+                      ★ Best pick
+                    </div>
+                  )}
+                  <div style={{
+                    position: "absolute", bottom: 6, left: 6, right: 6,
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                  }}>
+                    <span style={{
+                      background: "rgba(255,255,255,0.92)", color: "var(--navy)",
+                      fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+                      fontFamily: "monospace",
+                    }}>
+                      score {p.score.toFixed(1)}
+                    </span>
+                    <span style={{
+                      width: 18, height: 18, borderRadius: 999,
+                      background: isSelected ? "var(--teal-deep)" : "rgba(255,255,255,0.92)",
+                      border: isSelected ? "none" : "1.5px solid var(--gray)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontSize: 11, fontWeight: 700,
+                    }}>
+                      {isSelected ? "✓" : ""}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="px-4 mt-5 flex items-center gap-2">
+          <button
+            onClick={resetToRecommended}
+            className="text-[11px] font-bold px-3 py-2 rounded-full btn-press"
+            style={{ background: "transparent", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}
+          >
+            Reset to best pick
+          </button>
+          <p className="text-[11px] ml-auto" style={{ color: "var(--gray)" }}>
+            {selectedPages.length} of {total} selected
+          </p>
+        </div>
+
+        <div className="px-4 mt-4">
+          <button
+            onClick={confirmPages}
+            disabled={selectedPages.length === 0}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white btn-press"
+            style={{
+              background: selectedPages.length === 0 ? "var(--gray-light)" : "var(--gold)",
+              color: selectedPages.length === 0 ? "var(--gray)" : "#fff",
+              height: 50,
+            }}
+          >
+            <span>Run OCR on selected page{selectedPages.length === 1 ? "" : "s"}</span>
+            <span className="font-arabic text-[12px]" style={{ opacity: 0.8 }}>تشغيل OCR</span>
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
     return (
       <div className="flex flex-col items-center justify-center px-6" style={{ minHeight: "100%", background: "var(--scanner-bg)" }}>
         <div className="logo-pulse">
