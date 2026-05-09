@@ -204,7 +204,7 @@ export async function analyzePdfPages(
 export async function renderPdfPagesAtScale(
   file: File,
   pageIndices: number[],
-  scale = PDF_SCORING_CONFIG.OCR_RENDER_SCALE,
+  scale: number = PDF_SCORING_CONFIG.OCR_RENDER_SCALE,
 ): Promise<string[]> {
   if (pageIndices.length === 0) return [];
   const pdf = await loadPdf(file);
