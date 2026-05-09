@@ -503,6 +503,56 @@ export type Database = {
         }
         Relationships: []
       }
+      consent_requests: {
+        Row: {
+          approved_sections: string[] | null
+          created_at: string
+          id: string
+          organization_id: string
+          patient_device_id: string
+          requested_by: string
+          requested_sections: string[]
+          review_note: string | null
+          reviewed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_sections?: string[] | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          patient_device_id: string
+          requested_by: string
+          requested_sections?: string[]
+          review_note?: string | null
+          reviewed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_sections?: string[] | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          patient_device_id?: string
+          requested_by?: string
+          requested_sections?: string[]
+          review_note?: string | null
+          reviewed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_push_tokens: {
         Row: {
           created_at: string
@@ -1717,6 +1767,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "provider_appointments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_emr_access_log: {
+        Row: {
+          accessed_by: string
+          created_at: string
+          denied_sections: string[]
+          granted_sections: string[]
+          id: string
+          organization_id: string
+          patient_device_id: string
+        }
+        Insert: {
+          accessed_by: string
+          created_at?: string
+          denied_sections?: string[]
+          granted_sections?: string[]
+          id?: string
+          organization_id: string
+          patient_device_id: string
+        }
+        Update: {
+          accessed_by?: string
+          created_at?: string
+          denied_sections?: string[]
+          granted_sections?: string[]
+          id?: string
+          organization_id?: string
+          patient_device_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_emr_access_log_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
