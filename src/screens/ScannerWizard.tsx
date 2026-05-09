@@ -218,6 +218,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
         {step === 5 && (
           <Step5Success
             category={selectedCategory}
+            payload={scannedPayload}
             onViewSection={() => { if (onSave) onSave(selectedCategory, scannedPayload ?? undefined); else onClose(); }}
             onScanAnother={() => {
               setStep(1);
@@ -511,12 +512,13 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   category: string | null;
   fileName: string;
   realFile?: File | null;
-  onParsed?: (p: { outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } } | null) => void;
+  onParsed?: (p: ScannerSavePayload | null) => void;
   onSave: () => void;
 }) => {
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>("scanning");
   const [processStep, setProcessStep] = useState(0);
   const [destinations, setDestinations] = useState<boolean[]>([]);
+  const [showManualSheet, setShowManualSheet] = useState(false);
 
   // Flight-specific parsed state
   const [outboundFields, setOutboundFields] = useState<FlightFields | null>(null);
