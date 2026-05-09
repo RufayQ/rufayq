@@ -130,7 +130,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   const progress = (step / totalSteps) * 100;
 
   // Saved parsed payload from real OCR (only for flight category right now).
-  const [scannedPayload, setScannedPayload] = useState<{ outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } } | null>(null);
+  const [scannedPayload, setScannedPayload] = useState<{ outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } } | null>(null);
 
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
