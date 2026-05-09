@@ -104,7 +104,7 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawRetu
 
   const renderDiff = (raw: any, norm: FlightInfo | null, label: string) => {
     if (!raw || !norm) return null;
-    const rows: { k: string; raw: string; norm: string; changed: boolean }[] = [
+    const allRows = [
       { k: "From IATA", raw: String(raw.fromAirport ?? ""), norm: norm.fromAirport },
       { k: "From city", raw: String(raw.fromCity ?? ""), norm: norm.fromCity },
       { k: "From airport", raw: String(raw.fromAirportFull ?? ""), norm: norm.fromAirportFull },
@@ -114,21 +114,29 @@ const ItineraryConfirmSheet = ({ open, outbound, returnLeg, rawOutbound, rawRetu
       { k: "Flight #", raw: String(raw.flightNumber ?? ""), norm: norm.flightNumber },
       { k: "PNR", raw: String(raw.bookingRef ?? ""), norm: norm.bookingRef },
     ].map(r => ({ ...r, changed: r.raw.trim() !== r.norm.trim() }));
+    const rows = onlyChanged ? allRows.filter(r => r.changed) : allRows;
+    const changedCount = allRows.filter(r => r.changed).length;
     return (
       <div className="rounded-xl p-2.5 space-y-1" style={{ background: "var(--off-white)", border: "1px dashed var(--gray-light)" }}>
-        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>{label} — RAW vs NORMALIZED</p>
-        <div className="grid grid-cols-[90px_1fr_1fr] gap-1 text-[10px]">
-          <span className="font-mono" style={{ color: "var(--gray)" }}>FIELD</span>
-          <span className="font-mono" style={{ color: "var(--gray)" }}>SCANNED</span>
-          <span className="font-mono" style={{ color: "var(--gray)" }}>NORMALIZED</span>
-          {rows.map(r => (
-            <Fragment key={r.k}>
-              <span style={{ color: "var(--navy)" }}>{r.k}</span>
-              <span style={{ color: r.changed ? "var(--gray)" : "var(--navy)", textDecoration: r.changed ? "line-through" : "none" }}>{r.raw || "—"}</span>
-              <span style={{ color: r.changed ? "var(--success)" : "var(--navy)", fontWeight: r.changed ? 600 : 400 }}>{r.norm || "—"}</span>
-            </Fragment>
-          ))}
-        </div>
+        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>
+          {label} — RAW vs NORMALIZED · {changedCount} changed
+        </p>
+        {rows.length === 0 ? (
+          <p className="text-[10px] italic py-1" style={{ color: "var(--gray)" }}>No differences — scanner output matched the normalized values.</p>
+        ) : (
+          <div className="grid grid-cols-[90px_1fr_1fr] gap-1 text-[10px]">
+            <span className="font-mono" style={{ color: "var(--gray)" }}>FIELD</span>
+            <span className="font-mono" style={{ color: "var(--gray)" }}>SCANNED</span>
+            <span className="font-mono" style={{ color: "var(--gray)" }}>NORMALIZED</span>
+            {rows.map(r => (
+              <Fragment key={r.k}>
+                <span style={{ color: "var(--navy)" }}>{r.k}</span>
+                <span style={{ color: r.changed ? "var(--gray)" : "var(--navy)", textDecoration: r.changed ? "line-through" : "none" }}>{r.raw || "—"}</span>
+                <span style={{ color: r.changed ? "var(--success)" : "var(--navy)", fontWeight: r.changed ? 600 : 400 }}>{r.norm || "—"}</span>
+              </Fragment>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
