@@ -7,14 +7,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { analyzePdfPages, renderPdfPagesAtScale, type PdfAnalysis } from "@/lib/pdfToImages";
 import { normalizeParsedLeg } from "@/lib/flightParsing";
+import { parseFlightJourney } from "@/lib/flightJourney";
+import JourneyTimeline from "@/components/JourneyTimeline";
+import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
 import type { FlightInfo } from "@/components/AddTripSheet";
+
+export interface ScannerSavePayload {
+  outbound?: FlightInfo | null;
+  return?: FlightInfo | null;
+  legs?: FlightInfo[];
+  rawOutbound?: any;
+  rawReturn?: any;
+  passenger?: { name?: string; passport?: string };
+  /** Where the data came from. "manual" tags the document as Manual Entry. */
+  source?: "ocr" | "manual";
+}
 
 interface ScannerWizardProps {
   onClose: () => void;
   preselectedCategory?: string | null;
   /** Called on save. For flights, payload contains the parsed legs so the
    * caller can inject them into the Journey timeline. */
-  onSave?: (category: string | null, payload?: { outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } }) => void;
+  onSave?: (category: string | null, payload?: ScannerSavePayload) => void;
 }
 
 const categories = [
@@ -129,8 +143,8 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
 
-  // Saved parsed payload from real OCR (only for flight category right now).
-  const [scannedPayload, setScannedPayload] = useState<{ outbound?: FlightInfo | null; return?: FlightInfo | null; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } } | null>(null);
+  // Saved parsed payload from real OCR or manual entry (flight category).
+  const [scannedPayload, setScannedPayload] = useState<ScannerSavePayload | null>(null);
 
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
