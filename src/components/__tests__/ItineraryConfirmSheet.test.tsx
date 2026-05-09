@@ -39,20 +39,26 @@ const renderSheet = (overrides: Partial<React.ComponentProps<typeof ItineraryCon
 };
 
 describe("ItineraryConfirmSheet", () => {
+  /** Resolve the leg editor container by walking up from its title text. */
+  const legEditor = (title: RegExp): HTMLElement => {
+    const titleEl = screen.getByText(title);
+    // The closest rounded-xl div wraps the entire LegEditor.
+    let node: HTMLElement | null = titleEl as HTMLElement;
+    while (node && !node.className?.includes("rounded-xl")) node = node.parentElement;
+    if (!node) throw new Error("Leg editor not found");
+    return node;
+  };
+
   describe("edit + confirm flow", () => {
     it("forwards edited outbound + return fields to onConfirm only after Apply", () => {
       const { onConfirm, onCancel } = renderSheet();
 
-      const outboundEditor = screen.getByText(/OUTBOUND/i).closest("div")!.parentElement!;
-      const airlineInput = within(outboundEditor).getByDisplayValue("Saudia") as HTMLInputElement;
-      fireEvent.change(airlineInput, { target: { value: "Air Arabia" } });
+      const out = legEditor(/OUTBOUND/i);
+      fireEvent.change(within(out).getByDisplayValue("Saudia"), { target: { value: "Air Arabia" } });
+      fireEvent.change(within(out).getByDisplayValue("SV123"), { target: { value: "G9123" } });
 
-      const flightNoInput = within(outboundEditor).getByDisplayValue("SV123") as HTMLInputElement;
-      fireEvent.change(flightNoInput, { target: { value: "G9123" } });
-
-      const returnEditor = screen.getByText(/RETURN/i).closest("div")!.parentElement!;
-      const seatInput = within(returnEditor).getByDisplayValue("12A") as HTMLInputElement;
-      fireEvent.change(seatInput, { target: { value: "14C" } });
+      const ret = legEditor(/RETURN/i);
+      fireEvent.change(within(ret).getByDisplayValue("12A"), { target: { value: "14C" } });
 
       // Nothing committed yet.
       expect(onConfirm).not.toHaveBeenCalled();
@@ -71,12 +77,10 @@ describe("ItineraryConfirmSheet", () => {
   describe("cancel flow", () => {
     it("discards edits and never calls onConfirm when user taps Cancel", () => {
       const { onConfirm, onCancel } = renderSheet();
+      const out = legEditor(/OUTBOUND/i);
+      fireEvent.change(within(out).getByDisplayValue("Saudia"), { target: { value: "DISCARDED" } });
 
-      const outboundEditor = screen.getByText(/OUTBOUND/i).closest("div")!.parentElement!;
-      const airlineInput = within(outboundEditor).getByDisplayValue("Saudia") as HTMLInputElement;
-      fireEvent.change(airlineInput, { target: { value: "DISCARDED" } });
-
-      // Use the bottom Cancel text button to avoid colliding with the close (X) icon.
+      // Use the bottom Cancel text button.
       fireEvent.click(screen.getByRole("button", { name: /^Cancel/i }));
 
       expect(onCancel).toHaveBeenCalledTimes(1);
@@ -85,15 +89,11 @@ describe("ItineraryConfirmSheet", () => {
 
     it("discards edits when the close (X) button is tapped", () => {
       const { onConfirm, onCancel } = renderSheet();
-      const outboundEditor = screen.getByText(/OUTBOUND/i).closest("div")!.parentElement!;
-      const airlineInput = within(outboundEditor).getByDisplayValue("Saudia") as HTMLInputElement;
-      fireEvent.change(airlineInput, { target: { value: "DISCARDED" } });
+      const out = legEditor(/OUTBOUND/i);
+      fireEvent.change(within(out).getByDisplayValue("Saudia"), { target: { value: "DISCARDED" } });
 
-      // The close button is a 32×32 button containing the X icon — pick first
-      // button rendered (top-right) that isn't a labelled action.
-      const closeBtns = screen.getAllByRole("button");
-      // The first button is the close (top-right) per render order.
-      fireEvent.click(closeBtns[0]);
+      // Top-right close button is the first rendered <button>.
+      fireEvent.click(screen.getAllByRole("button")[0]);
 
       expect(onCancel).toHaveBeenCalled();
       expect(onConfirm).not.toHaveBeenCalled();
