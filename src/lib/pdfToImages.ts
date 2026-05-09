@@ -109,25 +109,28 @@ export async function pdfToImageDataUrls(file: File, opts?: { maxPages?: number;
 }
 
 /**
- * Analyse every page of a PDF: text-score, image-score, and a thumbnail
- * we can render in the preview/manual-pick UI.
+ * Analyse pages of a PDF: text-score, image-score, and a thumbnail
+ * we can render in the preview/manual-pick UI. For documents larger
+ * than the configured cap we sample first/last/middle pages instead
+ * of rendering everything.
  */
 export async function analyzePdfPages(
   file: File,
   opts?: { hardCap?: number; thumbScale?: number; topN?: number },
 ): Promise<PdfAnalysis> {
-  const hardCap = opts?.hardCap ?? 12;
-  const thumbScale = opts?.thumbScale ?? 0.45;
+  const hardCap = opts?.hardCap ?? PDF_SCORING_CONFIG.MAX_PAGES_ANALYZED;
+  const thumbScale = opts?.thumbScale ?? PDF_SCORING_CONFIG.ANALYSIS_RENDER_SCALE;
   const topN = opts?.topN ?? 2;
 
   const pdf = await loadPdf(file);
   const totalPages = pdf.numPages as number;
-  const pageCount = Math.min(totalPages, hardCap);
+  const indicesToScan = pickPagesToAnalyze(totalPages, hardCap);
 
   const pages: PdfPageInfo[] = [];
   let scannedFallback = true;
+  const textCache = new WeakMap<object, string>();
 
-  for (let i = 1; i <= pageCount; i++) {
+  for (const i of indicesToScan) {
     const page = await pdf.getPage(i);
 
     // Render thumbnail (also used for the image heuristic)
@@ -140,32 +143,37 @@ export async function analyzePdfPages(
     await page.render({ canvasContext: ctx, viewport }).promise;
     const thumbDataUrl = canvas.toDataURL("image/jpeg", 0.7);
 
-    // Text layer (some PDFs have none → rely on image score).
-    let text = "";
-    try {
-      const tc = await page.getTextContent();
-      text = (tc.items || []).map((it: any) => it.str || "").join(" ");
-    } catch {
-      text = "";
+    // Text layer (memoized per page reference to avoid re-extraction).
+    let text = textCache.get(page as object) ?? "";
+    if (!text) {
+      try {
+        const tc = await page.getTextContent();
+        text = (tc.items || []).map((it: any) => it.str || "").join(" ");
+      } catch {
+        text = "";
+      }
+      textCache.set(page as object, text);
     }
     const hasText = text.trim().length > 20;
     if (hasText) scannedFallback = false;
 
     const textScore = hasText ? scoreFlightText(text) : 0;
 
-    // Image heuristic (always computed; primary signal when no text layer).
+    // Early exit for blank/cover pages — skip image scoring entirely.
+    const hasIata = /\b[A-Z]{3}\b/.test(text);
+    const skipImageScore =
+      text.length < PDF_SCORING_CONFIG.EARLY_EXIT_MIN_CHARS && !hasIata;
+
     let imageScore = 0;
-    try {
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      imageScore = scoreFlightImage(imgData);
-    } catch (e) {
-      // canvas could be tainted in rare cases — fall back to neutral
-      imageScore = 0;
+    if (!skipImageScore) {
+      try {
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        imageScore = scoreFlightImage(imgData);
+      } catch {
+        imageScore = 0;
+      }
     }
 
-    // Composite: when text is present, trust it; otherwise use image score.
-    // Always blend a small slice of imageScore so a strongly-tabular page
-    // wins over a text-only page that's mostly legalese.
     const score = hasText ? textScore + imageScore * 0.3 : imageScore;
 
     pages.push({
@@ -183,9 +191,9 @@ export async function analyzePdfPages(
 
   console.info(
     "[analyzePdfPages] total=%d analysed=%d scannedFallback=%s recommended=%o",
-    totalPages, pageCount, scannedFallback, recommended.map(i => ({
+    totalPages, pages.length, scannedFallback, recommended.map(i => ({
       page: i,
-      score: pages[i - 1]?.score?.toFixed(2),
+      score: pages.find(p => p.pageIndex === i)?.score?.toFixed(2),
     })),
   );
 
@@ -196,7 +204,7 @@ export async function analyzePdfPages(
 export async function renderPdfPagesAtScale(
   file: File,
   pageIndices: number[],
-  scale = 2,
+  scale = PDF_SCORING_CONFIG.OCR_RENDER_SCALE,
 ): Promise<string[]> {
   if (pageIndices.length === 0) return [];
   const pdf = await loadPdf(file);
@@ -217,11 +225,11 @@ export async function pdfToBestFlightImages(
   file: File,
   opts?: { topN?: number; hardCap?: number; scale?: number },
 ): Promise<{ images: string[]; pages: { pageIndex: number; score: number }[]; totalPages: number }> {
-  const analysis = await analyzePdfPages(file, { hardCap: opts?.hardCap ?? 12, topN: opts?.topN ?? 2 });
-  const images = await renderPdfPagesAtScale(file, analysis.recommended, opts?.scale ?? 2);
+  const analysis = await analyzePdfPages(file, { hardCap: opts?.hardCap, topN: opts?.topN ?? 2 });
+  const images = await renderPdfPagesAtScale(file, analysis.recommended, opts?.scale ?? PDF_SCORING_CONFIG.OCR_RENDER_SCALE);
   return {
     images,
-    pages: analysis.recommended.map(i => ({ pageIndex: i, score: analysis.pages[i - 1]?.score ?? 0 })),
+    pages: analysis.recommended.map(i => ({ pageIndex: i, score: analysis.pages.find(p => p.pageIndex === i)?.score ?? 0 })),
     totalPages: analysis.totalPages,
   };
 }
@@ -232,8 +240,11 @@ export function recommendPages(pages: PdfPageInfo[], topN: number): number[] {
   if (pages.length === 0) return [];
   const anyScore = pages.some(p => p.score > 0);
   if (!anyScore) {
-    // No signals at all — default to the first N pages.
-    return pages.slice(0, topN).map(p => p.pageIndex);
+    // No signals at all — default to the first N pages (in document order).
+    return [...pages]
+      .sort((a, b) => a.pageIndex - b.pageIndex)
+      .slice(0, topN)
+      .map(p => p.pageIndex);
   }
   // Pick the top scorers, then return them in document order.
   return [...pages]
