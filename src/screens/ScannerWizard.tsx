@@ -970,10 +970,10 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           <RufayQLogo size={56} variant="gold" />
         </div>
         <p className="text-[16px] text-white mt-4 text-center" style={{ fontFamily: "'DM Sans'" }}>
-          RufayQ is reading your document
+          RufayQ AI Vision is reading your document
         </p>
         <p className="font-arabic text-[14px] mt-1 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>
-          رُفَيِّق يقرأ وثيقتك...
+          الذكاء البصري لرُفَيِّق يقرأ وثيقتك...
         </p>
 
         <div className="w-full mt-8 space-y-3">
