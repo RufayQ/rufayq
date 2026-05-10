@@ -1184,7 +1184,29 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
       {/* Save CTA */}
       <div className="px-4 mt-5">
-        <button onClick={onSave} className="w-full flex items-center justify-center gap-2 rounded-2xl text-[16px] font-bold text-white btn-press" style={{ background: "var(--gold)", height: 52 }}>
+        <button
+          onClick={() => {
+            const selected = dests
+              .map((d, i) => ({ ...d, idx: i }))
+              .filter((d) => destinations[d.idx]);
+            const isFlight = category === "flight";
+            const saveOptions = isFlight
+              ? {
+                  saveToTransportTimeline: !!destinations[0],
+                  saveToMedicalRecords: !!destinations[1],
+                  sendToDoctor: !!destinations[2],
+                }
+              : undefined;
+            onParsed?.({
+              ...(scannedSnapshotRef.current ?? {}),
+              saveOptions,
+              selectedDestinations: selected.map((s) => ({ en: s.en, ar: s.ar, route: s.route })),
+            } as ScannerSavePayload);
+            onSave();
+          }}
+          className="w-full flex items-center justify-center gap-2 rounded-2xl text-[16px] font-bold text-white btn-press"
+          style={{ background: "var(--gold)", height: 52 }}
+        >
           <RufayQLogo size={18} variant="light" />
           <span>Save to RufayQ</span>
           <span className="font-arabic text-[13px]" style={{ opacity: 0.8 }}>حفظ</span>
