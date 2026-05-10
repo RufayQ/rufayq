@@ -733,6 +733,13 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       if (cancelRef.current || runRef.current !== myRun) return;
       emitParsed(null);
       setOcrStatus("failed");
+      // Auto-fallback: for flight tickets, immediately open the manual entry
+      // sheet so the user is never stuck with just an error screen.
+      if (category === "flight") {
+        setTimeout(() => {
+          if (!cancelRef.current && runRef.current === myRun) setShowManualSheet(true);
+        }, 600);
+      }
     }
   };
 
