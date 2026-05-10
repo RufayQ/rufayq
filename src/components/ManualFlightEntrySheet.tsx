@@ -375,6 +375,8 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
             segment={s}
             onChange={n => updateSeg(direction, i, n)}
             onRemove={list.length > 1 ? () => removeSeg(direction, i) : undefined}
+            onMoveUp={list.length > 1 && i > 0 ? () => moveSeg(direction, i, -1) : undefined}
+            onMoveDown={list.length > 1 && i < list.length - 1 ? () => moveSeg(direction, i, 1) : undefined}
             title={list.length === 1 ? label : `${label} · Leg ${i + 1}`}
             titleAr={list.length === 1 ? labelAr : `${labelAr} · رحلة ${i + 1}`}
             testIdPrefix={`seg-${direction}-${i}`}
