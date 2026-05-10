@@ -78,8 +78,6 @@ const Landing = () => {
     : defaultTrust;
 
   const ctaPrimaryLabel = heroCms?.primaryCta?.label || (isAr ? "ابدأ مجاناً" : "Start free");
-  const ctaSecondaryLabel = heroCms?.secondaryCta?.label || (isAr ? "كيف يعمل" : "See how it works");
-  const ctaSecondaryLink = heroCms?.secondaryCta?.link || "#features";
 
   const navLinks: { en: string; ar: string; href: string; isRoute?: boolean; anchorId?: string }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
