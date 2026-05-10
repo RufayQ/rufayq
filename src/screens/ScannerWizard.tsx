@@ -674,6 +674,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     setWasTranslated(false);
     setPdfAnalysis(null);
     setSelectedPages([]);
+    setAnalyzedImages([]);
     setProcessStep(0);
     onParsed?.(null);
 
