@@ -954,8 +954,8 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
               height: 50,
             }}
           >
-            <span>Run OCR on selected page{selectedPages.length === 1 ? "" : "s"}</span>
-            <span className="font-arabic text-[12px]" style={{ opacity: 0.8 }}>تشغيل OCR</span>
+            <span>Extract with AI Vision · {selectedPages.length} page{selectedPages.length === 1 ? "" : "s"}</span>
+            <span className="font-arabic text-[12px]" style={{ opacity: 0.8 }}>الاستخراج بالذكاء البصري</span>
             <span>→</span>
           </button>
         </div>
