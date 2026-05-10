@@ -28,20 +28,24 @@ const FLIGHT_LEG_SCHEMA = {
     fromAirport: { type: ["string", "null"], description: "3-letter IATA code only" },
     fromCity: { type: ["string", "null"] },
     fromTerminal: { type: ["string", "null"] },
+    fromGate: { type: ["string", "null"] },
     toAirport: { type: ["string", "null"], description: "3-letter IATA code only" },
     toCity: { type: ["string", "null"] },
     toTerminal: { type: ["string", "null"] },
+    toGate: { type: ["string", "null"] },
     departureDateTime: { type: ["string", "null"], description: "ISO 8601 YYYY-MM-DDTHH:mm local airport time" },
     arrivalDateTime: { type: ["string", "null"] },
-    seatClass: { type: ["string", "null"] },
+    seatClass: { type: ["string", "null"], description: "Cabin: Economy / Business / First" },
+    fareClass: { type: ["string", "null"], description: "Booking class letter (Y, J, F, etc.) when shown" },
     seatNumber: { type: ["string", "null"] },
+    baggageAllowance: { type: ["string", "null"], description: "e.g. '23 kg', '2PC', 'Hand only'" },
   },
   required: [
     "airline", "flightNumber", "bookingRef",
-    "fromAirport", "fromCity", "fromTerminal",
-    "toAirport", "toCity", "toTerminal",
+    "fromAirport", "fromCity", "fromTerminal", "fromGate",
+    "toAirport", "toCity", "toTerminal", "toGate",
     "departureDateTime", "arrivalDateTime",
-    "seatClass", "seatNumber",
+    "seatClass", "fareClass", "seatNumber", "baggageAllowance",
   ],
   additionalProperties: false,
 } as const;
@@ -78,7 +82,10 @@ Rules — read carefully:
 4. departureDateTime / arrivalDateTime must be strict ISO 8601 (YYYY-MM-DDTHH:mm) in local airport time, 24h.
 5. TRANSIT / CONNECTING flights: When the ticket shows multiple chained legs (e.g. DMM → SHJ → HBE), populate outboundSegments with EVERY leg in chronological order. Do NOT collapse legs.
 6. If both an outbound and a return-to-origin direction exist, the return chain goes in returnSegments.
-7. confidence: 0.0–0.6 for blurry/partial scans, 0.85–1.0 only when every leg field is unambiguously legible.`;
+7. fromTerminal / toTerminal: terminal name as printed (e.g. "T2", "Terminal 1"); fromGate / toGate: gate code if visible.
+8. seatClass = cabin (Economy/Business/First); fareClass = booking-class letter (Y, J, F …) when present.
+9. baggageAllowance: e.g. "23 kg", "2PC", "Hand only" — exactly as shown, otherwise null.
+10. confidence: 0.0–0.6 for blurry/partial scans, 0.85–1.0 only when every leg field is unambiguously legible.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
