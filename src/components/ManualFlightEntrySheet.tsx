@@ -7,7 +7,7 @@
  * fields display keeps working.
  */
 import { useMemo, useState } from "react";
-import { X, Plus, Trash2, ZoomIn, Lock, User, Users, ArrowDown, Link2 } from "lucide-react";
+import { X, Plus, Trash2, ZoomIn, Lock, User, Users, ArrowDown, Link2, ChevronUp, ChevronDown } from "lucide-react";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import { useTrial } from "@/hooks/useTrial";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -21,6 +21,7 @@ import {
   segmentToFlightInfo,
 } from "@/lib/transportTickets";
 import { isHHmm, normalizeTo24Hour } from "@/lib/time24";
+import { normalizeTerminal } from "@/lib/terminal";
 
 type TripMode = "one-way" | "round-trip";
 export type TravelerKind = "patient" | "companion" | "family";
@@ -90,12 +91,14 @@ interface SegmentEditorProps {
   segment: FlightSegment;
   onChange: (next: FlightSegment) => void;
   onRemove?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   title: string;
   titleAr: string;
   testIdPrefix: string;
 }
 
-const SegmentEditor = ({ segment, onChange, onRemove, title, titleAr, testIdPrefix }: SegmentEditorProps) => {
+const SegmentEditor = ({ segment, onChange, onRemove, onMoveUp, onMoveDown, title, titleAr, testIdPrefix }: SegmentEditorProps) => {
   const update = (patch: Partial<FlightSegment>) => onChange({ ...segment, ...patch });
 
   return (
@@ -109,17 +112,45 @@ const SegmentEditor = ({ segment, onChange, onRemove, title, titleAr, testIdPref
           <p className="text-[12px] font-bold" style={{ color: "var(--navy)" }}>{title}</p>
           <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{titleAr}</p>
         </div>
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
-            style={{ background: "rgba(217,79,79,0.1)", color: "var(--error)" }}
-            aria-label="Remove segment"
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {(onMoveUp || onMoveDown) && (
+            <div className="flex flex-col" data-testid={`${testIdPrefix}-reorder`}>
+              <button
+                type="button"
+                onClick={onMoveUp}
+                disabled={!onMoveUp}
+                aria-label="Move leg up"
+                data-testid={`${testIdPrefix}-move-up`}
+                className="w-7 h-5 rounded-t-md flex items-center justify-center btn-press disabled:opacity-30"
+                style={{ background: "var(--off-white)", color: "var(--teal-deep)", border: "1px solid var(--gray-light)" }}
+              >
+                <ChevronUp size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={onMoveDown}
+                disabled={!onMoveDown}
+                aria-label="Move leg down"
+                data-testid={`${testIdPrefix}-move-down`}
+                className="w-7 h-5 rounded-b-md flex items-center justify-center btn-press disabled:opacity-30"
+                style={{ background: "var(--off-white)", color: "var(--teal-deep)", border: "1px solid var(--gray-light)", borderTop: "none" }}
+              >
+                <ChevronDown size={12} />
+              </button>
+            </div>
+          )}
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
+              style={{ background: "rgba(217,79,79,0.1)", color: "var(--error)" }}
+              aria-label="Remove segment"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -233,6 +264,17 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
     const setter = direction === "outbound" ? setOutboundSegs : setReturnSegs;
     setter(prev => prev.filter((_, idx) => idx !== i).map((s, idx) => ({ ...s, segmentOrder: idx })));
   };
+  const moveSeg = (direction: Direction, i: number, delta: -1 | 1) => {
+    const setter = direction === "outbound" ? setOutboundSegs : setReturnSegs;
+    setter(prev => {
+      const j = i + delta;
+      if (j < 0 || j >= prev.length) return prev;
+      const next = prev.slice();
+      [next[i], next[j]] = [next[j], next[i]];
+      return next.map((s, idx) => ({ ...s, segmentOrder: idx, direction }));
+    });
+    setError(null);
+  };
 
   const segValid = (s: FlightSegment) =>
     !!s.flightNumber.trim() &&
@@ -279,9 +321,14 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
     }
     if (chainErrors.length > 0) { setError(chainErrors[0]); return; }
 
-    const out = outboundSegs.map((s, i) => ({ ...s, segmentOrder: i, direction: "outbound" as const }));
+    const normalizeSegTerminals = (s: FlightSegment): FlightSegment => ({
+      ...s,
+      departureTerminal: normalizeTerminal(s.departureTerminal) || undefined,
+      arrivalTerminal: normalizeTerminal(s.arrivalTerminal) || undefined,
+    });
+    const out = outboundSegs.map((s, i) => normalizeSegTerminals({ ...s, segmentOrder: i, direction: "outbound" as const }));
     const ret = mode === "round-trip"
-      ? returnSegs.map((s, i) => ({ ...s, segmentOrder: i, direction: "return" as const }))
+      ? returnSegs.map((s, i) => normalizeSegTerminals({ ...s, segmentOrder: i, direction: "return" as const }))
       : [];
 
     const legacyOutbound = out.length > 0 ? segmentToFlightInfo(out[0]) : null;
@@ -328,6 +375,8 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
             segment={s}
             onChange={n => updateSeg(direction, i, n)}
             onRemove={list.length > 1 ? () => removeSeg(direction, i) : undefined}
+            onMoveUp={list.length > 1 && i > 0 ? () => moveSeg(direction, i, -1) : undefined}
+            onMoveDown={list.length > 1 && i < list.length - 1 ? () => moveSeg(direction, i, 1) : undefined}
             title={list.length === 1 ? label : `${label} · Leg ${i + 1}`}
             titleAr={list.length === 1 ? labelAr : `${labelAr} · رحلة ${i + 1}`}
             testIdPrefix={`seg-${direction}-${i}`}

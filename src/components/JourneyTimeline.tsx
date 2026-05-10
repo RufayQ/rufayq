@@ -11,6 +11,7 @@
  */
 import { useMemo, useState } from "react";
 import type { FlightJourney, JourneyLeg } from "@/lib/flightJourney";
+import { computeLayover } from "@/lib/flightJourney";
 
 export type LegStatus = "done" | "active" | "pending";
 
@@ -80,6 +81,7 @@ const JourneyTimeline = ({ journey, now = Date.now(), compact, onLegClick }: Pro
         {items.map(({ leg, status, index }, i) => {
           const isLast = i === items.length - 1;
           const isOpen = expanded === index;
+          const layover = !isLast ? computeLayover(leg, items[i + 1].leg) : null;
           return (
             <div key={`${leg.flightNumber}-${leg.departureDateTime}-${i}`} className="relative pl-8 pb-4">
               {/* connector line */}
@@ -166,6 +168,21 @@ const JourneyTimeline = ({ journey, now = Date.now(), compact, onLegClick }: Pro
                   <DetailRow k="Seat" v={leg.seatNumber || "—"} />
                   <DetailRow k="Departs" v={`${fmtDate(leg.departureDateTime)} ${fmtTime(leg.departureDateTime)}`.trim()} />
                   <DetailRow k="Arrives" v={`${fmtDate(leg.arrivalDateTime)} ${fmtTime(leg.arrivalDateTime)}`.trim()} />
+                </div>
+              )}
+              {layover && (
+                <div
+                  className="mt-2 ml-[-2rem] flex items-center gap-2 pl-8 pr-2 py-1.5 rounded-lg"
+                  style={{ background: "var(--gold-pale)", border: "1px dashed var(--gold)" }}
+                  data-testid={`journey-leg-layover-${index}`}
+                >
+                  <span aria-hidden>🕐</span>
+                  <p className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>
+                    {layover.durationLabel} layover · {layover.airport} ({layover.code})
+                  </p>
+                  <span className="font-arabic text-[9px] ml-auto" dir="rtl" style={{ color: "var(--gray)" }}>
+                    توقف {layover.durationLabel}
+                  </span>
                 </div>
               )}
             </div>

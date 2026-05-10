@@ -105,6 +105,40 @@ export const journeyLegKey = (l: JourneyLeg): string =>
   `${l.flightNumber}|${l.departureDateTime}`;
 
 /**
+ * Computed layover between two consecutive legs.
+ * Returns null when this isn't a transit (different airports) or when timestamps
+ * are missing/invalid. `airport` and `code` come from the previous leg's arrival.
+ */
+export interface ComputedLayover {
+  durationMinutes: number;
+  durationLabel: string;
+  airport: string;
+  code: string;
+}
+
+const fmtDur = (mins: number) => {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
+
+export function computeLayover(prev: JourneyLeg, next: JourneyLeg): ComputedLayover | null {
+  if (!prev || !next) return null;
+  if (!prev.to.code || !next.from.code) return null;
+  if (prev.to.code !== next.from.code) return null;
+  const arr = Date.parse(prev.arrivalDateTime);
+  const dep = Date.parse(next.departureDateTime);
+  if (isNaN(arr) || isNaN(dep) || dep <= arr) return null;
+  const mins = Math.round((dep - arr) / 60000);
+  return {
+    durationMinutes: mins,
+    durationLabel: fmtDur(mins),
+    airport: prev.to.city || prev.to.code,
+    code: prev.to.code,
+  };
+}
+
+/**
  * Parse a scanner OCR payload (or manual entry payload) into a normalized
  * FlightJourney. Invalid/incomplete legs are surfaced via `dropped` rather
  * than thrown, so callers can show partial results.
