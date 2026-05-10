@@ -786,6 +786,9 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: Transp
                     setSelectedSeg(seg);
                   }} />
                 </div>
+                {seg.type === "flight" && (
+                  <RelatedDocumentsCard segmentRef={seg.id} />
+                )}
                 {group === "past" && (
                   <div className="mx-4 mb-3 -mt-2 flex justify-end">
                     <button
