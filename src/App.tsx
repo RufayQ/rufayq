@@ -28,6 +28,7 @@ const Auth = lazy(() => import("./pages/Auth.tsx"));
 const SubscriptionDashboard = lazy(() => import("./pages/SubscriptionDashboard.tsx"));
 const WalletLedger = lazy(() => import("./pages/WalletLedger.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+const ContactDivert = lazy(() => import("./pages/ContactDivert.tsx"));
 const SitemapPreview = lazy(() => import("./pages/SitemapPreview.tsx"));
 
 /* ── Lazy: heavy app-shell (QueryClient + Toaster + Tooltip + Currency).
