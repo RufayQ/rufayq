@@ -92,9 +92,27 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
-  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(
-    isGuest ? defaultTransportSegments.filter((s) => guestCats.tickets) : []
+  // Flight tickets are persisted (per-device) via Supabase + local cache so
+  // they survive navigation, reload, and offline. Non-flight transport
+  // segments stay in local state for now (separate persistence epic).
+  const {
+    tickets: flightTickets,
+    segments: persistedFlightSegments,
+    addTicket: addFlightTicket,
+    removeTicket: removeFlightTicket,
+  } = useTransportTimeline();
+  const [nonFlightSegments, setNonFlightSegments] = useState<TransportSegment[]>(
+    isGuest ? defaultTransportSegments.filter((s) => guestCats.tickets && s.type !== "flight") : []
   );
+  // Guest seed flights — only shown when there are no real persisted tickets,
+  // so demo data never overwrites or duplicates real saved flights.
+  const guestFlightSeed = isGuest
+    ? defaultTransportSegments.filter((s) => guestCats.tickets && s.type === "flight")
+    : [];
+  const transportSegments: TransportSegment[] = [
+    ...nonFlightSegments,
+    ...(persistedFlightSegments.length > 0 ? persistedFlightSegments : guestFlightSeed),
+  ];
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
   const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(isGuest ? defaultJourneySteps : []);
