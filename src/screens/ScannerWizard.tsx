@@ -725,6 +725,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           r.readAsDataURL(realFile);
         });
         if (cancelRef.current || runRef.current !== myRun) return;
+        setAnalyzedImages([dataUrl]);
         await runOcr([dataUrl], myRun);
       } catch (e) {
         console.error("[scanner] read image failed", e);
