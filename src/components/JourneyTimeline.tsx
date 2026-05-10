@@ -170,6 +170,21 @@ const JourneyTimeline = ({ journey, now = Date.now(), compact, onLegClick }: Pro
                   <DetailRow k="Arrives" v={`${fmtDate(leg.arrivalDateTime)} ${fmtTime(leg.arrivalDateTime)}`.trim()} />
                 </div>
               )}
+              {layover && (
+                <div
+                  className="mt-2 ml-[-2rem] flex items-center gap-2 pl-8 pr-2 py-1.5 rounded-lg"
+                  style={{ background: "var(--gold-pale)", border: "1px dashed var(--gold)" }}
+                  data-testid={`journey-leg-layover-${index}`}
+                >
+                  <span aria-hidden>🕐</span>
+                  <p className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>
+                    {layover.durationLabel} layover · {layover.airport} ({layover.code})
+                  </p>
+                  <span className="font-arabic text-[9px] ml-auto" dir="rtl" style={{ color: "var(--gray)" }}>
+                    توقف {layover.durationLabel}
+                  </span>
+                </div>
+              )}
             </div>
           );
         })}
