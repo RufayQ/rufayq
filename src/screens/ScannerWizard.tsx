@@ -622,20 +622,47 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       setOcrStatus("scanning");
       setProcessStep(2);
 
-      const { data, error } = await supabase.functions.invoke("scan-itinerary", {
-        body: { files },
-        headers: { "x-device-id": getDeviceId() },
-      });
-      if (cancelRef.current || runRef.current !== myRun) return;
-      if (error) {
-        console.error("[scanner] scan-itinerary edge error", error);
-        throw new Error("ocr-failed");
+      // AI-Vision-first: try OpenAI (gpt-5) primary, silently fall back to
+      // Gemini-powered scan-itinerary if it fails. Manual entry remains the
+      // final fallback when both vision providers can't extract anything.
+      const deviceHeaders = { "x-device-id": getDeviceId() };
+      let parsed: any = null;
+      let usedProvider: "openai" | "gemini" | null = null;
+
+      try {
+        const { data: aiData, error: aiErr } = await supabase.functions.invoke(
+          "extract-flight-ticket-ai",
+          { body: { files }, headers: deviceHeaders },
+        );
+        if (cancelRef.current || runRef.current !== myRun) return;
+        if (!aiErr && (aiData as any)?.data && typeof (aiData as any).data === "object") {
+          parsed = (aiData as any).data;
+          usedProvider = "openai";
+        } else if (aiErr) {
+          console.warn("[scanner] OpenAI vision failed, falling back to Gemini", aiErr);
+        }
+      } catch (e) {
+        console.warn("[scanner] OpenAI vision threw, falling back to Gemini", e);
       }
-      const parsed = (data as any)?.data ?? null;
-      if (!parsed || typeof parsed !== "object") {
-        console.error("[scanner] scan-itinerary returned no data", data);
-        throw new Error("ocr-failed");
+
+      if (!parsed) {
+        const { data, error } = await supabase.functions.invoke("scan-itinerary", {
+          body: { files },
+          headers: deviceHeaders,
+        });
+        if (cancelRef.current || runRef.current !== myRun) return;
+        if (error) {
+          console.error("[scanner] scan-itinerary edge error", error);
+          throw new Error("ocr-failed");
+        }
+        parsed = (data as any)?.data ?? null;
+        if (!parsed || typeof parsed !== "object") {
+          console.error("[scanner] scan-itinerary returned no data", data);
+          throw new Error("ocr-failed");
+        }
+        usedProvider = "gemini";
       }
+      console.info("[scanner] flight extraction provider:", usedProvider);
       setProcessStep(3);
 
       // Prefer rich segment arrays (transit-aware); fall back to legacy single legs.
