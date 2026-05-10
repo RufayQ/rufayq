@@ -1010,6 +1010,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
         {showManualSheet && (
           <ManualFlightEntrySheet
             initial={null}
+            documentImages={analyzedImages}
             onClose={() => setShowManualSheet(false)}
             onSubmit={(payload) => {
               setShowManualSheet(false);
@@ -1027,6 +1028,8 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
                 rawReturn: payload.return ?? null,
                 passenger: payload.passenger,
                 source: "manual",
+                traveler: payload.traveler,
+                pageImages: analyzedImages,
               });
               setOcrStatus("success");
             }}
