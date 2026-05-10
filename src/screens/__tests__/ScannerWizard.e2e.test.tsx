@@ -16,12 +16,26 @@ import React from "react";
 
 const invokeMock = vi.fn();
 const fromMock: any = vi.fn(() => ({
-  select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
+  select: () => ({
+    eq: () => ({
+      eq: () => ({ order: async () => ({ data: [], error: null }) }),
+      maybeSingle: async () => ({ data: null, error: null }),
+      order: async () => ({ data: [], error: null }),
+    }),
+  }),
+  insert: async () => ({ data: null, error: null }),
+  delete: () => ({ eq: async () => ({ data: null, error: null }) }),
+}));
+const storageFromMock = vi.fn(() => ({
+  upload: async () => ({ data: { path: "x" }, error: null }),
+  remove: async () => ({ data: null, error: null }),
+  createSignedUrl: async () => ({ data: { signedUrl: "https://x" }, error: null }),
 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     functions: { invoke: (...args: any[]) => invokeMock(...args) },
     from: (table: string) => fromMock(table),
+    storage: { from: (b: string) => storageFromMock(b) },
   },
 }));
 
