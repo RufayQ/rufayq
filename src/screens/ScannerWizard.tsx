@@ -12,6 +12,7 @@ import JourneyTimeline from "@/components/JourneyTimeline";
 import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
 import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import type { FlightInfo } from "@/components/AddTripSheet";
+import type { FlightSegment } from "@/lib/transportTickets";
 
 export type TravelerKind = "patient" | "companion" | "family";
 
@@ -19,6 +20,9 @@ export interface ScannerSavePayload {
   outbound?: FlightInfo | null;
   return?: FlightInfo | null;
   legs?: FlightInfo[];
+  /** Rich multi-segment shape — preserves transit/connecting flights, terminals, 24h time. */
+  outboundSegments?: FlightSegment[];
+  returnSegments?: FlightSegment[];
   rawOutbound?: any;
   rawReturn?: any;
   passenger?: { name?: string; passport?: string };
@@ -33,6 +37,15 @@ export interface ScannerSavePayload {
    * attached during the wizard. The Journey screen reuses this as the
    * resulting first transport segment's id so attachments stay linked. */
   pendingSegmentRef?: string;
+  /** What the user actually checked in Step 4. Step 5 reflects only these,
+   *  and downstream Journey logic uses them to gate Save→Records etc. */
+  saveOptions?: {
+    saveToTransportTimeline?: boolean;
+    saveToMedicalRecords?: boolean;
+    sendToDoctor?: boolean;
+  };
+  /** Resolved destinations the user actually opted into — drives Step 5 list. */
+  selectedDestinations?: { en: string; ar: string; route: string }[];
 }
 
 interface ScannerWizardProps {
