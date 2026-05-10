@@ -78,8 +78,6 @@ const Landing = () => {
     : defaultTrust;
 
   const ctaPrimaryLabel = heroCms?.primaryCta?.label || (isAr ? "ابدأ مجاناً" : "Start free");
-  const ctaSecondaryLabel = heroCms?.secondaryCta?.label || (isAr ? "كيف يعمل" : "See how it works");
-  const ctaSecondaryLink = heroCms?.secondaryCta?.link || "#features";
 
   const navLinks: { en: string; ar: string; href: string; isRoute?: boolean; anchorId?: string }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
@@ -242,13 +240,10 @@ const Landing = () => {
                 </p>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                <button onClick={goToApp} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02]" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
+              <div className="flex mt-4">
+                <button onClick={goToApp} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02] w-full sm:w-auto" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
                   {ctaPrimaryLabel} <ArrowRightIcon size={15} />
                 </button>
-                <a href={ctaSecondaryLink} className="px-7 py-4 rounded-full font-semibold text-sm text-center transition-all hover:bg-white/10" style={{ background: "rgba(255,255,255,0.05)", color: TEXT, border: `1px solid ${BORDER}` }}>
-                  {ctaSecondaryLabel}
-                </a>
               </div>
 
               <div className="flex flex-wrap gap-5 mt-10">
