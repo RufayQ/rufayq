@@ -238,7 +238,8 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
           <Step5Success
             category={selectedCategory}
             payload={scannedPayload}
-            onViewSection={() => { if (onSave) onSave(selectedCategory, scannedPayload ?? undefined); else onClose(); }}
+            pendingSegmentRef={pendingSegmentRef}
+            onViewSection={() => { if (onSave) onSave(selectedCategory, enrichedPayload(scannedPayload)); else onClose(); }}
             onScanAnother={() => {
               setStep(1);
               setCapturedFile(null);
@@ -247,7 +248,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
               setSelectedCategory(preselectedCategory || null);
               setSelectedSub(null);
             }}
-            onDone={() => { if (onSave) onSave(selectedCategory, scannedPayload ?? undefined); else onClose(); }}
+            onDone={() => { if (onSave) onSave(selectedCategory, enrichedPayload(scannedPayload)); else onClose(); }}
           />
         )}
       </div>
