@@ -221,7 +221,7 @@ export async function saveTicket(
       .delete()
       .eq("ticket_id", ticket.id);
 
-    const rows = allSegments.map((s) => segmentToRow(s, ticket.id));
+    const rows = allSegments.map((s) => segmentToRow(s, ticket.id, ticket.userId || null));
     const { error: sErr } = await (supabase as any)
       .from("transport_flight_segments")
       .insert(rows);
