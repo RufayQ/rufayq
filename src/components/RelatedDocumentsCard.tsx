@@ -1,0 +1,349 @@
+import { useEffect, useRef, useState } from "react";
+import { Plus, FileText, Image as ImageIcon, X, Eye, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { getDeviceId } from "@/hooks/useDeviceId";
+
+export interface TransportAttachment {
+  id: string;
+  device_id: string;
+  segment_ref: string;
+  label: string;
+  file_name: string;
+  file_path: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_at: string;
+}
+
+interface Props {
+  /** Stable identifier for the parent transport segment (e.g. flight ticket).
+   *  Used as the storage folder + DB key. */
+  segmentRef: string;
+  /** Optional title override (defaults to "Related documents · مستندات مرفقة"). */
+  title?: string;
+  /** Compact spacing, used inside scanner wizard step 5. */
+  compact?: boolean;
+}
+
+const BUCKET = "transport-attachments";
+const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+const COMMON_LABELS = ["VISA", "Passport", "Insurance", "Hotel", "Other"];
+
+const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
+
+const RelatedDocumentsCard = ({ segmentRef, title, compact }: Props) => {
+  const [items, setItems] = useState<TransportAttachment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [picking, setPicking] = useState<File | null>(null);
+  const [labelDraft, setLabelDraft] = useState("VISA");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const deviceId = getDeviceId();
+
+  const refresh = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("transport_attachments")
+      .select("*")
+      .eq("device_id", deviceId)
+      .eq("segment_ref", segmentRef)
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error(error);
+    } else {
+      setItems((data as TransportAttachment[]) ?? []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [segmentRef]);
+
+  const onPickFile = (file: File) => {
+    if (file.size > MAX_BYTES) {
+      toast.error("File is too large", { description: "Max 10 MB per attachment." });
+      return;
+    }
+    setPicking(file);
+    setLabelDraft("VISA");
+  };
+
+  const confirmUpload = async () => {
+    if (!picking) return;
+    const label = labelDraft.trim() || "Document";
+    setUploading(true);
+    try {
+      const ext = picking.name.split(".").pop() || "bin";
+      const path = `${deviceId}/${segmentRef}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, picking, { contentType: picking.type, upsert: false });
+      if (upErr) throw upErr;
+      const { error: insErr } = await supabase.from("transport_attachments").insert({
+        device_id: deviceId,
+        segment_ref: segmentRef,
+        label,
+        file_name: picking.name,
+        file_path: path,
+        mime_type: picking.type,
+        size_bytes: picking.size,
+      });
+      if (insErr) throw insErr;
+      toast.success(`${label} attached`, { description: picking.name });
+      setPicking(null);
+      await refresh();
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Upload failed", { description: e.message });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const openPreview = async (item: TransportAttachment) => {
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .createSignedUrl(item.file_path, 60 * 5);
+    if (error || !data?.signedUrl) {
+      toast.error("Could not open file");
+      return;
+    }
+    setPreviewItem(item);
+    setPreviewUrl(data.signedUrl);
+  };
+
+  const removeItem = async (item: TransportAttachment) => {
+    if (!confirm(`Remove "${item.label} · ${item.file_name}"?`)) return;
+    await supabase.storage.from(BUCKET).remove([item.file_path]);
+    await supabase.from("transport_attachments").delete().eq("id", item.id);
+    toast.success("Attachment removed");
+    refresh();
+  };
+
+  return (
+    <div
+      className={`mx-4 ${compact ? "mb-2" : "mb-3.5"} rounded-2xl px-4 py-3`}
+      style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gray)" }}>
+          {title ?? "RELATED DOCUMENTS"} · <span className="font-arabic">مستندات مرفقة</span>
+        </p>
+        <span className="text-[10px]" style={{ color: "var(--gray)" }}>
+          {items.length > 0 ? `${items.length} file${items.length > 1 ? "s" : ""}` : ""}
+        </span>
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        {loading && (
+          <div className="flex items-center gap-2 px-2 py-3" style={{ color: "var(--gray)" }}>
+            <Loader2 size={14} className="animate-spin" />
+            <span className="text-[11px]">Loading…</span>
+          </div>
+        )}
+        {!loading && items.map((item) => (
+          <div
+            key={item.id}
+            className="shrink-0 rounded-xl p-2 relative group"
+            style={{
+              width: 110,
+              background: "var(--off-white)",
+              border: "1px solid var(--gray-light)",
+            }}
+          >
+            <button
+              onClick={() => openPreview(item)}
+              className="w-full flex flex-col items-center gap-1 btn-press"
+            >
+              <div
+                className="w-full h-14 rounded-lg flex items-center justify-center"
+                style={{ background: "var(--gold-pale)" }}
+              >
+                {isImage(item.mime_type) ? (
+                  <ImageIcon size={22} style={{ color: "var(--gold)" }} />
+                ) : (
+                  <FileText size={22} style={{ color: "var(--gold)" }} />
+                )}
+              </div>
+              <p
+                className="text-[10px] font-bold w-full truncate text-center"
+                style={{ color: "var(--navy)" }}
+                title={item.label}
+              >
+                {item.label}
+              </p>
+              <p
+                className="text-[9px] w-full truncate text-center"
+                style={{ color: "var(--gray)" }}
+                title={item.file_name}
+              >
+                {item.file_name}
+              </p>
+            </button>
+            <button
+              onClick={() => removeItem(item)}
+              className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+              style={{ background: "var(--navy)", color: "white" }}
+              aria-label="Remove attachment"
+            >
+              <X size={10} />
+            </button>
+          </div>
+        ))}
+
+        {/* Add tile */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 btn-press"
+          style={{
+            width: 110,
+            height: 92,
+            border: "1.5px dashed var(--gold)",
+            background: "rgba(197,150,90,0.08)",
+            color: "var(--gold)",
+          }}
+        >
+          <Plus size={20} />
+          <span className="text-[10px] font-bold">Attach</span>
+          <span className="font-arabic text-[9px]">إرفاق</span>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onPickFile(f);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      {/* Label prompt sheet */}
+      {picking && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end justify-center"
+          style={{ background: "rgba(0,0,0,0.5)" }}
+          onClick={() => !uploading && setPicking(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[420px] rounded-t-3xl p-5"
+            style={{ background: "var(--white)" }}
+          >
+            <p className="text-[15px] font-bold mb-1" style={{ color: "var(--navy)" }}>
+              Label this document
+            </p>
+            <p className="font-arabic text-[11px] mb-3" dir="rtl" style={{ color: "var(--gray)" }}>
+              ضع تسمية للمستند
+            </p>
+            <p className="text-[11px] mb-3 truncate" style={{ color: "var(--gray)" }}>
+              {picking.name} · {(picking.size / 1024).toFixed(0)} KB
+            </p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {COMMON_LABELS.map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLabelDraft(l)}
+                  className="px-3 py-1 rounded-full text-[11px] font-bold btn-press"
+                  style={{
+                    background: labelDraft === l ? "var(--gold)" : "var(--off-white)",
+                    color: labelDraft === l ? "white" : "var(--navy)",
+                  }}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            <input
+              value={labelDraft}
+              onChange={(e) => setLabelDraft(e.target.value)}
+              placeholder="Custom label"
+              className="w-full px-3 py-2.5 rounded-xl text-[13px] mb-4 outline-none"
+              style={{ background: "var(--off-white)", color: "var(--navy)" }}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPicking(null)}
+                disabled={uploading}
+                className="flex-1 py-3 rounded-xl text-[13px] font-bold btn-press"
+                style={{ background: "var(--off-white)", color: "var(--navy)" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmUpload}
+                disabled={uploading}
+                className="flex-1 py-3 rounded-xl text-[13px] font-bold text-white btn-press flex items-center justify-center gap-2"
+                style={{ background: "var(--gold)" }}
+              >
+                {uploading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                {uploading ? "Uploading…" : "Attach"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview modal */}
+      {previewUrl && previewItem && (
+        <div
+          className="fixed inset-0 z-[110] flex flex-col"
+          style={{ background: "rgba(0,0,0,0.92)" }}
+          onClick={() => { setPreviewUrl(null); setPreviewItem(null); }}
+        >
+          <div className="flex items-center justify-between px-4 py-3 text-white">
+            <div className="min-w-0">
+              <p className="text-[13px] font-bold truncate">{previewItem.label}</p>
+              <p className="text-[10px] opacity-70 truncate">{previewItem.file_name}</p>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); setPreviewUrl(null); setPreviewItem(null); }}
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.15)" }}
+            >
+              <X size={16} color="white" />
+            </button>
+          </div>
+          <div
+            className="flex-1 flex items-center justify-center px-4 pb-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {isImage(previewItem.mime_type) ? (
+              <img
+                src={previewUrl}
+                alt={previewItem.label}
+                className="max-w-full max-h-full object-contain rounded-lg"
+              />
+            ) : (
+              <iframe
+                src={previewUrl}
+                title={previewItem.file_name}
+                className="w-full h-full rounded-lg bg-white"
+              />
+            )}
+          </div>
+          <div className="px-4 pb-4">
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold text-white"
+              style={{ background: "var(--gold)" }}
+            >
+              <Eye size={14} /> Open in new tab
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default RelatedDocumentsCard;

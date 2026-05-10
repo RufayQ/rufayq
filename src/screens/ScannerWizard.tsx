@@ -10,6 +10,7 @@ import { normalizeParsedLeg } from "@/lib/flightParsing";
 import { parseFlightJourney } from "@/lib/flightJourney";
 import JourneyTimeline from "@/components/JourneyTimeline";
 import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
+import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import type { FlightInfo } from "@/components/AddTripSheet";
 
 export type TravelerKind = "patient" | "companion" | "family";
@@ -28,6 +29,10 @@ export interface ScannerSavePayload {
   /** Image data URLs of the page(s) the AI analyzed (or that the user attached
    * for manual entry). Surfaced on the success screen as a preview strip. */
   pageImages?: string[];
+  /** Stable id used as the storage / DB key for related documents (VISA, etc.)
+   * attached during the wizard. The Journey screen reuses this as the
+   * resulting first transport segment's id so attachments stay linked. */
+  pendingSegmentRef?: string;
 }
 
 interface ScannerWizardProps {
@@ -152,6 +157,14 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
 
   // Saved parsed payload from real OCR or manual entry (flight category).
   const [scannedPayload, setScannedPayload] = useState<ScannerSavePayload | null>(null);
+  // Stable id so related-document attachments uploaded on Step 5 stay linked
+  // to the resulting flight ticket on the Journey screen.
+  const [pendingSegmentRef] = useState(() =>
+    (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `seg-${Date.now()}`
+  );
+
+  const enrichedPayload = (p: ScannerSavePayload | null | undefined): ScannerSavePayload | undefined =>
+    p ? { ...p, pendingSegmentRef } : undefined;
 
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
@@ -226,7 +239,8 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
           <Step5Success
             category={selectedCategory}
             payload={scannedPayload}
-            onViewSection={() => { if (onSave) onSave(selectedCategory, scannedPayload ?? undefined); else onClose(); }}
+            pendingSegmentRef={pendingSegmentRef}
+            onViewSection={() => { if (onSave) onSave(selectedCategory, enrichedPayload(scannedPayload)); else onClose(); }}
             onScanAnother={() => {
               setStep(1);
               setCapturedFile(null);
@@ -235,7 +249,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
               setSelectedCategory(preselectedCategory || null);
               setSelectedSub(null);
             }}
-            onDone={() => { if (onSave) onSave(selectedCategory, scannedPayload ?? undefined); else onClose(); }}
+            onDone={() => { if (onSave) onSave(selectedCategory, enrichedPayload(scannedPayload)); else onClose(); }}
           />
         )}
       </div>
@@ -1209,9 +1223,10 @@ const EditableField = ({ label, value, onChange }: { label: string; value: strin
 };
 
 /* ─── STEP 5: SUCCESS ─── */
-const Step5Success = ({ category, payload, onViewSection, onScanAnother, onDone }: {
+const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onScanAnother, onDone }: {
   category: string | null;
   payload?: ScannerSavePayload | null;
+  pendingSegmentRef?: string;
   onViewSection: () => void;
   onScanAnother: () => void;
   onDone: () => void;
@@ -1321,6 +1336,19 @@ const Step5Success = ({ category, payload, onViewSection, onScanAnother, onDone 
               </a>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Related documents (VISA, etc.) — flight tickets only */}
+      {category === "flight" && pendingSegmentRef && (
+        <div className="w-full -mx-4 mt-4" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.9s" }}>
+          <p className="font-mono text-[10px] tracking-widest mb-2 px-1" style={{ color: "var(--gold)" }}>
+            📎 RELATED DOCUMENTS · <span className="font-arabic">مستندات مرفقة</span>
+          </p>
+          <p className="text-[10px] mb-2 px-1" style={{ color: "rgba(255,255,255,0.5)" }}>
+            Attach VISA, passport, insurance or any related file. Stays linked to this ticket.
+          </p>
+          <RelatedDocumentsCard segmentRef={pendingSegmentRef} compact />
         </div>
       )}
 

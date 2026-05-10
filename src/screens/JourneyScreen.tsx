@@ -13,6 +13,7 @@ import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard
 import { PlaneTakeoff, PlaneLanding, Hotel, Stethoscope, ChevronRight, X as XIcon } from "lucide-react";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import TransportCard, { LayoverIndicator, type TransportSegment } from "@/components/TransportCard";
+import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import TripSummaryCard from "@/components/TripSummaryCard";
 import { parseFlightJourney } from "@/lib/flightJourney";
 import TicketDetailSheet, { type OverrideAnnotation, type SmartReminder, getSystemReminders } from "@/components/TicketDetailSheet";
@@ -110,6 +111,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     rawReturn?: any;
     passenger?: { name?: string; passport?: string };
     source?: "ocr" | "manual";
+    /** Pre-allocated id used for the FIRST resulting segment so any
+     *  related-document attachments uploaded in the wizard stay linked. */
+    pendingSegmentRef?: string;
   } | null>(null);
 
   // Editor state for transport segments (non-flight in particular). Opens
@@ -139,6 +143,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         rawReturn: payload.rawReturn ?? payload.return ?? null,
         passenger: payload.passenger,
         source: payload.source ?? "ocr",
+        pendingSegmentRef: payload.pendingSegmentRef,
       });
     };
     consume();
@@ -152,7 +157,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     const docSource: TransportSegment["documentSource"] =
       pendingScan?.source === "manual" ? "Manual Entry" : "OCR Scanned";
     const legToSegment = (leg: FlightInfo, idx: number): TransportSegment => ({
-      id: `seg-${Date.now()}-${idx}`,
+      id: idx === 0 && pendingScan?.pendingSegmentRef
+        ? pendingScan.pendingSegmentRef
+        : `seg-${Date.now()}-${idx}`,
       type: "flight",
       status: "upcoming",
       fromCode: leg.fromAirport || "—",
@@ -780,6 +787,9 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: Transp
                     setSelectedSeg(seg);
                   }} />
                 </div>
+                {seg.type === "flight" && (
+                  <RelatedDocumentsCard segmentRef={seg.id} />
+                )}
                 {group === "past" && (
                   <div className="mx-4 mb-3 -mt-2 flex justify-end">
                     <button
