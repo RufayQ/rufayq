@@ -563,6 +563,10 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   // PDF preview / page picker state (flight + PDF only)
   const [pdfAnalysis, setPdfAnalysis] = useState<PdfAnalysis | null>(null);
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
+  // Image data URLs of the page(s) actually fed to the AI (or read from a single
+  // image upload). Persisted so the manual-entry split-screen and Step 5 can
+  // show the user what RufayQ analyzed.
+  const [analyzedImages, setAnalyzedImages] = useState<string[]>([]);
 
   const cat = categories.find(c => c.id === category);
   const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
