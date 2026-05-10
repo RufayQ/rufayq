@@ -7,7 +7,7 @@
  * fields display keeps working.
  */
 import { useMemo, useState } from "react";
-import { X, Plus, Trash2, ZoomIn, Lock, User, Users, ArrowDown, Link2 } from "lucide-react";
+import { X, Plus, Trash2, ZoomIn, Lock, User, Users, ArrowDown, Link2, ChevronUp, ChevronDown } from "lucide-react";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import { useTrial } from "@/hooks/useTrial";
 import { useSubscription } from "@/hooks/useSubscription";
