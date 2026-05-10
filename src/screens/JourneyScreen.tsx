@@ -156,7 +156,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     const docSource: TransportSegment["documentSource"] =
       pendingScan?.source === "manual" ? "Manual Entry" : "OCR Scanned";
     const legToSegment = (leg: FlightInfo, idx: number): TransportSegment => ({
-      id: `seg-${Date.now()}-${idx}`,
+      id: idx === 0 && pendingScan?.pendingSegmentRef
+        ? pendingScan.pendingSegmentRef
+        : `seg-${Date.now()}-${idx}`,
       type: "flight",
       status: "upcoming",
       fromCode: leg.fromAirport || "—",
