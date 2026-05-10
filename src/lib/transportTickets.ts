@@ -191,8 +191,8 @@ export function parsedLegToSegment(
   );
   return {
     ...base,
-    departureTerminal: raw?.fromTerminal || raw?.departureTerminal || undefined,
-    arrivalTerminal: raw?.toTerminal || raw?.arrivalTerminal || undefined,
+    departureTerminal: normalizeTerminal(raw?.fromTerminal || raw?.departureTerminal) || undefined,
+    arrivalTerminal: normalizeTerminal(raw?.toTerminal || raw?.arrivalTerminal) || undefined,
     departureGate: raw?.fromGate || raw?.departureGate || undefined,
     arrivalGate: raw?.toGate || raw?.arrivalGate || undefined,
     fareClass: raw?.fareClass || undefined,
