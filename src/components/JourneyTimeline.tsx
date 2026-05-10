@@ -11,6 +11,7 @@
  */
 import { useMemo, useState } from "react";
 import type { FlightJourney, JourneyLeg } from "@/lib/flightJourney";
+import { computeLayover } from "@/lib/flightJourney";
 
 export type LegStatus = "done" | "active" | "pending";
 
