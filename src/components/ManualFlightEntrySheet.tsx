@@ -264,6 +264,17 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
     const setter = direction === "outbound" ? setOutboundSegs : setReturnSegs;
     setter(prev => prev.filter((_, idx) => idx !== i).map((s, idx) => ({ ...s, segmentOrder: idx })));
   };
+  const moveSeg = (direction: Direction, i: number, delta: -1 | 1) => {
+    const setter = direction === "outbound" ? setOutboundSegs : setReturnSegs;
+    setter(prev => {
+      const j = i + delta;
+      if (j < 0 || j >= prev.length) return prev;
+      const next = prev.slice();
+      [next[i], next[j]] = [next[j], next[i]];
+      return next.map((s, idx) => ({ ...s, segmentOrder: idx, direction }));
+    });
+    setError(null);
+  };
 
   const segValid = (s: FlightSegment) =>
     !!s.flightNumber.trim() &&
