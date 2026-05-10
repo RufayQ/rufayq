@@ -69,7 +69,7 @@ const categories = [
 const destinationsByCategory: Record<string, { en: string; ar: string; route: string; checked: boolean }[]> = {
   flight: [
     { en: "Add to Transport Timeline", ar: "أضف لجدول التنقل", route: "Journey → Tickets", checked: true },
-    { en: "Save to Medical Records", ar: "حفظ في الملفات", route: "Records → General", checked: true },
+    { en: "Save to Medical Records", ar: "حفظ في الملفات", route: "Records → General", checked: false },
     { en: "Send to KSA Doctor", ar: "أرسل لطبيبي", route: "Share", checked: false },
   ],
   lab: [
