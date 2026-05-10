@@ -12,6 +12,7 @@ import JourneyTimeline from "@/components/JourneyTimeline";
 import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
 import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import type { FlightInfo } from "@/components/AddTripSheet";
+import type { FlightSegment } from "@/lib/transportTickets";
 
 export type TravelerKind = "patient" | "companion" | "family";
 
@@ -19,6 +20,9 @@ export interface ScannerSavePayload {
   outbound?: FlightInfo | null;
   return?: FlightInfo | null;
   legs?: FlightInfo[];
+  /** Rich multi-segment shape — preserves transit/connecting flights, terminals, 24h time. */
+  outboundSegments?: FlightSegment[];
+  returnSegments?: FlightSegment[];
   rawOutbound?: any;
   rawReturn?: any;
   passenger?: { name?: string; passport?: string };
@@ -33,6 +37,15 @@ export interface ScannerSavePayload {
    * attached during the wizard. The Journey screen reuses this as the
    * resulting first transport segment's id so attachments stay linked. */
   pendingSegmentRef?: string;
+  /** What the user actually checked in Step 4. Step 5 reflects only these,
+   *  and downstream Journey logic uses them to gate Save→Records etc. */
+  saveOptions?: {
+    saveToTransportTimeline?: boolean;
+    saveToMedicalRecords?: boolean;
+    sendToDoctor?: boolean;
+  };
+  /** Resolved destinations the user actually opted into — drives Step 5 list. */
+  selectedDestinations?: { en: string; ar: string; route: string }[];
 }
 
 interface ScannerWizardProps {
@@ -563,6 +576,12 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   const [processStep, setProcessStep] = useState(0);
   const [destinations, setDestinations] = useState<boolean[]>([]);
   const [showManualSheet, setShowManualSheet] = useState(false);
+  // Latest parsed payload snapshot — re-emitted with saveOptions on Save click.
+  const scannedSnapshotRef = useRef<ScannerSavePayload | null>(null);
+  const emitParsed = (p: ScannerSavePayload | null) => {
+    scannedSnapshotRef.current = p;
+    onParsed?.(p);
+  };
 
   // Flight-specific parsed state
   const [outboundFields, setOutboundFields] = useState<FlightFields | null>(null);
@@ -619,8 +638,17 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       }
       setProcessStep(3);
 
-      const out = parsed.outboundFlight ? normalizeParsedLeg(parsed.outboundFlight) : null;
-      const ret = parsed.returnFlight ? normalizeParsedLeg(parsed.returnFlight) : null;
+      // Prefer rich segment arrays (transit-aware); fall back to legacy single legs.
+      const outArr: any[] = Array.isArray(parsed.outboundSegments) && parsed.outboundSegments.length > 0
+        ? parsed.outboundSegments
+        : parsed.outboundFlight ? [parsed.outboundFlight] : [];
+      const retArr: any[] = Array.isArray(parsed.returnSegments) && parsed.returnSegments.length > 0
+        ? parsed.returnSegments
+        : parsed.returnFlight ? [parsed.returnFlight] : [];
+      const outLegs = outArr.map(normalizeParsedLeg);
+      const retLegs = retArr.map(normalizeParsedLeg);
+      const out = outLegs[0] ?? null;
+      const ret = retLegs[0] ?? null;
       if (!out && !ret) {
         console.error("[scanner] no flight legs in response", parsed);
         throw new Error("no-legs");
@@ -653,9 +681,13 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       setWasTranslated(translated);
 
       setProcessStep(4);
-      onParsed?.({
+      const { flightInfoToSegment } = await import("@/lib/transportTickets");
+      emitParsed({
         outbound: out,
         return: ret,
+        legs: outLegs.length + retLegs.length > 2 ? [...outLegs, ...retLegs] : undefined,
+        outboundSegments: outLegs.map((l, i) => flightInfoToSegment(l, "outbound", i)),
+        returnSegments: retLegs.map((l, i) => flightInfoToSegment(l, "return", i)),
         rawOutbound: parsed.outboundFlight ?? null,
         rawReturn: parsed.returnFlight ?? null,
         passenger: {
@@ -672,7 +704,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     } catch (e: any) {
       console.error("[scanner] OCR failed", e);
       if (cancelRef.current || runRef.current !== myRun) return;
-      onParsed?.(null);
+      emitParsed(null);
       setOcrStatus("failed");
     }
   };
@@ -691,7 +723,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     setSelectedPages([]);
     setAnalyzedImages([]);
     setProcessStep(0);
-    onParsed?.(null);
+    emitParsed(null);
 
     async function run() {
       // Non-flight: keep the existing fake animated flow
@@ -1034,10 +1066,12 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
               if (out) setOutboundFields(toFlightFieldsLite(out));
               if (ret) setReturnFields(toFlightFieldsLite(ret));
               setActiveLeg(out ? "outbound" : "return");
-              onParsed?.({
+              emitParsed({
                 outbound: out,
                 return: ret,
                 legs,
+                outboundSegments: payload.outboundSegments,
+                returnSegments: payload.returnSegments,
                 rawOutbound: payload.outbound ?? null,
                 rawReturn: payload.return ?? null,
                 passenger: payload.passenger,
@@ -1169,7 +1203,29 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
       {/* Save CTA */}
       <div className="px-4 mt-5">
-        <button onClick={onSave} className="w-full flex items-center justify-center gap-2 rounded-2xl text-[16px] font-bold text-white btn-press" style={{ background: "var(--gold)", height: 52 }}>
+        <button
+          onClick={() => {
+            const selected = dests
+              .map((d, i) => ({ ...d, idx: i }))
+              .filter((d) => destinations[d.idx]);
+            const isFlight = category === "flight";
+            const saveOptions = isFlight
+              ? {
+                  saveToTransportTimeline: !!destinations[0],
+                  saveToMedicalRecords: !!destinations[1],
+                  sendToDoctor: !!destinations[2],
+                }
+              : undefined;
+            emitParsed({
+              ...(scannedSnapshotRef.current ?? {}),
+              saveOptions,
+              selectedDestinations: selected.map((s) => ({ en: s.en, ar: s.ar, route: s.route })),
+            } as ScannerSavePayload);
+            onSave();
+          }}
+          className="w-full flex items-center justify-center gap-2 rounded-2xl text-[16px] font-bold text-white btn-press"
+          style={{ background: "var(--gold)", height: 52 }}
+        >
           <RufayQLogo size={18} variant="light" />
           <span>Save to RufayQ</span>
           <span className="font-arabic text-[13px]" style={{ opacity: 0.8 }}>حفظ</span>
@@ -1243,10 +1299,12 @@ const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onS
     : null;
 
   const actionsTaken: { en: string; ar: string }[] = [];
-  const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
-  dests.filter(d => d.checked).forEach(d => {
-    actionsTaken.push({ en: d.en, ar: d.ar });
-  });
+  if (payload?.selectedDestinations && payload.selectedDestinations.length > 0) {
+    payload.selectedDestinations.forEach(d => actionsTaken.push({ en: d.en, ar: d.ar }));
+  } else {
+    const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
+    dests.filter(d => d.checked).forEach(d => actionsTaken.push({ en: d.en, ar: d.ar }));
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setShowContent(true), 1000);

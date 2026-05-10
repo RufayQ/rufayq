@@ -37,7 +37,7 @@ const TOOL = {
   type: "function",
   function: {
     name: "extract_itinerary",
-    description: "Return parsed airline itinerary fields.",
+    description: "Return parsed airline itinerary fields, including connecting/transit segments.",
     parameters: {
       type: "object",
       properties: {
@@ -47,11 +47,17 @@ const TOOL = {
         passportNumber: { type: "string" },
         dateOfBirth: { type: "string", description: "ISO date YYYY-MM-DD if visible." },
         ticketNumbers: { type: "array", items: { type: "string" } },
+        // Legacy single-leg fields (kept for back-compat with older clients).
         outboundFlight: FLIGHT_LEG,
         returnFlight: FLIGHT_LEG,
-        detectedLanguage: { type: "string", description: "Primary language detected in the document (e.g. 'English', 'Arabic', 'German', 'Turkish'). Use the English name of the language." },
-        translated: { type: "boolean", description: "True if the source document was non-English and values were translated to English." },
-        confidence: { type: "number", description: "0..1 overall extraction confidence." },
+        // NEW: full chains for transit/connecting itineraries (DMM→SHJ→HBE).
+        // Each array is ordered earliest → latest. If only one leg per
+        // direction, the arrays still hold a single element.
+        outboundSegments: { type: "array", items: FLIGHT_LEG, description: "Ordered outbound legs including any transit/connecting flights." },
+        returnSegments: { type: "array", items: FLIGHT_LEG, description: "Ordered return legs including any transit/connecting flights." },
+        detectedLanguage: { type: "string", description: "Primary language detected in the document." },
+        translated: { type: "boolean" },
+        confidence: { type: "number" },
       },
       required: ["confidence"],
       additionalProperties: false,
@@ -120,9 +126,10 @@ serve(async (req) => {
         "- toAirport / toCity: same rules.\n" +
         "- departureDateTime / arrivalDateTime in strict ISO 8601 (YYYY-MM-DDTHH:mm), local airport time.\n" +
         "- seatClass + seatNumber when shown.\n" +
+        "IMPORTANT — TRANSIT/CONNECTING FLIGHTS: When the itinerary shows multiple flights chained via a layover (e.g. DMM → SHJ → HBE), populate `outboundSegments` (and `returnSegments` for the return direction) with EVERY leg in chronological order. Each transit leg is a full FLIGHT_LEG entry. Do NOT collapse multiple legs into one. Use `outboundFlight`/`returnFlight` only as a back-compat copy of the FIRST outbound/return leg.\n" +
         "Also capture passengerFirstName, passengerLastName, passportNumber, dateOfBirth.\n" +
         "If a value is missing or unreadable, OMIT the field entirely — never invent or guess. " +
-        "If the document shows two flights with the same passenger and the second one returns to the first origin, treat the second as returnFlight.",
+        "If the document shows two flights with the same passenger and the second one returns to the first origin, treat the second as returnFlight / first returnSegments entry.",
       },
     ];
     for (const u of images) userContent.push({ type: "image_url", image_url: { url: u } });

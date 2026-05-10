@@ -200,6 +200,27 @@ export function ticketToTransportSegments(t: TransportTicket): TransportSegment[
       ? `${s.arrivalDate}T${s.arrivalTime}`
       : s.arrivalDate || dep;
     const isFirst = i === 0;
+    // Compute layoverAfter when next segment in same direction departs from
+    // this segment's arrival airport — that's a transit/connecting leg.
+    const next = all[i + 1];
+    let layoverAfter: TransportSegment["layoverAfter"] | undefined;
+    if (next && next.direction === s.direction && next.fromAirport.code === s.toAirport.code) {
+      let duration = "Layover";
+      const arrTs = Date.parse(arr);
+      const nextDep = next.departureDate && next.departureTime
+        ? Date.parse(`${next.departureDate}T${next.departureTime}`)
+        : NaN;
+      if (!isNaN(arrTs) && !isNaN(nextDep) && nextDep > arrTs) {
+        const mins = Math.round((nextDep - arrTs) / 60000);
+        const h = Math.floor(mins / 60); const m = mins % 60;
+        duration = h > 0 ? `${h}h ${m}m` : `${m}m`;
+      }
+      layoverAfter = {
+        duration,
+        airport: s.toAirport.city || s.toAirport.code,
+        code: s.toAirport.code,
+      };
+    }
     return {
       id: isFirst && t.pendingSegmentRef ? t.pendingSegmentRef : s.id,
       type: "flight",
@@ -221,6 +242,7 @@ export function ticketToTransportSegments(t: TransportTicket): TransportSegment[
       groupId: t.id,
       segmentOrder: s.segmentOrder,
       direction: s.direction,
+      layoverAfter,
       documentSource: t.source === "manual" ? "Manual Entry" : "OCR Scanned",
     };
   });
