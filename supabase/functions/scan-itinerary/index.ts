@@ -135,9 +135,18 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        // Pro-tier vision: significantly stronger at small print, multi-language
+        // tickets, and segmented layouts (Wingie, Saudia, flynas, Air Arabia,
+        // Emirates, lufthansa, etc.) than gemini-2.5-flash.
+        model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: "You extract structured airline itinerary fields from photographed or PDF travel documents (Wingie, Saudia, flynas, Air Arabia, Emirates, etc.). Be conservative; lower confidence when blurry." },
+          { role: "system", content:
+            "You are a precise computer-vision OCR + extraction system for airline travel documents. " +
+            "READ every legible glyph in the image(s) — boarding passes, e-tickets, itineraries, screenshots from Saudia/flynas/Wingie/Emirates/Air Arabia/Lufthansa, multi-page PDFs. " +
+            "Be conservative: NEVER invent a value. If a field isn't visible, omit it. " +
+            "Return cleaned, normalized values: full airline names (not codes), 3-letter IATA codes for fromAirport/toAirport, plain city names for fromCity/toCity, ISO 8601 (YYYY-MM-DDTHH:mm) local-airport time for departureDateTime/arrivalDateTime. " +
+            "Lower confidence (0.0-0.6) for blurry / partial scans; raise (0.85-1.0) only when every leg field is unambiguously legible.",
+          },
           { role: "user", content: userContent },
         ],
         tools: [TOOL],
