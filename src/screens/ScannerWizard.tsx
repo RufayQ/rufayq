@@ -12,6 +12,8 @@ import JourneyTimeline from "@/components/JourneyTimeline";
 import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
 import type { FlightInfo } from "@/components/AddTripSheet";
 
+export type TravelerKind = "patient" | "companion" | "family";
+
 export interface ScannerSavePayload {
   outbound?: FlightInfo | null;
   return?: FlightInfo | null;
@@ -21,6 +23,11 @@ export interface ScannerSavePayload {
   passenger?: { name?: string; passport?: string };
   /** Where the data came from. "manual" tags the document as Manual Entry. */
   source?: "ocr" | "manual";
+  /** Who this ticket is for. Companion / family is gated by subscription. */
+  traveler?: TravelerKind;
+  /** Image data URLs of the page(s) the AI analyzed (or that the user attached
+   * for manual entry). Surfaced on the success screen as a preview strip. */
+  pageImages?: string[];
 }
 
 interface ScannerWizardProps {
