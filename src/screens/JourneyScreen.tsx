@@ -110,6 +110,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     rawReturn?: any;
     passenger?: { name?: string; passport?: string };
     source?: "ocr" | "manual";
+    /** Pre-allocated id used for the FIRST resulting segment so any
+     *  related-document attachments uploaded in the wizard stay linked. */
+    pendingSegmentRef?: string;
   } | null>(null);
 
   // Editor state for transport segments (non-flight in particular). Opens
