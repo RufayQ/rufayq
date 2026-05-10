@@ -746,6 +746,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     try {
       const images = await renderPdfPagesAtScale(realFile, selectedPages, 2);
       if (cancelRef.current || runRef.current !== myRun) return;
+      setAnalyzedImages(images);
       console.info("[scanner] PDF pages chosen for OCR", selectedPages);
       await runOcr(images, myRun);
     } catch (e) {
