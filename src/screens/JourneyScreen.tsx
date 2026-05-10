@@ -14,6 +14,7 @@ import {
   type FlightSegment,
   newId as newTicketId,
   flightInfoToSegment,
+  segmentToFlightInfo as legacyFromSegment,
   inferTripType,
 } from "@/lib/transportTickets";
 import { getDeviceId } from "@/hooks/useDeviceId";
