@@ -8,6 +8,15 @@ import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import EditTripSheet from "@/components/EditTripSheet";
+import { useTransportTimeline } from "@/hooks/useTransportTimeline";
+import {
+  type TransportTicket,
+  type FlightSegment,
+  newId as newTicketId,
+  flightInfoToSegment,
+  inferTripType,
+} from "@/lib/transportTickets";
+import { getDeviceId } from "@/hooks/useDeviceId";
 import EditStepSheet from "@/components/EditStepSheet";
 import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard";
 import { PlaneTakeoff, PlaneLanding, Hotel, Stethoscope, ChevronRight, X as XIcon } from "lucide-react";
