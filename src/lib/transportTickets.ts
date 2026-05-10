@@ -10,6 +10,7 @@ import { findAirport } from "@/data/airports";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import type { TransportSegment } from "@/components/TransportCard";
 import { isHHmm, normalizeTo24Hour } from "@/lib/time24";
+import { normalizeTerminal } from "@/lib/terminal";
 
 export type TripType = "one-way" | "round-trip" | "multi-city";
 export type Direction = "outbound" | "return";
