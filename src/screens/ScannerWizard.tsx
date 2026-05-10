@@ -1293,6 +1293,34 @@ const Step5Success = ({ category, payload, onViewSection, onScanAnother, onDone 
               ✎ Manual Entry · <span className="font-arabic">إدخال يدوي</span>
             </p>
           )}
+          {payload?.traveler && payload.traveler !== "patient" && (
+            <p className="mt-1 text-[10px] text-center" style={{ color: "var(--gold)" }}>
+              👥 For: {payload.traveler === "companion" ? "Companion" : "Family"}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Attached pages — what AI analyzed (or what user used as reference for manual entry) */}
+      {payload?.pageImages && payload.pageImages.length > 0 && (
+        <div className="w-full mt-4" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.85s" }} data-testid="success-attached-pages">
+          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+            📎 ATTACHED PAGE{payload.pageImages.length === 1 ? "" : "S"}
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {payload.pageImages.map((src, i) => (
+              <a
+                key={i}
+                href={src}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-lg overflow-hidden btn-press"
+                style={{ width: 88, height: 112, border: "1px solid rgba(255,255,255,0.15)" }}
+              >
+                <img src={src} alt={`Attached page ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
