@@ -1222,9 +1222,10 @@ const EditableField = ({ label, value, onChange }: { label: string; value: strin
 };
 
 /* ─── STEP 5: SUCCESS ─── */
-const Step5Success = ({ category, payload, onViewSection, onScanAnother, onDone }: {
+const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onScanAnother, onDone }: {
   category: string | null;
   payload?: ScannerSavePayload | null;
+  pendingSegmentRef?: string;
   onViewSection: () => void;
   onScanAnother: () => void;
   onDone: () => void;
