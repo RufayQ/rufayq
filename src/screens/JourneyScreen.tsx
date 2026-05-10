@@ -173,14 +173,20 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       sessionStorage.removeItem("rufayq_pending_flight");
       const hasMulti = Array.isArray(payload.legs) && payload.legs.length > 0;
       if (!payload.outbound && !payload.return && !hasMulti) return;
+      const hasOutSegs = Array.isArray(payload.outboundSegments) && payload.outboundSegments.length > 0;
+      const hasRetSegs = Array.isArray(payload.returnSegments) && payload.returnSegments.length > 0;
       setPendingScan({
         outbound: payload.outbound ?? (hasMulti ? payload.legs[0] : null),
         return: payload.return ?? (hasMulti && payload.legs.length === 2 ? payload.legs[1] : null),
         legs: hasMulti ? payload.legs : undefined,
+        outboundSegments: hasOutSegs ? payload.outboundSegments : undefined,
+        returnSegments: hasRetSegs ? payload.returnSegments : undefined,
         rawOutbound: payload.rawOutbound ?? payload.outbound ?? null,
         rawReturn: payload.rawReturn ?? payload.return ?? null,
         passenger: payload.passenger,
         source: payload.source ?? "ocr",
+        traveler: payload.traveler,
+        saveOptions: payload.saveOptions,
         pendingSegmentRef: payload.pendingSegmentRef,
       });
     };
