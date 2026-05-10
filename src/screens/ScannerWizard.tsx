@@ -156,6 +156,14 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
 
   // Saved parsed payload from real OCR or manual entry (flight category).
   const [scannedPayload, setScannedPayload] = useState<ScannerSavePayload | null>(null);
+  // Stable id so related-document attachments uploaded on Step 5 stay linked
+  // to the resulting flight ticket on the Journey screen.
+  const [pendingSegmentRef] = useState(() =>
+    (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `seg-${Date.now()}`
+  );
+
+  const enrichedPayload = (p: ScannerSavePayload | null | undefined): ScannerSavePayload | undefined =>
+    p ? { ...p, pendingSegmentRef } : undefined;
 
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
