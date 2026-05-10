@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, ArrowRight, MessageCircle, Mail, Building2 } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
-import SeoLazy from "@/seo/SeoLazy";
+import { SeoLazy } from "@/seo/SeoLazy";
 
 const BG_DARK = "#06101A";
 const BG_DARK_2 = "#0B1A28";
