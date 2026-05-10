@@ -110,6 +110,12 @@ const App = () => (
             {/* SEO QA tools (no /ar mirror — internal use only) */}
             <Route path="/sitemap-preview" element={<SitemapPreview />} />
 
+            {/* Soft-divert pages for retired/broken CTAs (e.g. old "Book a demo" → /contact). */}
+            <Route path="/contact" element={<ContactDivert />} />
+            <Route path="/ar/contact" element={<ContactDivert />} />
+            <Route path="/notfoundpage" element={<ContactDivert />} />
+            <Route path="/ar/notfoundpage" element={<ContactDivert />} />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
