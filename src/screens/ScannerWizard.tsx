@@ -28,6 +28,10 @@ export interface ScannerSavePayload {
   /** Image data URLs of the page(s) the AI analyzed (or that the user attached
    * for manual entry). Surfaced on the success screen as a preview strip. */
   pageImages?: string[];
+  /** Stable id used as the storage / DB key for related documents (VISA, etc.)
+   * attached during the wizard. The Journey screen reuses this as the
+   * resulting first transport segment's id so attachments stay linked. */
+  pendingSegmentRef?: string;
 }
 
 interface ScannerWizardProps {
