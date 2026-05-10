@@ -134,10 +134,21 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     outbound?: FlightInfo | null;
     return?: FlightInfo | null;
     legs?: FlightInfo[];
+    /** Rich multi-segment payload (preferred when present) — preserves
+     *  transit/connecting flights, terminals, and 24h times that the
+     *  legacy FlightInfo shape can't carry. */
+    outboundSegments?: FlightSegment[];
+    returnSegments?: FlightSegment[];
     rawOutbound?: any;
     rawReturn?: any;
     passenger?: { name?: string; passport?: string };
     source?: "ocr" | "manual";
+    traveler?: "patient" | "companion" | "family";
+    saveOptions?: {
+      saveToTransportTimeline?: boolean;
+      saveToMedicalRecords?: boolean;
+      sendToDoctor?: boolean;
+    };
     /** Pre-allocated id used for the FIRST resulting segment so any
      *  related-document attachments uploaded in the wizard stay linked. */
     pendingSegmentRef?: string;
