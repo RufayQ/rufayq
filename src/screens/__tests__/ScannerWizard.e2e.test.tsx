@@ -15,17 +15,24 @@ import React from "react";
 // ---- Mocks ---------------------------------------------------------------
 
 const invokeMock = vi.fn();
-const fromMock: any = vi.fn(() => ({
-  select: () => ({
-    eq: () => ({
-      eq: () => ({ order: async () => ({ data: [], error: null }) }),
-      maybeSingle: async () => ({ data: null, error: null }),
-      order: async () => ({ data: [], error: null }),
-    }),
-  }),
-  insert: async () => ({ data: null, error: null }),
-  delete: () => ({ eq: async () => ({ data: null, error: null }) }),
-}));
+// Generic chainable query mock — every chain method returns the same proxy,
+// and any awaited terminal returns { data: [] | null, error: null }. Covers
+// .select().eq().eq().order(), .order().limit().maybeSingle(), etc.
+const makeQueryStub = (): any => {
+  const stub: any = new Proxy(
+    { then: (resolve: any) => resolve({ data: [], error: null }) },
+    {
+      get(target, prop) {
+        if (prop === "then") return target.then;
+        if (prop === "maybeSingle" || prop === "single")
+          return async () => ({ data: null, error: null });
+        return () => makeQueryStub();
+      },
+    },
+  );
+  return stub;
+};
+const fromMock: any = vi.fn(() => makeQueryStub());
 const storageFromMock: any = vi.fn(() => ({
   upload: async () => ({ data: { path: "x" }, error: null }),
   remove: async () => ({ data: null, error: null }),
