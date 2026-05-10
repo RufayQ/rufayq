@@ -1339,6 +1339,19 @@ const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onS
         </div>
       )}
 
+      {/* Related documents (VISA, etc.) — flight tickets only */}
+      {category === "flight" && pendingSegmentRef && (
+        <div className="w-full -mx-4 mt-4" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.9s" }}>
+          <p className="font-mono text-[10px] tracking-widest mb-2 px-1" style={{ color: "var(--gold)" }}>
+            📎 RELATED DOCUMENTS · <span className="font-arabic">مستندات مرفقة</span>
+          </p>
+          <p className="text-[10px] mb-2 px-1" style={{ color: "rgba(255,255,255,0.5)" }}>
+            Attach VISA, passport, insurance or any related file. Stays linked to this ticket.
+          </p>
+          <RelatedDocumentsCard segmentRef={pendingSegmentRef} compact />
+        </div>
+      )}
+
       {/* Navigation buttons */}
       <div className="w-full mt-6 space-y-3" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.9s" }}>
         <button onClick={onViewSection} className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white btn-press" style={{ background: "var(--gold)", height: 48 }}>
