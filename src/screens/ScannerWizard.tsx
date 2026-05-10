@@ -417,6 +417,10 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
   onContinue: () => void;
 }) => {
   const selectedCat = categories.find((c) => c.id === selected);
+  const NON_MEDICAL = new Set(["flight", "train", "hotel", "passport", "insurance"]);
+  const detectedKind = selectedCat
+    ? (NON_MEDICAL.has(selectedCat.id) ? { en: "travel document", ar: "وثيقة سفر" } : { en: "medical document", ar: "وثيقة طبية" })
+    : null;
 
   return (
     <div className="pb-8" style={{ background: "var(--off-white)" }}>
@@ -425,13 +429,15 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
         <p className="font-arabic text-[15px]" dir="rtl" style={{ color: "var(--gray)" }}>ما نوع هذه الوثيقة؟</p>
       </div>
 
-      <div className="mx-4 mt-3 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--teal-light)", borderLeft: "3px solid var(--teal-deep)" }}>
-        <RufayQLogo size={16} variant="dark" />
-        <div className="flex-1">
-          <p className="text-[13px]" style={{ color: "var(--teal-deep)" }}>RufayQ thinks this is a <strong>medical document</strong></p>
-          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>رُفَيِّق يرى أن هذه وثيقة طبية</p>
+      {detectedKind && (
+        <div className="mx-4 mt-3 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--teal-light)", borderLeft: "3px solid var(--teal-deep)" }}>
+          <RufayQLogo size={16} variant="dark" />
+          <div className="flex-1">
+            <p className="text-[13px]" style={{ color: "var(--teal-deep)" }}>RufayQ recognized a <strong>{detectedKind.en}</strong></p>
+            <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>تعرّف رُفَيِّق على {detectedKind.ar}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2.5 px-4 mt-4">
         {categories.map((cat) => {
