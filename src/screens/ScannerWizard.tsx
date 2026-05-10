@@ -649,6 +649,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           passport: parsed.passportNumber || undefined,
         },
         source: "ocr",
+        pageImages: files,
       });
       setTimeout(() => {
         if (cancelRef.current || runRef.current !== myRun) return;
