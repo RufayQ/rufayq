@@ -230,7 +230,7 @@ serve(async (req) => {
 });
 
 // Lightweight shape validator (mirrors EXTRACTION_SCHEMA required fields).
-function validateExtraction(parsed: unknown): string[] {
+export function validateExtraction(parsed: unknown): string[] {
   const errs: string[] = [];
   if (!parsed || typeof parsed !== "object") return ["root must be an object"];
   const p = parsed as Record<string, unknown>;
