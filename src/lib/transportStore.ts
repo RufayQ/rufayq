@@ -139,6 +139,7 @@ const rowToTicket = (r: any, segments: FlightSegment[]): TransportTicket => {
   return {
     id: r.id,
     deviceId: r.device_id,
+    userId: r.user_id || null,
     sourceDocumentId: r.source_document_id || null,
     documentType: (r.document_type as "flight_ticket") || "flight_ticket",
     tripType: r.trip_type,
