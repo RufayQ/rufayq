@@ -826,10 +826,10 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   };
 
   const processingSteps = [
-    { emoji: "🔍", en: "Reading document content", ar: "قراءة محتوى الوثيقة" },
-    { emoji: "🌐", en: "Detecting language", ar: "اكتشاف اللغة" },
-    { emoji: "🧠", en: "Extracting key information", ar: "استخراج المعلومات" },
-    { emoji: "📍", en: "Mapping to your journey", ar: "ربطها برحلتك العلاجية" },
+    { emoji: "📤", en: "Uploading document securely", ar: "رفع الوثيقة بأمان" },
+    { emoji: "👁️", en: "Reading with AI Vision", ar: "القراءة باستخدام الذكاء البصري" },
+    { emoji: "🧠", en: "Extracting flight segments", ar: "استخراج تفاصيل الرحلات" },
+    { emoji: "📍", en: "Checking airports & dates", ar: "التحقق من المطارات والتواريخ" },
   ];
 
   // PDF analysis spinner — short, lives between scanning category and pick-pages.
@@ -954,8 +954,8 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
               height: 50,
             }}
           >
-            <span>Run OCR on selected page{selectedPages.length === 1 ? "" : "s"}</span>
-            <span className="font-arabic text-[12px]" style={{ opacity: 0.8 }}>تشغيل OCR</span>
+            <span>Extract with AI Vision · {selectedPages.length} page{selectedPages.length === 1 ? "" : "s"}</span>
+            <span className="font-arabic text-[12px]" style={{ opacity: 0.8 }}>الاستخراج بالذكاء البصري</span>
             <span>→</span>
           </button>
         </div>
@@ -970,10 +970,10 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           <RufayQLogo size={56} variant="gold" />
         </div>
         <p className="text-[16px] text-white mt-4 text-center" style={{ fontFamily: "'DM Sans'" }}>
-          RufayQ is reading your document
+          RufayQ AI Vision is reading your document
         </p>
         <p className="font-arabic text-[14px] mt-1 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>
-          رُفَيِّق يقرأ وثيقتك...
+          الذكاء البصري لرُفَيِّق يقرأ وثيقتك...
         </p>
 
         <div className="w-full mt-8 space-y-3">
@@ -1028,10 +1028,14 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
         </div>
 
         <div className="mx-4 mt-3 rounded-2xl p-4 space-y-3" style={{ background: "var(--white)", border: "1px solid rgba(217,79,79,0.25)" }}>
-          <p className="text-[13px] font-bold" style={{ color: "var(--error)" }}>We couldn't read this document</p>
-          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>تعذّر قراءة هذه الوثيقة</p>
+          <p className="text-[13px] font-bold" style={{ color: "var(--error)" }}>
+            {isFlightCat ? "We couldn't extract this flight ticket" : "We couldn't read this document"}
+          </p>
+          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>
+            {isFlightCat ? "تعذّر استخراج بيانات تذكرة الطيران" : "تعذّر قراءة هذه الوثيقة"}
+          </p>
           <p className="text-[11px]" style={{ color: "var(--gray)" }}>
-            Please try again or upload a clearer version.
+            Please upload a clearer image or PDF, or enter the flight details manually.
           </p>
           <button
             onClick={tryAgain}
@@ -1039,7 +1043,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
             className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white btn-press flex items-center justify-center gap-2"
             style={{ background: "var(--teal-deep)" }}
           >
-            <RotateCw size={14} /> Try OCR again · <span className="font-arabic text-[11px]">إعادة المحاولة</span>
+            <RotateCw size={14} /> Try AI extraction again · <span className="font-arabic text-[11px]">إعادة المحاولة بالذكاء البصري</span>
           </button>
           {isFlightCat && (
             <button
