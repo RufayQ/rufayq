@@ -162,6 +162,43 @@ export function flightInfoToSegment(
   };
 }
 
+/** Convert a raw parsed leg from the AI extractor (which carries terminal,
+ *  gate, fareClass and baggageAllowance) into a FlightSegment. */
+export function parsedLegToSegment(
+  raw: any,
+  direction: Direction,
+  segmentOrder: number,
+): FlightSegment {
+  const base = flightInfoToSegment(
+    {
+      airline: raw?.airline ?? "",
+      flightNumber: raw?.flightNumber ?? "",
+      bookingRef: raw?.bookingRef ?? "",
+      fromAirport: raw?.fromAirport ?? "",
+      fromCity: raw?.fromCity ?? "",
+      fromAirportFull: raw?.fromAirportFull ?? "",
+      toAirport: raw?.toAirport ?? "",
+      toCity: raw?.toCity ?? "",
+      toAirportFull: raw?.toAirportFull ?? "",
+      departureDateTime: raw?.departureDateTime ?? "",
+      arrivalDateTime: raw?.arrivalDateTime ?? "",
+      seatClass: raw?.seatClass ?? "Economy",
+      seatNumber: raw?.seatNumber ?? "",
+    } as FlightInfo,
+    direction,
+    segmentOrder,
+  );
+  return {
+    ...base,
+    departureTerminal: raw?.fromTerminal || raw?.departureTerminal || undefined,
+    arrivalTerminal: raw?.toTerminal || raw?.arrivalTerminal || undefined,
+    departureGate: raw?.fromGate || raw?.departureGate || undefined,
+    arrivalGate: raw?.toGate || raw?.arrivalGate || undefined,
+    fareClass: raw?.fareClass || undefined,
+    baggageAllowance: raw?.baggageAllowance || undefined,
+  };
+}
+
 /** Reverse adapter: FlightSegment → legacy FlightInfo. */
 export function segmentToFlightInfo(s: FlightSegment): FlightInfo {
   const dep = s.departureDate && s.departureTime
