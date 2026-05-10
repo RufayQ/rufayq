@@ -26,7 +26,7 @@ const fromMock: any = vi.fn(() => ({
   insert: async () => ({ data: null, error: null }),
   delete: () => ({ eq: async () => ({ data: null, error: null }) }),
 }));
-const storageFromMock = vi.fn(() => ({
+const storageFromMock: any = vi.fn(() => ({
   upload: async () => ({ data: { path: "x" }, error: null }),
   remove: async () => ({ data: null, error: null }),
   createSignedUrl: async () => ({ data: { signedUrl: "https://x" }, error: null }),
