@@ -21,6 +21,7 @@ import {
   segmentToFlightInfo,
 } from "@/lib/transportTickets";
 import { isHHmm, normalizeTo24Hour } from "@/lib/time24";
+import { normalizeTerminal } from "@/lib/terminal";
 
 type TripMode = "one-way" | "round-trip";
 export type TravelerKind = "patient" | "companion" | "family";
