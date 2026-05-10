@@ -10,6 +10,7 @@ import { normalizeParsedLeg } from "@/lib/flightParsing";
 import { parseFlightJourney } from "@/lib/flightJourney";
 import JourneyTimeline from "@/components/JourneyTimeline";
 import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
+import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import type { FlightInfo } from "@/components/AddTripSheet";
 
 export type TravelerKind = "patient" | "companion" | "family";
