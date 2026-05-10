@@ -56,6 +56,14 @@ export interface TransportSegment {
   companions?: { name: string; relation: string; seatNumber?: string }[];
   /** Origin tag — used by Journey UI to label "OCR Scanned" vs "Manual Entry". */
   documentSource?: "OCR Scanned" | "Manual Entry";
+  /** Flight terminal info per segment (added with the multi-segment ticket model). */
+  departureTerminal?: string;
+  arrivalTerminal?: string;
+  /** Grouping for connected flight chains (DMM → SHJ → HBE) — all segments
+   *  in one ticket share the same `groupId`. */
+  groupId?: string;
+  segmentOrder?: number;
+  direction?: "outbound" | "return";
 }
 
 const statusColors: Record<string, string> = {

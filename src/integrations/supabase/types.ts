@@ -5333,6 +5333,143 @@ export type Database = {
         }
         Relationships: []
       }
+      transport_flight_segments: {
+        Row: {
+          airline: string | null
+          arrival_date: string | null
+          arrival_terminal: string | null
+          arrival_time: string | null
+          cabin_class: string | null
+          created_at: string
+          departure_date: string | null
+          departure_terminal: string | null
+          departure_time: string | null
+          direction: string
+          flight_number: string | null
+          from_airport_name: string | null
+          from_city: string | null
+          from_code: string
+          from_country: string | null
+          id: string
+          pnr: string | null
+          segment_order: number
+          ticket_id: string
+          to_airport_name: string | null
+          to_city: string | null
+          to_code: string
+          to_country: string | null
+        }
+        Insert: {
+          airline?: string | null
+          arrival_date?: string | null
+          arrival_terminal?: string | null
+          arrival_time?: string | null
+          cabin_class?: string | null
+          created_at?: string
+          departure_date?: string | null
+          departure_terminal?: string | null
+          departure_time?: string | null
+          direction: string
+          flight_number?: string | null
+          from_airport_name?: string | null
+          from_city?: string | null
+          from_code: string
+          from_country?: string | null
+          id?: string
+          pnr?: string | null
+          segment_order: number
+          ticket_id: string
+          to_airport_name?: string | null
+          to_city?: string | null
+          to_code: string
+          to_country?: string | null
+        }
+        Update: {
+          airline?: string | null
+          arrival_date?: string | null
+          arrival_terminal?: string | null
+          arrival_time?: string | null
+          cabin_class?: string | null
+          created_at?: string
+          departure_date?: string | null
+          departure_terminal?: string | null
+          departure_time?: string | null
+          direction?: string
+          flight_number?: string | null
+          from_airport_name?: string | null
+          from_city?: string | null
+          from_code?: string
+          from_country?: string | null
+          id?: string
+          pnr?: string | null
+          segment_order?: number
+          ticket_id?: string
+          to_airport_name?: string | null
+          to_city?: string | null
+          to_code?: string
+          to_country?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_flight_segments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "transport_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_tickets: {
+        Row: {
+          booking_reference: string | null
+          created_at: string
+          device_id: string
+          document_type: string
+          id: string
+          passenger_name: string | null
+          passenger_passport: string | null
+          pending_segment_ref: string | null
+          save_to_medical_records: boolean
+          save_to_transport_timeline: boolean
+          send_to_doctor: boolean
+          source_document_id: string | null
+          trip_type: string
+          updated_at: string
+        }
+        Insert: {
+          booking_reference?: string | null
+          created_at?: string
+          device_id: string
+          document_type?: string
+          id?: string
+          passenger_name?: string | null
+          passenger_passport?: string | null
+          pending_segment_ref?: string | null
+          save_to_medical_records?: boolean
+          save_to_transport_timeline?: boolean
+          send_to_doctor?: boolean
+          source_document_id?: string | null
+          trip_type: string
+          updated_at?: string
+        }
+        Update: {
+          booking_reference?: string | null
+          created_at?: string
+          device_id?: string
+          document_type?: string
+          id?: string
+          passenger_name?: string | null
+          passenger_passport?: string | null
+          pending_segment_ref?: string | null
+          save_to_medical_records?: boolean
+          save_to_transport_timeline?: boolean
+          send_to_doctor?: boolean
+          source_document_id?: string | null
+          trip_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
