@@ -15,9 +15,13 @@ import React from "react";
 // ---- Mocks ---------------------------------------------------------------
 
 const invokeMock = vi.fn();
+const fromMock: any = vi.fn(() => ({
+  select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
+}));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     functions: { invoke: (...args: any[]) => invokeMock(...args) },
+    from: (table: string) => fromMock(table),
   },
 }));
 

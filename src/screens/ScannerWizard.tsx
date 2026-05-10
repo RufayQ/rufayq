@@ -12,6 +12,8 @@ import JourneyTimeline from "@/components/JourneyTimeline";
 import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
 import type { FlightInfo } from "@/components/AddTripSheet";
 
+export type TravelerKind = "patient" | "companion" | "family";
+
 export interface ScannerSavePayload {
   outbound?: FlightInfo | null;
   return?: FlightInfo | null;
@@ -21,6 +23,11 @@ export interface ScannerSavePayload {
   passenger?: { name?: string; passport?: string };
   /** Where the data came from. "manual" tags the document as Manual Entry. */
   source?: "ocr" | "manual";
+  /** Who this ticket is for. Companion / family is gated by subscription. */
+  traveler?: TravelerKind;
+  /** Image data URLs of the page(s) the AI analyzed (or that the user attached
+   * for manual entry). Surfaced on the success screen as a preview strip. */
+  pageImages?: string[];
 }
 
 interface ScannerWizardProps {
@@ -417,6 +424,10 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
   onContinue: () => void;
 }) => {
   const selectedCat = categories.find((c) => c.id === selected);
+  const NON_MEDICAL = new Set(["flight", "train", "hotel", "passport", "insurance"]);
+  const detectedKind = selectedCat
+    ? (NON_MEDICAL.has(selectedCat.id) ? { en: "travel document", ar: "وثيقة سفر" } : { en: "medical document", ar: "وثيقة طبية" })
+    : null;
 
   return (
     <div className="pb-8" style={{ background: "var(--off-white)" }}>
@@ -425,13 +436,15 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
         <p className="font-arabic text-[15px]" dir="rtl" style={{ color: "var(--gray)" }}>ما نوع هذه الوثيقة؟</p>
       </div>
 
-      <div className="mx-4 mt-3 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--teal-light)", borderLeft: "3px solid var(--teal-deep)" }}>
-        <RufayQLogo size={16} variant="dark" />
-        <div className="flex-1">
-          <p className="text-[13px]" style={{ color: "var(--teal-deep)" }}>RufayQ thinks this is a <strong>medical document</strong></p>
-          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>رُفَيِّق يرى أن هذه وثيقة طبية</p>
+      {detectedKind && (
+        <div className="mx-4 mt-3 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--teal-light)", borderLeft: "3px solid var(--teal-deep)" }}>
+          <RufayQLogo size={16} variant="dark" />
+          <div className="flex-1">
+            <p className="text-[13px]" style={{ color: "var(--teal-deep)" }}>RufayQ recognized a <strong>{detectedKind.en}</strong></p>
+            <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>تعرّف رُفَيِّق على {detectedKind.ar}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2.5 px-4 mt-4">
         {categories.map((cat) => {
@@ -550,6 +563,10 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   // PDF preview / page picker state (flight + PDF only)
   const [pdfAnalysis, setPdfAnalysis] = useState<PdfAnalysis | null>(null);
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
+  // Image data URLs of the page(s) actually fed to the AI (or read from a single
+  // image upload). Persisted so the manual-entry split-screen and Step 5 can
+  // show the user what RufayQ analyzed.
+  const [analyzedImages, setAnalyzedImages] = useState<string[]>([]);
 
   const cat = categories.find(c => c.id === category);
   const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
@@ -632,6 +649,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           passport: parsed.passportNumber || undefined,
         },
         source: "ocr",
+        pageImages: files,
       });
       setTimeout(() => {
         if (cancelRef.current || runRef.current !== myRun) return;
@@ -657,6 +675,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     setWasTranslated(false);
     setPdfAnalysis(null);
     setSelectedPages([]);
+    setAnalyzedImages([]);
     setProcessStep(0);
     onParsed?.(null);
 
@@ -707,6 +726,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           r.readAsDataURL(realFile);
         });
         if (cancelRef.current || runRef.current !== myRun) return;
+        setAnalyzedImages([dataUrl]);
         await runOcr([dataUrl], myRun);
       } catch (e) {
         console.error("[scanner] read image failed", e);
@@ -727,6 +747,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     try {
       const images = await renderPdfPagesAtScale(realFile, selectedPages, 2);
       if (cancelRef.current || runRef.current !== myRun) return;
+      setAnalyzedImages(images);
       console.info("[scanner] PDF pages chosen for OCR", selectedPages);
       await runOcr(images, myRun);
     } catch (e) {
@@ -989,6 +1010,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
         {showManualSheet && (
           <ManualFlightEntrySheet
             initial={null}
+            documentImages={analyzedImages}
             onClose={() => setShowManualSheet(false)}
             onSubmit={(payload) => {
               setShowManualSheet(false);
@@ -1006,6 +1028,8 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
                 rawReturn: payload.return ?? null,
                 passenger: payload.passenger,
                 source: "manual",
+                traveler: payload.traveler,
+                pageImages: analyzedImages,
               });
               setOcrStatus("success");
             }}
@@ -1269,6 +1293,34 @@ const Step5Success = ({ category, payload, onViewSection, onScanAnother, onDone 
               ✎ Manual Entry · <span className="font-arabic">إدخال يدوي</span>
             </p>
           )}
+          {payload?.traveler && payload.traveler !== "patient" && (
+            <p className="mt-1 text-[10px] text-center" style={{ color: "var(--gold)" }}>
+              👥 For: {payload.traveler === "companion" ? "Companion" : "Family"}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Attached pages — what AI analyzed (or what user used as reference for manual entry) */}
+      {payload?.pageImages && payload.pageImages.length > 0 && (
+        <div className="w-full mt-4" style={{ opacity: showContent ? 1 : 0, transition: "opacity 0.5s ease 0.85s" }} data-testid="success-attached-pages">
+          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+            📎 ATTACHED PAGE{payload.pageImages.length === 1 ? "" : "S"}
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {payload.pageImages.map((src, i) => (
+              <a
+                key={i}
+                href={src}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-lg overflow-hidden btn-press"
+                style={{ width: 88, height: 112, border: "1px solid rgba(255,255,255,0.15)" }}
+              >
+                <img src={src} alt={`Attached page ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
