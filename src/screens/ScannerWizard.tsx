@@ -672,7 +672,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       setWasTranslated(translated);
 
       setProcessStep(4);
-      onParsed?.({
+      emitParsed({
         outbound: out,
         return: ret,
         rawOutbound: parsed.outboundFlight ?? null,
@@ -691,7 +691,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     } catch (e: any) {
       console.error("[scanner] OCR failed", e);
       if (cancelRef.current || runRef.current !== myRun) return;
-      onParsed?.(null);
+      emitParsed(null);
       setOcrStatus("failed");
     }
   };
@@ -710,7 +710,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     setSelectedPages([]);
     setAnalyzedImages([]);
     setProcessStep(0);
-    onParsed?.(null);
+    emitParsed(null);
 
     async function run() {
       // Non-flight: keep the existing fake animated flow
@@ -1053,7 +1053,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
               if (out) setOutboundFields(toFlightFieldsLite(out));
               if (ret) setReturnFields(toFlightFieldsLite(ret));
               setActiveLeg(out ? "outbound" : "return");
-              onParsed?.({
+              emitParsed({
                 outbound: out,
                 return: ret,
                 legs,
@@ -1203,7 +1203,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
                   sendToDoctor: !!destinations[2],
                 }
               : undefined;
-            onParsed?.({
+            emitParsed({
               ...(scannedSnapshotRef.current ?? {}),
               saveOptions,
               selectedDestinations: selected.map((s) => ({ en: s.en, ar: s.ar, route: s.route })),
