@@ -1028,10 +1028,14 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
         </div>
 
         <div className="mx-4 mt-3 rounded-2xl p-4 space-y-3" style={{ background: "var(--white)", border: "1px solid rgba(217,79,79,0.25)" }}>
-          <p className="text-[13px] font-bold" style={{ color: "var(--error)" }}>We couldn't read this document</p>
-          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>تعذّر قراءة هذه الوثيقة</p>
+          <p className="text-[13px] font-bold" style={{ color: "var(--error)" }}>
+            {isFlightCat ? "We couldn't extract this flight ticket" : "We couldn't read this document"}
+          </p>
+          <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>
+            {isFlightCat ? "تعذّر استخراج بيانات تذكرة الطيران" : "تعذّر قراءة هذه الوثيقة"}
+          </p>
           <p className="text-[11px]" style={{ color: "var(--gray)" }}>
-            Please try again or upload a clearer version.
+            Please upload a clearer image or PDF, or enter the flight details manually.
           </p>
           <button
             onClick={tryAgain}
@@ -1039,7 +1043,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
             className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white btn-press flex items-center justify-center gap-2"
             style={{ background: "var(--teal-deep)" }}
           >
-            <RotateCw size={14} /> Try OCR again · <span className="font-arabic text-[11px]">إعادة المحاولة</span>
+            <RotateCw size={14} /> Try AI extraction again · <span className="font-arabic text-[11px]">إعادة المحاولة بالذكاء البصري</span>
           </button>
           {isFlightCat && (
             <button
