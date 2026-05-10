@@ -27,7 +27,11 @@ export interface FlightSegment {
   arrivalTime?: string;
   departureTerminal?: string;
   arrivalTerminal?: string;
+  departureGate?: string;
+  arrivalGate?: string;
   cabinClass?: string;
+  fareClass?: string;
+  baggageAllowance?: string;
   pnr?: string;
   segmentOrder: number;
   direction: Direction;
@@ -36,6 +40,7 @@ export interface FlightSegment {
 export interface TransportTicket {
   id: string;
   deviceId: string;
+  userId?: string | null;
   sourceDocumentId?: string | null;
   documentType: "flight_ticket";
   tripType: TripType;
