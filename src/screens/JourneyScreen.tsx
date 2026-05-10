@@ -406,7 +406,47 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       arrivalDateTime: newArr.toISOString(),
       bookingRef: undefined,
     };
-    setTransportSegments((prev) => [...prev, copy]);
+    if (seg.type === "flight") {
+      // Build a one-segment ticket and persist it (so the copy survives nav).
+      const fakeInfo = {
+        airline: seg.airline || "",
+        flightNumber: seg.flightNumber || "",
+        bookingRef: "",
+        fromAirport: seg.fromCode || "",
+        fromCity: seg.fromCity || "",
+        fromAirportFull: seg.fromFull || "",
+        toAirport: seg.toCode || "",
+        toCity: seg.toCity || "",
+        toAirportFull: seg.toFull || "",
+        departureDateTime: newDep.toISOString(),
+        arrivalDateTime: newArr.toISOString(),
+        seatClass: seg.seatClass || "Economy",
+        seatNumber: seg.seatNumber || "",
+      } as FlightInfo;
+      const newSeg = flightInfoToSegment(fakeInfo, "outbound", 0);
+      const ticket: TransportTicket = {
+        id: newTicketId(),
+        deviceId: getDeviceId(),
+        sourceDocumentId: null,
+        documentType: "flight_ticket",
+        tripType: "one-way",
+        outboundSegments: [newSeg],
+        returnSegments: [],
+        passengerName: undefined,
+        bookingReference: undefined,
+        saveToTransportTimeline: true,
+        saveToMedicalRecords: false,
+        sendToDoctor: false,
+        pendingSegmentRef: null,
+        traveler: "patient",
+        source: "manual",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      void addFlightTicket(ticket);
+    } else {
+      setNonFlightSegments((prev) => [...prev, copy]);
+    }
     toast.success("Ticket replicated to future date · تم نسخ التذكرة لتاريخ مستقبلي", { description: `New trip: ${newDep.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` });
   };
   const doneCount = journeySteps.filter((s) => s.status === "done").length;
