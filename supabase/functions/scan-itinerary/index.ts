@@ -37,7 +37,7 @@ const TOOL = {
   type: "function",
   function: {
     name: "extract_itinerary",
-    description: "Return parsed airline itinerary fields.",
+    description: "Return parsed airline itinerary fields, including connecting/transit segments.",
     parameters: {
       type: "object",
       properties: {
@@ -47,11 +47,17 @@ const TOOL = {
         passportNumber: { type: "string" },
         dateOfBirth: { type: "string", description: "ISO date YYYY-MM-DD if visible." },
         ticketNumbers: { type: "array", items: { type: "string" } },
+        // Legacy single-leg fields (kept for back-compat with older clients).
         outboundFlight: FLIGHT_LEG,
         returnFlight: FLIGHT_LEG,
-        detectedLanguage: { type: "string", description: "Primary language detected in the document (e.g. 'English', 'Arabic', 'German', 'Turkish'). Use the English name of the language." },
-        translated: { type: "boolean", description: "True if the source document was non-English and values were translated to English." },
-        confidence: { type: "number", description: "0..1 overall extraction confidence." },
+        // NEW: full chains for transit/connecting itineraries (DMM→SHJ→HBE).
+        // Each array is ordered earliest → latest. If only one leg per
+        // direction, the arrays still hold a single element.
+        outboundSegments: { type: "array", items: FLIGHT_LEG, description: "Ordered outbound legs including any transit/connecting flights." },
+        returnSegments: { type: "array", items: FLIGHT_LEG, description: "Ordered return legs including any transit/connecting flights." },
+        detectedLanguage: { type: "string", description: "Primary language detected in the document." },
+        translated: { type: "boolean" },
+        confidence: { type: "number" },
       },
       required: ["confidence"],
       additionalProperties: false,
