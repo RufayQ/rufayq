@@ -7,6 +7,7 @@
  *   `TransportTicket[]` for new flight chaining UI.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import {
   listTickets,
