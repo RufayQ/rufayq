@@ -8,6 +8,16 @@ import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import EditTripSheet from "@/components/EditTripSheet";
+import { useTransportTimeline } from "@/hooks/useTransportTimeline";
+import {
+  type TransportTicket,
+  type FlightSegment,
+  newId as newTicketId,
+  flightInfoToSegment,
+  segmentToFlightInfo as legacyFromSegment,
+  inferTripType,
+} from "@/lib/transportTickets";
+import { getDeviceId } from "@/hooks/useDeviceId";
 import EditStepSheet from "@/components/EditStepSheet";
 import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard";
 import { PlaneTakeoff, PlaneLanding, Hotel, Stethoscope, ChevronRight, X as XIcon } from "lucide-react";
@@ -83,9 +93,27 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
-  const [transportSegments, setTransportSegments] = useState<TransportSegment[]>(
-    isGuest ? defaultTransportSegments.filter((s) => guestCats.tickets) : []
+  // Flight tickets are persisted (per-device) via Supabase + local cache so
+  // they survive navigation, reload, and offline. Non-flight transport
+  // segments stay in local state for now (separate persistence epic).
+  const {
+    tickets: flightTickets,
+    segments: persistedFlightSegments,
+    addTicket: addFlightTicket,
+    removeTicket: removeFlightTicket,
+  } = useTransportTimeline();
+  const [nonFlightSegments, setNonFlightSegments] = useState<TransportSegment[]>(
+    isGuest ? defaultTransportSegments.filter((s) => guestCats.tickets && s.type !== "flight") : []
   );
+  // Guest seed flights — only shown when there are no real persisted tickets,
+  // so demo data never overwrites or duplicates real saved flights.
+  const guestFlightSeed = isGuest
+    ? defaultTransportSegments.filter((s) => guestCats.tickets && s.type === "flight")
+    : [];
+  const transportSegments: TransportSegment[] = [
+    ...nonFlightSegments,
+    ...(persistedFlightSegments.length > 0 ? persistedFlightSegments : guestFlightSeed),
+  ];
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
   const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(isGuest ? defaultJourneySteps : []);
@@ -107,10 +135,21 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     outbound?: FlightInfo | null;
     return?: FlightInfo | null;
     legs?: FlightInfo[];
+    /** Rich multi-segment payload (preferred when present) — preserves
+     *  transit/connecting flights, terminals, and 24h times that the
+     *  legacy FlightInfo shape can't carry. */
+    outboundSegments?: FlightSegment[];
+    returnSegments?: FlightSegment[];
     rawOutbound?: any;
     rawReturn?: any;
     passenger?: { name?: string; passport?: string };
     source?: "ocr" | "manual";
+    traveler?: "patient" | "companion" | "family";
+    saveOptions?: {
+      saveToTransportTimeline?: boolean;
+      saveToMedicalRecords?: boolean;
+      sendToDoctor?: boolean;
+    };
     /** Pre-allocated id used for the FIRST resulting segment so any
      *  related-document attachments uploaded in the wizard stay linked. */
     pendingSegmentRef?: string;
@@ -135,14 +174,20 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       sessionStorage.removeItem("rufayq_pending_flight");
       const hasMulti = Array.isArray(payload.legs) && payload.legs.length > 0;
       if (!payload.outbound && !payload.return && !hasMulti) return;
+      const hasOutSegs = Array.isArray(payload.outboundSegments) && payload.outboundSegments.length > 0;
+      const hasRetSegs = Array.isArray(payload.returnSegments) && payload.returnSegments.length > 0;
       setPendingScan({
         outbound: payload.outbound ?? (hasMulti ? payload.legs[0] : null),
         return: payload.return ?? (hasMulti && payload.legs.length === 2 ? payload.legs[1] : null),
         legs: hasMulti ? payload.legs : undefined,
+        outboundSegments: hasOutSegs ? payload.outboundSegments : undefined,
+        returnSegments: hasRetSegs ? payload.returnSegments : undefined,
         rawOutbound: payload.rawOutbound ?? payload.outbound ?? null,
         rawReturn: payload.rawReturn ?? payload.return ?? null,
         passenger: payload.passenger,
         source: payload.source ?? "ocr",
+        traveler: payload.traveler,
+        saveOptions: payload.saveOptions,
         pendingSegmentRef: payload.pendingSegmentRef,
       });
     };
@@ -154,62 +199,86 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   }, []);
 
   const applyConfirmedScan = (out: FlightInfo | null, ret: FlightInfo | null) => {
-    const docSource: TransportSegment["documentSource"] =
-      pendingScan?.source === "manual" ? "Manual Entry" : "OCR Scanned";
-    const legToSegment = (leg: FlightInfo, idx: number): TransportSegment => ({
-      id: idx === 0 && pendingScan?.pendingSegmentRef
-        ? pendingScan.pendingSegmentRef
-        : `seg-${Date.now()}-${idx}`,
-      type: "flight",
-      status: "upcoming",
-      fromCode: leg.fromAirport || "—",
-      fromCity: leg.fromCity || leg.fromAirport || "TBD",
-      fromFull: leg.fromAirportFull,
-      toCode: leg.toAirport || "—",
-      toCity: leg.toCity || leg.toAirport || "TBD",
-      toFull: leg.toAirportFull,
-      departureDateTime: leg.departureDateTime || new Date().toISOString(),
-      arrivalDateTime: leg.arrivalDateTime || leg.departureDateTime || new Date().toISOString(),
-      bookingRef: leg.bookingRef,
-      airline: leg.airline,
-      flightNumber: leg.flightNumber,
-      seatClass: leg.seatClass,
-      seatNumber: leg.seatNumber,
-      documentSource: docSource,
-    });
-    // Prefer multi-city `legs` if present (covers >2 legs); otherwise fall
-    // back to the legacy outbound/return shape from the confirm sheet.
-    const sourceLegs: FlightInfo[] = pendingScan?.legs && pendingScan.legs.length > 0
-      ? pendingScan.legs
-      : ([out, ret].filter(Boolean) as FlightInfo[]);
-    const newSegs: TransportSegment[] = sourceLegs.map((l, i) => legToSegment(l, i));
-    if (newSegs.length === 0) { setPendingScan(null); return; }
+    // Build outbound/return FlightSegment[] preserving any rich multi-segment
+    // data (transit/connecting legs, terminals) from the manual-entry sheet.
+    let outboundSegs: FlightSegment[] = pendingScan?.outboundSegments?.length
+      ? pendingScan.outboundSegments.map((s, i) => ({ ...s, segmentOrder: i, direction: "outbound" }))
+      : [];
+    let returnSegs: FlightSegment[] = pendingScan?.returnSegments?.length
+      ? pendingScan.returnSegments.map((s, i) => ({ ...s, segmentOrder: i, direction: "return" }))
+      : [];
 
-    setTransportSegments(prev => [...prev, ...newSegs]);
+    // Fall back: build segments from legacy FlightInfo shape (OCR + older payloads).
+    if (outboundSegs.length === 0 && returnSegs.length === 0) {
+      const sourceLegs: FlightInfo[] = pendingScan?.legs && pendingScan.legs.length > 0
+        ? pendingScan.legs
+        : ([out, ret].filter(Boolean) as FlightInfo[]);
+      if (pendingScan?.legs && pendingScan.legs.length > 0) {
+        // Multi-city: treat all legs as outbound segments in order.
+        outboundSegs = sourceLegs.map((l, i) => flightInfoToSegment(l, "outbound", i));
+      } else {
+        if (out) outboundSegs = [flightInfoToSegment(out, "outbound", 0)];
+        if (ret) returnSegs = [flightInfoToSegment(ret, "return", 0)];
+      }
+    }
+
+    if (outboundSegs.length === 0 && returnSegs.length === 0) {
+      setPendingScan(null);
+      return;
+    }
+
+    const ticket: TransportTicket = {
+      id: newTicketId(),
+      deviceId: getDeviceId(),
+      sourceDocumentId: null,
+      documentType: "flight_ticket",
+      tripType: inferTripType(outboundSegs, returnSegs),
+      outboundSegments: outboundSegs,
+      returnSegments: returnSegs,
+      passengerName: pendingScan?.passenger?.name,
+      passengerPassport: pendingScan?.passenger?.passport,
+      bookingReference: outboundSegs[0]?.pnr || returnSegs[0]?.pnr,
+      saveToTransportTimeline: pendingScan?.saveOptions?.saveToTransportTimeline ?? true,
+      saveToMedicalRecords: pendingScan?.saveOptions?.saveToMedicalRecords ?? false,
+      sendToDoctor: pendingScan?.saveOptions?.sendToDoctor ?? false,
+      pendingSegmentRef: pendingScan?.pendingSegmentRef || null,
+      traveler: pendingScan?.traveler || "patient",
+      source: pendingScan?.source ?? "ocr",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    void addFlightTicket(ticket);
     setActiveSubTab("tickets");
+
+    const first = outboundSegs[0] || returnSegs[0];
     toast.success(
       pendingScan?.source === "manual"
         ? "✈️ Flight added to your timeline (manual entry)"
         : "✈️ Flight added to your timeline",
       {
-        description: `${newSegs[0].airline || ""} ${newSegs[0].flightNumber || ""} · ${newSegs[0].fromCode} → ${newSegs[0].toCode}`,
+        description: `${first?.airline || ""} ${first?.flightNumber || ""} · ${first?.fromAirport.code} → ${first?.toAirport.code}${outboundSegs.length + returnSegs.length > 1 ? ` (+${outboundSegs.length + returnSegs.length - 1} more)` : ""}`,
         duration: 4000,
       },
     );
 
     setTrips(prev => {
       if (prev.length > 0) return prev;
+      const lastOut = outboundSegs[outboundSegs.length - 1];
+      const lastRet = returnSegs[returnSegs.length - 1];
+      const firstOut = outboundSegs[0];
+      const firstRet = returnSegs[0];
       const seed: TripData = {
         id: `trip-${Date.now()}`,
-        destination: out?.toCity || ret?.fromCity || sourceLegs[sourceLegs.length - 1]?.toCity || "Destination",
+        destination: lastOut?.toAirport.city || firstRet?.fromAirport.city || "Destination",
         hospital: "", specialty: "", specialtyEmoji: "🏥",
-        departureDate: (out?.departureDateTime || sourceLegs[0]?.departureDateTime || "").split("T")[0],
-        returnDate: (ret?.departureDateTime || sourceLegs[sourceLegs.length - 1]?.departureDateTime || "").split("T")[0],
+        departureDate: firstOut?.departureDate || "",
+        returnDate: lastRet?.departureDate || firstRet?.departureDate || "",
         treatingDoctor: "", companion: false,
         companionName: pendingScan?.passenger?.name || "",
         insuranceRef: "", status: "active",
-        outboundFlight: out || sourceLegs[0] || null,
-        returnFlight: ret || (sourceLegs.length > 1 ? sourceLegs[sourceLegs.length - 1] : null),
+        outboundFlight: out || (firstOut ? legacyFromSegment(firstOut) : null),
+        returnFlight: ret || (firstRet ? legacyFromSegment(firstRet) : null),
       };
       return [seed];
     });
@@ -337,7 +406,47 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       arrivalDateTime: newArr.toISOString(),
       bookingRef: undefined,
     };
-    setTransportSegments((prev) => [...prev, copy]);
+    if (seg.type === "flight") {
+      // Build a one-segment ticket and persist it (so the copy survives nav).
+      const fakeInfo = {
+        airline: seg.airline || "",
+        flightNumber: seg.flightNumber || "",
+        bookingRef: "",
+        fromAirport: seg.fromCode || "",
+        fromCity: seg.fromCity || "",
+        fromAirportFull: seg.fromFull || "",
+        toAirport: seg.toCode || "",
+        toCity: seg.toCity || "",
+        toAirportFull: seg.toFull || "",
+        departureDateTime: newDep.toISOString(),
+        arrivalDateTime: newArr.toISOString(),
+        seatClass: seg.seatClass || "Economy",
+        seatNumber: seg.seatNumber || "",
+      } as FlightInfo;
+      const newSeg = flightInfoToSegment(fakeInfo, "outbound", 0);
+      const ticket: TransportTicket = {
+        id: newTicketId(),
+        deviceId: getDeviceId(),
+        sourceDocumentId: null,
+        documentType: "flight_ticket",
+        tripType: "one-way",
+        outboundSegments: [newSeg],
+        returnSegments: [],
+        passengerName: undefined,
+        bookingReference: undefined,
+        saveToTransportTimeline: true,
+        saveToMedicalRecords: false,
+        sendToDoctor: false,
+        pendingSegmentRef: null,
+        traveler: "patient",
+        source: "manual",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      void addFlightTicket(ticket);
+    } else {
+      setNonFlightSegments((prev) => [...prev, copy]);
+    }
     toast.success("Ticket replicated to future date · تم نسخ التذكرة لتاريخ مستقبلي", { description: `New trip: ${newDep.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` });
   };
   const doneCount = journeySteps.filter((s) => s.status === "done").length;
@@ -549,7 +658,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         segment={editingSegment}
         onCancel={() => { setEditingSegment(null); setIsNewSegment(false); }}
         onSave={(seg) => {
-          setTransportSegments(prev => {
+          // EditTransportSheet only handles non-flight transport. Flight
+          // tickets persist via the transport store and are not edited here.
+          setNonFlightSegments(prev => {
             const exists = prev.some(p => p.id === seg.id);
             return exists ? prev.map(p => p.id === seg.id ? seg : p) : [...prev, seg];
           });
@@ -559,7 +670,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
           setIsNewSegment(false);
         }}
         onDelete={isNewSegment ? undefined : (id) => {
-          setTransportSegments(prev => prev.filter(p => p.id !== id));
+          setNonFlightSegments(prev => prev.filter(p => p.id !== id));
           setEditingSegment(null);
         }}
       />
