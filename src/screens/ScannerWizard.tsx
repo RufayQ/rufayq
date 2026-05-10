@@ -1286,10 +1286,12 @@ const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onS
     : null;
 
   const actionsTaken: { en: string; ar: string }[] = [];
-  const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
-  dests.filter(d => d.checked).forEach(d => {
-    actionsTaken.push({ en: d.en, ar: d.ar });
-  });
+  if (payload?.selectedDestinations && payload.selectedDestinations.length > 0) {
+    payload.selectedDestinations.forEach(d => actionsTaken.push({ en: d.en, ar: d.ar }));
+  } else {
+    const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
+    dests.filter(d => d.checked).forEach(d => actionsTaken.push({ en: d.en, ar: d.ar }));
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setShowContent(true), 1000);
