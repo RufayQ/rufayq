@@ -142,6 +142,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         rawReturn: payload.rawReturn ?? payload.return ?? null,
         passenger: payload.passenger,
         source: payload.source ?? "ocr",
+        pendingSegmentRef: payload.pendingSegmentRef,
       });
     };
     consume();
