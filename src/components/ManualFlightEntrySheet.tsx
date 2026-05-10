@@ -310,9 +310,14 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
     }
     if (chainErrors.length > 0) { setError(chainErrors[0]); return; }
 
-    const out = outboundSegs.map((s, i) => ({ ...s, segmentOrder: i, direction: "outbound" as const }));
+    const normalizeSegTerminals = (s: FlightSegment): FlightSegment => ({
+      ...s,
+      departureTerminal: normalizeTerminal(s.departureTerminal) || undefined,
+      arrivalTerminal: normalizeTerminal(s.arrivalTerminal) || undefined,
+    });
+    const out = outboundSegs.map((s, i) => normalizeSegTerminals({ ...s, segmentOrder: i, direction: "outbound" as const }));
     const ret = mode === "round-trip"
-      ? returnSegs.map((s, i) => ({ ...s, segmentOrder: i, direction: "return" as const }))
+      ? returnSegs.map((s, i) => normalizeSegTerminals({ ...s, segmentOrder: i, direction: "return" as const }))
       : [];
 
     const legacyOutbound = out.length > 0 ? segmentToFlightInfo(out[0]) : null;
