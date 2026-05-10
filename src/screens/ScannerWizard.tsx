@@ -576,6 +576,12 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   const [processStep, setProcessStep] = useState(0);
   const [destinations, setDestinations] = useState<boolean[]>([]);
   const [showManualSheet, setShowManualSheet] = useState(false);
+  // Latest parsed payload snapshot — re-emitted with saveOptions on Save click.
+  const scannedSnapshotRef = useRef<ScannerSavePayload | null>(null);
+  const emitParsed = (p: ScannerSavePayload | null) => {
+    scannedSnapshotRef.current = p;
+    onParsed?.(p);
+  };
 
   // Flight-specific parsed state
   const [outboundFields, setOutboundFields] = useState<FlightFields | null>(null);
