@@ -13,6 +13,7 @@ import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard
 import { PlaneTakeoff, PlaneLanding, Hotel, Stethoscope, ChevronRight, X as XIcon } from "lucide-react";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import TransportCard, { LayoverIndicator, type TransportSegment } from "@/components/TransportCard";
+import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import TripSummaryCard from "@/components/TripSummaryCard";
 import { parseFlightJourney } from "@/lib/flightJourney";
 import TicketDetailSheet, { type OverrideAnnotation, type SmartReminder, getSystemReminders } from "@/components/TicketDetailSheet";
