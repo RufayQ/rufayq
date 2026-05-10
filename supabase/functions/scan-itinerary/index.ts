@@ -126,9 +126,10 @@ serve(async (req) => {
         "- toAirport / toCity: same rules.\n" +
         "- departureDateTime / arrivalDateTime in strict ISO 8601 (YYYY-MM-DDTHH:mm), local airport time.\n" +
         "- seatClass + seatNumber when shown.\n" +
+        "IMPORTANT — TRANSIT/CONNECTING FLIGHTS: When the itinerary shows multiple flights chained via a layover (e.g. DMM → SHJ → HBE), populate `outboundSegments` (and `returnSegments` for the return direction) with EVERY leg in chronological order. Each transit leg is a full FLIGHT_LEG entry. Do NOT collapse multiple legs into one. Use `outboundFlight`/`returnFlight` only as a back-compat copy of the FIRST outbound/return leg.\n" +
         "Also capture passengerFirstName, passengerLastName, passportNumber, dateOfBirth.\n" +
         "If a value is missing or unreadable, OMIT the field entirely — never invent or guess. " +
-        "If the document shows two flights with the same passenger and the second one returns to the first origin, treat the second as returnFlight.",
+        "If the document shows two flights with the same passenger and the second one returns to the first origin, treat the second as returnFlight / first returnSegments entry.",
       },
     ];
     for (const u of images) userContent.push({ type: "image_url", image_url: { url: u } });
