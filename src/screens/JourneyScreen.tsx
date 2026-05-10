@@ -658,7 +658,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         segment={editingSegment}
         onCancel={() => { setEditingSegment(null); setIsNewSegment(false); }}
         onSave={(seg) => {
-          setTransportSegments(prev => {
+          // EditTransportSheet only handles non-flight transport. Flight
+          // tickets persist via the transport store and are not edited here.
+          setNonFlightSegments(prev => {
             const exists = prev.some(p => p.id === seg.id);
             return exists ? prev.map(p => p.id === seg.id ? seg : p) : [...prev, seg];
           });
@@ -668,7 +670,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
           setIsNewSegment(false);
         }}
         onDelete={isNewSegment ? undefined : (id) => {
-          setTransportSegments(prev => prev.filter(p => p.id !== id));
+          setNonFlightSegments(prev => prev.filter(p => p.id !== id));
           setEditingSegment(null);
         }}
       />
