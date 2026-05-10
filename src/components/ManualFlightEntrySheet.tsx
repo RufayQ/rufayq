@@ -8,10 +8,14 @@
  * Timeline) is identical.
  */
 import { useState } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X, Plus, Trash2, ZoomIn, Lock, User, Users } from "lucide-react";
 import type { FlightInfo } from "@/components/AddTripSheet";
+import { useTrial } from "@/hooks/useTrial";
+import { useSubscription } from "@/hooks/useSubscription";
+import UpgradePrompt from "@/components/UpgradePrompt";
 
 type TripMode = "one-way" | "round-trip" | "multi-city";
+export type TravelerKind = "patient" | "companion" | "family";
 
 const emptyLeg = (): FlightInfo => ({
   airline: "",
@@ -35,11 +39,15 @@ export interface ManualFlightPayload {
   legs?: FlightInfo[];
   passenger?: { name?: string; passport?: string };
   source: "manual";
+  traveler: TravelerKind;
 }
 
 interface Props {
   /** Optional pre-fill from a partial OCR payload. */
   initial?: { outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } } | null;
+  /** Image data URLs of the page(s) the AI analyzed — rendered as a split-screen
+   * preview so the user can read details directly from the document while typing. */
+  documentImages?: string[];
   onClose: () => void;
   onSubmit: (payload: ManualFlightPayload) => void;
 }
