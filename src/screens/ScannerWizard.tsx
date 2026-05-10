@@ -826,10 +826,10 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   };
 
   const processingSteps = [
-    { emoji: "🔍", en: "Reading document content", ar: "قراءة محتوى الوثيقة" },
-    { emoji: "🌐", en: "Detecting language", ar: "اكتشاف اللغة" },
-    { emoji: "🧠", en: "Extracting key information", ar: "استخراج المعلومات" },
-    { emoji: "📍", en: "Mapping to your journey", ar: "ربطها برحلتك العلاجية" },
+    { emoji: "📤", en: "Uploading document securely", ar: "رفع الوثيقة بأمان" },
+    { emoji: "👁️", en: "Reading with AI Vision", ar: "القراءة باستخدام الذكاء البصري" },
+    { emoji: "🧠", en: "Extracting flight segments", ar: "استخراج تفاصيل الرحلات" },
+    { emoji: "📍", en: "Checking airports & dates", ar: "التحقق من المطارات والتواريخ" },
   ];
 
   // PDF analysis spinner — short, lives between scanning category and pick-pages.
