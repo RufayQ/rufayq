@@ -5297,6 +5297,42 @@ export type Database = {
         }
         Relationships: []
       }
+      transport_attachments: {
+        Row: {
+          created_at: string
+          device_id: string
+          file_name: string
+          file_path: string
+          id: string
+          label: string
+          mime_type: string | null
+          segment_ref: string
+          size_bytes: number | null
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          file_name: string
+          file_path: string
+          id?: string
+          label: string
+          mime_type?: string | null
+          segment_ref: string
+          size_bytes?: number | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          label?: string
+          mime_type?: string | null
+          segment_ref?: string
+          size_bytes?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
