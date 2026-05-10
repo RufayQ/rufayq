@@ -638,8 +638,17 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       }
       setProcessStep(3);
 
-      const out = parsed.outboundFlight ? normalizeParsedLeg(parsed.outboundFlight) : null;
-      const ret = parsed.returnFlight ? normalizeParsedLeg(parsed.returnFlight) : null;
+      // Prefer rich segment arrays (transit-aware); fall back to legacy single legs.
+      const outArr: any[] = Array.isArray(parsed.outboundSegments) && parsed.outboundSegments.length > 0
+        ? parsed.outboundSegments
+        : parsed.outboundFlight ? [parsed.outboundFlight] : [];
+      const retArr: any[] = Array.isArray(parsed.returnSegments) && parsed.returnSegments.length > 0
+        ? parsed.returnSegments
+        : parsed.returnFlight ? [parsed.returnFlight] : [];
+      const outLegs = outArr.map(normalizeParsedLeg);
+      const retLegs = retArr.map(normalizeParsedLeg);
+      const out = outLegs[0] ?? null;
+      const ret = retLegs[0] ?? null;
       if (!out && !ret) {
         console.error("[scanner] no flight legs in response", parsed);
         throw new Error("no-legs");
