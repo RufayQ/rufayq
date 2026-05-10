@@ -81,6 +81,7 @@ const JourneyTimeline = ({ journey, now = Date.now(), compact, onLegClick }: Pro
         {items.map(({ leg, status, index }, i) => {
           const isLast = i === items.length - 1;
           const isOpen = expanded === index;
+          const layover = !isLast ? computeLayover(leg, items[i + 1].leg) : null;
           return (
             <div key={`${leg.flightNumber}-${leg.departureDateTime}-${i}`} className="relative pl-8 pb-4">
               {/* connector line */}
