@@ -51,9 +51,10 @@ export function writeCache(deviceId: string, tickets: TransportTicket[]) {
 
 /* ─────────────────────────  mappers  ───────────────────────── */
 
-const segmentToRow = (s: FlightSegment, ticketId: string) => ({
+const segmentToRow = (s: FlightSegment, ticketId: string, userId: string | null) => ({
   id: s.id,
   ticket_id: ticketId,
+  user_id: userId,
   direction: s.direction,
   segment_order: s.segmentOrder,
   airline: s.airline || null,
@@ -72,7 +73,11 @@ const segmentToRow = (s: FlightSegment, ticketId: string) => ({
   arrival_time: s.arrivalTime || null,
   departure_terminal: s.departureTerminal || null,
   arrival_terminal: s.arrivalTerminal || null,
+  departure_gate: s.departureGate || null,
+  arrival_gate: s.arrivalGate || null,
   cabin_class: s.cabinClass || null,
+  fare_class: s.fareClass || null,
+  baggage_allowance: s.baggageAllowance || null,
   pnr: s.pnr || null,
 });
 
@@ -98,7 +103,11 @@ const rowToSegment = (r: any): FlightSegment => ({
   arrivalTime: r.arrival_time || undefined,
   departureTerminal: r.departure_terminal || undefined,
   arrivalTerminal: r.arrival_terminal || undefined,
+  departureGate: r.departure_gate || undefined,
+  arrivalGate: r.arrival_gate || undefined,
   cabinClass: r.cabin_class || undefined,
+  fareClass: r.fare_class || undefined,
+  baggageAllowance: r.baggage_allowance || undefined,
   pnr: r.pnr || undefined,
   segmentOrder: r.segment_order ?? 0,
   direction: (r.direction as "outbound" | "return") ?? "outbound",
@@ -107,6 +116,7 @@ const rowToSegment = (r: any): FlightSegment => ({
 const ticketToRow = (t: TransportTicket) => ({
   id: t.id,
   device_id: t.deviceId,
+  user_id: t.userId || null,
   source_document_id: t.sourceDocumentId || null,
   document_type: t.documentType,
   trip_type: t.tripType,
@@ -129,6 +139,7 @@ const rowToTicket = (r: any, segments: FlightSegment[]): TransportTicket => {
   return {
     id: r.id,
     deviceId: r.device_id,
+    userId: r.user_id || null,
     sourceDocumentId: r.source_document_id || null,
     documentType: (r.document_type as "flight_ticket") || "flight_ticket",
     tripType: r.trip_type,
@@ -210,7 +221,7 @@ export async function saveTicket(
       .delete()
       .eq("ticket_id", ticket.id);
 
-    const rows = allSegments.map((s) => segmentToRow(s, ticket.id));
+    const rows = allSegments.map((s) => segmentToRow(s, ticket.id, ticket.userId || null));
     const { error: sErr } = await (supabase as any)
       .from("transport_flight_segments")
       .insert(rows);

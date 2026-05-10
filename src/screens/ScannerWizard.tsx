@@ -708,13 +708,13 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       setWasTranslated(translated);
 
       setProcessStep(4);
-      const { flightInfoToSegment } = await import("@/lib/transportTickets");
+      const { parsedLegToSegment } = await import("@/lib/transportTickets");
       emitParsed({
         outbound: out,
         return: ret,
         legs: outLegs.length + retLegs.length > 2 ? [...outLegs, ...retLegs] : undefined,
-        outboundSegments: outLegs.map((l, i) => flightInfoToSegment(l, "outbound", i)),
-        returnSegments: retLegs.map((l, i) => flightInfoToSegment(l, "return", i)),
+        outboundSegments: outArr.map((raw, i) => parsedLegToSegment(raw, "outbound", i)),
+        returnSegments: retArr.map((raw, i) => parsedLegToSegment(raw, "return", i)),
         rawOutbound: parsed.outboundFlight ?? null,
         rawReturn: parsed.returnFlight ?? null,
         passenger: {
@@ -733,6 +733,13 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       if (cancelRef.current || runRef.current !== myRun) return;
       emitParsed(null);
       setOcrStatus("failed");
+      // Auto-fallback: for flight tickets, immediately open the manual entry
+      // sheet so the user is never stuck with just an error screen.
+      if (category === "flight") {
+        setTimeout(() => {
+          if (!cancelRef.current && runRef.current === myRun) setShowManualSheet(true);
+        }, 600);
+      }
     }
   };
 

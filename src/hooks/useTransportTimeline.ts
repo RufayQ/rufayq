@@ -7,6 +7,7 @@
  *   `TransportTicket[]` for new flight chaining UI.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import {
   listTickets,
@@ -46,17 +47,29 @@ export function useTransportTimeline() {
 
   const addTicket = useCallback(
     async (ticket: TransportTicket) => {
+      // Auto-link to the signed-in user (if any) so the ticket persists
+      // across devices and is readable under user-scoped RLS.
+      let userId: string | null = ticket.userId ?? null;
+      if (!userId) {
+        try {
+          const { data } = await supabase.auth.getUser();
+          userId = data.user?.id ?? null;
+        } catch {
+          /* unauthenticated — keep device-only */
+        }
+      }
+      const enriched: TransportTicket = { ...ticket, userId };
+
       // Optimistic local update so the UI never feels laggy
       setTickets((prev) => {
-        const without = prev.filter((t) => t.id !== ticket.id);
-        return [...without, ticket].sort((a, b) =>
+        const without = prev.filter((t) => t.id !== enriched.id);
+        return [...without, enriched].sort((a, b) =>
           a.createdAt.localeCompare(b.createdAt),
         );
       });
       try {
-        await saveTicket(ticket);
+        await saveTicket(enriched);
       } catch (e) {
-        // We keep the optimistic update — readCache already preserved it.
         console.error("[useTransportTimeline] saveTicket failed", e);
         setError(e as Error);
       }

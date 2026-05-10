@@ -27,7 +27,11 @@ export interface FlightSegment {
   arrivalTime?: string;
   departureTerminal?: string;
   arrivalTerminal?: string;
+  departureGate?: string;
+  arrivalGate?: string;
   cabinClass?: string;
+  fareClass?: string;
+  baggageAllowance?: string;
   pnr?: string;
   segmentOrder: number;
   direction: Direction;
@@ -36,6 +40,7 @@ export interface FlightSegment {
 export interface TransportTicket {
   id: string;
   deviceId: string;
+  userId?: string | null;
   sourceDocumentId?: string | null;
   documentType: "flight_ticket";
   tripType: TripType;
@@ -154,6 +159,43 @@ export function flightInfoToSegment(
     pnr: info.bookingRef || "",
     segmentOrder,
     direction,
+  };
+}
+
+/** Convert a raw parsed leg from the AI extractor (which carries terminal,
+ *  gate, fareClass and baggageAllowance) into a FlightSegment. */
+export function parsedLegToSegment(
+  raw: any,
+  direction: Direction,
+  segmentOrder: number,
+): FlightSegment {
+  const base = flightInfoToSegment(
+    {
+      airline: raw?.airline ?? "",
+      flightNumber: raw?.flightNumber ?? "",
+      bookingRef: raw?.bookingRef ?? "",
+      fromAirport: raw?.fromAirport ?? "",
+      fromCity: raw?.fromCity ?? "",
+      fromAirportFull: raw?.fromAirportFull ?? "",
+      toAirport: raw?.toAirport ?? "",
+      toCity: raw?.toCity ?? "",
+      toAirportFull: raw?.toAirportFull ?? "",
+      departureDateTime: raw?.departureDateTime ?? "",
+      arrivalDateTime: raw?.arrivalDateTime ?? "",
+      seatClass: raw?.seatClass ?? "Economy",
+      seatNumber: raw?.seatNumber ?? "",
+    } as FlightInfo,
+    direction,
+    segmentOrder,
+  );
+  return {
+    ...base,
+    departureTerminal: raw?.fromTerminal || raw?.departureTerminal || undefined,
+    arrivalTerminal: raw?.toTerminal || raw?.arrivalTerminal || undefined,
+    departureGate: raw?.fromGate || raw?.departureGate || undefined,
+    arrivalGate: raw?.toGate || raw?.arrivalGate || undefined,
+    fareClass: raw?.fareClass || undefined,
+    baggageAllowance: raw?.baggageAllowance || undefined,
   };
 }
 

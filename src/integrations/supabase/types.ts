@@ -5337,14 +5337,18 @@ export type Database = {
         Row: {
           airline: string | null
           arrival_date: string | null
+          arrival_gate: string | null
           arrival_terminal: string | null
           arrival_time: string | null
+          baggage_allowance: string | null
           cabin_class: string | null
           created_at: string
           departure_date: string | null
+          departure_gate: string | null
           departure_terminal: string | null
           departure_time: string | null
           direction: string
+          fare_class: string | null
           flight_number: string | null
           from_airport_name: string | null
           from_city: string | null
@@ -5358,18 +5362,23 @@ export type Database = {
           to_city: string | null
           to_code: string
           to_country: string | null
+          user_id: string | null
         }
         Insert: {
           airline?: string | null
           arrival_date?: string | null
+          arrival_gate?: string | null
           arrival_terminal?: string | null
           arrival_time?: string | null
+          baggage_allowance?: string | null
           cabin_class?: string | null
           created_at?: string
           departure_date?: string | null
+          departure_gate?: string | null
           departure_terminal?: string | null
           departure_time?: string | null
           direction: string
+          fare_class?: string | null
           flight_number?: string | null
           from_airport_name?: string | null
           from_city?: string | null
@@ -5383,18 +5392,23 @@ export type Database = {
           to_city?: string | null
           to_code: string
           to_country?: string | null
+          user_id?: string | null
         }
         Update: {
           airline?: string | null
           arrival_date?: string | null
+          arrival_gate?: string | null
           arrival_terminal?: string | null
           arrival_time?: string | null
+          baggage_allowance?: string | null
           cabin_class?: string | null
           created_at?: string
           departure_date?: string | null
+          departure_gate?: string | null
           departure_terminal?: string | null
           departure_time?: string | null
           direction?: string
+          fare_class?: string | null
           flight_number?: string | null
           from_airport_name?: string | null
           from_city?: string | null
@@ -5408,6 +5422,7 @@ export type Database = {
           to_city?: string | null
           to_code?: string
           to_country?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -5435,6 +5450,7 @@ export type Database = {
           source_document_id: string | null
           trip_type: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           booking_reference?: string | null
@@ -5451,6 +5467,7 @@ export type Database = {
           source_document_id?: string | null
           trip_type: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           booking_reference?: string | null
@@ -5467,6 +5484,7 @@ export type Database = {
           source_document_id?: string | null
           trip_type?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
