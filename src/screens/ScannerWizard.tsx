@@ -1051,6 +1051,8 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
                 outbound: out,
                 return: ret,
                 legs,
+                outboundSegments: payload.outboundSegments,
+                returnSegments: payload.returnSegments,
                 rawOutbound: payload.outbound ?? null,
                 rawReturn: payload.return ?? null,
                 passenger: payload.passenger,
