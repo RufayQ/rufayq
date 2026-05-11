@@ -29,7 +29,7 @@ const Landing = () => {
   const { mode } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Honor incoming hash (e.g. /#pricing from the back arrow on /pricing).
+  // Honor incoming hash (e.g. #faq) by smooth-scrolling once the lazy section mounts.
   // LandingBelow is lazy, so poll briefly until the section mounts.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -81,7 +81,7 @@ const Landing = () => {
   const navLinks: { en: string; ar: string; href: string; isRoute?: boolean; anchorId?: string }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
     { en: "How", ar: "كيف يعمل", href: "#how" },
-    { en: "Pricing", ar: "الأسعار", href: "#pricing" },
+    { en: "Pricing", ar: "الأسعار", href: "/pricing", isRoute: true },
     { en: "FAQ", ar: "الأسئلة", href: "#faq" },
     { en: "Contact", ar: "تواصل", href: "#contact" },
   ];
@@ -119,7 +119,7 @@ const Landing = () => {
                 l.isRoute ? (
                   <Link
                     key={l.href}
-                    to={l.href}
+                    to={lp(l.href)}
                     onClick={(e) => {
                       // If the section is mounted on this page, prefer smooth-scroll over a route swap.
                       if (l.anchorId) {
@@ -181,7 +181,7 @@ const Landing = () => {
             <div className="md:hidden px-6 pb-4 space-y-3" style={{ borderTop: `1px solid ${BORDER}` }}>
               {navLinks.map((l) => (
                 l.isRoute ? (
-                  <Link key={l.href} to={l.href} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
+                  <Link key={l.href} to={lp(l.href)} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
                     {isAr ? l.ar : l.en}
                   </Link>
                 ) : (

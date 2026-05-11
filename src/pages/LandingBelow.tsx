@@ -210,67 +210,6 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
         </div>
       </section>
 
-      {/* PRICING */}
-      <section id="pricing" className="lazy-section py-24 px-6 relative overflow-hidden" style={{ scrollMarginTop: 80, background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
-        <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(circle at 50% 50%, ${GOLD}15 0%, transparent 60%)` }} />
-        <div className="relative max-w-5xl mx-auto text-center">
-          <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
-            {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>أسعار بسيطة</span> : "SIMPLE PRICING"}
-          </p>
-          <h2 className="font-display text-4xl md:text-5xl mb-5 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-            {sec("pricing").title ? sec("pricing").title : (
-              <>
-                {mode === "en" && (<>Start free. <em style={{ color: GOLD }}>Upgrade</em> anytime.</>)}
-                {mode === "ar" && (<span dir="rtl" className="font-arabic">ابدأ مجاناً. <em style={{ color: GOLD }}>طوّر</em> اشتراكك في أي وقت.</span>)}
-                {isBoth && (<>Start free. <em style={{ color: GOLD }}>Upgrade</em> anytime.</>)}
-              </>
-            )}
-          </h2>
-          <p className="text-base mb-14" style={{ color: TEXT_MUTED }}>
-            {sec("pricing").subtitle
-              ? sec("pricing").subtitle
-              : (isAr ? <span className="font-arabic">مجاني للأبد لرحلة واحدة. طوّر اشتراكك للحصول على رحلات غير محدودة، ذكاء اصطناعي، وإضافات حسب الاستخدام.</span> : "Free forever for one trip. Upgrade for unlimited journeys, AI, and pay-as-you-go add-ons.")}
-          </p>
-          <div className="grid md:grid-cols-3 gap-4 text-left">
-            {[
-              { name: "Basic", nameAr: "المجاني", price: "Free", priceAr: "مجاني", per: "", features: [["1 active trip", "رحلة واحدة"], ["Basic medication tracking", "تتبّع أدوية أساسي"], ["10 AI msgs/day", "10 رسائل ذكاء اصطناعي يومياً"], ["Community support", "دعم مجتمعي"]], cta: "Get started", ctaAr: "ابدأ" },
-              { name: "Professional", nameAr: "الاحترافي", price: "$9.99", priceAr: "$9.99", per: "/mo", features: [["Unlimited trips", "رحلات غير محدودة"], ["Unlimited AI", "ذكاء اصطناعي غير محدود"], ["Smart reminders", "تذكيرات ذكية"], ["Priority support", "دعم بالأولوية"]], cta: "Start free trial", ctaAr: "ابدأ التجربة المجانية", popular: true },
-              { name: "Enterprise", nameAr: "المؤسسات", price: "Custom", priceAr: "حسب الطلب", per: "", features: [["Multi-patient", "متعدد المرضى"], ["Hospital APIs", "واجهات للمستشفيات"], ["HIPAA compliance", "متوافق مع HIPAA"], ["Dedicated manager", "مدير حساب مخصص"]], cta: "Contact sales", ctaAr: "تواصل مع المبيعات" },
-            ].map((p) => (
-              <div key={p.name} className="rounded-2xl p-7 relative transition-all hover:-translate-y-1" style={{ background: p.popular ? `linear-gradient(160deg, ${BG_DARK} 0%, ${BG_DARK_2} 100%)` : BG_DARK, border: p.popular ? `1px solid ${GOLD}` : `1px solid ${BORDER}`, boxShadow: p.popular ? `0 20px 60px ${GOLD}20` : "none" }}>
-                {p.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider" style={{ background: GOLD, color: BG_DARK }}>
-                    {isAr ? <span className="font-arabic">الأكثر شعبية</span> : "POPULAR"}
-                  </div>
-                )}
-                <p className="font-display text-xl mb-2" style={{ color: TEXT }}>
-                  {isAr ? <span className="font-arabic">{p.nameAr}</span> : p.name}
-                </p>
-                <p className="font-display text-4xl mb-2" style={{ color: p.popular ? GOLD : TEXT, fontWeight: 300 }}>
-                  {isAr ? p.priceAr : p.price}<span className="text-sm font-normal" style={{ color: TEXT_MUTED }}>{p.per}</span>
-                </p>
-                <div className="space-y-2.5 my-5">
-                  {p.features.map(([en, ar], i) => (
-                    <div key={i} className="flex items-center gap-2.5">
-                      <Check size={13} color={GOLD} className="shrink-0" />
-                      <span className="text-sm" style={{ color: TEXT_MUTED }}>
-                        {isAr ? <span className="font-arabic">{ar}</span> : en}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <button onClick={goToApp} className="w-full py-3 rounded-full text-sm font-semibold transition-all hover:scale-[1.02]" style={{ background: p.popular ? GOLD : "rgba(255,255,255,0.06)", color: p.popular ? BG_DARK : TEXT, border: p.popular ? "none" : `1px solid ${BORDER}` }}>
-                  {isAr ? <span className="font-arabic">{p.ctaAr}</span> : p.cta}
-                </button>
-              </div>
-            ))}
-          </div>
-          <p className="mt-10 text-xs" style={{ color: TEXT_MUTED }}>
-            {isAr ? <span className="font-arabic">شاهد المقارنة الكاملة للمميزات والإضافات داخل التطبيق.</span> : "See full feature comparison and pay-as-you-go add-ons inside the app."}
-          </p>
-        </div>
-      </section>
-
       {/* FAQ */}
       <section id="faq" className="lazy-section py-24 px-6" style={{ scrollMarginTop: 80, background: BG_DARK }}>
         <div className="max-w-3xl mx-auto">

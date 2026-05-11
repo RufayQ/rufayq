@@ -122,7 +122,7 @@ const Pricing = () => {
       {/* Nav */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.85)", borderBottom: `1px solid ${BORDER}` }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
-          <Link to={isAr ? "/ar#pricing" : "/#pricing"} className="flex items-center gap-2.5">
+          <Link to={isAr ? "/ar" : "/"} className="flex items-center gap-2.5">
             <ArrowLeft size={16} color={TEXT} style={{ transform: isAr ? "scaleX(-1)" : undefined }} />
             <RufayQLogo size={28} variant="light" />
             <span className="font-display text-lg"><span style={{ color: TEXT }}>Rufay</span><span className="font-bold" style={{ color: GOLD }}>Q</span></span>
