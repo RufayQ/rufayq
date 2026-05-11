@@ -51,6 +51,30 @@ function rowToMedication(r: MedicationRow): Medication {
   };
 }
 
+/** Parse "h:mm AM/PM" → minutes since midnight, or null. */
+function parseTimeToMinutes(t: string): number | null {
+  const m = t?.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const min = Number(m[2]);
+  const ap = (m[3] || "").toUpperCase();
+  if (ap === "PM" && h < 12) h += 12;
+  if (ap === "AM" && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+/** Derive status (taken/due/missed/upcoming) from a med time vs current time. */
+function deriveStatus(timeStr: string, isTaken: boolean, now = new Date()): Medication["status"] {
+  if (isTaken) return "taken";
+  const mins = parseTimeToMinutes(timeStr);
+  if (mins == null) return "upcoming";
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const delta = nowMins - mins;
+  if (delta >= -15 && delta <= 30) return "due";
+  if (delta > 30) return "missed";
+  return "upcoming";
+}
+
 /** Convert a UI-entered Medication into a MedicationRow partial for save(). */
 function medicationToRowInput(m: Medication): Partial<MedicationRow> {
   // parse "h:mm AM/PM" → "HH:MM"
