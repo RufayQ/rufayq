@@ -251,7 +251,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     // Re-key local device id to `auth_${userId}` so header-based RLS allows the writes.
     if (userId) {
       const newDeviceId = `auth_${userId}`;
-      try { localStorage.setItem("rufayq_device_id", newDeviceId); } catch {}
+      try { localStorage.setItem("rufayq_device_id", newDeviceId); } catch { /* ignore */ }
       // Mark this account as a brand-new registration so the home screen
       // shows the empty-state and the welcome tour fires once.
       try {

@@ -121,7 +121,7 @@ function AdminTable<Row>({
     else setSelected(new Set(filtered.map(rowKey)));
   };
   const toggleOne = (k: Key) => {
-    setSelected((prev) => { const s = new Set(prev); s.has(k) ? s.delete(k) : s.add(k); return s; });
+    setSelected((prev) => { const s = new Set(prev); if (s.has(k)) s.delete(k); else s.add(k); return s; });
   };
   const selectedRows = filtered.filter((r) => selected.has(rowKey(r)));
 

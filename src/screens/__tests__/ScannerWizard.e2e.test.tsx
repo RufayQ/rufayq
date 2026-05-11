@@ -182,11 +182,17 @@ describe("ScannerWizard E2E — flight flow", () => {
     expect(await screen.findByTestId("manual-flight-sheet")).toBeInTheDocument();
 
     // Fill required fields
-    fireEvent.change(screen.getByTestId("leg-0-flight"), { target: { value: "EK500" } });
-    fireEvent.change(screen.getByTestId("leg-0-from"), { target: { value: "DXB" } });
-    fireEvent.change(screen.getByTestId("leg-0-to"), { target: { value: "BKK" } });
-    fireEvent.change(screen.getByTestId("leg-0-date"), { target: { value: "2026-06-01" } });
-    fireEvent.change(screen.getByTestId("leg-0-time"), { target: { value: "09:00" } });
+    fireEvent.change(screen.getByTestId("seg-outbound-0-flight"), { target: { value: "EK500" } });
+    // From: open AirportSelect, type, click DXB option
+    fireEvent.click(screen.getByTestId("seg-outbound-0-from"));
+    fireEvent.change(await screen.findByTestId("seg-outbound-0-from-search"), { target: { value: "DXB" } });
+    fireEvent.click(await screen.findByTestId("seg-outbound-0-from-option-DXB"));
+    // To
+    fireEvent.click(screen.getByTestId("seg-outbound-0-to"));
+    fireEvent.change(await screen.findByTestId("seg-outbound-0-to-search"), { target: { value: "BKK" } });
+    fireEvent.click(await screen.findByTestId("seg-outbound-0-to-option-BKK"));
+    fireEvent.change(screen.getByTestId("seg-outbound-0-dep-date"), { target: { value: "2026-06-01" } });
+    fireEvent.change(screen.getByTestId("seg-outbound-0-dep-time"), { target: { value: "09:00" } });
     fireEvent.click(screen.getByTestId("submit-manual"));
 
     // We should now be on the success view of Step 4 — with our manual data
@@ -206,7 +212,7 @@ describe("ScannerWizard E2E — flight flow", () => {
 
     // Pick-pages screen appears
     await waitFor(() => expect(analyzePdfPagesMock).toHaveBeenCalled(), { timeout: 4000 });
-    const runBtn = await screen.findByText(/Run OCR on selected page/i, undefined, { timeout: 4000 });
+    const runBtn = await screen.findByText(/Extract with AI Vision/i, undefined, { timeout: 4000 });
     fireEvent.click((runBtn as HTMLElement).closest("button")!);
 
     await waitFor(() => expect(renderPdfPagesAtScaleMock).toHaveBeenCalled(), { timeout: 4000 });

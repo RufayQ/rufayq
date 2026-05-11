@@ -41,7 +41,7 @@ const ContentPage = ({
   const showAr = mode !== "en";
   const both = mode === "both";
   const isAr = mode === "ar";
-  const lp = (p: string) => (isAr ? `/ar${p === "/" ? "" : p}` || "/ar" : p);
+  const lp = (p: string) => (isAr ? (p === "/" ? "/ar" : `/ar${p}`) : p);
 
   return (
     <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }}>
