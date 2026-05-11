@@ -20,8 +20,9 @@ import {
   emptySegment,
   segmentToFlightInfo,
 } from "@/lib/transportTickets";
-import { isHHmm, normalizeTo24Hour } from "@/lib/time24";
+import { isHHmm } from "@/lib/time24";
 import { normalizeTerminal } from "@/lib/terminal";
+import Time24Input from "@/components/Time24Input";
 
 type TripMode = "one-way" | "round-trip";
 export type TravelerKind = "patient" | "companion" | "family";
@@ -55,6 +56,8 @@ const TextField = ({
   placeholder,
   required,
   testId,
+  min,
+  max,
 }: {
   label: string;
   ar?: string;
@@ -64,6 +67,8 @@ const TextField = ({
   placeholder?: string;
   required?: boolean;
   testId?: string;
+  min?: string;
+  max?: string;
 }) => (
   <label className="block">
     <span className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>
@@ -77,6 +82,8 @@ const TextField = ({
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       data-testid={testId}
+      min={min}
+      max={max}
       className="mt-1 w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none"
       style={{
         background: "var(--off-white)",
@@ -96,9 +103,11 @@ interface SegmentEditorProps {
   title: string;
   titleAr: string;
   testIdPrefix: string;
+  /** Minimum allowed departure date — used to enforce return ≥ outbound. */
+  minDepartureDate?: string;
 }
 
-const SegmentEditor = ({ segment, onChange, onRemove, onMoveUp, onMoveDown, title, titleAr, testIdPrefix }: SegmentEditorProps) => {
+const SegmentEditor = ({ segment, onChange, onRemove, onMoveUp, onMoveDown, title, titleAr, testIdPrefix, minDepartureDate }: SegmentEditorProps) => {
   const update = (patch: Partial<FlightSegment>) => onChange({ ...segment, ...patch });
 
   return (
@@ -176,23 +185,38 @@ const SegmentEditor = ({ segment, onChange, onRemove, onMoveUp, onMoveDown, titl
       />
 
       <div className="grid grid-cols-2 gap-2">
-        <TextField label="Departure date" ar="تاريخ المغادرة" type="date" value={segment.departureDate} onChange={v => update({ departureDate: v })} testId={`${testIdPrefix}-dep-date`} required />
         <TextField
+          label="Departure date"
+          ar="تاريخ المغادرة"
+          type="date"
+          value={segment.departureDate}
+          onChange={v => update({ departureDate: v })}
+          testId={`${testIdPrefix}-dep-date`}
+          required
+          min={minDepartureDate}
+        />
+        <Time24Input
           label="Departure time (24h)"
           ar="الوقت"
-          type="time"
           value={segment.departureTime}
-          onChange={v => update({ departureTime: normalizeTo24Hour(v) || v })}
+          onChange={v => update({ departureTime: v })}
           testId={`${testIdPrefix}-dep-time`}
           required
         />
-        <TextField label="Arrival date" ar="تاريخ الوصول" type="date" value={segment.arrivalDate || ""} onChange={v => update({ arrivalDate: v || undefined })} testId={`${testIdPrefix}-arr-date`} />
         <TextField
+          label="Arrival date"
+          ar="تاريخ الوصول"
+          type="date"
+          value={segment.arrivalDate || ""}
+          onChange={v => update({ arrivalDate: v || undefined })}
+          testId={`${testIdPrefix}-arr-date`}
+          min={segment.departureDate || minDepartureDate}
+        />
+        <Time24Input
           label="Arrival time (24h)"
           ar="وقت الوصول"
-          type="time"
           value={segment.arrivalTime || ""}
-          onChange={v => update({ arrivalTime: normalizeTo24Hour(v) || v || undefined })}
+          onChange={v => update({ arrivalTime: v || undefined })}
           testId={`${testIdPrefix}-arr-time`}
         />
         <TextField label="Departure terminal" ar="صالة المغادرة" value={segment.departureTerminal || ""} onChange={v => update({ departureTerminal: v || undefined })} placeholder="T1" testId={`${testIdPrefix}-dep-term`} />
@@ -282,6 +306,12 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
     s.fromAirport.code !== s.toAirport.code &&
     !!s.departureDate && isHHmm(s.departureTime);
 
+  const finalOutboundDate = useMemo<string | null>(() => {
+    if (outboundSegs.length === 0) return null;
+    const last = outboundSegs[outboundSegs.length - 1];
+    return last.arrivalDate || last.departureDate || null;
+  }, [outboundSegs]);
+
   const chainErrors = useMemo(() => {
     const errs: string[] = [];
     const checkChain = (list: FlightSegment[], label: string) => {
@@ -294,8 +324,16 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
     };
     checkChain(outboundSegs, "Outbound");
     checkChain(returnSegs, "Return");
+    if (finalOutboundDate) {
+      for (let i = 0; i < returnSegs.length; i++) {
+        const r = returnSegs[i];
+        if (r.departureDate && r.departureDate < finalOutboundDate) {
+          errs.push(`Return leg ${i + 1}: date cannot be earlier than the outbound journey (${finalOutboundDate}).`);
+        }
+      }
+    }
     return errs;
-  }, [outboundSegs, returnSegs]);
+  }, [outboundSegs, returnSegs, finalOutboundDate]);
 
   const pickTraveler = (t: TravelerKind) => {
     if (t !== "patient" && companionLocked) { setShowUpgrade(true); return; }
@@ -369,7 +407,12 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
           </span>
         )}
       </div>
-      {list.map((s, i) => (
+      {list.map((s, i) => {
+        const minDate =
+          direction === "return"
+            ? (i === 0 ? finalOutboundDate ?? undefined : list[i - 1].arrivalDate || list[i - 1].departureDate || undefined)
+            : (i > 0 ? list[i - 1].arrivalDate || list[i - 1].departureDate || undefined : undefined);
+        return (
         <div key={s.id}>
           <SegmentEditor
             segment={s}
@@ -380,6 +423,7 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
             title={list.length === 1 ? label : `${label} · Leg ${i + 1}`}
             titleAr={list.length === 1 ? labelAr : `${labelAr} · رحلة ${i + 1}`}
             testIdPrefix={`seg-${direction}-${i}`}
+            minDepartureDate={minDate}
           />
           {i < list.length - 1 && (
             <div className="flex items-center justify-center my-1.5" aria-hidden>
@@ -392,7 +436,7 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
             </div>
           )}
         </div>
-      ))}
+      );})}
       {list.length < 5 && (
         <button
           type="button"

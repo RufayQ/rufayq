@@ -12,7 +12,8 @@ import JourneyTimeline from "@/components/JourneyTimeline";
 import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
 import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import type { FlightInfo } from "@/components/AddTripSheet";
-import type { FlightSegment } from "@/lib/transportTickets";
+import { type FlightSegment, segmentToFlightInfo } from "@/lib/transportTickets";
+import Time24Input from "@/components/Time24Input";
 
 export type TravelerKind = "patient" | "companion" | "family";
 
@@ -587,6 +588,11 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   const [outboundFields, setOutboundFields] = useState<FlightFields | null>(null);
   const [returnFields, setReturnFields] = useState<FlightFields | null>(null);
   const [activeLeg, setActiveLeg] = useState<"outbound" | "return">("outbound");
+  // Rich per-segment data (transit-aware). Source of truth for flight save.
+  const [outboundSegs, setOutboundSegs] = useState<FlightSegment[]>([]);
+  const [returnSegs, setReturnSegs] = useState<FlightSegment[]>([]);
+  const [editingSeg, setEditingSeg] = useState<{ direction: "outbound" | "return"; index: number } | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
   const [wasTranslated, setWasTranslated] = useState(false);
 
@@ -709,12 +715,16 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
       setProcessStep(4);
       const { parsedLegToSegment } = await import("@/lib/transportTickets");
+      const outSegs = outArr.map((raw, i) => parsedLegToSegment(raw, "outbound", i));
+      const retSegs = retArr.map((raw, i) => parsedLegToSegment(raw, "return", i));
+      setOutboundSegs(outSegs);
+      setReturnSegs(retSegs);
       emitParsed({
         outbound: out,
         return: ret,
         legs: outLegs.length + retLegs.length > 2 ? [...outLegs, ...retLegs] : undefined,
-        outboundSegments: outArr.map((raw, i) => parsedLegToSegment(raw, "outbound", i)),
-        returnSegments: retArr.map((raw, i) => parsedLegToSegment(raw, "return", i)),
+        outboundSegments: outSegs,
+        returnSegments: retSegs,
         rawOutbound: parsed.outboundFlight ?? null,
         rawReturn: parsed.returnFlight ?? null,
         passenger: {
@@ -750,6 +760,10 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     // Reset all parsed/cached state for a fresh scan
     setOutboundFields(null);
     setReturnFields(null);
+    setOutboundSegs([]);
+    setReturnSegs([]);
+    setEditingSeg(null);
+    setSaveError(null);
     setGenericFields(null);
     setDetectedLanguage(null);
     setWasTranslated(false);
@@ -857,6 +871,101 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     } else {
       setReturnFields(prev => ({ ...(prev ?? emptyFlightFields()), [key]: value }));
     }
+  };
+
+  // Re-emit the current parsed payload after a segment edit so the SAVE
+  // step uses the freshly edited values (legacy single-leg fields too).
+  const reemitWithSegments = (outSegs: FlightSegment[], retSegs: FlightSegment[]) => {
+    const prev = scannedSnapshotRef.current ?? {};
+    const outLegacy = outSegs[0] ? segmentToFlightInfo(outSegs[0]) : null;
+    const retLegacy = retSegs[0] ? segmentToFlightInfo(retSegs[0]) : null;
+    const allLegs = [...outSegs, ...retSegs].map(segmentToFlightInfo);
+    emitParsed({
+      ...prev,
+      outbound: outLegacy,
+      return: retLegacy,
+      legs: allLegs.length > 2 ? allLegs : undefined,
+      outboundSegments: outSegs,
+      returnSegments: retSegs,
+    });
+  };
+
+  const updateSegment = (
+    direction: "outbound" | "return",
+    index: number,
+    patch: Partial<FlightSegment>,
+  ) => {
+    if (direction === "outbound") {
+      setOutboundSegs(prev => {
+        const next = prev.map((s, i) => (i === index ? { ...s, ...patch } : s));
+        reemitWithSegments(next, returnSegs);
+        return next;
+      });
+    } else {
+      setReturnSegs(prev => {
+        const next = prev.map((s, i) => (i === index ? { ...s, ...patch } : s));
+        reemitWithSegments(outboundSegs, next);
+        return next;
+      });
+    }
+  };
+
+  // Final outbound date — used to clamp return departure pickers.
+  const finalOutboundDate: string | null = (() => {
+    if (outboundSegs.length === 0) return null;
+    const last = outboundSegs[outboundSegs.length - 1];
+    return last.arrivalDate || last.departureDate || null;
+  })();
+
+  const validateBeforeSave = (): string | null => {
+    if (category !== "flight") return null;
+    // Transit chain
+    const checkChain = (list: FlightSegment[], label: string): string | null => {
+      for (let i = 1; i < list.length; i++) {
+        const prev = list[i - 1];
+        const cur = list[i];
+        if (prev.toAirport.code && cur.fromAirport.code &&
+            prev.toAirport.code !== cur.fromAirport.code) {
+          return `${label} transit mismatch: leg ${i + 1} should depart from ${prev.toAirport.code}.`;
+        }
+      }
+      return null;
+    };
+    const c1 = checkChain(outboundSegs, "Outbound");
+    if (c1) return c1;
+    const c2 = checkChain(returnSegs, "Return");
+    if (c2) return c2;
+    // Return date >= final outbound date
+    if (finalOutboundDate) {
+      for (let i = 0; i < returnSegs.length; i++) {
+        const r = returnSegs[i];
+        if (r.departureDate && r.departureDate < finalOutboundDate) {
+          return `Return leg ${i + 1}: date cannot be earlier than the outbound journey (${finalOutboundDate}).`;
+        }
+      }
+    }
+    return null;
+  };
+
+  const buildRouteLabel = (segs: FlightSegment[]): string => {
+    if (segs.length === 0) return "";
+    const sorted = [...segs].sort((a, b) => a.segmentOrder - b.segmentOrder);
+    const codes: string[] = [];
+    sorted.forEach((s, i) => {
+      if (i === 0 && s.fromAirport.code) codes.push(s.fromAirport.code);
+      if (s.toAirport.code) codes.push(s.toAirport.code);
+    });
+    return codes.join(" → ");
+  };
+  const buildCityRouteLabel = (segs: FlightSegment[]): string => {
+    if (segs.length === 0) return "";
+    const sorted = [...segs].sort((a, b) => a.segmentOrder - b.segmentOrder);
+    const cities: string[] = [];
+    sorted.forEach((s, i) => {
+      if (i === 0 && s.fromAirport.city) cities.push(s.fromAirport.city);
+      if (s.toAirport.city) cities.push(s.toAirport.city);
+    });
+    return cities.join(" → ");
   };
 
   const processingSteps = [
@@ -1103,6 +1212,8 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
               const legs = payload.legs?.map(normalizeParsedLeg);
               if (out) setOutboundFields(toFlightFieldsLite(out));
               if (ret) setReturnFields(toFlightFieldsLite(ret));
+              setOutboundSegs(payload.outboundSegments || []);
+              setReturnSegs(payload.returnSegments || []);
               setActiveLeg(out ? "outbound" : "return");
               emitParsed({
                 outbound: out,
@@ -1147,66 +1258,131 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       </div>
 
       {/* Extracted Data */}
-      <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>EXTRACTED INFORMATION</p>
-            <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>المعلومات المستخرجة</p>
+      {isFlight && (outboundSegs.length > 0 || returnSegs.length > 0) ? (
+        <>
+          {/* Route summary */}
+          <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+            <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+              ROUTE SUMMARY · <span className="font-arabic">ملخص الرحلة</span>
+            </p>
+            {outboundSegs.length > 0 && (
+              <div className="mb-2">
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--gray)" }}>Outbound</p>
+                <p className="text-[16px] font-bold" style={{ color: "var(--navy)" }}>{buildRouteLabel(outboundSegs) || "—"}</p>
+                <p className="text-[11px]" style={{ color: "var(--gray)" }}>{buildCityRouteLabel(outboundSegs)}</p>
+              </div>
+            )}
+            {returnSegs.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--gray)" }}>Return</p>
+                <p className="text-[16px] font-bold" style={{ color: "var(--navy)" }}>{buildRouteLabel(returnSegs) || "—"}</p>
+                <p className="text-[11px]" style={{ color: "var(--gray)" }}>{buildCityRouteLabel(returnSegs)}</p>
+              </div>
+            )}
           </div>
-          {isFlight && hasReturn && (
-            <div className="flex rounded-full overflow-hidden" style={{ border: "1px solid var(--teal-deep)" }}>
-              {(["outbound", "return"] as const).map(leg => (
-                <button
-                  key={leg}
-                  onClick={() => setActiveLeg(leg)}
-                  className="px-3 py-1 text-[10px] font-bold btn-press"
-                  style={{
-                    background: activeLeg === leg ? "var(--teal-deep)" : "transparent",
-                    color: activeLeg === leg ? "#fff" : "var(--teal-deep)",
-                  }}
-                >
-                  {leg === "outbound" ? "Outbound" : "Return"}
-                </button>
+
+          {/* Per-segment review cards */}
+          <div className="mx-4 mt-3 space-y-2">
+            <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+              EXTRACTED INFORMATION · <span className="font-arabic">المعلومات المستخرجة</span>
+            </p>
+            {outboundSegs.map((seg, i) => (
+              <FlightSegmentReviewCard
+                key={seg.id}
+                segment={seg}
+                title={outboundSegs.length > 1 ? `Outbound · Leg ${i + 1}` : "Outbound"}
+                onEdit={() => setEditingSeg({ direction: "outbound", index: i })}
+              />
+            ))}
+            {returnSegs.map((seg, i) => (
+              <FlightSegmentReviewCard
+                key={seg.id}
+                segment={seg}
+                title={returnSegs.length > 1 ? `Return · Leg ${i + 1}` : "Return"}
+                onEdit={() => setEditingSeg({ direction: "return", index: i })}
+              />
+            ))}
+            {detectedLanguage && (
+              <div className="rounded-xl p-3 flex items-center gap-2" style={{ background: "var(--white)" }}>
+                <span className="text-[9px]">🌐</span>
+                <p className="text-[10px]" style={{ color: "var(--gray)" }}>
+                  Language: <strong style={{ color: "var(--navy)" }}>{detectedLanguage}</strong>
+                </p>
+                {wasTranslated && (
+                  <span className="text-[9px] px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Translated</span>
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>EXTRACTED INFORMATION</p>
+              <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>المعلومات المستخرجة</p>
+            </div>
+            {isFlight && hasReturn && (
+              <div className="flex rounded-full overflow-hidden" style={{ border: "1px solid var(--teal-deep)" }}>
+                {(["outbound", "return"] as const).map(leg => (
+                  <button
+                    key={leg}
+                    onClick={() => setActiveLeg(leg)}
+                    className="px-3 py-1 text-[10px] font-bold btn-press"
+                    style={{
+                      background: activeLeg === leg ? "var(--teal-deep)" : "transparent",
+                      color: activeLeg === leg ? "#fff" : "var(--teal-deep)",
+                    }}
+                  >
+                    {leg === "outbound" ? "Outbound" : "Return"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {isFlight && activeFields ? (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+              {FLIGHT_FIELD_ORDER.map((key) => (
+                <EditableField
+                  key={`${activeLeg}-${key}`}
+                  label={key}
+                  value={activeFields[key]}
+                  onChange={(v) => updateField(key, v)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+              {(genericFields ?? []).map((f, i) => (
+                <div key={i}>
+                  <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{f.label}</p>
+                  <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{f.value}</p>
+                </div>
               ))}
             </div>
           )}
         </div>
+      )}
 
-        {isFlight && activeFields ? (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-            {FLIGHT_FIELD_ORDER.map((key) => (
-              <EditableField
-                key={`${activeLeg}-${key}`}
-                label={key}
-                value={activeFields[key]}
-                onChange={(v) => updateField(key, v)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-            {(genericFields ?? []).map((f, i) => (
-              <div key={i}>
-                <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{f.label}</p>
-                <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{f.value}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* BUG 3: language chip — only when we actually detected a language */}
-        {detectedLanguage && (
-          <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: "1px solid var(--gray-light)" }}>
-            <span className="text-[9px]">🌐</span>
-            <p className="text-[10px]" style={{ color: "var(--gray)" }}>
-              Language: <strong style={{ color: "var(--navy)" }}>{detectedLanguage}</strong>
-            </p>
-            {wasTranslated && (
-              <span className="text-[9px] px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Translated</span>
-            )}
-          </div>
-        )}
-      </div>
+      {/* Edit modal for a single flight segment */}
+      {editingSeg && (() => {
+        const list = editingSeg.direction === "outbound" ? outboundSegs : returnSegs;
+        const seg = list[editingSeg.index];
+        if (!seg) return null;
+        const minDate = editingSeg.direction === "return"
+          ? (editingSeg.index === 0 ? finalOutboundDate ?? undefined : list[editingSeg.index - 1].arrivalDate || list[editingSeg.index - 1].departureDate)
+          : (editingSeg.index > 0 ? list[editingSeg.index - 1].arrivalDate || list[editingSeg.index - 1].departureDate : undefined);
+        return (
+          <FlightSegmentEditSheet
+            segment={seg}
+            direction={editingSeg.direction}
+            minDepartureDate={minDate ?? undefined}
+            onChange={(patch) => updateSegment(editingSeg.direction, editingSeg.index, patch)}
+            onClose={() => setEditingSeg(null)}
+          />
+        );
+      })()}
 
       {/* Edit note */}
       <div className="flex items-center gap-2 px-5 mt-3">
@@ -1241,8 +1417,16 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
       {/* Save CTA */}
       <div className="px-4 mt-5">
+        {saveError && (
+          <p className="mb-2 text-[12px] font-bold" style={{ color: "var(--error)" }} role="alert">
+            ⚠ {saveError}
+          </p>
+        )}
         <button
           onClick={() => {
+            const err = validateBeforeSave();
+            if (err) { setSaveError(err); return; }
+            setSaveError(null);
             const selected = dests
               .map((d, i) => ({ ...d, idx: i }))
               .filter((d) => destinations[d.idx]);
@@ -1312,6 +1496,171 @@ const EditableField = ({ label, value, onChange }: { label: string; value: strin
           {value || "—"}
         </button>
       )}
+    </div>
+  );
+};
+
+/* ─── Per-segment review card (tap to open edit sheet) ─── */
+const FlightSegmentReviewCard = ({ segment, title, onEdit }: { segment: FlightSegment; title: string; onEdit: () => void }) => {
+  const fmtDate = (s?: string) => s || "—";
+  return (
+    <button
+      type="button"
+      onClick={onEdit}
+      data-testid={`segment-review-${segment.direction}-${segment.segmentOrder}`}
+      className="w-full text-left rounded-2xl p-3 btn-press"
+      style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[12px] font-bold" style={{ color: "var(--navy)" }}>{title}</p>
+        <span className="text-[10px] font-bold" style={{ color: "var(--gold)" }}>Tap to edit ✎</span>
+      </div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>
+          {segment.fromAirport.code || "—"} → {segment.toAirport.code || "—"}
+        </span>
+        <span className="text-[10px]" style={{ color: "var(--gray)" }}>
+          {segment.fromAirport.city || ""} → {segment.toAirport.city || ""}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>AIRLINE</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{segment.airline || "—"}</p>
+        </div>
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>FLIGHT NO.</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{segment.flightNumber || "—"}</p>
+        </div>
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>DEPARTURE</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{fmtDate(segment.departureDate)} · {segment.departureTime || "—"}</p>
+        </div>
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>ARRIVAL</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{fmtDate(segment.arrivalDate)} · {segment.arrivalTime || "—"}</p>
+        </div>
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>TERMINAL</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{segment.departureTerminal || "—"} → {segment.arrivalTerminal || "—"}</p>
+        </div>
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>CLASS · PNR</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{segment.cabinClass || "—"} · {segment.pnr || "—"}</p>
+        </div>
+      </div>
+    </button>
+  );
+};
+
+/* ─── Edit sheet for a single flight segment ─── */
+const FlightSegmentEditSheet = ({
+  segment,
+  direction,
+  minDepartureDate,
+  onChange,
+  onClose,
+}: {
+  segment: FlightSegment;
+  direction: "outbound" | "return";
+  minDepartureDate?: string;
+  onChange: (patch: Partial<FlightSegment>) => void;
+  onClose: () => void;
+}) => {
+  const inputStyle: React.CSSProperties = {
+    background: "var(--off-white)",
+    color: "var(--navy)",
+    border: "1px solid var(--gray-light)",
+  };
+  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <label className="block">
+      <span className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label.toUpperCase()}</span>
+      <div className="mt-1">{children}</div>
+    </label>
+  );
+  return (
+    <div
+      className="absolute inset-0 z-[80] flex items-end"
+      style={{ background: "rgba(13,27,42,0.55)" }}
+      role="dialog"
+      aria-label={`Edit ${direction} flight`}
+      onClick={onClose}
+    >
+      <div className="w-full rounded-t-3xl flex flex-col" style={{ background: "var(--off-white)", maxHeight: "92%" }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: "1px solid var(--gray-light)" }}>
+          <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>
+            Edit {direction === "outbound" ? "Outbound" : "Return"} Flight
+          </p>
+          <button onClick={onClose} aria-label="Close" className="w-8 h-8 rounded-full flex items-center justify-center btn-press" style={{ background: "var(--gray-light)" }}>
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Airline">
+              <input value={segment.airline} onChange={(e) => onChange({ airline: e.target.value })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="Flight No.">
+              <input value={segment.flightNumber} onChange={(e) => onChange({ flightNumber: e.target.value.toUpperCase() })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="From (IATA)">
+              <input value={segment.fromAirport.code} onChange={(e) => onChange({ fromAirport: { ...segment.fromAirport, code: e.target.value.toUpperCase() } })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="From City">
+              <input value={segment.fromAirport.city || ""} onChange={(e) => onChange({ fromAirport: { ...segment.fromAirport, city: e.target.value } })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="To (IATA)">
+              <input value={segment.toAirport.code} onChange={(e) => onChange({ toAirport: { ...segment.toAirport, code: e.target.value.toUpperCase() } })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="To City">
+              <input value={segment.toAirport.city || ""} onChange={(e) => onChange({ toAirport: { ...segment.toAirport, city: e.target.value } })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Departure date">
+              <input
+                type="date"
+                value={segment.departureDate}
+                min={minDepartureDate}
+                onChange={(e) => onChange({ departureDate: e.target.value })}
+                className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none"
+                style={inputStyle}
+              />
+            </Field>
+            <Time24Input label="Departure time (24h)" value={segment.departureTime} onChange={(v) => onChange({ departureTime: v })} />
+            <Field label="Arrival date">
+              <input
+                type="date"
+                value={segment.arrivalDate || ""}
+                min={segment.departureDate || minDepartureDate}
+                onChange={(e) => onChange({ arrivalDate: e.target.value || undefined })}
+                className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none"
+                style={inputStyle}
+              />
+            </Field>
+            <Time24Input label="Arrival time (24h)" value={segment.arrivalTime || ""} onChange={(v) => onChange({ arrivalTime: v || undefined })} />
+            <Field label="Departure terminal">
+              <input value={segment.departureTerminal || ""} onChange={(e) => onChange({ departureTerminal: e.target.value || undefined })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="Arrival terminal">
+              <input value={segment.arrivalTerminal || ""} onChange={(e) => onChange({ arrivalTerminal: e.target.value || undefined })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="Class">
+              <input value={segment.cabinClass || ""} onChange={(e) => onChange({ cabinClass: e.target.value })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="PNR">
+              <input value={segment.pnr || ""} onChange={(e) => onChange({ pnr: e.target.value.toUpperCase() })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+          </div>
+        </div>
+        <div className="px-5 py-3 shrink-0" style={{ borderTop: "1px solid var(--gray-light)", background: "var(--white)" }}>
+          <button onClick={onClose} className="w-full rounded-2xl text-[15px] font-bold text-white btn-press" style={{ background: "var(--gold)", height: 48 }}>
+            Done · <span className="font-arabic text-[12px]">تم</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
