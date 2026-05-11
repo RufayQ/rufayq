@@ -12,6 +12,7 @@ import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { useMedications } from "@/hooks/useMedications";
 import { supabase } from "@/integrations/supabase/client";
 import type { MedicationRow } from "@/lib/api/medicationApi";
+import { syncMedicationReminders } from "@/lib/native/medicationReminders";
 
 interface MedicationsScreenProps {
   onBack: () => void;
