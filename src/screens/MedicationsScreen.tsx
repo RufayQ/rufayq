@@ -269,7 +269,52 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       </div>}
 
       {/* Schedule */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ background: "var(--off-white)" }}>
+      <div
+        ref={scrollRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className="flex-1 overflow-y-auto px-4 pb-4"
+        style={{ background: "var(--off-white)" }}
+        data-testid="meds-scroll"
+      >
+        {(pullDist > 0 || (isAuthed && realMeds.isSyncing)) && (
+          <div className="flex items-center justify-center py-2 gap-2" style={{ color: "var(--gray)" }}>
+            <Loader2 size={14} className="animate-spin" />
+            <span className="font-mono text-[10px]">
+              {pullDist >= PULL_THRESHOLD ? "Release to refresh" : isAuthed && realMeds.isSyncing ? "Syncing…" : "Pull to refresh"}
+            </span>
+          </div>
+        )}
+
+        {isAuthed && realMeds.error && (
+          <div
+            role="alert"
+            className="mt-3 rounded-xl p-3 flex items-start gap-2"
+            style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.25)" }}
+          >
+            <AlertCircle size={16} style={{ color: "var(--error)" }} />
+            <div className="flex-1">
+              <p className="text-[11px] font-bold" style={{ color: "var(--error)" }}>
+                Couldn't load medications · تعذّر تحميل الأدوية
+              </p>
+              <button
+                onClick={handleRefresh}
+                className="mt-1 text-[11px] underline"
+                style={{ color: "var(--teal-deep)" }}
+              >
+                Retry · إعادة المحاولة
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isAuthed && realMeds.isLoading && allMeds.length === 0 && !realMeds.error && (
+          <div className="flex items-center justify-center py-10" data-testid="meds-loading">
+            <Loader2 size={18} className="animate-spin" style={{ color: "var(--teal-deep)" }} />
+          </div>
+        )}
+
         {medUpdates.length > 0 && (
           <div className="mt-3">
             <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
