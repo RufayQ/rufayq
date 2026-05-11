@@ -12,7 +12,8 @@ import JourneyTimeline from "@/components/JourneyTimeline";
 import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
 import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import type { FlightInfo } from "@/components/AddTripSheet";
-import type { FlightSegment } from "@/lib/transportTickets";
+import { type FlightSegment, segmentToFlightInfo } from "@/lib/transportTickets";
+import Time24Input from "@/components/Time24Input";
 
 export type TravelerKind = "patient" | "companion" | "family";
 
