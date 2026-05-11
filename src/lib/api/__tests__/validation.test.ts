@@ -32,4 +32,8 @@ describe('Zod validation integration', () => {
   it('education validation fails when content_id/title missing', async () => {
     await expect(async () => educationApi.save({} as any)).rejects.toThrow(ValidationError);
   });
+
+  it('medication validation fails when medication_name missing', async () => {
+    await expect(async () => medicationApi.save({} as any)).rejects.toThrow(ValidationError);
+  });
 });
