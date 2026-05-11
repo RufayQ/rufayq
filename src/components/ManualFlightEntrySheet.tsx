@@ -103,9 +103,11 @@ interface SegmentEditorProps {
   title: string;
   titleAr: string;
   testIdPrefix: string;
+  /** Minimum allowed departure date — used to enforce return ≥ outbound. */
+  minDepartureDate?: string;
 }
 
-const SegmentEditor = ({ segment, onChange, onRemove, onMoveUp, onMoveDown, title, titleAr, testIdPrefix }: SegmentEditorProps) => {
+const SegmentEditor = ({ segment, onChange, onRemove, onMoveUp, onMoveDown, title, titleAr, testIdPrefix, minDepartureDate }: SegmentEditorProps) => {
   const update = (patch: Partial<FlightSegment>) => onChange({ ...segment, ...patch });
 
   return (
