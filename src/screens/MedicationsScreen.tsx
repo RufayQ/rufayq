@@ -9,6 +9,7 @@ import ProviderFeedCard from "@/components/ProviderFeedCard";
 import { useProviderFeed } from "@/hooks/useProviderFeed";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { useGuestCategories } from "@/hooks/useGuestCategories";
+import { useMedications } from "@/hooks/useMedications";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -28,7 +29,10 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   const [extraMeds, setExtraMeds] = useState<Medication[]>([]);
   const [showAddMed, setShowAddMed] = useState(false);
   const { medUpdates } = useProviderFeed();
-  const allMeds = [...medications, ...extraMeds];
+  const medsHook = useMedications();
+  const apiMeds = medsHook.items ?? [];
+  const usingApi = !showMedsDemo;
+  const allItems = usingApi ? apiMeds : [...medications, ...extraMeds];
 
   const actionLabel = (a: string) => a === "add" ? "PRESCRIBED" : a === "stop" ? "STOPPED" : "UPDATED";
   const actionColor = (a: string) => a === "stop" ? "rgba(217,79,79,0.15)" : a === "add" ? "rgba(61,170,110,0.15)" : "rgba(224,160,48,0.15)";
@@ -47,19 +51,21 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
     { key: "evening", label: "Evening", time: "6:00 PM — 10:00 PM", color: "var(--warning)" },
   ];
 
-  const takenCount = allMeds.filter((m) => m.status === "taken").length + takenIds.size;
+  const takenCount = allItems.filter((m: any) => (m.status === "taken")).length + takenIds.size;
 
   const handleCopyAllMeds = () => {
-    const text = medications.map(m =>
-      `💊 ${m.name} (${m.nameAr}) — ${m.dosage} — ${m.frequency} — ${m.time}`
+    const source = usingApi ? allItems : medications;
+    const text = source.map((m: any) =>
+      `💊 ${m.name} (${m.nameAr ?? ''}) — ${m.dosage ?? ''} — ${m.frequency ?? ''} — ${m.time ?? ''}`
     ).join("\n");
     navigator.clipboard.writeText(`Medication Schedule\nجدول الأدوية\n\n${text}`);
     toast.success("All medications copied · تم نسخ جميع الأدوية", { duration: 2000 });
   };
 
   const handleExportMeds = () => {
-    const text = medications.map(m =>
-      `${m.name}\t${m.nameAr}\t${m.dosage}\t${m.frequency}\t${m.time}\t${m.status}`
+    const source = usingApi ? allItems : medications;
+    const text = source.map((m: any) =>
+      `${m.name}\t${m.nameAr ?? ''}\t${m.dosage ?? ''}\t${m.frequency ?? ''}\t${m.time ?? ''}\t${m.status ?? ''}`
     ).join("\n");
     const blob = new Blob([`Name\tName (AR)\tDosage\tFrequency\tTime\tStatus\n${text}`], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -70,7 +76,8 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   };
 
   const handleShareMeds = () => {
-    const text = `Medication Schedule\nجدول الأدوية\n\n${medications.map(m => `💊 ${m.name} — ${m.dosage} — ${m.time}`).join("\n")}`;
+    const source = usingApi ? allItems : medications;
+    const text = `Medication Schedule\nجدول الأدوية\n\n${source.map((m: any) => `💊 ${m.name} — ${m.dosage} — ${m.time}`).join("\n")}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
@@ -147,7 +154,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
         <p className="font-mono text-[10px] tracking-widest mt-3 mb-2" style={{ color: "var(--gray)" }}>TODAY'S SCHEDULE</p>
 
         {periods.map((period) => {
-          const meds = allMeds.filter((m) => m.period === period.key);
+          const meds = allItems.filter((m: any) => m.period === period.key);
           if (meds.length === 0) return null;
           return (
             <div key={period.key} className="mb-4">
@@ -172,10 +179,10 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
                       >
                         <div className="w-2 h-2 rounded-full" style={{ background: statusColor(isTaken ? "taken" : med.status) }} />
                         <div className="flex-1 text-left">
-                          <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{med.name}</p>
-                          <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{med.nameAr}</p>
+                          <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{(med as any).name}</p>
+                          <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{(med as any).nameAr}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <p className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{med.frequency}</p>
+                            <p className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{(med as any).frequency}</p>
                             {noteCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--gold-pale)", color: "var(--gold)" }}>📝 {noteCount}</span>}
                             {reminderCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>⏰ {reminderCount}</span>}
                           </div>
@@ -227,7 +234,23 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       <AddMedicationSheet
         open={showAddMed}
         onClose={() => setShowAddMed(false)}
-        onSubmit={(med) => setExtraMeds(prev => [...prev, med])}
+        onSubmit={async (med) => {
+          if (usingApi) {
+            try {
+              await medsHook.save({
+                medication_name: med.name,
+                dose: med.dosage,
+                frequency: med.frequency,
+                instructions: med.instructions ?? null,
+                source: 'app',
+              } as any);
+            } catch (e) {
+              toast.error('Save failed');
+            }
+          } else {
+            setExtraMeds(prev => [...prev, med]);
+          }
+        }}
         allergies={allergies}
       />
     </div>
