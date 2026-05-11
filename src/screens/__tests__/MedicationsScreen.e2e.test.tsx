@@ -69,6 +69,11 @@ vi.mock("@/components/HeaderMenu", () => ({
   default: () => null,
 }));
 
+const syncReminders = vi.fn((..._args: any[]) => Promise.resolve([] as number[]));
+vi.mock("@/lib/native/medicationReminders", () => ({
+  syncMedicationReminders: (...a: any[]) => syncReminders(...a),
+}));
+
 import MedicationsScreen from "@/screens/MedicationsScreen";
 
 beforeEach(() => {
@@ -83,6 +88,7 @@ beforeEach(() => {
   medsState.refresh.mockClear();
   toastError.mockClear();
   toastSuccess.mockClear();
+  syncReminders.mockClear();
 });
 
 describe("MedicationsScreen — guest mode", () => {
@@ -146,5 +152,84 @@ describe("AddMedicationSheet — UI guard", () => {
     fireEvent.click(screen.getByText(/Save Medication/i));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(toastError).toHaveBeenCalled();
+  });
+});
+
+describe("MedicationsScreen — pull-to-refresh", () => {
+  function pull(el: HTMLElement, dy: number) {
+    fireEvent.touchStart(el, { touches: [{ clientY: 0 }] });
+    fireEvent.touchMove(el, { touches: [{ clientY: dy }] });
+    fireEvent.touchEnd(el);
+  }
+
+  it("invokes refresh() and toasts success when pulled past threshold", async () => {
+    authState.user = { id: "u1" };
+    medsState.refresh.mockResolvedValueOnce(undefined);
+    render(<MedicationsScreen onBack={() => {}} />);
+    const scroll = await screen.findByTestId("meds-scroll");
+    Object.defineProperty(scroll, "scrollTop", { value: 0, configurable: true });
+    pull(scroll, 80);
+    await waitFor(() => expect(medsState.refresh).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+  });
+
+  it("does not refresh when pull does not pass threshold", async () => {
+    authState.user = { id: "u1" };
+    render(<MedicationsScreen onBack={() => {}} />);
+    const scroll = await screen.findByTestId("meds-scroll");
+    Object.defineProperty(scroll, "scrollTop", { value: 0, configurable: true });
+    pull(scroll, 20);
+    expect(medsState.refresh).not.toHaveBeenCalled();
+  });
+
+  it("toasts error when refresh() rejects", async () => {
+    authState.user = { id: "u1" };
+    medsState.refresh.mockRejectedValueOnce(new Error("boom"));
+    render(<MedicationsScreen onBack={() => {}} />);
+    const scroll = await screen.findByTestId("meds-scroll");
+    Object.defineProperty(scroll, "scrollTop", { value: 0, configurable: true });
+    pull(scroll, 80);
+    await waitFor(() => expect(medsState.refresh).toHaveBeenCalled());
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
+  });
+
+  it("does not refresh in guest mode", async () => {
+    guestState.isGuest = true;
+    guestCatsState.meds = true;
+    render(<MedicationsScreen onBack={() => {}} />);
+    const scroll = await screen.findByTestId("meds-scroll");
+    Object.defineProperty(scroll, "scrollTop", { value: 0, configurable: true });
+    pull(scroll, 80);
+    expect(medsState.refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe("MedicationsScreen — reminder scheduling", () => {
+  it("calls syncMedicationReminders with the medication list when authenticated", async () => {
+    authState.user = { id: "u1" };
+    medsState.items = [
+      {
+        id: "m1",
+        medication_name: "TestMed",
+        dose: "10mg",
+        frequency: "Once daily",
+        reminder_times: ["08:00"],
+        reminder_enabled: true,
+        instructions: null,
+      },
+    ];
+    syncReminders.mockClear();
+    render(<MedicationsScreen onBack={() => {}} />);
+    await waitFor(() => expect(syncReminders).toHaveBeenCalled());
+    expect(syncReminders.mock.calls[0][0]).toEqual(medsState.items);
+  });
+
+  it("does not schedule reminders in guest mode", async () => {
+    guestState.isGuest = true;
+    guestCatsState.meds = true;
+    syncReminders.mockClear();
+    render(<MedicationsScreen onBack={() => {}} />);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(syncReminders).not.toHaveBeenCalled();
   });
 });

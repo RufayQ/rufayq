@@ -12,6 +12,7 @@ import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { useMedications } from "@/hooks/useMedications";
 import { supabase } from "@/integrations/supabase/client";
 import type { MedicationRow } from "@/lib/api/medicationApi";
+import { syncMedicationReminders } from "@/lib/native/medicationReminders";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -140,6 +141,12 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
         : baseMeds,
     [isAuthed, baseMeds, takenIds],
   );
+
+  // Schedule OS-level medication reminders whenever the authed med list changes.
+  useEffect(() => {
+    if (!isAuthed) return;
+    void syncMedicationReminders(realMeds.items);
+  }, [isAuthed, realMeds.items]);
 
 
   const actionLabel = (a: string) => a === "add" ? "PRESCRIBED" : a === "stop" ? "STOPPED" : "UPDATED";
