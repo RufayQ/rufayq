@@ -449,18 +449,44 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const doneCount = journeySteps.filter((s) => s.status === "done").length;
   const progress = journeySteps.length > 0 ? (doneCount / journeySteps.length) * 100 : 0;
 
-  const handleAddTrip = (trip: TripData) => {
-    setTrips([...trips, trip]);
+  const handleAddTrip = async (trip: TripData) => {
+    try {
+      const saved = await persistTrip(trip);
+      flashTrip(saved.id);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save journey");
+    }
+  };
+
+  const handleEditTripSave = async (updated: TripData) => {
+    try {
+      const saved = await persistTrip(updated);
+      flashTrip(saved.id);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not update journey");
+    }
+  };
+
+  const handleArchiveTrip = async () => {
+    if (!archiveTarget) return;
+    try {
+      await archiveTrip(archiveTarget.id);
+      toast.success("Journey archived · تم أرشفة الرحلة");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not archive journey");
+    } finally {
+      setArchiveTarget(null);
+    }
   };
 
   const handleCopyJourney = () => {
-    const text = `Treatment Journey — Berlin\n${doneCount}/${journeySteps.length} steps completed\n\nSteps:\n${journeySteps.map((s, i) => `${i + 1}. ${s.titleEn} — ${s.status}`).join("\n")}`;
+    const text = `Treatment Journey — ${activeTrip?.destination ?? ""}\n${doneCount}/${journeySteps.length} steps completed\n\nSteps:\n${journeySteps.map((s, i) => `${i + 1}. ${s.titleEn} — ${s.status}`).join("\n")}`;
     navigator.clipboard.writeText(text);
     toast.success("Journey copied · تم نسخ الرحلة", { duration: 2000 });
   };
 
   const handleShareJourney = () => {
-    const text = `Treatment Journey — Berlin\n${doneCount}/${journeySteps.length} steps completed`;
+    const text = `Treatment Journey — ${activeTrip?.destination ?? ""}\n${doneCount}/${journeySteps.length} steps completed`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
@@ -475,13 +501,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     toast.success("Journey exported · تم تصدير الرحلة", { duration: 2000 });
   };
 
-  const handleAddStep = () => {
-    const id = Math.max(...journeySteps.map(s => s.id), 0) + 1;
-    const newStep: JourneyStep = {
-      id, titleEn: "New Step", titleAr: "خطوة جديدة", date: "TBD", status: "pending", phase: "before",
-    };
-    setJourneySteps(prev => [...prev, newStep]);
-    setEditingStep(newStep);
+  const handleAddStep = async () => {
+    const created = await addJourneyStepHook();
+    if (created) setEditingStep(created);
   };
 
   const journeyMenuItems: HeaderMenuItem[] = [
