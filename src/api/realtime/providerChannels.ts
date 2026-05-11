@@ -19,7 +19,7 @@ export function useProviderRealtime(
     const channel = supabase
       .channel(`provider-${table}-${orgId}`)
       .on(
-        // @ts-expect-error — postgres_changes is a string event in supabase-js
+        // postgres_changes is a string event in supabase-js
         "postgres_changes",
         { event: "*", schema: "public", table, filter: `organization_id=eq.${orgId}` },
         (payload: any) => onChange(payload),
