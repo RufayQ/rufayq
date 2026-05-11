@@ -261,7 +261,7 @@ const SubscriptionDashboard = () => {
                   <p className="font-display text-2xl font-bold" style={{ color: GOLD }}>
                     {wallet ? `${wallet.currency} ${wallet.balance.toFixed(2)}` : `${sub.currency} 0.00`}
                   </p>
-                  <Link to="/app/wallet" className="text-[10px] underline" style={{ color: GOLD }}>
+                  <Link to={isAr ? "/ar/app/wallet" : "/app/wallet"} className="text-[10px] underline" style={{ color: GOLD }}>
                     {isAr ? "السجل الكامل ←" : "Full ledger →"}
                   </Link>
                 </div>
