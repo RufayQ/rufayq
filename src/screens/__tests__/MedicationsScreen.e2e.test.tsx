@@ -117,7 +117,7 @@ describe("MedicationsScreen — authenticated", () => {
       },
     ];
     render(<MedicationsScreen onBack={() => {}} />);
-    await waitFor(() => expect(screen.getByText("TestMed")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText("TestMed").length).toBeGreaterThan(0));
   });
 
   it("shows error banner with Retry when refresh fails", async () => {
