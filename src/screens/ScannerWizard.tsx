@@ -1117,6 +1117,8 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
               const legs = payload.legs?.map(normalizeParsedLeg);
               if (out) setOutboundFields(toFlightFieldsLite(out));
               if (ret) setReturnFields(toFlightFieldsLite(ret));
+              setOutboundSegs(payload.outboundSegments || []);
+              setReturnSegs(payload.returnSegments || []);
               setActiveLeg(out ? "outbound" : "return");
               emitParsed({
                 outbound: out,
