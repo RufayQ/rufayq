@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { useDomainData } from '@/hooks/useDomainData';
@@ -13,23 +12,17 @@ describe('useDomainData hook', () => {
       lastSyncedAt: () => null,
     } as any;
 
-    const { result, waitForNextUpdate } = renderHook(() => useDomainData(api));
-    // initial items from cache
-    expect(result.current.items.map((i) => i.id)).toEqual(['a']);
-    // refresh updates items
+    const { result } = renderHook(() => useDomainData<any>(api));
+    expect(result.current.items.map((i: any) => i.id)).toEqual(['a']);
     await act(async () => { await result.current.refresh(); });
-    expect(result.current.items.map((i) => i.id)).toEqual(['b']);
-    // optimistic remove rollback
+    expect(result.current.items.map((i: any) => i.id)).toEqual(['b']);
     await act(async () => {
-      // start remove that will throw
-      try { await result.current.remove('throw'); } catch (e) { /* expected */ }
+      try { await result.current.remove('throw'); } catch { /* expected */ }
     });
-    // after rollback, items still present
     expect(result.current.items.length).toBeGreaterThan(0);
-    // save dedupes by id
     await act(async () => {
       await result.current.save({ id: 'b', value: 3 } as any);
     });
-    expect(result.current.items.find((x) => x.id === 'b')?.value).toBe(3);
+    expect((result.current.items.find((x: any) => x.id === 'b') as any)?.value).toBe(3);
   });
 });

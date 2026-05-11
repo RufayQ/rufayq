@@ -22,8 +22,8 @@ describe('syncEngine.refreshAll', () => {
 
   it('one failure does not abort others', async () => {
     // mock one module to throw
-    const mod = await vi.importMock('@/lib/api/medicalRecordApi');
-    mod.medicalRecordApi.list = async () => { throw new Error('boom'); };
+    const mod = await vi.importMock<typeof import('@/lib/api/medicalRecordApi')>('@/lib/api/medicalRecordApi');
+    (mod.medicalRecordApi as any).list = async () => { throw new Error('boom'); };
     const res = await refreshAll('p1');
     expect(res.find((r) => r.entity === 'medical_records')?.ok).toBe(false);
     expect(res.find((r) => r.entity === 'medications')?.ok).toBe(true);
