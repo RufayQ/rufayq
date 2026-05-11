@@ -183,8 +183,14 @@ describe("ScannerWizard E2E — flight flow", () => {
 
     // Fill required fields
     fireEvent.change(screen.getByTestId("seg-outbound-0-flight"), { target: { value: "EK500" } });
-    fireEvent.change(screen.getByTestId("seg-outbound-0-from"), { target: { value: "DXB" } });
-    fireEvent.change(screen.getByTestId("seg-outbound-0-to"), { target: { value: "BKK" } });
+    // From: open AirportSelect, type, click DXB option
+    fireEvent.click(screen.getByTestId("seg-outbound-0-from"));
+    fireEvent.change(await screen.findByTestId("seg-outbound-0-from-search"), { target: { value: "DXB" } });
+    fireEvent.click(await screen.findByTestId("seg-outbound-0-from-option-DXB"));
+    // To
+    fireEvent.click(screen.getByTestId("seg-outbound-0-to"));
+    fireEvent.change(await screen.findByTestId("seg-outbound-0-to-search"), { target: { value: "BKK" } });
+    fireEvent.click(await screen.findByTestId("seg-outbound-0-to-option-BKK"));
     fireEvent.change(screen.getByTestId("seg-outbound-0-dep-date"), { target: { value: "2026-06-01" } });
     fireEvent.change(screen.getByTestId("seg-outbound-0-dep-time"), { target: { value: "09:00" } });
     fireEvent.click(screen.getByTestId("submit-manual"));
