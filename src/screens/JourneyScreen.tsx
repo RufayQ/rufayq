@@ -123,6 +123,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     ...nonFlightSegments,
     ...(persistedFlightSegments.length > 0 ? persistedFlightSegments : guestFlightSeed),
   ];
+  const [liveAnnouncement, setLiveAnnouncement] = useState("");
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
 
