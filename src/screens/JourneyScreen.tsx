@@ -497,6 +497,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     { icon: <Download size={14} />, label: "Export Journey", labelAr: "تصدير الرحلة", onClick: handleExportJourney },
     { icon: <Share2 size={14} />, label: "Share Progress", labelAr: "مشاركة التقدم", onClick: handleShareJourney },
     { icon: <CreditCard size={14} />, label: "Subscriptions", labelAr: "الاشتراكات", onClick: () => onNavigate?.("pricing") },
+    { icon: <Wallet size={14} />, label: "Wallet & Refunds", labelAr: "المحفظة والاستردادات", onClick: () => onNavigate?.("wallet") },
     { icon: <SettingsIcon size={14} />, label: "Settings", labelAr: "الإعدادات", onClick: () => onNavigate?.("settings") },
     { icon: <HelpCircle size={14} />, label: "Help & Support", labelAr: "المساعدة", onClick: () => onNavigate?.("support") },
   ];
