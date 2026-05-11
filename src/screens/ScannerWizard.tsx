@@ -1417,8 +1417,16 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
       {/* Save CTA */}
       <div className="px-4 mt-5">
+        {saveError && (
+          <p className="mb-2 text-[12px] font-bold" style={{ color: "var(--error)" }} role="alert">
+            ⚠ {saveError}
+          </p>
+        )}
         <button
           onClick={() => {
+            const err = validateBeforeSave();
+            if (err) { setSaveError(err); return; }
+            setSaveError(null);
             const selected = dests
               .map((d, i) => ({ ...d, idx: i }))
               .filter((d) => destinations[d.idx]);
