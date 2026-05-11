@@ -346,16 +346,16 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
           </p>
           <div className="grid md:grid-cols-3 gap-4">
             {[
-              { emoji: "📧", label: "Email", labelAr: "البريد", value: "support [at] rufayq.com", sub: "Replies within 24 hours", subAr: "رد خلال 24 ساعة", href: "mailto:support@rufayq.com?subject=RufayQ%20Support" },
-              { emoji: "💬", label: "WhatsApp · Fast support", labelAr: "واتساب · دعم سريع", value: "+966 56 959 0418", sub: "Live chat · 8AM–10PM AST", subAr: "محادثة مباشرة · 8ص–10م", href: "https://wa.me/966569590418?text=Hello%20RufayQ%20%E2%80%94%20I%20need%20help%20with%3A" },
-              { emoji: "📞", label: "Mobile", labelAr: "الجوال", value: "+966 56 959 0418", sub: "Direct line for urgent cases", subAr: "خط مباشر للحالات العاجلة", href: "tel:+966569590418" },
+              { emoji: "📧", label: "Email", labelAr: "البريد", value: "support [at] rufayq.com", sub: "Replies within 24 hours", subAr: "رد خلال 24 ساعة", href: "mailto:support@rufayq.com?subject=RufayQ%20Support", aria: "Email RufayQ support" },
+              { emoji: "💬", label: "Chat on WhatsApp", labelAr: "تواصل عبر واتساب", value: "", sub: "Live chat · 8AM–10PM AST", subAr: "محادثة مباشرة · 8ص–10م", href: "https://wa.me/966569590418?text=Hello%20RufayQ%20%E2%80%94%20I%20need%20help%20with%3A", aria: "Open WhatsApp chat with RufayQ support" },
+              { emoji: "📞", label: "Call us", labelAr: "اتصل بنا", value: "", sub: "Direct line for urgent cases", subAr: "خط مباشر للحالات العاجلة", href: "tel:+966569590418", aria: "Call RufayQ support" },
             ].map((c) => (
-              <a key={c.label} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className="rounded-2xl p-6 transition-all hover:-translate-y-1 block text-left" style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}>
+              <a key={c.label} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" aria-label={c.aria} className="rounded-2xl p-6 transition-all hover:-translate-y-1 block text-left" style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}>
                 <div className="text-3xl mb-3">{c.emoji}</div>
                 <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: TEXT_MUTED }}>
                   {(isAr ? c.labelAr : c.label).toUpperCase()}
                 </p>
-                <p className="text-sm font-semibold mb-1" style={{ color: GOLD }}>{c.value}</p>
+                {c.value && <p className="text-sm font-semibold mb-1" style={{ color: GOLD }}>{c.value}</p>}
                 <p className="text-[11px]" style={{ color: TEXT_MUTED }}>
                   {isAr ? <span className="font-arabic">{c.subAr}</span> : c.sub}
                 </p>
