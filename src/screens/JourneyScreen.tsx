@@ -261,8 +261,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       },
     );
 
-    setTrips(prev => {
-      if (prev.length > 0) return prev;
+    if (trips.length === 0) {
       const lastOut = outboundSegs[outboundSegs.length - 1];
       const lastRet = returnSegs[returnSegs.length - 1];
       const firstOut = outboundSegs[0];
@@ -279,8 +278,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         outboundFlight: out || (firstOut ? legacyFromSegment(firstOut) : null),
         returnFlight: ret || (firstRet ? legacyFromSegment(firstRet) : null),
       };
-      return [seed];
-    });
+      void persistTrip(seed).catch((e) => console.warn("[journey] auto-seed save failed", e));
+    }
     setPendingScan(null);
   };
 
