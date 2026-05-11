@@ -119,7 +119,7 @@ const Landing = () => {
                 l.isRoute ? (
                   <Link
                     key={l.href}
-                    to={l.href}
+                    to={lp(l.href)}
                     onClick={(e) => {
                       // If the section is mounted on this page, prefer smooth-scroll over a route swap.
                       if (l.anchorId) {
