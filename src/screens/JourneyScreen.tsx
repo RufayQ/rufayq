@@ -284,7 +284,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     setPendingScan(null);
   };
 
-  const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
+  const [editingStep, setEditingStep] = useState<(JourneyStep & { dbId?: string }) | null>(null);
   const [flashStepId, setFlashStepId] = useState<number | null>(null);
   const [flashTripId, setFlashTripId] = useState<string | null>(null);
   const [dragStepId, setDragStepId] = useState<number | null>(null);
@@ -303,21 +303,31 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const stepRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const registerStepRef = (id: number, el: HTMLDivElement | null) => { stepRefs.current.set(id, el); };
 
+  const activeTrip = trips.find((t) => t.status === "active") || trips[0] || null;
+
+  // DB-backed step state for the active journey (signed-in patients).
+  // Guests get the in-memory demo timeline.
+  const {
+    steps: journeySteps,
+    addStep: addJourneyStepHook,
+    updateStep: updateJourneyStepHook,
+    removeStep: removeJourneyStepHook,
+    reorder: reorderJourneyStepsHook,
+    setStatus: setStepStatusHook,
+  } = useJourneySteps(activeTrip?.id ?? null);
+
   const markStepDone = (id: number) => {
-    let prevStatus: JourneyStep["status"] = "pending";
-    setJourneySteps(prev => prev.map(s => {
-      if (s.id !== id) return s;
-      prevStatus = s.status;
-      return { ...s, status: "done" };
-    }));
+    const step = journeySteps.find((s) => s.id === id);
+    if (!step) return;
+    const prevStatus = step.status;
+    void setStepStatusHook(step, "done");
     flashStep(id);
-    const stepTitle = journeySteps.find(s => s.id === id)?.titleEn || "Step";
-    toast.success(`${stepTitle} marked as done · تم وضعها كمنجزة`, {
+    toast.success(`${step.titleEn} marked as done · تم وضعها كمنجزة`, {
       duration: 5000,
       action: {
         label: "Undo · تراجع",
         onClick: () => {
-          setJourneySteps(prev => prev.map(s => s.id === id ? { ...s, status: prevStatus } : s));
+          void setStepStatusHook(step, prevStatus);
           flashStep(id);
           toast.info("Reverted · تم التراجع", { duration: 1800 });
         },
@@ -330,30 +340,18 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     flashStep(id);
     const step = journeySteps.find(s => s.id === id);
     if (step) setLiveAnnouncement(`Jumped to step: ${step.titleEn}. ${step.titleAr}`);
-    // Defer scroll until expansion has rendered
     requestAnimationFrame(() => {
       const el = stepRefs.current.get(id);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   };
 
-  // Reorder steps within the same phase via HTML5 drag-drop
   const handleReorderStep = (sourceId: number, targetId: number) => {
     if (sourceId === targetId) return;
-    setJourneySteps((prev) => {
-      const src = prev.find((s) => s.id === sourceId);
-      const tgt = prev.find((s) => s.id === targetId);
-      if (!src || !tgt || src.phase !== tgt.phase) return prev;
-      const without = prev.filter((s) => s.id !== sourceId);
-      const tgtIdx = without.findIndex((s) => s.id === targetId);
-      const next = [...without.slice(0, tgtIdx), src, ...without.slice(tgtIdx)];
-      return next;
-    });
+    void reorderJourneyStepsHook(sourceId, targetId);
     flashStep(sourceId);
     toast.success("Step reordered · تم إعادة الترتيب", { duration: 1500 });
   };
-
-  const activeTrip = trips.find((t) => t.status === "active") || trips[0] || null;
 
   // Prompt the user to mark flight-related steps as done once their flight has
   // already departed/arrived. We fire this once per app session per stepId.
