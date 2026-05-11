@@ -69,6 +69,11 @@ vi.mock("@/components/HeaderMenu", () => ({
   default: () => null,
 }));
 
+const syncReminders = vi.fn(async () => []);
+vi.mock("@/lib/native/medicationReminders", () => ({
+  syncMedicationReminders: (...a: any[]) => syncReminders(...a),
+}));
+
 import MedicationsScreen from "@/screens/MedicationsScreen";
 
 beforeEach(() => {
