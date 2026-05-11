@@ -588,6 +588,11 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   const [outboundFields, setOutboundFields] = useState<FlightFields | null>(null);
   const [returnFields, setReturnFields] = useState<FlightFields | null>(null);
   const [activeLeg, setActiveLeg] = useState<"outbound" | "return">("outbound");
+  // Rich per-segment data (transit-aware). Source of truth for flight save.
+  const [outboundSegs, setOutboundSegs] = useState<FlightSegment[]>([]);
+  const [returnSegs, setReturnSegs] = useState<FlightSegment[]>([]);
+  const [editingSeg, setEditingSeg] = useState<{ direction: "outbound" | "return"; index: number } | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
   const [wasTranslated, setWasTranslated] = useState(false);
 
