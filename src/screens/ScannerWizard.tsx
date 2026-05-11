@@ -1500,6 +1500,171 @@ const EditableField = ({ label, value, onChange }: { label: string; value: strin
   );
 };
 
+/* ─── Per-segment review card (tap to open edit sheet) ─── */
+const FlightSegmentReviewCard = ({ segment, title, onEdit }: { segment: FlightSegment; title: string; onEdit: () => void }) => {
+  const fmtDate = (s?: string) => s || "—";
+  return (
+    <button
+      type="button"
+      onClick={onEdit}
+      data-testid={`segment-review-${segment.direction}-${segment.segmentOrder}`}
+      className="w-full text-left rounded-2xl p-3 btn-press"
+      style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[12px] font-bold" style={{ color: "var(--navy)" }}>{title}</p>
+        <span className="text-[10px] font-bold" style={{ color: "var(--gold)" }}>Tap to edit ✎</span>
+      </div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>
+          {segment.fromAirport.code || "—"} → {segment.toAirport.code || "—"}
+        </span>
+        <span className="text-[10px]" style={{ color: "var(--gray)" }}>
+          {segment.fromAirport.city || ""} → {segment.toAirport.city || ""}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>AIRLINE</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{segment.airline || "—"}</p>
+        </div>
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>FLIGHT NO.</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{segment.flightNumber || "—"}</p>
+        </div>
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>DEPARTURE</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{fmtDate(segment.departureDate)} · {segment.departureTime || "—"}</p>
+        </div>
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>ARRIVAL</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{fmtDate(segment.arrivalDate)} · {segment.arrivalTime || "—"}</p>
+        </div>
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>TERMINAL</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{segment.departureTerminal || "—"} → {segment.arrivalTerminal || "—"}</p>
+        </div>
+        <div>
+          <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>CLASS · PNR</p>
+          <p className="font-bold" style={{ color: "var(--navy)" }}>{segment.cabinClass || "—"} · {segment.pnr || "—"}</p>
+        </div>
+      </div>
+    </button>
+  );
+};
+
+/* ─── Edit sheet for a single flight segment ─── */
+const FlightSegmentEditSheet = ({
+  segment,
+  direction,
+  minDepartureDate,
+  onChange,
+  onClose,
+}: {
+  segment: FlightSegment;
+  direction: "outbound" | "return";
+  minDepartureDate?: string;
+  onChange: (patch: Partial<FlightSegment>) => void;
+  onClose: () => void;
+}) => {
+  const inputStyle: React.CSSProperties = {
+    background: "var(--off-white)",
+    color: "var(--navy)",
+    border: "1px solid var(--gray-light)",
+  };
+  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <label className="block">
+      <span className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label.toUpperCase()}</span>
+      <div className="mt-1">{children}</div>
+    </label>
+  );
+  return (
+    <div
+      className="absolute inset-0 z-[80] flex items-end"
+      style={{ background: "rgba(13,27,42,0.55)" }}
+      role="dialog"
+      aria-label={`Edit ${direction} flight`}
+      onClick={onClose}
+    >
+      <div className="w-full rounded-t-3xl flex flex-col" style={{ background: "var(--off-white)", maxHeight: "92%" }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: "1px solid var(--gray-light)" }}>
+          <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>
+            Edit {direction === "outbound" ? "Outbound" : "Return"} Flight
+          </p>
+          <button onClick={onClose} aria-label="Close" className="w-8 h-8 rounded-full flex items-center justify-center btn-press" style={{ background: "var(--gray-light)" }}>
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Airline">
+              <input value={segment.airline} onChange={(e) => onChange({ airline: e.target.value })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="Flight No.">
+              <input value={segment.flightNumber} onChange={(e) => onChange({ flightNumber: e.target.value.toUpperCase() })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="From (IATA)">
+              <input value={segment.fromAirport.code} onChange={(e) => onChange({ fromAirport: { ...segment.fromAirport, code: e.target.value.toUpperCase() } })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="From City">
+              <input value={segment.fromAirport.city || ""} onChange={(e) => onChange({ fromAirport: { ...segment.fromAirport, city: e.target.value } })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="To (IATA)">
+              <input value={segment.toAirport.code} onChange={(e) => onChange({ toAirport: { ...segment.toAirport, code: e.target.value.toUpperCase() } })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="To City">
+              <input value={segment.toAirport.city || ""} onChange={(e) => onChange({ toAirport: { ...segment.toAirport, city: e.target.value } })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Departure date">
+              <input
+                type="date"
+                value={segment.departureDate}
+                min={minDepartureDate}
+                onChange={(e) => onChange({ departureDate: e.target.value })}
+                className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none"
+                style={inputStyle}
+              />
+            </Field>
+            <Time24Input label="Departure time (24h)" value={segment.departureTime} onChange={(v) => onChange({ departureTime: v })} />
+            <Field label="Arrival date">
+              <input
+                type="date"
+                value={segment.arrivalDate || ""}
+                min={segment.departureDate || minDepartureDate}
+                onChange={(e) => onChange({ arrivalDate: e.target.value || undefined })}
+                className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none"
+                style={inputStyle}
+              />
+            </Field>
+            <Time24Input label="Arrival time (24h)" value={segment.arrivalTime || ""} onChange={(v) => onChange({ arrivalTime: v || undefined })} />
+            <Field label="Departure terminal">
+              <input value={segment.departureTerminal || ""} onChange={(e) => onChange({ departureTerminal: e.target.value || undefined })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="Arrival terminal">
+              <input value={segment.arrivalTerminal || ""} onChange={(e) => onChange({ arrivalTerminal: e.target.value || undefined })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="Class">
+              <input value={segment.cabinClass || ""} onChange={(e) => onChange({ cabinClass: e.target.value })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+            <Field label="PNR">
+              <input value={segment.pnr || ""} onChange={(e) => onChange({ pnr: e.target.value.toUpperCase() })} className="w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none" style={inputStyle} />
+            </Field>
+          </div>
+        </div>
+        <div className="px-5 py-3 shrink-0" style={{ borderTop: "1px solid var(--gray-light)", background: "var(--white)" }}>
+          <button onClick={onClose} className="w-full rounded-2xl text-[15px] font-bold text-white btn-press" style={{ background: "var(--gold)", height: 48 }}>
+            Done · <span className="font-arabic text-[12px]">تم</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── STEP 5: SUCCESS ─── */
 const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onScanAnother, onDone }: {
   category: string | null;
