@@ -83,6 +83,71 @@ export type Database = {
         }
         Relationships: []
       }
+      allergies: {
+        Row: {
+          allergen: string
+          allergy_type: string | null
+          client_generated_id: string | null
+          created_at: string
+          deleted_at: string | null
+          device_id: string | null
+          id: string
+          notes: string | null
+          patient_id: string | null
+          reaction: string | null
+          severity: string | null
+          source: string
+          sync_status: string
+          updated_at: string
+          user_id: string | null
+          version: number
+        }
+        Insert: {
+          allergen: string
+          allergy_type?: string | null
+          client_generated_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          reaction?: string | null
+          severity?: string | null
+          source?: string
+          sync_status?: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Update: {
+          allergen?: string
+          allergy_type?: string | null
+          client_generated_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          reaction?: string | null
+          severity?: string | null
+          source?: string
+          sync_status?: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allergies_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_reviews: {
         Row: {
           advice: string | null
@@ -118,6 +183,83 @@ export type Database = {
           reviewer_name?: string | null
         }
         Relationships: []
+      }
+      appointments: {
+        Row: {
+          appointment_type: string | null
+          client_generated_id: string | null
+          created_at: string
+          deleted_at: string | null
+          device_id: string | null
+          doctor_name: string | null
+          end_at: string | null
+          facility_name: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          patient_id: string | null
+          source: string
+          specialty: string | null
+          start_at: string
+          sync_status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+          version: number
+        }
+        Insert: {
+          appointment_type?: string | null
+          client_generated_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          doctor_name?: string | null
+          end_at?: string | null
+          facility_name?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          patient_id?: string | null
+          source?: string
+          specialty?: string | null
+          start_at: string
+          sync_status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Update: {
+          appointment_type?: string | null
+          client_generated_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          doctor_name?: string | null
+          end_at?: string | null
+          facility_name?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          patient_id?: string | null
+          source?: string
+          specialty?: string | null
+          start_at?: string
+          sync_status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       billing_events: {
         Row: {
@@ -156,6 +298,134 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_plan_tasks: {
+        Row: {
+          care_plan_id: string
+          completed_at: string | null
+          created_at: string
+          deleted_at: string | null
+          due_at: string | null
+          frequency: string | null
+          id: string
+          patient_id: string | null
+          status: string
+          task_type: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          care_plan_id: string
+          completed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          due_at?: string | null
+          frequency?: string | null
+          id?: string
+          patient_id?: string | null
+          status?: string
+          task_type?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          care_plan_id?: string
+          completed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          due_at?: string | null
+          frequency?: string | null
+          id?: string
+          patient_id?: string | null
+          status?: string
+          task_type?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plan_tasks_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_plan_tasks_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_plans: {
+        Row: {
+          client_generated_id: string | null
+          created_at: string
+          deleted_at: string | null
+          device_id: string | null
+          end_date: string | null
+          id: string
+          notes: string | null
+          patient_id: string | null
+          plan_type: string | null
+          source: string
+          start_date: string | null
+          status: string
+          sync_status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+          version: number
+        }
+        Insert: {
+          client_generated_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          plan_type?: string | null
+          source?: string
+          start_date?: string | null
+          status?: string
+          sync_status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Update: {
+          client_generated_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          plan_type?: string | null
+          source?: string
+          start_date?: string | null
+          status?: string
+          sync_status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plans_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -580,6 +850,74 @@ export type Database = {
         }
         Relationships: []
       }
+      education_progress: {
+        Row: {
+          client_generated_id: string | null
+          completed_at: string | null
+          content_id: string
+          content_type: string
+          created_at: string
+          deleted_at: string | null
+          device_id: string | null
+          id: string
+          patient_id: string | null
+          progress_percent: number
+          source: string
+          status: string
+          sync_status: string
+          title: string | null
+          updated_at: string
+          user_id: string | null
+          version: number
+        }
+        Insert: {
+          client_generated_id?: string | null
+          completed_at?: string | null
+          content_id: string
+          content_type: string
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          id?: string
+          patient_id?: string | null
+          progress_percent?: number
+          source?: string
+          status?: string
+          sync_status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Update: {
+          client_generated_id?: string | null
+          completed_at?: string | null
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          id?: string
+          patient_id?: string | null
+          progress_percent?: number
+          source?: string
+          status?: string
+          sync_status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "education_progress_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_invites: {
         Row: {
           accepted_at: string | null
@@ -738,6 +1076,152 @@ export type Database = {
           },
         ]
       }
+      journey_steps: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          due_at: string | null
+          id: string
+          journey_id: string
+          linked_entity_id: string | null
+          linked_entity_type: string | null
+          patient_id: string | null
+          status: string
+          step_order: number
+          step_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          journey_id: string
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          patient_id?: string | null
+          status?: string
+          step_order: number
+          step_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          journey_id?: string
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          patient_id?: string | null
+          status?: string
+          step_order?: number
+          step_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_steps_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_steps_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journeys: {
+        Row: {
+          actual_return_date: string | null
+          client_generated_id: string | null
+          created_at: string
+          current_phase: string | null
+          deleted_at: string | null
+          destination_city: string | null
+          destination_country: string | null
+          device_id: string | null
+          expected_return_date: string | null
+          id: string
+          journey_title: string
+          journey_type: string
+          patient_id: string | null
+          source: string
+          start_date: string | null
+          status: string
+          sync_status: string
+          updated_at: string
+          user_id: string | null
+          version: number
+        }
+        Insert: {
+          actual_return_date?: string | null
+          client_generated_id?: string | null
+          created_at?: string
+          current_phase?: string | null
+          deleted_at?: string | null
+          destination_city?: string | null
+          destination_country?: string | null
+          device_id?: string | null
+          expected_return_date?: string | null
+          id?: string
+          journey_title: string
+          journey_type?: string
+          patient_id?: string | null
+          source?: string
+          start_date?: string | null
+          status?: string
+          sync_status?: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Update: {
+          actual_return_date?: string | null
+          client_generated_id?: string | null
+          created_at?: string
+          current_phase?: string | null
+          deleted_at?: string | null
+          destination_city?: string | null
+          destination_country?: string | null
+          device_id?: string | null
+          expected_return_date?: string | null
+          id?: string
+          journey_title?: string
+          journey_type?: string
+          patient_id?: string | null
+          source?: string
+          start_date?: string | null
+          status?: string
+          sync_status?: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journeys_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       manual_otp_codes: {
         Row: {
           code: string
@@ -827,6 +1311,259 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      medical_record_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          id: string
+          medical_record_id: string
+          mime_type: string | null
+          patient_id: string | null
+          storage_bucket: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          medical_record_id: string
+          mime_type?: string | null
+          patient_id?: string | null
+          storage_bucket?: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          medical_record_id?: string
+          mime_type?: string | null
+          patient_id?: string | null
+          storage_bucket?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_record_files_medical_record_id_fkey"
+            columns: ["medical_record_id"]
+            isOneToOne: false
+            referencedRelation: "medical_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_record_files_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_records: {
+        Row: {
+          client_generated_id: string | null
+          created_at: string
+          deleted_at: string | null
+          device_id: string | null
+          doctor_name: string | null
+          extracted_summary: string | null
+          facility_name: string | null
+          id: string
+          patient_id: string | null
+          record_date: string | null
+          record_type: string
+          source: string
+          specialty: string | null
+          structured_data: Json
+          sync_status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+          version: number
+        }
+        Insert: {
+          client_generated_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          doctor_name?: string | null
+          extracted_summary?: string | null
+          facility_name?: string | null
+          id?: string
+          patient_id?: string | null
+          record_date?: string | null
+          record_type: string
+          source?: string
+          specialty?: string | null
+          structured_data?: Json
+          sync_status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Update: {
+          client_generated_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          doctor_name?: string | null
+          extracted_summary?: string | null
+          facility_name?: string | null
+          id?: string
+          patient_id?: string | null
+          record_date?: string | null
+          record_type?: string
+          source?: string
+          specialty?: string | null
+          structured_data?: Json
+          sync_status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_records_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medication_events: {
+        Row: {
+          created_at: string
+          id: string
+          medication_id: string
+          notes: string | null
+          patient_id: string | null
+          recorded_at: string
+          scheduled_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          medication_id: string
+          notes?: string | null
+          patient_id?: string | null
+          recorded_at?: string
+          scheduled_at: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          medication_id?: string
+          notes?: string | null
+          patient_id?: string | null
+          recorded_at?: string
+          scheduled_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_events_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_events_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medications: {
+        Row: {
+          client_generated_id: string | null
+          created_at: string
+          deleted_at: string | null
+          device_id: string | null
+          dose: string | null
+          end_date: string | null
+          frequency: string | null
+          id: string
+          instructions: string | null
+          medication_name: string
+          patient_id: string | null
+          prescribing_doctor: string | null
+          reminder_enabled: boolean
+          reminder_times: Json
+          route: string | null
+          source: string
+          start_date: string | null
+          sync_status: string
+          updated_at: string
+          user_id: string | null
+          version: number
+        }
+        Insert: {
+          client_generated_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          dose?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          instructions?: string | null
+          medication_name: string
+          patient_id?: string | null
+          prescribing_doctor?: string | null
+          reminder_enabled?: boolean
+          reminder_times?: Json
+          route?: string | null
+          source?: string
+          start_date?: string | null
+          sync_status?: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Update: {
+          client_generated_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          dose?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          instructions?: string | null
+          medication_name?: string
+          patient_id?: string | null
+          prescribing_doctor?: string | null
+          reminder_enabled?: boolean
+          reminder_times?: Json
+          route?: string | null
+          source?: string
+          start_date?: string | null
+          sync_status?: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_invites: {
         Row: {
@@ -1167,6 +1904,50 @@ export type Database = {
           },
         ]
       }
+      patient_data_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          device_id: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json
+          patient_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          device_id?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json
+          patient_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          device_id?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json
+          patient_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_data_audit_log_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_notifications: {
         Row: {
           body: string | null
@@ -1242,6 +2023,48 @@ export type Database = {
           currency?: string
           device_id?: string | null
           id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      patients: {
+        Row: {
+          active: boolean
+          created_at: string
+          date_of_birth: string | null
+          deleted_at: string | null
+          device_id: string | null
+          display_name: string | null
+          gender: string | null
+          id: string
+          nationality: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          date_of_birth?: string | null
+          deleted_at?: string | null
+          device_id?: string | null
+          display_name?: string | null
+          gender?: string | null
+          id?: string
+          nationality?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          date_of_birth?: string | null
+          deleted_at?: string | null
+          device_id?: string | null
+          display_name?: string | null
+          gender?: string | null
+          id?: string
+          nationality?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -5343,6 +6166,7 @@ export type Database = {
           baggage_allowance: string | null
           cabin_class: string | null
           created_at: string
+          deleted_at: string | null
           departure_date: string | null
           departure_gate: string | null
           departure_terminal: string | null
@@ -5355,6 +6179,7 @@ export type Database = {
           from_code: string
           from_country: string | null
           id: string
+          patient_id: string | null
           pnr: string | null
           segment_order: number
           ticket_id: string
@@ -5362,6 +6187,7 @@ export type Database = {
           to_city: string | null
           to_code: string
           to_country: string | null
+          updated_at: string
           user_id: string | null
         }
         Insert: {
@@ -5373,6 +6199,7 @@ export type Database = {
           baggage_allowance?: string | null
           cabin_class?: string | null
           created_at?: string
+          deleted_at?: string | null
           departure_date?: string | null
           departure_gate?: string | null
           departure_terminal?: string | null
@@ -5385,6 +6212,7 @@ export type Database = {
           from_code: string
           from_country?: string | null
           id?: string
+          patient_id?: string | null
           pnr?: string | null
           segment_order: number
           ticket_id: string
@@ -5392,6 +6220,7 @@ export type Database = {
           to_city?: string | null
           to_code: string
           to_country?: string | null
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
@@ -5403,6 +6232,7 @@ export type Database = {
           baggage_allowance?: string | null
           cabin_class?: string | null
           created_at?: string
+          deleted_at?: string | null
           departure_date?: string | null
           departure_gate?: string | null
           departure_terminal?: string | null
@@ -5415,6 +6245,7 @@ export type Database = {
           from_code?: string
           from_country?: string | null
           id?: string
+          patient_id?: string | null
           pnr?: string | null
           segment_order?: number
           ticket_id?: string
@@ -5422,9 +6253,17 @@ export type Database = {
           to_city?: string | null
           to_code?: string
           to_country?: string | null
+          updated_at?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transport_flight_segments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transport_flight_segments_ticket_id_fkey"
             columns: ["ticket_id"]
@@ -5437,56 +6276,82 @@ export type Database = {
       transport_tickets: {
         Row: {
           booking_reference: string | null
+          client_generated_id: string | null
           created_at: string
-          device_id: string
+          deleted_at: string | null
+          device_id: string | null
           document_type: string
           id: string
           passenger_name: string | null
           passenger_passport: string | null
+          patient_id: string | null
           pending_segment_ref: string | null
           save_to_medical_records: boolean
           save_to_transport_timeline: boolean
           send_to_doctor: boolean
+          source: string
           source_document_id: string | null
+          sync_status: string
           trip_type: string
           updated_at: string
           user_id: string | null
+          version: number
         }
         Insert: {
           booking_reference?: string | null
+          client_generated_id?: string | null
           created_at?: string
-          device_id: string
+          deleted_at?: string | null
+          device_id?: string | null
           document_type?: string
           id?: string
           passenger_name?: string | null
           passenger_passport?: string | null
+          patient_id?: string | null
           pending_segment_ref?: string | null
           save_to_medical_records?: boolean
           save_to_transport_timeline?: boolean
           send_to_doctor?: boolean
+          source?: string
           source_document_id?: string | null
+          sync_status?: string
           trip_type: string
           updated_at?: string
           user_id?: string | null
+          version?: number
         }
         Update: {
           booking_reference?: string | null
+          client_generated_id?: string | null
           created_at?: string
-          device_id?: string
+          deleted_at?: string | null
+          device_id?: string | null
           document_type?: string
           id?: string
           passenger_name?: string | null
           passenger_passport?: string | null
+          patient_id?: string | null
           pending_segment_ref?: string | null
           save_to_medical_records?: boolean
           save_to_transport_timeline?: boolean
           send_to_doctor?: boolean
+          source?: string
           source_document_id?: string | null
+          sync_status?: string
           trip_type?: string
           updated_at?: string
           user_id?: string | null
+          version?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transport_tickets_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -6059,6 +6924,7 @@ export type Database = {
           total: number
         }[]
       }
+      claim_guest_patient_data: { Args: { _device_id: string }; Returns: Json }
       compute_refund_tier: {
         Args: {
           _amount: number
@@ -6104,6 +6970,7 @@ export type Database = {
         }
         Returns: string
       }
+      ensure_patient: { Args: { _device_id: string }; Returns: string }
       get_or_create_wallet: {
         Args: { _currency?: string; _device_id: string; _user_id: string }
         Returns: string
