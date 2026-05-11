@@ -1,4 +1,5 @@
 import { createDomainApi } from "./domainApiFactory";
+import { medicationSchema, validate } from "./schemas";
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit } from "./patientDataApi";
 
@@ -30,11 +31,7 @@ export const medicationApi = createDomainApi<MedicationRow>({
   table: "medications",
   entity: "medications",
   auditEntity: "medication",
-  validate: (m) => {
-    if (!m.medication_name || !String(m.medication_name).trim()) {
-      throw new Error("medication_name is required");
-    }
-  },
+  validate: (m) => validate(medicationSchema, m),
   orderBy: { column: "created_at", ascending: false },
 });
 

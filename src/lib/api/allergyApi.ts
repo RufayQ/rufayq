@@ -19,12 +19,12 @@ export interface AllergyRow {
   deleted_at: string | null;
 }
 
+import { allergySchema, validate } from './schemas';
+
 export const allergyApi = createDomainApi<AllergyRow>({
   table: "allergies",
   entity: "allergies",
   auditEntity: "allergy",
-  validate: (a) => {
-    if (!a.allergen || !String(a.allergen).trim()) throw new Error("allergen is required");
-  },
+  validate: (a) => validate(allergySchema, a),
   orderBy: { column: "created_at", ascending: false },
 });

@@ -20,13 +20,12 @@ export interface EducationProgressRow {
   deleted_at: string | null;
 }
 
+import { educationSchema, validate } from './schemas';
+
 export const educationApi = createDomainApi<EducationProgressRow>({
   table: "education_progress",
   entity: "education_progress",
   auditEntity: "education_progress",
-  validate: (e) => {
-    if (!e.content_id || !String(e.content_id).trim()) throw new Error("content_id is required");
-    if (!e.title || !String(e.title).trim()) throw new Error("title is required");
-  },
+  validate: (e) => validate(educationSchema, e),
   orderBy: { column: "updated_at", ascending: false },
 });

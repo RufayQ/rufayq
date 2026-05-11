@@ -26,14 +26,13 @@ export interface MedicalRecordRow {
   deleted_at: string | null;
 }
 
+import { medicalRecordSchema, validate } from './schemas';
+
 export const medicalRecordApi = createDomainApi<MedicalRecordRow>({
   table: "medical_records",
   entity: "medical_records",
   auditEntity: "medical_record",
-  validate: (r) => {
-    if (!r.title || !String(r.title).trim()) throw new Error("title is required");
-    if (!r.record_type) throw new Error("record_type is required");
-  },
+  validate: (r) => validate(medicalRecordSchema, r),
   orderBy: { column: "record_date", ascending: false },
 });
 

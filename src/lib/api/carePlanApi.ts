@@ -22,13 +22,13 @@ export interface CarePlanRow {
   deleted_at: string | null;
 }
 
+import { carePlanSchema, validate } from './schemas';
+
 export const carePlanApi = createDomainApi<CarePlanRow>({
   table: "care_plans",
   entity: "care_plans",
   auditEntity: "care_plan",
-  validate: (p) => {
-    if (!p.title || !String(p.title).trim()) throw new Error("title is required");
-  },
+  validate: (p) => validate(carePlanSchema, p),
   orderBy: { column: "start_date", ascending: false },
 });
 

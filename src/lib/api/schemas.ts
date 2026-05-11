@@ -19,6 +19,46 @@ export const medicationSchema = z.object({
   instructions: z.string().nullable().optional(),
 });
 
+export const appointmentSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1),
+  appointment_type: z.string().nullable().optional(),
+  start_at: z.string().nullable().optional(),
+  end_at: z.string().nullable().optional(),
+});
+
+export const allergySchema = z.object({
+  id: z.string().optional(),
+  allergen: z.string().min(1),
+  severity: z.string().nullable().optional(),
+  reaction: z.string().nullable().optional(),
+});
+
+export const medicalRecordSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1),
+  record_type: z.string().min(1),
+  record_date: z.string().nullable().optional(),
+});
+
+export const journeySchema = z.object({
+  id: z.string().optional(),
+  journey_title: z.string().min(1),
+  start_date: z.string().nullable().optional(),
+});
+
+export const carePlanSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1),
+  start_date: z.string().nullable().optional(),
+});
+
+export const educationSchema = z.object({
+  id: z.string().optional(),
+  content_id: z.string().min(1),
+  title: z.string().min(1),
+});
+
 export function validate(schema: z.ZodTypeAny, input: unknown) {
   try {
     return schema.parse(input);
@@ -28,4 +68,4 @@ export function validate(schema: z.ZodTypeAny, input: unknown) {
   }
 }
 
-export default { medicationSchema, validate };
+export default { medicationSchema, appointmentSchema, allergySchema, medicalRecordSchema, journeySchema, carePlanSchema, educationSchema, validate };

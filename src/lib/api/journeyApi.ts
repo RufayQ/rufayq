@@ -25,15 +25,13 @@ export interface JourneyRow {
   deleted_at: string | null;
 }
 
+import { journeySchema, validate } from './schemas';
+
 export const journeyApi = createDomainApi<JourneyRow>({
   table: "journeys",
   entity: "journeys",
   auditEntity: "journey",
-  validate: (j) => {
-    if (!j.journey_title || !String(j.journey_title).trim()) {
-      throw new Error("journey_title is required");
-    }
-  },
+  validate: (j) => validate(journeySchema, j),
   orderBy: { column: "start_date", ascending: false },
 });
 

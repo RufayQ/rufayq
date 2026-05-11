@@ -23,12 +23,12 @@ export interface AppointmentRow {
   deleted_at: string | null;
 }
 
+import { appointmentSchema, validate } from './schemas';
+
 export const appointmentApi = createDomainApi<AppointmentRow>({
   table: "appointments",
   entity: "appointments",
   auditEntity: "appointment",
-  validate: (a) => {
-    if (!a.title || !String(a.title).trim()) throw new Error("title is required");
-  },
+  validate: (a) => validate(appointmentSchema, a),
   orderBy: { column: "start_at", ascending: true },
 });
