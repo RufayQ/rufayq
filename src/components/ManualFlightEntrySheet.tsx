@@ -306,6 +306,12 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
     s.fromAirport.code !== s.toAirport.code &&
     !!s.departureDate && isHHmm(s.departureTime);
 
+  const finalOutboundDate = useMemo<string | null>(() => {
+    if (outboundSegs.length === 0) return null;
+    const last = outboundSegs[outboundSegs.length - 1];
+    return last.arrivalDate || last.departureDate || null;
+  }, [outboundSegs]);
+
   const chainErrors = useMemo(() => {
     const errs: string[] = [];
     const checkChain = (list: FlightSegment[], label: string) => {
@@ -318,8 +324,16 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
     };
     checkChain(outboundSegs, "Outbound");
     checkChain(returnSegs, "Return");
+    if (finalOutboundDate) {
+      for (let i = 0; i < returnSegs.length; i++) {
+        const r = returnSegs[i];
+        if (r.departureDate && r.departureDate < finalOutboundDate) {
+          errs.push(`Return leg ${i + 1}: date cannot be earlier than the outbound journey (${finalOutboundDate}).`);
+        }
+      }
+    }
     return errs;
-  }, [outboundSegs, returnSegs]);
+  }, [outboundSegs, returnSegs, finalOutboundDate]);
 
   const pickTraveler = (t: TravelerKind) => {
     if (t !== "patient" && companionLocked) { setShowUpgrade(true); return; }
