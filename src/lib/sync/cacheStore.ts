@@ -57,10 +57,10 @@ export function clearCache(patientKey: PatientKey, entity: string): void {
   }
 }
 
-/** Strip rows that are soft-deleted (defense in depth). */
-export const filterAlive = <T extends { deletedAt?: string | null }>(
-  rows: T[],
-): T[] => rows.filter((r) => !r.deletedAt);
+/** Strip rows that are soft-deleted (defense in depth).
+ *  Tolerates both camelCase (`deletedAt`) and snake_case (`deleted_at`). */
+export const filterAlive = <T extends Record<string, any>>(rows: T[]): T[] =>
+  rows.filter((r) => !r?.deletedAt && !r?.deleted_at);
 
 /**
  * Last-synced timestamp, per patient+entity. Used by the UI to render
