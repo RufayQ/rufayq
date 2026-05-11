@@ -192,7 +192,39 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
     toast.success("Reset today's tracking · تم إعادة التتبع", { duration: 2000 });
   };
 
+  const handleRefresh = async () => {
+    if (!isAuthed) return;
+    try {
+      await realMeds.refresh();
+      toast.success("Medications refreshed · تم التحديث", { duration: 1500 });
+    } catch {
+      toast.error("Refresh failed · فشل التحديث");
+    }
+  };
+
+  // Pull-to-refresh (touch) on the scroll container
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const pullStartY = useRef<number | null>(null);
+  const [pullDist, setPullDist] = useState(0);
+  const PULL_THRESHOLD = 60;
+  const onTouchStart = (e: React.TouchEvent) => {
+    const el = scrollRef.current;
+    if (!el || el.scrollTop > 0) return;
+    pullStartY.current = e.touches[0].clientY;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (pullStartY.current == null) return;
+    const dy = e.touches[0].clientY - pullStartY.current;
+    if (dy > 0) setPullDist(Math.min(dy, 100));
+  };
+  const onTouchEnd = () => {
+    if (pullDist >= PULL_THRESHOLD) void handleRefresh();
+    pullStartY.current = null;
+    setPullDist(0);
+  };
+
   const medsMenuItems: HeaderMenuItem[] = [
+    { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: handleRefresh },
     { icon: <Copy size={14} />, label: "Copy All Meds", labelAr: "نسخ جميع الأدوية", onClick: handleCopyAllMeds },
     { icon: <Download size={14} />, label: "Export Schedule", labelAr: "تصدير الجدول", onClick: handleExportMeds },
     { icon: <Share2 size={14} />, label: "Share with Doctor", labelAr: "مشاركة مع الطبيب", onClick: handleShareMeds },
