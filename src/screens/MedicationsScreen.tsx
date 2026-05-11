@@ -307,7 +307,18 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       <AddMedicationSheet
         open={showAddMed}
         onClose={() => setShowAddMed(false)}
-        onSubmit={(med) => setExtraMeds(prev => [...prev, med])}
+        onSubmit={async (med) => {
+          if (isAuthed) {
+            try {
+              await realMeds.save(medicationToRowInput(med));
+            } catch (e) {
+              console.error("[Medications] save failed", e);
+              toast.error("Could not save medication · تعذّر حفظ الدواء");
+            }
+          } else {
+            setExtraMeds((prev) => [...prev, med]);
+          }
+        }}
         allergies={allergies}
       />
     </div>
