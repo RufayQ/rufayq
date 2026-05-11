@@ -69,9 +69,9 @@ vi.mock("@/components/HeaderMenu", () => ({
   default: () => null,
 }));
 
-const syncReminders = vi.fn(async () => []);
+const syncReminders = vi.fn((..._args: any[]) => Promise.resolve([] as number[]));
 vi.mock("@/lib/native/medicationReminders", () => ({
-  syncMedicationReminders: (...a: any[]) => (syncReminders as any)(...a),
+  syncMedicationReminders: (...a: any[]) => syncReminders(...a),
 }));
 
 import MedicationsScreen from "@/screens/MedicationsScreen";
