@@ -507,8 +507,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
 
   const journeyMenuItems: HeaderMenuItem[] = [
     { icon: <Edit3 size={14} />, label: "Edit Current Trip", labelAr: "تعديل الرحلة الحالية", onClick: () => activeTrip ? setShowEditTrip(true) : setShowAddTrip(true) },
-    { icon: <Plus size={14} />, label: "Add New Trip", labelAr: "إضافة رحلة جديدة", onClick: () => { if (requireProForAddTrip()) setShowAddTrip(true); } },
+    { icon: <Plus size={14} />, label: "Add New Journey", labelAr: "إضافة رحلة جديدة", onClick: () => { if (requireProForAddTrip()) setShowAddTrip(true); } },
     { icon: <Plus size={14} />, label: "Add Journey Step", labelAr: "إضافة خطوة", onClick: handleAddStep },
+    ...(activeTrip ? [{ icon: <Archive size={14} />, label: "Archive Journey", labelAr: "أرشفة الرحلة", onClick: () => setArchiveTarget(activeTrip) }] : []),
     { icon: <Sparkles size={14} />, label: "Scan New Ticket", labelAr: "مسح تذكرة جديدة", onClick: () => onOpenScanner?.("flight") },
     { icon: <Plus size={14} />, label: "Add Companion Ticket", labelAr: "إضافة تذكرة مرافق", onClick: () => { if (activeTrip) setShowEditTrip(true); else setShowAddTrip(true); toast.info("Add companions in 'Edit Current Trip' · المرافقون داخل تعديل الرحلة"); } },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص", onClick: handleCopyJourney },
