@@ -1258,66 +1258,131 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       </div>
 
       {/* Extracted Data */}
-      <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>EXTRACTED INFORMATION</p>
-            <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>المعلومات المستخرجة</p>
+      {isFlight && (outboundSegs.length > 0 || returnSegs.length > 0) ? (
+        <>
+          {/* Route summary */}
+          <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+            <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+              ROUTE SUMMARY · <span className="font-arabic">ملخص الرحلة</span>
+            </p>
+            {outboundSegs.length > 0 && (
+              <div className="mb-2">
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--gray)" }}>Outbound</p>
+                <p className="text-[16px] font-bold" style={{ color: "var(--navy)" }}>{buildRouteLabel(outboundSegs) || "—"}</p>
+                <p className="text-[11px]" style={{ color: "var(--gray)" }}>{buildCityRouteLabel(outboundSegs)}</p>
+              </div>
+            )}
+            {returnSegs.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--gray)" }}>Return</p>
+                <p className="text-[16px] font-bold" style={{ color: "var(--navy)" }}>{buildRouteLabel(returnSegs) || "—"}</p>
+                <p className="text-[11px]" style={{ color: "var(--gray)" }}>{buildCityRouteLabel(returnSegs)}</p>
+              </div>
+            )}
           </div>
-          {isFlight && hasReturn && (
-            <div className="flex rounded-full overflow-hidden" style={{ border: "1px solid var(--teal-deep)" }}>
-              {(["outbound", "return"] as const).map(leg => (
-                <button
-                  key={leg}
-                  onClick={() => setActiveLeg(leg)}
-                  className="px-3 py-1 text-[10px] font-bold btn-press"
-                  style={{
-                    background: activeLeg === leg ? "var(--teal-deep)" : "transparent",
-                    color: activeLeg === leg ? "#fff" : "var(--teal-deep)",
-                  }}
-                >
-                  {leg === "outbound" ? "Outbound" : "Return"}
-                </button>
+
+          {/* Per-segment review cards */}
+          <div className="mx-4 mt-3 space-y-2">
+            <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+              EXTRACTED INFORMATION · <span className="font-arabic">المعلومات المستخرجة</span>
+            </p>
+            {outboundSegs.map((seg, i) => (
+              <FlightSegmentReviewCard
+                key={seg.id}
+                segment={seg}
+                title={outboundSegs.length > 1 ? `Outbound · Leg ${i + 1}` : "Outbound"}
+                onEdit={() => setEditingSeg({ direction: "outbound", index: i })}
+              />
+            ))}
+            {returnSegs.map((seg, i) => (
+              <FlightSegmentReviewCard
+                key={seg.id}
+                segment={seg}
+                title={returnSegs.length > 1 ? `Return · Leg ${i + 1}` : "Return"}
+                onEdit={() => setEditingSeg({ direction: "return", index: i })}
+              />
+            ))}
+            {detectedLanguage && (
+              <div className="rounded-xl p-3 flex items-center gap-2" style={{ background: "var(--white)" }}>
+                <span className="text-[9px]">🌐</span>
+                <p className="text-[10px]" style={{ color: "var(--gray)" }}>
+                  Language: <strong style={{ color: "var(--navy)" }}>{detectedLanguage}</strong>
+                </p>
+                {wasTranslated && (
+                  <span className="text-[9px] px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Translated</span>
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>EXTRACTED INFORMATION</p>
+              <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>المعلومات المستخرجة</p>
+            </div>
+            {isFlight && hasReturn && (
+              <div className="flex rounded-full overflow-hidden" style={{ border: "1px solid var(--teal-deep)" }}>
+                {(["outbound", "return"] as const).map(leg => (
+                  <button
+                    key={leg}
+                    onClick={() => setActiveLeg(leg)}
+                    className="px-3 py-1 text-[10px] font-bold btn-press"
+                    style={{
+                      background: activeLeg === leg ? "var(--teal-deep)" : "transparent",
+                      color: activeLeg === leg ? "#fff" : "var(--teal-deep)",
+                    }}
+                  >
+                    {leg === "outbound" ? "Outbound" : "Return"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {isFlight && activeFields ? (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+              {FLIGHT_FIELD_ORDER.map((key) => (
+                <EditableField
+                  key={`${activeLeg}-${key}`}
+                  label={key}
+                  value={activeFields[key]}
+                  onChange={(v) => updateField(key, v)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+              {(genericFields ?? []).map((f, i) => (
+                <div key={i}>
+                  <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{f.label}</p>
+                  <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{f.value}</p>
+                </div>
               ))}
             </div>
           )}
         </div>
+      )}
 
-        {isFlight && activeFields ? (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-            {FLIGHT_FIELD_ORDER.map((key) => (
-              <EditableField
-                key={`${activeLeg}-${key}`}
-                label={key}
-                value={activeFields[key]}
-                onChange={(v) => updateField(key, v)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-            {(genericFields ?? []).map((f, i) => (
-              <div key={i}>
-                <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{f.label}</p>
-                <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{f.value}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* BUG 3: language chip — only when we actually detected a language */}
-        {detectedLanguage && (
-          <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: "1px solid var(--gray-light)" }}>
-            <span className="text-[9px]">🌐</span>
-            <p className="text-[10px]" style={{ color: "var(--gray)" }}>
-              Language: <strong style={{ color: "var(--navy)" }}>{detectedLanguage}</strong>
-            </p>
-            {wasTranslated && (
-              <span className="text-[9px] px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(61,170,110,0.1)", color: "#3DAA6E" }}>✓ Translated</span>
-            )}
-          </div>
-        )}
-      </div>
+      {/* Edit modal for a single flight segment */}
+      {editingSeg && (() => {
+        const list = editingSeg.direction === "outbound" ? outboundSegs : returnSegs;
+        const seg = list[editingSeg.index];
+        if (!seg) return null;
+        const minDate = editingSeg.direction === "return"
+          ? (editingSeg.index === 0 ? finalOutboundDate ?? undefined : list[editingSeg.index - 1].arrivalDate || list[editingSeg.index - 1].departureDate)
+          : (editingSeg.index > 0 ? list[editingSeg.index - 1].arrivalDate || list[editingSeg.index - 1].departureDate : undefined);
+        return (
+          <FlightSegmentEditSheet
+            segment={seg}
+            direction={editingSeg.direction}
+            minDepartureDate={minDate ?? undefined}
+            onChange={(patch) => updateSegment(editingSeg.direction, editingSeg.index, patch)}
+            onClose={() => setEditingSeg(null)}
+          />
+        );
+      })()}
 
       {/* Edit note */}
       <div className="flex items-center gap-2 px-5 mt-3">
