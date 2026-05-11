@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { medications as demoMedications, type Medication } from "@/constants/data";
-import { ArrowLeft, Plus, Copy, Share2, Download, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Copy, Share2, Download, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import MedicationDetailSheet, { type MedNote } from "@/components/MedicationDetailSheet";
@@ -49,6 +49,30 @@ function rowToMedication(r: MedicationRow): Medication {
     period,
     instructions: r.instructions || undefined,
   };
+}
+
+/** Parse "h:mm AM/PM" → minutes since midnight, or null. */
+function parseTimeToMinutes(t: string): number | null {
+  const m = t?.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const min = Number(m[2]);
+  const ap = (m[3] || "").toUpperCase();
+  if (ap === "PM" && h < 12) h += 12;
+  if (ap === "AM" && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+/** Derive status (taken/due/missed/upcoming) from a med time vs current time. */
+function deriveStatus(timeStr: string, isTaken: boolean, now = new Date()): Medication["status"] {
+  if (isTaken) return "taken";
+  const mins = parseTimeToMinutes(timeStr);
+  if (mins == null) return "upcoming";
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const delta = nowMins - mins;
+  if (delta >= -15 && delta <= 30) return "due";
+  if (delta > 30) return "missed";
+  return "upcoming";
 }
 
 /** Convert a UI-entered Medication into a MedicationRow partial for save(). */
@@ -107,7 +131,15 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
     () => (isAuthed ? realMeds.items.map(rowToMedication) : []),
     [isAuthed, realMeds.items],
   );
-  const allMeds: Medication[] = isAuthed ? realAsUi : [...demo, ...extraMeds];
+  const baseMeds: Medication[] = isAuthed ? realAsUi : [...demo, ...extraMeds];
+  // Recompute statuses for authenticated meds based on time + takenIds
+  const allMeds: Medication[] = useMemo(
+    () =>
+      isAuthed
+        ? baseMeds.map((m) => ({ ...m, status: deriveStatus(m.time, takenIds.has(`${m.name}-${m.time}`)) }))
+        : baseMeds,
+    [isAuthed, baseMeds, takenIds],
+  );
 
 
   const actionLabel = (a: string) => a === "add" ? "PRESCRIBED" : a === "stop" ? "STOPPED" : "UPDATED";
@@ -160,7 +192,39 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
     toast.success("Reset today's tracking · تم إعادة التتبع", { duration: 2000 });
   };
 
+  const handleRefresh = async () => {
+    if (!isAuthed) return;
+    try {
+      await realMeds.refresh();
+      toast.success("Medications refreshed · تم التحديث", { duration: 1500 });
+    } catch {
+      toast.error("Refresh failed · فشل التحديث");
+    }
+  };
+
+  // Pull-to-refresh (touch) on the scroll container
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const pullStartY = useRef<number | null>(null);
+  const [pullDist, setPullDist] = useState(0);
+  const PULL_THRESHOLD = 60;
+  const onTouchStart = (e: React.TouchEvent) => {
+    const el = scrollRef.current;
+    if (!el || el.scrollTop > 0) return;
+    pullStartY.current = e.touches[0].clientY;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (pullStartY.current == null) return;
+    const dy = e.touches[0].clientY - pullStartY.current;
+    if (dy > 0) setPullDist(Math.min(dy, 100));
+  };
+  const onTouchEnd = () => {
+    if (pullDist >= PULL_THRESHOLD) void handleRefresh();
+    pullStartY.current = null;
+    setPullDist(0);
+  };
+
   const medsMenuItems: HeaderMenuItem[] = [
+    { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: handleRefresh },
     { icon: <Copy size={14} />, label: "Copy All Meds", labelAr: "نسخ جميع الأدوية", onClick: handleCopyAllMeds },
     { icon: <Download size={14} />, label: "Export Schedule", labelAr: "تصدير الجدول", onClick: handleExportMeds },
     { icon: <Share2 size={14} />, label: "Share with Doctor", labelAr: "مشاركة مع الطبيب", onClick: handleShareMeds },
@@ -205,7 +269,52 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       </div>}
 
       {/* Schedule */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ background: "var(--off-white)" }}>
+      <div
+        ref={scrollRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className="flex-1 overflow-y-auto px-4 pb-4"
+        style={{ background: "var(--off-white)" }}
+        data-testid="meds-scroll"
+      >
+        {(pullDist > 0 || (isAuthed && realMeds.isSyncing)) && (
+          <div className="flex items-center justify-center py-2 gap-2" style={{ color: "var(--gray)" }}>
+            <Loader2 size={14} className="animate-spin" />
+            <span className="font-mono text-[10px]">
+              {pullDist >= PULL_THRESHOLD ? "Release to refresh" : isAuthed && realMeds.isSyncing ? "Syncing…" : "Pull to refresh"}
+            </span>
+          </div>
+        )}
+
+        {isAuthed && realMeds.error && (
+          <div
+            role="alert"
+            className="mt-3 rounded-xl p-3 flex items-start gap-2"
+            style={{ background: "rgba(217,79,79,0.06)", border: "1px solid rgba(217,79,79,0.25)" }}
+          >
+            <AlertCircle size={16} style={{ color: "var(--error)" }} />
+            <div className="flex-1">
+              <p className="text-[11px] font-bold" style={{ color: "var(--error)" }}>
+                Couldn't load medications · تعذّر تحميل الأدوية
+              </p>
+              <button
+                onClick={handleRefresh}
+                className="mt-1 text-[11px] underline"
+                style={{ color: "var(--teal-deep)" }}
+              >
+                Retry · إعادة المحاولة
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isAuthed && realMeds.isLoading && allMeds.length === 0 && !realMeds.error && (
+          <div className="flex items-center justify-center py-10" data-testid="meds-loading">
+            <Loader2 size={18} className="animate-spin" style={{ color: "var(--teal-deep)" }} />
+          </div>
+        )}
+
         {medUpdates.length > 0 && (
           <div className="mt-3">
             <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>

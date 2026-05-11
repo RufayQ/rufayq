@@ -6,6 +6,7 @@ import { medicalRecordApi } from '@/lib/api/medicalRecordApi';
 import { journeyApi } from '@/lib/api/journeyApi';
 import { carePlanApi } from '@/lib/api/carePlanApi';
 import { educationApi } from '@/lib/api/educationApi';
+import { medicationApi } from '@/lib/api/medicationApi';
 
 describe('Zod validation integration', () => {
   it('appointment validation fails when title missing', async () => {
@@ -30,5 +31,9 @@ describe('Zod validation integration', () => {
 
   it('education validation fails when content_id/title missing', async () => {
     await expect(async () => educationApi.save({} as any)).rejects.toThrow(ValidationError);
+  });
+
+  it('medication validation fails when medication_name missing', async () => {
+    await expect(async () => medicationApi.save({} as any)).rejects.toThrow(ValidationError);
   });
 });
