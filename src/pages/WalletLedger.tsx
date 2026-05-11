@@ -107,7 +107,7 @@ const WalletLedger = () => {
     <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }}>
       <header className="sticky top-0 z-30 backdrop-blur-xl border-b" style={{ background: "rgba(6,16,26,0.85)", borderColor: BORDER }}>
         <div className="max-w-5xl mx-auto px-5 py-4 flex items-center gap-3">
-          <Link to="/app/dashboard/subscription" className="p-2 -ml-2 rounded-full hover:bg-white/5"><ArrowLeft size={18}/></Link>
+          <Link to={isAr ? "/ar/app/dashboard/subscription" : "/app/dashboard/subscription"} className="p-2 -ml-2 rounded-full hover:bg-white/5"><ArrowLeft size={18}/></Link>
           <div className="flex-1">
             <p className="font-mono text-[10px] tracking-widest" style={{ color: GOLD }}>{isAr ? "محفظتي" : "MY WALLET"}</p>
             <h1 className="font-display text-lg flex items-center gap-2"><Wallet size={16}/>{isAr ? "السجل والمعاملات" : "Ledger"}</h1>

@@ -248,6 +248,9 @@ const Index = () => {
       setAppView("support");
     } else if (tab === "emr") {
       setAppView("emr");
+    } else if (tab === "wallet") {
+      const isAr = window.location.pathname.startsWith("/ar");
+      navigate(isAr ? "/ar/app/wallet" : "/app/wallet");
     } else if (tab === "chat" && context) {
       setChatContext(context);
       setActiveTab("chat");

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy, Sparkles, PlayCircle, CalendarClock, Plane, Hotel, Pill, Scan, FlaskConical, RotateCcw } from "lucide-react";
+import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy, Sparkles, PlayCircle, CalendarClock, Plane, Hotel, Pill, Scan, FlaskConical, RotateCcw, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage, type LangMode } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -349,14 +349,19 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>ABOUT & LINKS · حول</p>
           </div>
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            {[
+            {(() => {
+              const isAr = window.location.pathname.startsWith("/ar");
+              const walletHref = isAr ? "/ar/app/wallet" : "/app/wallet";
+              return [
               { icon: <Globe size={15} style={{ color: "var(--teal-deep)" }} />, label: "Visit RufayQ Website", labelAr: "زيارة موقع رُفَيِّق", href: "https://rufayq.com" },
               { icon: <CreditCard size={15} style={{ color: "var(--gold)" }} />, label: "Pricing & Plans", labelAr: "الأسعار والباقات", href: "/pricing" },
+              { icon: <Wallet size={15} style={{ color: "var(--gold)" }} />, label: "Wallet & Refund Ledger", labelAr: "المحفظة وسجل الاسترداد", href: walletHref },
               { icon: <LifeBuoy size={15} style={{ color: "var(--teal-mid)" }} />, label: "Help Center", labelAr: "مركز المساعدة", href: "/#faq" },
               { icon: <Mail size={15} style={{ color: "var(--success)" }} />, label: "Contact Support", labelAr: "تواصل معنا", href: "mailto:support@rufayq.com" },
               { icon: <FileText size={15} style={{ color: "var(--gray)" }} />, label: "Privacy Policy (PDPL · HIPAA · GDPR)", labelAr: "سياسة الخصوصية", href: "/privacy" },
               { icon: <FileText size={15} style={{ color: "var(--gray)" }} />, label: "Terms of Service", labelAr: "شروط الاستخدام", href: "/terms" },
-            ].map((link, i, arr) => (
+              ];
+            })().map((link, i, arr) => (
               <a
                 key={link.label}
                 href={link.href}

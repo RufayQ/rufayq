@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import RufayQWordmark from "@/components/RufayQWordmark";
 import HeaderMenu, { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
 import NotificationBell from "@/components/NotificationBell";
-import { CreditCard } from "lucide-react";
+import { CreditCard, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { medications, appointments } from "@/constants/data";
 import { Plus, MapPin, Video, Building2 } from "lucide-react";
@@ -77,6 +77,10 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
     {
       icon: <CreditCard size={14} />, label: "Subscriptions & Payment", labelAr: "الاشتراكات والدفع",
       onClick: () => { onNavigate("pricing"); },
+    },
+    {
+      icon: <Wallet size={14} />, label: "Wallet & Refunds", labelAr: "المحفظة والاستردادات",
+      onClick: () => { onNavigate("wallet"); },
     },
     {
       icon: <Settings size={14} />, label: "Settings", labelAr: "الإعدادات",
