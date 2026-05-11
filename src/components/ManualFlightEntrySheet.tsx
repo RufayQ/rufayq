@@ -407,7 +407,12 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
           </span>
         )}
       </div>
-      {list.map((s, i) => (
+      {list.map((s, i) => {
+        const minDate =
+          direction === "return"
+            ? (i === 0 ? finalOutboundDate ?? undefined : list[i - 1].arrivalDate || list[i - 1].departureDate || undefined)
+            : (i > 0 ? list[i - 1].arrivalDate || list[i - 1].departureDate || undefined : undefined);
+        return (
         <div key={s.id}>
           <SegmentEditor
             segment={s}
@@ -418,6 +423,7 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
             title={list.length === 1 ? label : `${label} · Leg ${i + 1}`}
             titleAr={list.length === 1 ? labelAr : `${labelAr} · رحلة ${i + 1}`}
             testIdPrefix={`seg-${direction}-${i}`}
+            minDepartureDate={minDate}
           />
           {i < list.length - 1 && (
             <div className="flex items-center justify-center my-1.5" aria-hidden>
@@ -430,7 +436,7 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
             </div>
           )}
         </div>
-      ))}
+      );})}
       {list.length < 5 && (
         <button
           type="button"
