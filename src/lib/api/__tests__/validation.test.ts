@@ -6,6 +6,7 @@ import { medicalRecordApi } from '@/lib/api/medicalRecordApi';
 import { journeyApi } from '@/lib/api/journeyApi';
 import { carePlanApi } from '@/lib/api/carePlanApi';
 import { educationApi } from '@/lib/api/educationApi';
+import { medicationApi } from '@/lib/api/medicationApi';
 
 describe('Zod validation integration', () => {
   it('appointment validation fails when title missing', async () => {
