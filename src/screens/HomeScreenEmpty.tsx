@@ -5,7 +5,7 @@
 import RufayQWordmark from "@/components/RufayQWordmark";
 import HeaderMenu, { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
 import NotificationBell from "@/components/NotificationBell";
-import { CreditCard, Plus, ScanLine, MessageCircle, FileText, Map, Sparkles } from "lucide-react";
+import { CreditCard, Plus, ScanLine, MessageCircle, FileText, Map, Sparkles, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
