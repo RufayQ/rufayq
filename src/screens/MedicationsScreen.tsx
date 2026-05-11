@@ -131,7 +131,15 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
     () => (isAuthed ? realMeds.items.map(rowToMedication) : []),
     [isAuthed, realMeds.items],
   );
-  const allMeds: Medication[] = isAuthed ? realAsUi : [...demo, ...extraMeds];
+  const baseMeds: Medication[] = isAuthed ? realAsUi : [...demo, ...extraMeds];
+  // Recompute statuses for authenticated meds based on time + takenIds
+  const allMeds: Medication[] = useMemo(
+    () =>
+      isAuthed
+        ? baseMeds.map((m) => ({ ...m, status: deriveStatus(m.time, takenIds.has(`${m.name}-${m.time}`)) }))
+        : baseMeds,
+    [isAuthed, baseMeds, takenIds],
+  );
 
 
   const actionLabel = (a: string) => a === "add" ? "PRESCRIBED" : a === "stop" ? "STOPPED" : "UPDATED";
