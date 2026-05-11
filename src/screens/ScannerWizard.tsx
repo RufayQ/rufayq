@@ -715,12 +715,16 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
       setProcessStep(4);
       const { parsedLegToSegment } = await import("@/lib/transportTickets");
+      const outSegs = outArr.map((raw, i) => parsedLegToSegment(raw, "outbound", i));
+      const retSegs = retArr.map((raw, i) => parsedLegToSegment(raw, "return", i));
+      setOutboundSegs(outSegs);
+      setReturnSegs(retSegs);
       emitParsed({
         outbound: out,
         return: ret,
         legs: outLegs.length + retLegs.length > 2 ? [...outLegs, ...retLegs] : undefined,
-        outboundSegments: outArr.map((raw, i) => parsedLegToSegment(raw, "outbound", i)),
-        returnSegments: retArr.map((raw, i) => parsedLegToSegment(raw, "return", i)),
+        outboundSegments: outSegs,
+        returnSegments: retSegs,
         rawOutbound: parsed.outboundFlight ?? null,
         rawReturn: parsed.returnFlight ?? null,
         passenger: {
