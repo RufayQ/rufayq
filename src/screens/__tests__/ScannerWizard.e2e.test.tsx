@@ -206,7 +206,7 @@ describe("ScannerWizard E2E — flight flow", () => {
 
     // Pick-pages screen appears
     await waitFor(() => expect(analyzePdfPagesMock).toHaveBeenCalled(), { timeout: 4000 });
-    const runBtn = await screen.findByText(/Run OCR on selected page/i, undefined, { timeout: 4000 });
+    const runBtn = await screen.findByText(/Extract with AI Vision/i, undefined, { timeout: 4000 });
     fireEvent.click((runBtn as HTMLElement).closest("button")!);
 
     await waitFor(() => expect(renderPdfPagesAtScaleMock).toHaveBeenCalled(), { timeout: 4000 });
