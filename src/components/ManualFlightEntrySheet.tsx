@@ -185,23 +185,38 @@ const SegmentEditor = ({ segment, onChange, onRemove, onMoveUp, onMoveDown, titl
       />
 
       <div className="grid grid-cols-2 gap-2">
-        <TextField label="Departure date" ar="تاريخ المغادرة" type="date" value={segment.departureDate} onChange={v => update({ departureDate: v })} testId={`${testIdPrefix}-dep-date`} required />
         <TextField
+          label="Departure date"
+          ar="تاريخ المغادرة"
+          type="date"
+          value={segment.departureDate}
+          onChange={v => update({ departureDate: v })}
+          testId={`${testIdPrefix}-dep-date`}
+          required
+          min={minDepartureDate}
+        />
+        <Time24Input
           label="Departure time (24h)"
           ar="الوقت"
-          type="time"
           value={segment.departureTime}
-          onChange={v => update({ departureTime: normalizeTo24Hour(v) || v })}
+          onChange={v => update({ departureTime: v })}
           testId={`${testIdPrefix}-dep-time`}
           required
         />
-        <TextField label="Arrival date" ar="تاريخ الوصول" type="date" value={segment.arrivalDate || ""} onChange={v => update({ arrivalDate: v || undefined })} testId={`${testIdPrefix}-arr-date`} />
         <TextField
+          label="Arrival date"
+          ar="تاريخ الوصول"
+          type="date"
+          value={segment.arrivalDate || ""}
+          onChange={v => update({ arrivalDate: v || undefined })}
+          testId={`${testIdPrefix}-arr-date`}
+          min={segment.departureDate || minDepartureDate}
+        />
+        <Time24Input
           label="Arrival time (24h)"
           ar="وقت الوصول"
-          type="time"
           value={segment.arrivalTime || ""}
-          onChange={v => update({ arrivalTime: normalizeTo24Hour(v) || v || undefined })}
+          onChange={v => update({ arrivalTime: v || undefined })}
           testId={`${testIdPrefix}-arr-time`}
         />
         <TextField label="Departure terminal" ar="صالة المغادرة" value={segment.departureTerminal || ""} onChange={v => update({ departureTerminal: v || undefined })} placeholder="T1" testId={`${testIdPrefix}-dep-term`} />
