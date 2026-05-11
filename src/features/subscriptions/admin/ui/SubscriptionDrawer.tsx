@@ -33,6 +33,7 @@ import { PLANS, type PlanCode } from "@/data/subscriptionPlans";
 import { statusTone, normalizePlanCode } from "@/features/subscriptions/logic/statusMachine";
 import { RefundPolicyHint } from "@/features/refunds/RefundPolicyHint";
 import { AdminPayoutDialog } from "@/features/refunds/AdminPayoutDialog";
+import { AdminWalletAdjustDialog } from "@/features/subscriptions/admin/ui/AdminWalletAdjustDialog";
 
 /* ── Types ────────────────────────────────────────────────────────────── */
 
