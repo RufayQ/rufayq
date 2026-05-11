@@ -156,6 +156,7 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
   const [refundingAddon, setRefundingAddon] = useState<Addon | null>(null);
   /** Bank/manual payout dialog. */
   const [payoutOpen, setPayoutOpen] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [walletInfo, setWalletInfo] = useState<{ balance: number; currency: string; user_id: string | null } | null>(null);
 
   /**
