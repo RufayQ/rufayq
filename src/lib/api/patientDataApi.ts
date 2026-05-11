@@ -38,8 +38,7 @@ export async function claimGuestPatientData(): Promise<Record<string, number> | 
     { _device_id: deviceId },
   );
   if (error) {
-    console.warn("[patientDataApi] claim failed", error);
-    return null;
+    throw error;
   }
   return (data?.claimed ?? {}) as Record<string, number>;
 }

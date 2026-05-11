@@ -12,6 +12,7 @@ import {
   type BootstrapResult,
   logAudit,
 } from "@/lib/api/patientDataApi";
+import { setActivePatientKey } from "@/lib/sync/activePatient";
 import { medicationApi } from "@/lib/api/medicationApi";
 import { medicalRecordApi } from "@/lib/api/medicalRecordApi";
 import { appointmentApi } from "@/lib/api/appointmentApi";
@@ -44,7 +45,7 @@ export async function bootstrap(): Promise<BootstrapResult> {
   return result;
 }
 
-export async function refreshAll(): Promise<EntityRefreshResult[]> {
+export async function refreshAll(patientId?: string | null): Promise<EntityRefreshResult[]> {
   const tasks: Array<{ entity: string; run: () => Promise<unknown[]> }> = [
     { entity: "transport_tickets", run: listTransportTickets },
     { entity: "medications", run: medicationApi.list },
@@ -56,6 +57,8 @@ export async function refreshAll(): Promise<EntityRefreshResult[]> {
     { entity: "education_progress", run: educationApi.list },
   ];
   const results: EntityRefreshResult[] = [];
+  // If caller knows the patientId, set it so per-API ensurePatient calls can be skipped.
+  if (typeof patientId !== "undefined") setActivePatientKey(patientId ?? null);
   for (const t of tasks) {
     try {
       const rows = await t.run();

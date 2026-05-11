@@ -16,6 +16,9 @@
  *   caller — user data is never silently dropped.
  * - Segments are inserted in a single transaction-like sequence; on any
  *   segment failure we roll back the parent ticket to avoid orphans.
+ *
+ * @deprecated This legacy device-only store remains for `useTransportTimeline`.
+ * It will be removed in a future checkpoint; prefer `src/lib/api/transportApi.ts`.
  */
 import { supabase } from "@/integrations/supabase/client";
 import {

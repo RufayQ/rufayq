@@ -88,6 +88,7 @@ export async function saveTransportTicket(
       .from("transport_tickets")
       .update(payload)
       .eq("id", input.id)
+      .eq("patient_id", patientId)
       .select("*")
       .single();
     if (error) throw error;
@@ -107,7 +108,8 @@ export async function saveTransportTicket(
     await (supabase as any)
       .from("transport_flight_segments")
       .delete()
-      .eq("ticket_id", row.id);
+      .eq("ticket_id", row.id)
+      .eq("patient_id", patientId);
     const segPayload = segments.map((s) => ({
       ...s,
       ticket_id: row.id,
@@ -138,7 +140,8 @@ export async function removeTransportTicket(id: string): Promise<void> {
   const { error } = await (supabase as any)
     .from("transport_tickets")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("patient_id", patientId);
   if (error) throw error;
   const current = readCache<TransportTicketRow>(cacheKey, ENTITY);
   writeCache(cacheKey, ENTITY, current.filter((r) => r.id !== id));

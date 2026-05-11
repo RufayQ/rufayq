@@ -87,3 +87,19 @@ export function writeLastSyncedAt(patientKey: PatientKey, entity: string): strin
   }
   return ts;
 }
+
+/** Clear all cached keys for a given patientKey (all entities). */
+export function clearAllForPatient(patientKey: PatientKey): void {
+  if (typeof window === "undefined" || !patientKey) return;
+  try {
+    const prefix = `rufayq:${patientKey}:`;
+    const toRemove: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith(prefix)) toRemove.push(k);
+    }
+    for (const k of toRemove) window.localStorage.removeItem(k);
+  } catch (e) {
+    console.warn("[cacheStore] clearAllForPatient failed", e);
+  }
+}

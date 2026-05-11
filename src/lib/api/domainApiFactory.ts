@@ -20,6 +20,7 @@ import {
   type PatientKey,
 } from "@/lib/sync/cacheStore";
 import { ensurePatient, logAudit } from "@/lib/api/patientDataApi";
+import { getActivePatientKey } from "@/lib/sync/activePatient";
 
 export interface DomainConfig<Row extends { id: string; deleted_at?: string | null }> {
   /** Supabase table name */
@@ -45,7 +46,9 @@ export function createDomainApi<
     const deviceId = getDeviceId();
     const { data: auth } = await supabase.auth.getUser();
     const userId = auth.user?.id ?? null;
-    const patientId = await ensurePatient();
+    // Prefer an already-resolved active patient key to avoid repeated RPCs.
+    const active = getActivePatientKey();
+    const patientId = active ?? (await ensurePatient());
     const cacheKey: PatientKey = patientId || userId || deviceId;
     return { deviceId, userId, patientId, cacheKey };
   }
@@ -68,10 +71,10 @@ export function createDomainApi<
   }
 
   function listCached(): Row[] {
+    // Prefer synchronous active patient key when available, else fall back to device id.
+    const active = getActivePatientKey();
     const deviceId = getDeviceId();
-    // Best-effort cache read; used for instant paint before DB call.
-    // We try patient-id-based key opportunistically by scanning known prefixes.
-    const candidates = [deviceId];
+    const candidates = active ? [active, deviceId] : [deviceId];
     for (const k of candidates) {
       const cached = readCache<Row>(k, cfg.entity);
       if (cached.length) return filterAlive(cached);
@@ -82,8 +85,10 @@ export function createDomainApi<
   async function save(input: Partial<Row> & { id?: string }): Promise<Row> {
     cfg.validate?.(input);
     const { deviceId, userId, patientId, cacheKey } = await ctx();
+    // Strip server-managed fields to avoid leaking them on update.
+    const { id, created_at, updated_at, version, ...rest } = input as any;
     const payload: any = {
-      ...input,
+      ...rest,
       patient_id: patientId,
       user_id: userId,
       device_id: deviceId,
@@ -97,6 +102,7 @@ export function createDomainApi<
         .from(cfg.table)
         .update(payload)
         .eq("id", input.id)
+        .eq("patient_id", patientId)
         .select(select)
         .single();
       if (error) throw error;
@@ -114,7 +120,8 @@ export function createDomainApi<
 
     // Cache update only after DB success.
     const current = readCache<Row>(cacheKey, cfg.entity);
-    const next = filterAlive([dbRow, ...current.filter((r) => r.id !== dbRow!.id)]);
+    const merged = [dbRow, ...current.filter((r) => r.id !== dbRow!.id)];
+    const next = filterAlive(merged);
     writeCache(cacheKey, cfg.entity, next);
 
     await logAudit({
@@ -131,7 +138,8 @@ export function createDomainApi<
     const { error } = await (supabase as any)
       .from(cfg.table)
       .update({ deleted_at: new Date().toISOString(), sync_status: "synced" })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("patient_id", patientId);
     if (error) throw error;
 
     const current = readCache<Row>(cacheKey, cfg.entity);
@@ -146,8 +154,10 @@ export function createDomainApi<
   }
 
   function lastSyncedAt(): string | null {
+    const active = getActivePatientKey();
     const deviceId = getDeviceId();
-    return readLastSyncedAt(deviceId, cfg.entity);
+    const key = active ?? deviceId;
+    return readLastSyncedAt(key, cfg.entity);
   }
 
   return { list, listCached, save, remove, lastSyncedAt, ctx };
