@@ -181,7 +181,7 @@ const Landing = () => {
             <div className="md:hidden px-6 pb-4 space-y-3" style={{ borderTop: `1px solid ${BORDER}` }}>
               {navLinks.map((l) => (
                 l.isRoute ? (
-                  <Link key={l.href} to={l.href} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
+                  <Link key={l.href} to={lp(l.href)} onClick={() => setMenuOpen(false)} className="block py-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
                     {isAr ? l.ar : l.en}
                   </Link>
                 ) : (
