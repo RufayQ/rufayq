@@ -77,7 +77,7 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
   return (
     <>
       {/* FEATURES */}
-      <section id="features" className="lazy-section py-24 px-6 relative" style={{ background: BG_DARK }}>
+      <section id="features" className="lazy-section py-24 px-6 relative" style={{ scrollMarginTop: 80, background: BG_DARK }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -120,7 +120,7 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" className="lazy-section py-24 px-6 relative" style={{ background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
+      <section id="how" className="lazy-section py-24 px-6 relative" style={{ scrollMarginTop: 80, background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -211,7 +211,7 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="lazy-section py-24 px-6 relative overflow-hidden" style={{ background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
+      <section id="pricing" className="lazy-section py-24 px-6 relative overflow-hidden" style={{ scrollMarginTop: 80, background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
         <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(circle at 50% 50%, ${GOLD}15 0%, transparent 60%)` }} />
         <div className="relative max-w-5xl mx-auto text-center">
           <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -272,7 +272,7 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="lazy-section py-24 px-6" style={{ background: BG_DARK }}>
+      <section id="faq" className="lazy-section py-24 px-6" style={{ scrollMarginTop: 80, background: BG_DARK }}>
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-14">
             <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
@@ -325,7 +325,7 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
       </section>
 
       {/* CONTACT */}
-      <section id="contact" className="py-20 px-6" style={{ background: BG_DARK, borderTop: `1px solid ${BORDER}` }}>
+      <section id="contact" className="py-20 px-6" style={{ scrollMarginTop: 80, background: BG_DARK, borderTop: `1px solid ${BORDER}` }}>
         <div className="max-w-4xl mx-auto text-center">
           <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
             {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>تواصل معنا</span> : "CONTACT US"}
