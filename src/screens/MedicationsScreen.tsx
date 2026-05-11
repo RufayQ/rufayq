@@ -130,7 +130,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   const takenCount = allMeds.filter((m) => m.status === "taken").length + takenIds.size;
 
   const handleCopyAllMeds = () => {
-    const text = medications.map(m =>
+    const text = allMeds.map(m =>
       `💊 ${m.name} (${m.nameAr}) — ${m.dosage} — ${m.frequency} — ${m.time}`
     ).join("\n");
     navigator.clipboard.writeText(`Medication Schedule\nجدول الأدوية\n\n${text}`);
@@ -138,7 +138,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   };
 
   const handleExportMeds = () => {
-    const text = medications.map(m =>
+    const text = allMeds.map(m =>
       `${m.name}\t${m.nameAr}\t${m.dosage}\t${m.frequency}\t${m.time}\t${m.status}`
     ).join("\n");
     const blob = new Blob([`Name\tName (AR)\tDosage\tFrequency\tTime\tStatus\n${text}`], { type: "text/plain" });
@@ -150,7 +150,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   };
 
   const handleShareMeds = () => {
-    const text = `Medication Schedule\nجدول الأدوية\n\n${medications.map(m => `💊 ${m.name} — ${m.dosage} — ${m.time}`).join("\n")}`;
+    const text = `Medication Schedule\nجدول الأدوية\n\n${allMeds.map(m => `💊 ${m.name} — ${m.dosage} — ${m.time}`).join("\n")}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
