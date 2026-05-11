@@ -756,6 +756,10 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     // Reset all parsed/cached state for a fresh scan
     setOutboundFields(null);
     setReturnFields(null);
+    setOutboundSegs([]);
+    setReturnSegs([]);
+    setEditingSeg(null);
+    setSaveError(null);
     setGenericFields(null);
     setDetectedLanguage(null);
     setWasTranslated(false);
