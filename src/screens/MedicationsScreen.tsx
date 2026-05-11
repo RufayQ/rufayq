@@ -142,6 +142,12 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
     [isAuthed, baseMeds, takenIds],
   );
 
+  // Schedule OS-level medication reminders whenever the authed med list changes.
+  useEffect(() => {
+    if (!isAuthed) return;
+    void syncMedicationReminders(realMeds.items);
+  }, [isAuthed, realMeds.items]);
+
 
   const actionLabel = (a: string) => a === "add" ? "PRESCRIBED" : a === "stop" ? "STOPPED" : "UPDATED";
   const actionColor = (a: string) => a === "stop" ? "rgba(217,79,79,0.15)" : a === "add" ? "rgba(61,170,110,0.15)" : "rgba(224,160,48,0.15)";
