@@ -88,6 +88,7 @@ beforeEach(() => {
   medsState.refresh.mockClear();
   toastError.mockClear();
   toastSuccess.mockClear();
+  syncReminders.mockClear();
 });
 
 describe("MedicationsScreen — guest mode", () => {
