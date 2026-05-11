@@ -79,6 +79,10 @@ const HomeScreen = ({ onNavigate, onProfile }: HomeScreenProps) => {
       onClick: () => { onNavigate("pricing"); },
     },
     {
+      icon: <Wallet size={14} />, label: "Wallet & Refunds", labelAr: "المحفظة والاستردادات",
+      onClick: () => { onNavigate("wallet"); },
+    },
+    {
       icon: <Settings size={14} />, label: "Settings", labelAr: "الإعدادات",
       onClick: () => { onNavigate("settings"); },
     },
