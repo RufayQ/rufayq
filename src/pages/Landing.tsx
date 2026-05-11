@@ -57,7 +57,6 @@ const Landing = () => {
   const isAr = mode === "ar";
   const isBoth = mode === "both";
   const routeIsAr = location.pathname === "/ar" || location.pathname.startsWith("/ar/");
-  const pricingHref = routeIsAr ? "/ar/pricing" : "/pricing";
 
   // ── CMS overrides (Phase 1: hero CTAs + trust badges) ───────────────
   // Hardcoded defaults below remain as fallback when CMS is empty / loading.
@@ -82,7 +81,7 @@ const Landing = () => {
   const navLinks: { en: string; ar: string; href: string; isRoute?: boolean; anchorId?: string }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
     { en: "How", ar: "كيف يعمل", href: "#how" },
-    { en: "Pricing", ar: "الأسعار", href: pricingHref, isRoute: true },
+    { en: "Pricing", ar: "الأسعار", href: "#pricing" },
     { en: "FAQ", ar: "الأسئلة", href: "#faq" },
     { en: "Contact", ar: "تواصل", href: "#contact" },
   ];
