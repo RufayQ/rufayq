@@ -1,251 +1,106 @@
-# BUG-005 — Phase 2/3 Hardening + Medications Rewire
+## Goal
 
-Approved plan with strict checkpoints.
+1. Finish Zod wiring for the one remaining domain (transport).
+2. Mount `usePatientBootstrap` so the active patient session is initialized in the app.
+3. Replace `MedicationsScreen`'s local `demoMedications + extraMeds` state with `useMedications()` for **logged-in users only**. Guest mode keeps the existing demo + ephemeral local list (per the explicit requirement: "active or real medications and related features are populated only in the Logged in status — not guest mode").
 
-The Phase 2/3 architecture is present, but screens are still mostly unwired and the service layer needs verification. Do not rewire screens until Checkpoints 1–3 are green. Only MedicationsScreen is allowed in Checkpoint 4.
+No screen rewiring beyond Medications. No migrations. No test removals.
 
-Important clarification:
+## Findings (from current code)
 
-“Build passes cleanly” means the command exits successfully. Existing Vite chunk-size or mixed dynamic/static import warnings may be logged but are not blocking unless new warnings are introduced.
+- All 6 domain APIs (`medication`, `appointment`, `allergy`, `medicalRecord`, `journey`, `carePlan`, `education`) **already** wire `validate(<schema>, x)` into `createDomainApi`. Only `transportApi.saveTransportTicket` still uses an ad-hoc `if (!input.trip_type) throw …`.
+- `src/lib/api/schemas.ts` is missing a `transportSchema`.
+- `usePatientBootstrap` is defined but never mounted. Without it, `setActivePatientKey` is never called → `domainApiFactory` falls back to `deviceId` cache keys post-login (defeats the persistence fix).
+- `usePatientBootstrap` still contains the dead `try { const prev = setActivePatientKey as any; } catch {}` block flagged previously.
+- `MedicationsScreen` uses `medications: Medication[] = showMedsDemo ? demoMedications : []` plus local `extraMeds`. Adds are lost on reload. `Medication` (UI shape) and `MedicationRow` (DB shape) differ — needs an adapter.
 
-Bootstrap order must be:
+## Changes
 
-ensure_patient → if authenticated, claim_guest_patient_data → refreshAll(patientId) → backfillLegacyLocalStorage once.
+### 1. `src/lib/api/schemas.ts`
 
-For cache key hardening:
+Add:
 
-Do not make synchronous `listCached()` depend on async patient resolution. Instead, introduce a single active patient/cache context set during bootstrap, or pass `patientId`/context into APIs and hooks after bootstrap. Goal: consistent `rufayq:{patientId}:{entity}:v1` keys, with `deviceId` only as guest/pre-bootstrap fallback.
+```ts
+export const transportSchema = z.object({
+  id: z.string().optional(),
+  trip_type: z.string().min(1),
+  document_type: z.string().optional(),
+  passenger_name: z.string().nullable().optional(),
+  booking_reference: z.string().nullable().optional(),
+});
+```
 
-Checkpoint 1 — Repo Validation Gate
+Export it from the default object.
 
-Goal: establish a clean baseline before architecture changes.
+### 2. `src/lib/api/transportApi.ts`
 
-1. Sync `package-lock.json` with `package.json`.
+Replace the ad-hoc check at the top of `saveTransportTicket` with:
 
-2. Run `npm run lint`; fix all lint errors. Warnings can be logged but are not blocking.
+```ts
+import { transportSchema, validate } from "./schemas";
+…
+validate(transportSchema, input);
+```
 
-3. Re-run `ScannerWizard.e2e.test.tsx`; fix failures.
+Keep the rest unchanged.
 
-4. Confirm `npm run build` exits successfully.
+### 3. `src/hooks/usePatientBootstrap.ts`
 
-Exit criteria:
+Remove the dead `try { const prev = setActivePatientKey as any; } catch {}` block (lines 22–26). Pure cleanup.
 
-- lint has 0 errors
+### 4. Mount the bootstrap
 
-- ScannerWizard E2E green
+Mount once at the top of `src/pages/Index.tsx` (the only entry point that hosts authenticated patient screens; mounting in `AppShell` would re-run on every shelled marketing route). Pattern:
 
-- build exits successfully
+```ts
+const { isLoading: bootLoading } = usePatientBootstrap();
+```
 
-- stop and report before Checkpoint 2
+Don't gate render on it — it's a side-effecting bootstrap; the UI continues to paint from cache.
 
-Checkpoint 2 — Service-Layer Audit & Hardening
+### 5. `src/screens/MedicationsScreen.tsx`
 
-Goal: enforce the persistence contract everywhere before UI rewiring.
+- Detect authenticated status (use existing `useGuestMode()` — `isGuest === false` ⇒ logged in).
+- For **guest** users: keep existing `demoMedications` + `extraMeds` local state exactly as today (no DB writes).
+- For **logged-in** users:
+  - Call `useMedications()` to get `{ items, isLoading, save }`.
+  - Map `MedicationRow[]` → UI `Medication[]` via a small in-file `rowToMedication()` adapter (name → name, dose → dosage, frequency, derive `period` from start_date or default, status default `upcoming`, time defaults).
+  - Replace `extraMeds` writes with `await save({ medication_name, dose, frequency, instructions, start_date })`.
+  - Drop allergies hard-coded array for logged-in users (will be wired in a later screen-rewire pass; for now show empty list when logged-in until allergies screen is migrated).
+  - Show a small "Syncing…" indicator when `isSyncing`.
+- Keep all UI styling, headers, copy/export/share buttons unchanged.
 
-Fix these findings:
+### 6. Adapter (in `MedicationsScreen.tsx`)
 
-1. `domainApiFactory.ts::listCached`
+```ts
+function rowToMedication(r: MedicationRow): Medication { … }
+```
 
-   - Current issue: cache lookup can use only `deviceId`, causing signed-in users to see stale guest cache.
+Defaults: `period` derived from `r.frequency`/time-of-day if parseable, else "morning"; `status: "upcoming"`; `time` from first `reminder_times` entry or "08:00 AM"; `nameAr` falls back to `name`.
 
-   - Fix: use active patient/cache context from bootstrap, or passed-in `patientId`; fallback to `deviceId` only pre-bootstrap/guest.
+### 7. `AddMedicationSheet`
 
-2. `domainApiFactory.ts::lastSyncedAt`
+No prop-shape change. The `onSubmit(med: Medication)` callback in `MedicationsScreen` will, when logged-in, translate the UI `Medication` back into a `MedicationRow` partial and call `save()`. When guest, behaves exactly as today (push into `extraMeds`).
 
-   - Same keying issue.
+## Verification (must all pass before claiming done)
 
-   - Fix: read from the active patient cache key.
+- `npm run lint` → 0 errors.
+- `vitest run` → all green (existing 20+ tests must still pass; no test changes needed).
+- Manual QA on `/app` Medications screen:
+  1. Guest mode → demo meds visible; "Add" appends to local list (lost on reload — expected).
+  2. Sign in → demo disappears, list comes from DB (empty initially).
+  3. Add med → appears immediately (optimistic), persists across reload + localStorage clear.
+  4. Sign out → list reverts to guest demo.
+- **Minor suggestions**
+  - When adding `transportSchema`, ensure it is exported in the default object at the bottom of `schemas.ts` so that `createDomainApi` can import it consistently.
+  - In the adapter for medications, derive `period` and `time` carefully; if the DB row has `reminder_times` as an array of minutes, choose the first entry or provide a sensible default (as you suggested).
+  - In `Index.tsx`, import and call `usePatientBootstrap()` near the top of the component and ignore its return unless you want to surface loading states; this matches the side‑effect pattern used in other hooks.
+  - Don’t forget to remove the old `transportStore.ts` references once the journey screen is rewired in a later pass, but your plan already defers that.
 
-3. `domainApiFactory.ts::remove`
+## Out of scope (explicitly NOT touched)
 
-   - Current issue: update relies only on RLS.
-
-   - Fix: add `.eq("patient_id", patientId)` defense-in-depth.
-
-4. `transportApi.ts::removeTransportTicket`
-
-   - Same issue.
-
-   - Fix: add `.eq("patient_id", patientId)`.
-
-5. `useDomainData.ts::save`
-
-   - Current issue: merged cache may keep rows if `deleted_at` flips on update.
-
-   - Fix: run `filterAlive` on merged list.
-
-6. `useDomainData.ts::save`
-
-   - Current issue: errors are not consistently prepared for screen-level toast handling.
-
-   - Fix: catch, set error state, rethrow.
-
-7. `syncEngine.refreshAll`
-
-   - Current issue: no explicit `patientId` parameter.
-
-   - Fix: accept `patientId`, refresh all entities under that patient context, and maintain `lastSyncedAt` per entity.
-
-8. `patientDataApi.claimGuestPatientData`
-
-   - Current issue: RPC errors are swallowed with `console.warn` and `null`.
-
-   - Fix: rethrow; `bootstrap()` decides how to surface/report.
-
-9. Domain API validation
-
-   - Keep current lightweight validation for now.
-
-   - Add TODO for full Zod schemas after Phase 3.
-
-10. `transportStore.ts`
-
-   - Current issue: legacy path hard-deletes, queries by device only, and may write cache after DB failure.
-
-   - Fix: mark `@deprecated`; do not remove yet. Later rewires should move callers to `transportApi`.
-
-Out of scope for Checkpoint 2:
-
-- no screen rewiring
-
-- no deletion of `transportStore.ts`
-
-Exit criteria:
-
-- all findings addressed
-
-- `npm run build` exits successfully
-
-- stop and report before Checkpoint 3
-
-Checkpoint 3 — Service/Sync Test Suite
-
-Goal: lock the persistence contract before UI changes.
-
-Add tests under `src/lib/api/__tests__/` and `src/lib/sync/__tests__/`.
-
-Test matrix:
-
-1. Domain API contract
-
-   - `save()` calls DB before cache write
-
-   - `save()` does not update cache when DB throws
-
-   - `list()` filters `deleted_at IS NULL`
-
-   - `remove()` soft-deletes with `deleted_at`, never hard deletes
-
-   - `save()` and `remove()` write audit log
-
-   - `save()` returns canonical DB row from `.select().single()`
-
-2. Cache store
-
-   - keys follow `rufayq:{patientId}:{entity}:v1`
-
-   - `filterAlive` removes both `deleted_at` and `deletedAt`
-
-   - `lastSyncedAt` round-trips correctly
-
-3. Sync engine
-
-   - `bootstrap()` calls `ensure_patient`, then `claim_guest_patient_data` only when authenticated
-
-   - `refreshAll(patientId)` refreshes entities under the correct cache context
-
-   - successful refresh updates `lastSyncedAt`
-
-   - failures are returned in the result array, not silently swallowed
-
-   - `backfillLegacyLocalStorage()` runs once and sets the migration flag
-
-4. DB verification
-
-   - confirm RLS enabled on all patient-domain tables
-
-   - confirm `patient-records` bucket is private
-
-   - confirm `ensure_patient` RPC exists
-
-   - confirm `claim_guest_patient_data` RPC exists
-
-Exit criteria:
-
-- `vitest run` green
-
-- `npm run build` exits successfully
-
-- stop and report before Checkpoint 4
-
-Checkpoint 4 — Rewire MedicationsScreen Only
-
-Goal: prove the architecture end-to-end on one screen.
-
-1. Replace `demoMedications + extraMeds` state with `useMedications()`.
-
-2. Add/edit/delete must go through `medicationApi` via the hook.
-
-3. Use hook loading/error/sync state:
-
-   - `isLoading`
-
-   - `isSyncing`
-
-   - `error`
-
-   - `lastSyncedAt`
-
-4. Pull-to-refresh should call `usePatientSync.refresh()`.
-
-5. Show bilingual success/error toasts.
-
-6. Do not show “saved” unless DB write succeeds.
-
-7. Guest/demo behavior:
-
-   - only use in-memory demo fallback when not authenticated, no DB rows, and no cached rows
-
-   - demo data must be read-only
-
-   - demo data must never overwrite DB data
-
-Manual persistence QA required:
-
-1. Add medication → log out → log back in → medication still present.
-
-2. Add medication → clear localStorage → reload → medication refetched from DB.
-
-3. Add medication while signed out → sign in → row claimed onto user_id; verify audit row from `claim_guest_patient_data`.
-
-4. Force DB/network error → error toast shown; cache not corrupted; no false saved state.
-
-Exit criteria:
-
-- all 4 QA steps pass
-
-- report files changed, test/build status, and QA evidence
-
-- confirm no out-of-scope screens were modified
-
-- stop and wait for explicit approval before Records/Journey/CareHub/Home/Scanner
-
-Reporting after each checkpoint:
-
-- files changed
-
-- commands run and result
-
-- `npm run build` last relevant output
-
-- `vitest run` summary if applicable
-
-- failed tests or open risks
-
-- confirmation no out-of-scope screens were modified
-
-Final instruction:
-
-Proceed with Checkpoint 1 only now. Do not continue to Checkpoint 2 until the Checkpoint 1 report is reviewed and approved.
-
-&nbsp;
+- Records, Journey, CareHub, Allergies, Appointments, Education screens.
+- `transportStore.ts` removal.
+- New migrations / Supabase types changes.
+- AddMedicationSheet UI redesign.
+- Allergy data wiring (deferred to its own screen-rewire step).
