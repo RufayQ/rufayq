@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { medications as demoMedications, type Medication } from "@/constants/data";
-import { ArrowLeft, Plus, Copy, Share2, Download, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Copy, Share2, Download, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import MedicationDetailSheet, { type MedNote } from "@/components/MedicationDetailSheet";
