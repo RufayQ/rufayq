@@ -18,12 +18,6 @@ export function usePatientBootstrap() {
       try {
         const ctx = await bootstrap();
         if (cancelled) return;
-        // If patient changed between runs, clear old cached keys.
-        try {
-          const prev = setActivePatientKey as any; // intentionally grab current via module
-        } catch {
-          /* noop */
-        }
         setState(ctx);
         setActivePatientKey(ctx.patientId);
         // Clear any stale cache for previous user/device when userId changed.

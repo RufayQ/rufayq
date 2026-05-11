@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { medications as demoMedications, type Medication } from "@/constants/data";
 import { ArrowLeft, Plus, Copy, Share2, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -9,17 +9,91 @@ import ProviderFeedCard from "@/components/ProviderFeedCard";
 import { useProviderFeed } from "@/hooks/useProviderFeed";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { useGuestCategories } from "@/hooks/useGuestCategories";
+import { useMedications } from "@/hooks/useMedications";
+import { supabase } from "@/integrations/supabase/client";
+import type { MedicationRow } from "@/lib/api/medicationApi";
 
 interface MedicationsScreenProps {
   onBack: () => void;
   onConsultAI?: (medContext: string) => void;
 }
 
+/** Map a DB MedicationRow into the UI Medication shape used across this screen. */
+function rowToMedication(r: MedicationRow): Medication {
+  const freq = (r.frequency || "Once daily").toString();
+  const lower = freq.toLowerCase();
+  let period: Medication["period"] = "morning";
+  if (lower.includes("evening") || lower.includes("night") || lower.includes("pm")) period = "evening";
+  else if (lower.includes("afternoon") || lower.includes("noon")) period = "afternoon";
+  let time = "08:00 AM";
+  const rt = Array.isArray(r.reminder_times) ? (r.reminder_times as unknown[]) : [];
+  const first = rt[0];
+  if (typeof first === "string" && /^\d{1,2}:\d{2}/.test(first)) {
+    const [hStr, mStr] = first.split(":");
+    const h = Number(hStr);
+    const m = Number(mStr) || 0;
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 || 12;
+    time = `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+    if (h >= 18) period = "evening";
+    else if (h >= 12) period = "afternoon";
+    else period = "morning";
+  }
+  return {
+    name: r.medication_name,
+    nameAr: r.medication_name,
+    dosage: r.dose || "",
+    time,
+    frequency: freq,
+    status: "upcoming",
+    period,
+    instructions: r.instructions || undefined,
+  };
+}
+
+/** Convert a UI-entered Medication into a MedicationRow partial for save(). */
+function medicationToRowInput(m: Medication): Partial<MedicationRow> {
+  // parse "h:mm AM/PM" → "HH:MM"
+  let hhmm: string | null = null;
+  const match = m.time?.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (match) {
+    let h = Number(match[1]);
+    const min = Number(match[2]);
+    const ap = (match[3] || "").toUpperCase();
+    if (ap === "PM" && h < 12) h += 12;
+    if (ap === "AM" && h === 12) h = 0;
+    hhmm = `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+  }
+  return {
+    medication_name: m.name,
+    dose: m.dosage || null,
+    frequency: m.frequency || null,
+    instructions: m.instructions || null,
+    reminder_times: hhmm ? [hhmm] : [],
+  };
+}
+
 const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   const isGuest = useGuestMode();
   const { categories: guestCats } = useGuestCategories();
-  const showMedsDemo = isGuest && guestCats.meds;
-  const medications: Medication[] = showMedsDemo ? demoMedications : [];
+
+  const [isAuthed, setIsAuthed] = useState<boolean>(false);
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setIsAuthed(!!data.session?.user);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setIsAuthed(!!s?.user);
+    });
+    return () => { mounted = false; sub.subscription.unsubscribe(); };
+  }, []);
+
+  const realMeds = useMedications();
+
+  const showMedsDemo = !isAuthed && isGuest && guestCats.meds;
+  const demo: Medication[] = showMedsDemo ? demoMedications : [];
+
   const [selectedMed, setSelectedMed] = useState<Medication | null>(null);
   const [takenIds, setTakenIds] = useState<Set<string>>(new Set());
   const [medNotes, setMedNotes] = useState<Record<string, MedNote[]>>({});
@@ -28,7 +102,13 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   const [extraMeds, setExtraMeds] = useState<Medication[]>([]);
   const [showAddMed, setShowAddMed] = useState(false);
   const { medUpdates } = useProviderFeed();
-  const allMeds = [...medications, ...extraMeds];
+
+  const realAsUi = useMemo(
+    () => (isAuthed ? realMeds.items.map(rowToMedication) : []),
+    [isAuthed, realMeds.items],
+  );
+  const allMeds: Medication[] = isAuthed ? realAsUi : [...demo, ...extraMeds];
+
 
   const actionLabel = (a: string) => a === "add" ? "PRESCRIBED" : a === "stop" ? "STOPPED" : "UPDATED";
   const actionColor = (a: string) => a === "stop" ? "rgba(217,79,79,0.15)" : a === "add" ? "rgba(61,170,110,0.15)" : "rgba(224,160,48,0.15)";
@@ -50,7 +130,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   const takenCount = allMeds.filter((m) => m.status === "taken").length + takenIds.size;
 
   const handleCopyAllMeds = () => {
-    const text = medications.map(m =>
+    const text = allMeds.map(m =>
       `💊 ${m.name} (${m.nameAr}) — ${m.dosage} — ${m.frequency} — ${m.time}`
     ).join("\n");
     navigator.clipboard.writeText(`Medication Schedule\nجدول الأدوية\n\n${text}`);
@@ -58,7 +138,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   };
 
   const handleExportMeds = () => {
-    const text = medications.map(m =>
+    const text = allMeds.map(m =>
       `${m.name}\t${m.nameAr}\t${m.dosage}\t${m.frequency}\t${m.time}\t${m.status}`
     ).join("\n");
     const blob = new Blob([`Name\tName (AR)\tDosage\tFrequency\tTime\tStatus\n${text}`], { type: "text/plain" });
@@ -70,7 +150,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   };
 
   const handleShareMeds = () => {
-    const text = `Medication Schedule\nجدول الأدوية\n\n${medications.map(m => `💊 ${m.name} — ${m.dosage} — ${m.time}`).join("\n")}`;
+    const text = `Medication Schedule\nجدول الأدوية\n\n${allMeds.map(m => `💊 ${m.name} — ${m.dosage} — ${m.time}`).join("\n")}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
@@ -227,7 +307,18 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
       <AddMedicationSheet
         open={showAddMed}
         onClose={() => setShowAddMed(false)}
-        onSubmit={(med) => setExtraMeds(prev => [...prev, med])}
+        onSubmit={async (med) => {
+          if (isAuthed) {
+            try {
+              await realMeds.save(medicationToRowInput(med));
+            } catch (e) {
+              console.error("[Medications] save failed", e);
+              toast.error("Could not save medication · تعذّر حفظ الدواء");
+            }
+          } else {
+            setExtraMeds((prev) => [...prev, med]);
+          }
+        }}
         allergies={allergies}
       />
     </div>
