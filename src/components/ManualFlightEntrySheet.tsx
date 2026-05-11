@@ -56,6 +56,8 @@ const TextField = ({
   placeholder,
   required,
   testId,
+  min,
+  max,
 }: {
   label: string;
   ar?: string;
@@ -65,6 +67,8 @@ const TextField = ({
   placeholder?: string;
   required?: boolean;
   testId?: string;
+  min?: string;
+  max?: string;
 }) => (
   <label className="block">
     <span className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>
@@ -78,6 +82,8 @@ const TextField = ({
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       data-testid={testId}
+      min={min}
+      max={max}
       className="mt-1 w-full rounded-lg px-2 py-1.5 text-[13px] font-bold outline-none"
       style={{
         background: "var(--off-white)",
