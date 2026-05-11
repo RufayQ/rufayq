@@ -1,88 +1,91 @@
-## Goal
+# Admin Wallet Adjustments
 
-Make the patient Journey cycle a fully DB-backed feature for signed-in users: add → review → save, edit, archive, and step CRUD/reorder all persist to `journeys` / `journey_steps` and survive reload, with safe RLS scoping, audit logs, and confirmation UX. Guest demo data stays local-only.
+Give admins a safe, audited way to credit or debit a patient wallet (bonuses, corrections, payouts, duplicate-credit reversals) without bypassing RLS or mutating `patient_wallets` from the client.
 
-## 1. API hardening — `src/lib/api/journeyApi.ts`
+## 1. Database migration — `admin_adjust_wallet` RPC
 
-- `journeyApi` already uses `createDomainApi`, which handles soft-delete, `patient_id` scoping, audit, and cache. Keep `journeyApi.list/save/remove` as the canonical CRUD.
-- `listJourneySteps(journeyId)` — keep, ensure `deleted_at IS NULL`.
-- `saveJourneyStep(input)` — validate required fields (`journey_id`, `patient_id`, `title`, `step_order`, `step_type`); when `status === 'done'` auto-set `completed_at = now()`, when reverted clear it; strip server-managed fields on update.
-- `removeJourneyStep(id, patientId, journeyId?)` — scope the update by both `id` and `patient_id`, and `journey_id` when provided. Keep audit log.
-- New `reorderJourneySteps(journeyId, patientId, ordered: { id; step_order }[])` — single round-trip using `update` per-id inside `Promise.all`, all scoped by `journey_id` + `patient_id`. Audit one `journey_steps_reordered` event.
-- New `seedDefaultSteps(journeyId, patientId)` — inserts the canonical 10-step template once. Idempotent: no-op if any non-deleted step already exists for the journey.
+New `SECURITY DEFINER` function in `public`. No schema changes — reuses `patient_wallets`, `wallet_transactions`, `wallet_audit_log`, and helpers (`get_or_create_wallet`, `has_role`, `log_audit_event`).
 
-## 2. Type mapping
+Signature:
+```
+admin_adjust_wallet(
+  _user_id UUID,
+  _device_id TEXT,
+  _direction TEXT,        -- 'credit' | 'debit'
+  _amount NUMERIC,
+  _currency TEXT,
+  _kind TEXT,             -- whitelisted (see below)
+  _reason TEXT,           -- required, 3..500 chars
+  _reference_no TEXT,     -- optional external ref
+  _details JSONB DEFAULT '{}'
+) RETURNS UUID            -- wallet_transactions.id
+```
 
-Create `src/lib/journeyMappers.ts`:
-- `dbStepToUi(row)` → `JourneyStep` (UI shape uses `number` id derived from `step_order`, but we keep the real DB `uuid` in a parallel `dbId` field).
-- `uiStepToDbInput(uiStep, journeyId, patientId)` for save.
-- `dbJourneyToTrip(row)` → `TripData` and `tripToDbJourneyInput(trip)` for save (flights remain in `transport_tickets` and stay scoped to the journey via existing `useTransportTimeline`; we do not move flight storage in this task).
+Whitelisted `_kind` values, paired with direction:
+- Credit: `bonus_credit`, `correction_credit`, `manual_credit`
+- Debit: `bank_payout`, `correction_debit`, `duplicate_reversal`, `manual_debit`
 
-Extend `JourneyStep` UI type with optional `dbId?: string` (non-breaking).
+Atomic behavior:
+1. Gate: `has_role(auth.uid(),'admin')` → else raise `Only admins can adjust wallets`.
+2. Validate `_direction`, `_amount > 0`, `_amount <= 1_000_000`, `length(trim(_reason)) >= 3`, kind in whitelist, kind/direction coherence.
+3. Resolve wallet via `get_or_create_wallet(_user_id, _device_id, _currency)`.
+4. `SELECT … FOR UPDATE` to lock the wallet row.
+5. Debits: reject if `balance < _amount` with `Insufficient wallet balance`.
+6. Update `patient_wallets.balance` and `currency = COALESCE(_currency, currency)`.
+7. Reference: `PO-YYYYMMDD-XXXXXX` for `bank_payout`, else `ADJ-YYYYMMDD-XXXXXX`.
+8. Insert one `wallet_transactions` row (`actor_id=auth.uid()`, kind, direction, amount, currency, reason, reference, merged details incl. `_reference_no`).
+9. Insert `wallet_audit_log` row (`action='admin_adjust_'||_direction`, `target_type='wallet'`, wallet/user/device/amount/currency/details).
+10. Call `log_audit_event('wallet_admin_adjust','wallet_transaction', tx_id::text, jsonb)`.
+11. If `_device_id` present, insert bilingual `patient_notifications` row (credit-style for credits, payout-style for debits) linking to `/app/wallet`.
+12. Return tx id.
 
-## 3. Hooks
+Permissions:
+```
+REVOKE ALL ON FUNCTION public.admin_adjust_wallet(...) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_adjust_wallet(...) TO authenticated;
+```
+Internal `has_role` gate enforces admin. No new RLS policies needed.
 
-`src/hooks/useJourneys.ts` (replaces the 3-line stub):
-- Wraps `journeyApi`. Exposes `{ journeys, loading, error, refresh, save, archive }`.
-- Returns mapped `TripData[]` for the screen.
-- For guests (`useGuestMode`), returns the in-memory `defaultTrip` and no-ops save/archive.
+## 2. Admin UI — `AdminWalletAdjustDialog`
 
-`src/hooks/useJourneySteps.ts`:
-- Args: `{ journey, patient_id }`.
-- Loads via `listJourneySteps`, maps to UI.
-- Exposes `{ steps, addStep, updateStep, removeStep, reorder, markDone, undoDone, refresh }`.
-- Optimistic update with rollback on error (toast).
-- Calls `seedDefaultSteps` when journey exists and step count is 0 (signed-in only).
+New file: `src/features/subscriptions/admin/ui/AdminWalletAdjustDialog.tsx`
 
-## 4. JourneyScreen wiring — `src/screens/JourneyScreen.tsx`
+- Props: `userId`, `deviceId`, `currency`, `currentBalance`, `onClose`, `onSuccess`.
+- Native React state + zod validation (no react-hook-form).
+- Fields:
+  - Direction radio: Credit / Debit
+  - Kind select, options filtered by direction
+  - Amount (number > 0; for debit show "Max: {currentBalance}" and inline error if exceeded)
+  - Reason textarea (3..500 chars, required)
+  - Optional reference number
+- Submit disabled until valid. Calls `supabase.rpc('admin_adjust_wallet', {...})`. Maps Postgres error messages (insufficient balance, invalid kind, not admin) to bilingual toasts.
+- On success: toast, call `onSuccess()`, close.
 
-- Replace `const [trips, setTrips] = useState(...)` with `const { journeys: trips, save: saveTrip, archive: archiveTrip, refresh: refreshTrips } = useJourneys()`.
-- Replace `const [journeySteps, setJourneySteps] = useState(...)` with `useJourneySteps({ journey: activeTrip, patient_id })`.
-- Remove the local "seed default steps" `useEffect` (now handled in the hook for signed-in users).
-- `handleAddTrip(trip)` → `await saveTrip(trip)` → on success call `refreshTrips()` and show toast; rollback on error.
-- `EditTripSheet onSave` → `saveTrip(updated)`; flash on success.
-- Step interactions go through hook: `markStepDone`, `handleAddStep`, `handleReorderStep`, `EditStepSheet onSave/onDelete`.
-- Add a "Archive journey" entry to the trip card menu → opens `ConfirmDialog` ("Archive this journey? It will move to your archive."), then `archiveTrip(trip.id)`. After archive, pick next active/upcoming or render empty state.
-- Empty state: bilingual "No journeys yet · لا توجد رحلات بعد" + "Add Journey" CTA.
-- Deduplicate the "Add Journey" CTAs in the Steps view (single button + header menu entry).
-- Replace remaining "Trip" copy with "Journey" in the header menu, toasts, and section headings.
-- Keep the auto-seed-from-flight-scan path (`setTrips(prev => …)` block in the flight scan handler) but route it through `saveTrip` so the seeded journey persists.
+## 3. Wire into `SubscriptionDrawer`
 
-## 5. AddTripSheet — review + reset
+In `src/features/subscriptions/admin/ui/SubscriptionDrawer.tsx`:
+- Add an "Adjust wallet" button in the wallet section, next to existing "Record payout" CTA.
+- Opens `AdminWalletAdjustDialog` with current `walletInfo` (userId, deviceId, currency, balance).
+- On success, re-fetch wallet info + recent transactions (same pattern used by refund flow).
 
-`src/components/AddTripSheet.tsx`:
-- Add a `step` state: `"form" | "review"`. After `validate()` + flight validation succeed, switch to `"review"` instead of submitting immediately.
-- Review screen lists: destination, hospital, specialty, departure, expected return, treating doctor, companions (count + names), insurance ref, outbound/return flight summary if entered. Two CTAs: "Back to edit" / "Save journey" (Arabic mirror beneath each).
-- "Save journey" calls `onSubmit(trip)` then closes. Parent persists.
-- Add `resetForm()` that clears all `useState` fields. Call after successful submit and when `open` transitions `false → true`.
-- Cancel/close while form is dirty → `ConfirmDialog` "Discard draft? · تجاهل المسودة؟".
-- Inline error messages under each required field (the `errors` array already drives border color — add a small text under the field).
+`admin_issue_refund` and `admin_record_payout` are untouched.
 
-## 6. EditTripSheet & EditStepSheet
+## 4. Patient ledger
 
-- `EditTripSheet onSave` already returns the updated trip; ensure the wrapper persists via `saveTrip`.
-- `EditStepSheet`: keep current `ConfirmDialog` for delete; ensure `onDelete(uiId, dbId)` signature so screen can call `removeStep(dbId)`. `onSave(updated)` keeps UI shape; screen passes through `updateStep`.
+`WalletLedger.tsx` already renders all `wallet_transactions` with kind/reason/reference/direction. New admin rows appear automatically — no patient-side changes.
 
-## 7. Database migration
+## 5. Verification
 
-No schema change required. Add one helper RPC for the rare "reorder many" case if needed; otherwise skip — per-row updates already satisfy RLS and audit. Confirm RLS policies on `journeys` and `journey_steps` are intact (already shown in `20260511062506_*.sql`).
-
-## 8. Tests
-
-- `src/lib/api/__tests__/journeyApi.test.ts` — `removeJourneyStep` rejects when caller owns no row; `saveJourneyStep` validates required fields; `completed_at` set/cleared by status.
-- `src/components/__tests__/AddTripSheet.test.tsx` — required-field errors, review step renders summary, reset after save.
-- `src/screens/__tests__/JourneyScreen.test.tsx` — mocks `journeyApi` + step hook; covers add, edit, archive, add-step, delete-step.
-
-## 9. Verification
-
-- `npm run lint`, `npm test`, `npm run build`.
-- `rg -n "setTrips\(|setJourneySteps\(" src/screens/JourneyScreen.tsx` → should return zero matches for signed-in flows (allowed only inside guest fallback in the new hooks).
-- Manual E2E in preview as a signed-in patient: scenarios 1–7 from the request.
-- `supabase--read_query` after each action to confirm `journeys.deleted_at`, `journey_steps.completed_at`, and `journey_steps.step_order` rows match the UI.
+- `npm run lint`, `npm test` (existing suites stay green).
+- Manual:
+  1. Admin → SubscriptionDrawer → Adjust → Credit 10 SAR (`bonus_credit`, reason "Welcome gift"): balance increments; ledger + audit rows present.
+  2. Adjust → Debit 5 SAR (`correction_debit`): balance decrements; debit > balance rejected.
+  3. Patient `/app/wallet`: both rows visible with admin-supplied reasons.
+  4. Non-admin authenticated user calling RPC from console: gets `Only admins can adjust wallets`.
 
 ## Out of scope
 
-- Migrating non-flight transport segments to the canonical transport API — flagged as "not yet persisted" in copy; tracked separately.
-- Changing the Journey visual design.
-- Drag-and-drop across phases (current single-phase reorder behavior is preserved and now persisted; cross-phase remains blocked).
-- Hard delete UI (admin-only, future).
+- Bulk adjustments / CSV import.
+- Editing or reversing individual transactions (a reversal is just a new opposite adjustment with `details.reverses=<tx_id>`).
+- Currency conversion (uses wallet's existing currency unless explicitly passed).
+- Changes to `admin_issue_refund` / `admin_record_payout`.

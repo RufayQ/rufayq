@@ -33,6 +33,7 @@ import { PLANS, type PlanCode } from "@/data/subscriptionPlans";
 import { statusTone, normalizePlanCode } from "@/features/subscriptions/logic/statusMachine";
 import { RefundPolicyHint } from "@/features/refunds/RefundPolicyHint";
 import { AdminPayoutDialog } from "@/features/refunds/AdminPayoutDialog";
+import { AdminWalletAdjustDialog } from "@/features/subscriptions/admin/ui/AdminWalletAdjustDialog";
 
 /* ── Types ────────────────────────────────────────────────────────────── */
 
@@ -155,6 +156,7 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
   const [refundingAddon, setRefundingAddon] = useState<Addon | null>(null);
   /** Bank/manual payout dialog. */
   const [payoutOpen, setPayoutOpen] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [walletInfo, setWalletInfo] = useState<{ balance: number; currency: string; user_id: string | null } | null>(null);
 
   /**
@@ -537,16 +539,24 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
 
           {!loading && tab === "payments" && (
             <>
-              {walletInfo && walletInfo.balance > 0 && (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 mb-3 flex items-center justify-between">
+              {walletInfo && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 mb-3 flex items-center justify-between gap-2 flex-wrap">
                   <div>
                     <p className="text-[10px] uppercase tracking-wide text-emerald-300/80">Wallet balance</p>
                     <p className="text-sm font-mono text-emerald-300">{walletInfo.currency} {walletInfo.balance.toFixed(2)}</p>
                   </div>
-                  <button onClick={() => setPayoutOpen(true)}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 text-xs font-medium">
-                    Record bank payout
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => setAdjustOpen(true)}
+                      className="px-3 py-1.5 rounded-lg bg-slate-700/40 hover:bg-slate-700/60 text-slate-200 text-xs font-medium">
+                      Adjust wallet
+                    </button>
+                    {walletInfo.balance > 0 && (
+                      <button onClick={() => setPayoutOpen(true)}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 text-xs font-medium">
+                        Record bank payout
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               <RefundPolicyHint isAr={false} tone="card" />
@@ -565,6 +575,17 @@ const SubscriptionDrawer = ({ user, onClose }: Props) => {
               currency={walletInfo.currency}
               onClose={() => setPayoutOpen(false)}
               onDone={load}
+            />
+          )}
+
+          {adjustOpen && (
+            <AdminWalletAdjustDialog
+              userId={walletInfo?.user_id ?? null}
+              deviceId={user.device_id}
+              currency={walletInfo?.currency || "SAR"}
+              currentBalance={walletInfo?.balance ?? 0}
+              onClose={() => setAdjustOpen(false)}
+              onSuccess={load}
             />
           )}
 

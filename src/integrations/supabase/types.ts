@@ -6869,6 +6869,20 @@ export type Database = {
     }
     Functions: {
       _actor_email_safe: { Args: never; Returns: string }
+      admin_adjust_wallet: {
+        Args: {
+          _amount: number
+          _currency: string
+          _details?: Json
+          _device_id: string
+          _direction: string
+          _kind: string
+          _reason: string
+          _reference_no?: string
+          _user_id: string
+        }
+        Returns: string
+      }
       admin_create_user_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
