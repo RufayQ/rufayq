@@ -29,7 +29,7 @@ const Landing = () => {
   const { mode } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Honor incoming hash (e.g. /#pricing from the back arrow on /pricing).
+  // Honor incoming hash (e.g. #faq) by smooth-scrolling once the lazy section mounts.
   // LandingBelow is lazy, so poll briefly until the section mounts.
   useEffect(() => {
     if (typeof window === "undefined") return;
