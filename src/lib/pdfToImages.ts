@@ -21,7 +21,7 @@
 
 import * as pdfjsLib from "pdfjs-dist";
 // Vite-friendly worker import
-// @ts-ignore – ?url is a Vite suffix
+// ?url is a Vite suffix
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerUrl;
