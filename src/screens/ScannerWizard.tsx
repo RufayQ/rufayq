@@ -873,6 +873,101 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     }
   };
 
+  // Re-emit the current parsed payload after a segment edit so the SAVE
+  // step uses the freshly edited values (legacy single-leg fields too).
+  const reemitWithSegments = (outSegs: FlightSegment[], retSegs: FlightSegment[]) => {
+    const prev = scannedSnapshotRef.current ?? {};
+    const outLegacy = outSegs[0] ? segmentToFlightInfo(outSegs[0]) : null;
+    const retLegacy = retSegs[0] ? segmentToFlightInfo(retSegs[0]) : null;
+    const allLegs = [...outSegs, ...retSegs].map(segmentToFlightInfo);
+    emitParsed({
+      ...prev,
+      outbound: outLegacy,
+      return: retLegacy,
+      legs: allLegs.length > 2 ? allLegs : undefined,
+      outboundSegments: outSegs,
+      returnSegments: retSegs,
+    });
+  };
+
+  const updateSegment = (
+    direction: "outbound" | "return",
+    index: number,
+    patch: Partial<FlightSegment>,
+  ) => {
+    if (direction === "outbound") {
+      setOutboundSegs(prev => {
+        const next = prev.map((s, i) => (i === index ? { ...s, ...patch } : s));
+        reemitWithSegments(next, returnSegs);
+        return next;
+      });
+    } else {
+      setReturnSegs(prev => {
+        const next = prev.map((s, i) => (i === index ? { ...s, ...patch } : s));
+        reemitWithSegments(outboundSegs, next);
+        return next;
+      });
+    }
+  };
+
+  // Final outbound date — used to clamp return departure pickers.
+  const finalOutboundDate: string | null = (() => {
+    if (outboundSegs.length === 0) return null;
+    const last = outboundSegs[outboundSegs.length - 1];
+    return last.arrivalDate || last.departureDate || null;
+  })();
+
+  const validateBeforeSave = (): string | null => {
+    if (category !== "flight") return null;
+    // Transit chain
+    const checkChain = (list: FlightSegment[], label: string): string | null => {
+      for (let i = 1; i < list.length; i++) {
+        const prev = list[i - 1];
+        const cur = list[i];
+        if (prev.toAirport.code && cur.fromAirport.code &&
+            prev.toAirport.code !== cur.fromAirport.code) {
+          return `${label} transit mismatch: leg ${i + 1} should depart from ${prev.toAirport.code}.`;
+        }
+      }
+      return null;
+    };
+    const c1 = checkChain(outboundSegs, "Outbound");
+    if (c1) return c1;
+    const c2 = checkChain(returnSegs, "Return");
+    if (c2) return c2;
+    // Return date >= final outbound date
+    if (finalOutboundDate) {
+      for (let i = 0; i < returnSegs.length; i++) {
+        const r = returnSegs[i];
+        if (r.departureDate && r.departureDate < finalOutboundDate) {
+          return `Return leg ${i + 1}: date cannot be earlier than the outbound journey (${finalOutboundDate}).`;
+        }
+      }
+    }
+    return null;
+  };
+
+  const buildRouteLabel = (segs: FlightSegment[]): string => {
+    if (segs.length === 0) return "";
+    const sorted = [...segs].sort((a, b) => a.segmentOrder - b.segmentOrder);
+    const codes: string[] = [];
+    sorted.forEach((s, i) => {
+      if (i === 0 && s.fromAirport.code) codes.push(s.fromAirport.code);
+      if (s.toAirport.code) codes.push(s.toAirport.code);
+    });
+    return codes.join(" → ");
+  };
+  const buildCityRouteLabel = (segs: FlightSegment[]): string => {
+    if (segs.length === 0) return "";
+    const sorted = [...segs].sort((a, b) => a.segmentOrder - b.segmentOrder);
+    const cities: string[] = [];
+    sorted.forEach((s, i) => {
+      if (i === 0 && s.fromAirport.city) cities.push(s.fromAirport.city);
+      if (s.toAirport.city) cities.push(s.toAirport.city);
+    });
+    return cities.join(" → ");
+  };
+
   const processingSteps = [
     { emoji: "📤", en: "Uploading document securely", ar: "رفع الوثيقة بأمان" },
     { emoji: "👁️", en: "Reading with AI Vision", ar: "القراءة باستخدام الذكاء البصري" },
