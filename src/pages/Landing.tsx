@@ -57,7 +57,6 @@ const Landing = () => {
   const isAr = mode === "ar";
   const isBoth = mode === "both";
   const routeIsAr = location.pathname === "/ar" || location.pathname.startsWith("/ar/");
-  const pricingHref = routeIsAr ? "/ar/pricing" : "/pricing";
 
   // ── CMS overrides (Phase 1: hero CTAs + trust badges) ───────────────
   // Hardcoded defaults below remain as fallback when CMS is empty / loading.
