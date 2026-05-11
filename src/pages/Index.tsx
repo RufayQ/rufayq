@@ -30,6 +30,7 @@ import TourRunner from "@/components/TourRunner";
 import { useFreshStart } from "@/hooks/useFreshStart";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { useTourSystem } from "@/hooks/useTourSystem";
+import { usePatientBootstrap } from "@/hooks/usePatientBootstrap";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
@@ -54,6 +55,9 @@ const Index = () => {
   const { isFresh, tourPending, markTourDone, reset: resetFresh } = useFreshStart();
   const isGuest = useGuestMode();
   const { activeTour, allowSkip, finishActive } = useTourSystem(tourPending);
+  // Initialize patient session (ensure_patient + claim guest data + active key).
+  // Side-effecting; UI continues painting from cache during bootstrap.
+  usePatientBootstrap();
 
   // Staff auto-redirect: if a signed-in staff member lands on the patient app, push them to /admin
   useEffect(() => {

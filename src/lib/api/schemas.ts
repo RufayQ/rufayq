@@ -59,6 +59,14 @@ export const educationSchema = z.object({
   title: z.string().min(1),
 });
 
+export const transportSchema = z.object({
+  id: z.string().optional(),
+  trip_type: z.string().min(1),
+  document_type: z.string().optional(),
+  passenger_name: z.string().nullable().optional(),
+  booking_reference: z.string().nullable().optional(),
+});
+
 export function validate(schema: z.ZodTypeAny, input: unknown) {
   try {
     return schema.parse(input);
@@ -68,4 +76,4 @@ export function validate(schema: z.ZodTypeAny, input: unknown) {
   }
 }
 
-export default { medicationSchema, appointmentSchema, allergySchema, medicalRecordSchema, journeySchema, carePlanSchema, educationSchema, validate };
+export default { medicationSchema, appointmentSchema, allergySchema, medicalRecordSchema, journeySchema, carePlanSchema, educationSchema, transportSchema, validate };

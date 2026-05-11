@@ -16,6 +16,7 @@ import {
   writeLastSyncedAt,
   type PatientKey,
 } from "@/lib/sync/cacheStore";
+import { transportSchema, validate } from "./schemas";
 
 export interface TransportTicketRow {
   id: string;
@@ -71,7 +72,7 @@ export async function saveTransportTicket(
   },
   segments?: Array<Record<string, unknown>>,
 ): Promise<TransportTicketRow> {
-  if (!input.trip_type) throw new Error("trip_type is required");
+  validate(transportSchema, input);
   const { deviceId, userId, patientId, cacheKey } = await ctx();
   const payload: any = {
     ...input,
