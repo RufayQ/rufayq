@@ -1076,6 +1076,119 @@ export type Database = {
           },
         ]
       }
+      journey_artifacts: {
+        Row: {
+          artifact_type: Database["public"]["Enums"]["journey_artifact_type"]
+          audit_locked: boolean
+          cancel_reason: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          deleted_at: string | null
+          device_id: string | null
+          due_at: string | null
+          fhir_resource_id: string | null
+          fhir_resource_type: string | null
+          id: string
+          journey_id: string
+          journey_step_id: string
+          linked_entity_id: string | null
+          patient_id: string
+          rescheduled_from_id: string | null
+          rescheduled_to_id: string | null
+          source: Database["public"]["Enums"]["journey_artifact_source"]
+          status: Database["public"]["Enums"]["journey_artifact_status"]
+          title: string
+          title_ar: string | null
+          updated_at: string
+          user_id: string | null
+          version: number
+        }
+        Insert: {
+          artifact_type: Database["public"]["Enums"]["journey_artifact_type"]
+          audit_locked?: boolean
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          due_at?: string | null
+          fhir_resource_id?: string | null
+          fhir_resource_type?: string | null
+          id?: string
+          journey_id: string
+          journey_step_id: string
+          linked_entity_id?: string | null
+          patient_id: string
+          rescheduled_from_id?: string | null
+          rescheduled_to_id?: string | null
+          source?: Database["public"]["Enums"]["journey_artifact_source"]
+          status?: Database["public"]["Enums"]["journey_artifact_status"]
+          title: string
+          title_ar?: string | null
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Update: {
+          artifact_type?: Database["public"]["Enums"]["journey_artifact_type"]
+          audit_locked?: boolean
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          due_at?: string | null
+          fhir_resource_id?: string | null
+          fhir_resource_type?: string | null
+          id?: string
+          journey_id?: string
+          journey_step_id?: string
+          linked_entity_id?: string | null
+          patient_id?: string
+          rescheduled_from_id?: string | null
+          rescheduled_to_id?: string | null
+          source?: Database["public"]["Enums"]["journey_artifact_source"]
+          status?: Database["public"]["Enums"]["journey_artifact_status"]
+          title?: string
+          title_ar?: string | null
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_artifacts_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_artifacts_journey_step_id_fkey"
+            columns: ["journey_step_id"]
+            isOneToOne: false
+            referencedRelation: "journey_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_artifacts_rescheduled_from_id_fkey"
+            columns: ["rescheduled_from_id"]
+            isOneToOne: false
+            referencedRelation: "journey_artifacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_artifacts_rescheduled_to_id_fkey"
+            columns: ["rescheduled_to_id"]
+            isOneToOne: false
+            referencedRelation: "journey_artifacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journey_steps: {
         Row: {
           completed_at: string | null
@@ -1564,6 +1677,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mutation_idempotency_log: {
+        Row: {
+          actor_device_id: string | null
+          actor_user_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          idempotency_key: string
+          request_hash: string | null
+          response_payload: Json
+          rpc_name: string
+          status_code: number
+        }
+        Insert: {
+          actor_device_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          idempotency_key: string
+          request_hash?: string | null
+          response_payload: Json
+          rpc_name: string
+          status_code?: number
+        }
+        Update: {
+          actor_device_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          idempotency_key?: string
+          request_hash?: string | null
+          response_payload?: Json
+          rpc_name?: string
+          status_code?: number
+        }
+        Relationships: []
       }
       organization_invites: {
         Row: {
@@ -6869,6 +7021,20 @@ export type Database = {
     }
     Functions: {
       _actor_email_safe: { Args: never; Returns: string }
+      _journey_caller_owns: { Args: { _journey_id: string }; Returns: boolean }
+      _journey_idem_lookup: {
+        Args: { _key: string; _rpc: string }
+        Returns: Json
+      }
+      _journey_idem_save: {
+        Args: { _key: string; _payload: Json; _rpc: string }
+        Returns: undefined
+      }
+      _journey_temporal_state: { Args: { _due: string }; Returns: string }
+      _journey_timeline_version: {
+        Args: { _journey_id: string }
+        Returns: number
+      }
       admin_adjust_wallet: {
         Args: {
           _amount: number
@@ -7000,6 +7166,55 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      journey_archive_journey: {
+        Args: { _idempotency_key: string; _journey_id: string; _reason: string }
+        Returns: Json
+      }
+      journey_cancel_artifact: {
+        Args: {
+          _artifact_id: string
+          _expected_version: number
+          _idempotency_key: string
+          _reason: string
+        }
+        Returns: Json
+      }
+      journey_create_artifact: {
+        Args: {
+          _artifact_type: string
+          _due_at?: string
+          _fhir_resource_id?: string
+          _fhir_resource_type?: string
+          _idempotency_key: string
+          _linked_entity_id?: string
+          _step_id: string
+          _title: string
+          _title_ar?: string
+        }
+        Returns: Json
+      }
+      journey_get_timeline: { Args: { _journey_id: string }; Returns: Json }
+      journey_mark_artifact_done: {
+        Args: {
+          _artifact_id: string
+          _completed_at?: string
+          _expected_version: number
+          _idempotency_key: string
+          _reason?: string
+        }
+        Returns: Json
+      }
+      journey_reschedule_artifact: {
+        Args: {
+          _artifact_id: string
+          _expected_version: number
+          _idempotency_key: string
+          _new_due_at: string
+          _reason: string
+          _target_step_id: string
+        }
+        Returns: Json
+      }
       log_audit_event: {
         Args: {
           _action: string
@@ -7087,6 +7302,22 @@ export type Database = {
         | "appointments"
         | "journey"
         | "rcm"
+      journey_artifact_source: "patient_app" | "clinician" | "nphies" | "system"
+      journey_artifact_status:
+        | "pending"
+        | "in_progress"
+        | "done"
+        | "cancelled"
+        | "rescheduled"
+      journey_artifact_type:
+        | "medical_record"
+        | "appointment"
+        | "transport_ticket"
+        | "medication"
+        | "care_plan"
+        | "insurance_claim"
+        | "nphies_task"
+        | "custom"
       org_type:
         | "hospital"
         | "vendor"
@@ -7496,6 +7727,24 @@ export const Constants = {
         "appointments",
         "journey",
         "rcm",
+      ],
+      journey_artifact_source: ["patient_app", "clinician", "nphies", "system"],
+      journey_artifact_status: [
+        "pending",
+        "in_progress",
+        "done",
+        "cancelled",
+        "rescheduled",
+      ],
+      journey_artifact_type: [
+        "medical_record",
+        "appointment",
+        "transport_ticket",
+        "medication",
+        "care_plan",
+        "insurance_claim",
+        "nphies_task",
+        "custom",
       ],
       org_type: [
         "hospital",
