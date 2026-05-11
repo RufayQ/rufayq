@@ -91,10 +91,16 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const isGuest = useGuestMode();
   const { categories: guestCats } = useGuestCategories();
   const [expanded, setExpanded] = useState<number | null>(null);
+  const { journeys: dbTrips, save: persistTrip, archive: archiveTrip } = useJourneys(isGuest ? [defaultTrip] : []);
   const [trips, setTrips] = useState<TripData[]>(isGuest ? [defaultTrip] : []);
+  // Sync hook results into local trips list (kept as state so existing call-sites stay simple).
+  useEffect(() => {
+    setTrips(dbTrips);
+  }, [dbTrips]);
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [archiveTarget, setArchiveTarget] = useState<TripData | null>(null);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
   // Flight tickets are persisted (per-device) via Supabase + local cache so
   // they survive navigation, reload, and offline. Non-flight transport
@@ -119,17 +125,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   ];
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
-  const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(isGuest ? defaultJourneySteps : []);
-  const [liveAnnouncement, setLiveAnnouncement] = useState("");
-
-  // Seed the default 10-step journey timeline once the user creates their first
-  // trip — otherwise the Steps tab shows an empty timeline after scanning a
-  // ticket. Guests already have the seed data.
-  useEffect(() => {
-    if (!isGuest && trips.length > 0 && journeySteps.length === 0) {
-      setJourneySteps(defaultJourneySteps);
-    }
-  }, [isGuest, trips.length, journeySteps.length]);
 
   // Staged scan payload — populated when a flight scan arrives. Shows the
   // ItineraryConfirmSheet preview so the user can review/edit the parsed
