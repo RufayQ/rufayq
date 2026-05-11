@@ -182,11 +182,11 @@ describe("ScannerWizard E2E — flight flow", () => {
     expect(await screen.findByTestId("manual-flight-sheet")).toBeInTheDocument();
 
     // Fill required fields
-    fireEvent.change(screen.getByTestId("leg-0-flight"), { target: { value: "EK500" } });
-    fireEvent.change(screen.getByTestId("leg-0-from"), { target: { value: "DXB" } });
-    fireEvent.change(screen.getByTestId("leg-0-to"), { target: { value: "BKK" } });
-    fireEvent.change(screen.getByTestId("leg-0-date"), { target: { value: "2026-06-01" } });
-    fireEvent.change(screen.getByTestId("leg-0-time"), { target: { value: "09:00" } });
+    fireEvent.change(screen.getByTestId("seg-outbound-0-flight"), { target: { value: "EK500" } });
+    fireEvent.change(screen.getByTestId("seg-outbound-0-from"), { target: { value: "DXB" } });
+    fireEvent.change(screen.getByTestId("seg-outbound-0-to"), { target: { value: "BKK" } });
+    fireEvent.change(screen.getByTestId("seg-outbound-0-dep-date"), { target: { value: "2026-06-01" } });
+    fireEvent.change(screen.getByTestId("seg-outbound-0-dep-time"), { target: { value: "09:00" } });
     fireEvent.click(screen.getByTestId("submit-manual"));
 
     // We should now be on the success view of Step 4 — with our manual data
