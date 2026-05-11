@@ -20,8 +20,9 @@ import {
   emptySegment,
   segmentToFlightInfo,
 } from "@/lib/transportTickets";
-import { isHHmm, normalizeTo24Hour } from "@/lib/time24";
+import { isHHmm } from "@/lib/time24";
 import { normalizeTerminal } from "@/lib/terminal";
+import Time24Input from "@/components/Time24Input";
 
 type TripMode = "one-way" | "round-trip";
 export type TravelerKind = "patient" | "companion" | "family";
