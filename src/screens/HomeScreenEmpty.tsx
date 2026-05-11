@@ -24,6 +24,7 @@ const HomeScreenEmpty = ({ onNavigate, onProfile }: Props) => {
     { icon: <Copy size={14} />, label: "Copy welcome", labelAr: "نسخ الترحيب", onClick: () => { navigator.clipboard.writeText("Welcome to RufayQ"); toast("Copied · تم النسخ"); } },
     { icon: <Share2 size={14} />, label: "Share App", labelAr: "مشاركة التطبيق", onClick: () => { const url = window.location.origin; window.open(`https://wa.me/?text=${encodeURIComponent("Try RufayQ · جرّب رُفَيِّق " + url)}`, "_blank"); } },
     { icon: <CreditCard size={14} />, label: "Subscriptions", labelAr: "الاشتراكات", onClick: () => onNavigate("pricing") },
+    { icon: <Wallet size={14} />, label: "Wallet & Refunds", labelAr: "المحفظة والاستردادات", onClick: () => onNavigate("wallet") },
     { icon: <Settings size={14} />, label: "Settings", labelAr: "الإعدادات", onClick: () => onNavigate("settings") },
     { icon: <HelpCircle size={14} />, label: "Help & Support", labelAr: "المساعدة", onClick: () => onNavigate("support") },
   ];
