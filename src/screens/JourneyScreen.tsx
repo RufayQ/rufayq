@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
-import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard, Wallet } from "lucide-react";
-import { journeySteps as defaultJourneySteps, defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
+import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard, Wallet, Archive } from "lucide-react";
+import { defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
+import { useJourneys } from "@/hooks/useJourneys";
+import { useJourneySteps } from "@/hooks/useJourneySteps";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -88,10 +91,16 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const isGuest = useGuestMode();
   const { categories: guestCats } = useGuestCategories();
   const [expanded, setExpanded] = useState<number | null>(null);
+  const { journeys: dbTrips, save: persistTrip, archive: archiveTrip } = useJourneys(isGuest ? [defaultTrip] : []);
   const [trips, setTrips] = useState<TripData[]>(isGuest ? [defaultTrip] : []);
+  // Sync hook results into local trips list (kept as state so existing call-sites stay simple).
+  useEffect(() => {
+    setTrips(dbTrips);
+  }, [dbTrips]);
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [archiveTarget, setArchiveTarget] = useState<TripData | null>(null);
   const [activeSubTab, setActiveSubTab] = useState("tickets");
   // Flight tickets are persisted (per-device) via Supabase + local cache so
   // they survive navigation, reload, and offline. Non-flight transport
@@ -114,19 +123,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     ...nonFlightSegments,
     ...(persistedFlightSegments.length > 0 ? persistedFlightSegments : guestFlightSeed),
   ];
+  const [liveAnnouncement, setLiveAnnouncement] = useState("");
   const [showAddTransport, setShowAddTransport] = useState(false);
   const [showAddStay, setShowAddStay] = useState(false);
-  const [journeySteps, setJourneySteps] = useState<JourneyStep[]>(isGuest ? defaultJourneySteps : []);
-  const [liveAnnouncement, setLiveAnnouncement] = useState("");
-
-  // Seed the default 10-step journey timeline once the user creates their first
-  // trip — otherwise the Steps tab shows an empty timeline after scanning a
-  // ticket. Guests already have the seed data.
-  useEffect(() => {
-    if (!isGuest && trips.length > 0 && journeySteps.length === 0) {
-      setJourneySteps(defaultJourneySteps);
-    }
-  }, [isGuest, trips.length, journeySteps.length]);
 
   // Staged scan payload — populated when a flight scan arrives. Shows the
   // ItineraryConfirmSheet preview so the user can review/edit the parsed
@@ -262,8 +261,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       },
     );
 
-    setTrips(prev => {
-      if (prev.length > 0) return prev;
+    if (trips.length === 0) {
       const lastOut = outboundSegs[outboundSegs.length - 1];
       const lastRet = returnSegs[returnSegs.length - 1];
       const firstOut = outboundSegs[0];
@@ -280,12 +278,12 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         outboundFlight: out || (firstOut ? legacyFromSegment(firstOut) : null),
         returnFlight: ret || (firstRet ? legacyFromSegment(firstRet) : null),
       };
-      return [seed];
-    });
+      void persistTrip(seed).catch((e) => console.warn("[journey] auto-seed save failed", e));
+    }
     setPendingScan(null);
   };
 
-  const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
+  const [editingStep, setEditingStep] = useState<(JourneyStep & { dbId?: string }) | null>(null);
   const [flashStepId, setFlashStepId] = useState<number | null>(null);
   const [flashTripId, setFlashTripId] = useState<string | null>(null);
   const [dragStepId, setDragStepId] = useState<number | null>(null);
@@ -304,21 +302,31 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const stepRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const registerStepRef = (id: number, el: HTMLDivElement | null) => { stepRefs.current.set(id, el); };
 
+  const activeTrip = trips.find((t) => t.status === "active") || trips[0] || null;
+
+  // DB-backed step state for the active journey (signed-in patients).
+  // Guests get the in-memory demo timeline.
+  const {
+    steps: journeySteps,
+    addStep: addJourneyStepHook,
+    updateStep: updateJourneyStepHook,
+    removeStep: removeJourneyStepHook,
+    reorder: reorderJourneyStepsHook,
+    setStatus: setStepStatusHook,
+  } = useJourneySteps(activeTrip?.id ?? null);
+
   const markStepDone = (id: number) => {
-    let prevStatus: JourneyStep["status"] = "pending";
-    setJourneySteps(prev => prev.map(s => {
-      if (s.id !== id) return s;
-      prevStatus = s.status;
-      return { ...s, status: "done" };
-    }));
+    const step = journeySteps.find((s) => s.id === id);
+    if (!step) return;
+    const prevStatus = step.status;
+    void setStepStatusHook(step, "done");
     flashStep(id);
-    const stepTitle = journeySteps.find(s => s.id === id)?.titleEn || "Step";
-    toast.success(`${stepTitle} marked as done · تم وضعها كمنجزة`, {
+    toast.success(`${step.titleEn} marked as done · تم وضعها كمنجزة`, {
       duration: 5000,
       action: {
         label: "Undo · تراجع",
         onClick: () => {
-          setJourneySteps(prev => prev.map(s => s.id === id ? { ...s, status: prevStatus } : s));
+          void setStepStatusHook(step, prevStatus);
           flashStep(id);
           toast.info("Reverted · تم التراجع", { duration: 1800 });
         },
@@ -331,30 +339,18 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     flashStep(id);
     const step = journeySteps.find(s => s.id === id);
     if (step) setLiveAnnouncement(`Jumped to step: ${step.titleEn}. ${step.titleAr}`);
-    // Defer scroll until expansion has rendered
     requestAnimationFrame(() => {
       const el = stepRefs.current.get(id);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   };
 
-  // Reorder steps within the same phase via HTML5 drag-drop
   const handleReorderStep = (sourceId: number, targetId: number) => {
     if (sourceId === targetId) return;
-    setJourneySteps((prev) => {
-      const src = prev.find((s) => s.id === sourceId);
-      const tgt = prev.find((s) => s.id === targetId);
-      if (!src || !tgt || src.phase !== tgt.phase) return prev;
-      const without = prev.filter((s) => s.id !== sourceId);
-      const tgtIdx = without.findIndex((s) => s.id === targetId);
-      const next = [...without.slice(0, tgtIdx), src, ...without.slice(tgtIdx)];
-      return next;
-    });
+    void reorderJourneyStepsHook(sourceId, targetId);
     flashStep(sourceId);
     toast.success("Step reordered · تم إعادة الترتيب", { duration: 1500 });
   };
-
-  const activeTrip = trips.find((t) => t.status === "active") || trips[0] || null;
 
   // Prompt the user to mark flight-related steps as done once their flight has
   // already departed/arrived. We fire this once per app session per stepId.
@@ -452,18 +448,44 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
   const doneCount = journeySteps.filter((s) => s.status === "done").length;
   const progress = journeySteps.length > 0 ? (doneCount / journeySteps.length) * 100 : 0;
 
-  const handleAddTrip = (trip: TripData) => {
-    setTrips([...trips, trip]);
+  const handleAddTrip = async (trip: TripData) => {
+    try {
+      const saved = await persistTrip(trip);
+      flashTrip(saved.id);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save journey");
+    }
+  };
+
+  const handleEditTripSave = async (updated: TripData) => {
+    try {
+      const saved = await persistTrip(updated);
+      flashTrip(saved.id);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not update journey");
+    }
+  };
+
+  const handleArchiveTrip = async () => {
+    if (!archiveTarget) return;
+    try {
+      await archiveTrip(archiveTarget.id);
+      toast.success("Journey archived · تم أرشفة الرحلة");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not archive journey");
+    } finally {
+      setArchiveTarget(null);
+    }
   };
 
   const handleCopyJourney = () => {
-    const text = `Treatment Journey — Berlin\n${doneCount}/${journeySteps.length} steps completed\n\nSteps:\n${journeySteps.map((s, i) => `${i + 1}. ${s.titleEn} — ${s.status}`).join("\n")}`;
+    const text = `Treatment Journey — ${activeTrip?.destination ?? ""}\n${doneCount}/${journeySteps.length} steps completed\n\nSteps:\n${journeySteps.map((s, i) => `${i + 1}. ${s.titleEn} — ${s.status}`).join("\n")}`;
     navigator.clipboard.writeText(text);
     toast.success("Journey copied · تم نسخ الرحلة", { duration: 2000 });
   };
 
   const handleShareJourney = () => {
-    const text = `Treatment Journey — Berlin\n${doneCount}/${journeySteps.length} steps completed`;
+    const text = `Treatment Journey — ${activeTrip?.destination ?? ""}\n${doneCount}/${journeySteps.length} steps completed`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
@@ -478,19 +500,16 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     toast.success("Journey exported · تم تصدير الرحلة", { duration: 2000 });
   };
 
-  const handleAddStep = () => {
-    const id = Math.max(...journeySteps.map(s => s.id), 0) + 1;
-    const newStep: JourneyStep = {
-      id, titleEn: "New Step", titleAr: "خطوة جديدة", date: "TBD", status: "pending", phase: "before",
-    };
-    setJourneySteps(prev => [...prev, newStep]);
-    setEditingStep(newStep);
+  const handleAddStep = async () => {
+    const created = await addJourneyStepHook();
+    if (created) setEditingStep(created);
   };
 
   const journeyMenuItems: HeaderMenuItem[] = [
     { icon: <Edit3 size={14} />, label: "Edit Current Trip", labelAr: "تعديل الرحلة الحالية", onClick: () => activeTrip ? setShowEditTrip(true) : setShowAddTrip(true) },
-    { icon: <Plus size={14} />, label: "Add New Trip", labelAr: "إضافة رحلة جديدة", onClick: () => { if (requireProForAddTrip()) setShowAddTrip(true); } },
+    { icon: <Plus size={14} />, label: "Add New Journey", labelAr: "إضافة رحلة جديدة", onClick: () => { if (requireProForAddTrip()) setShowAddTrip(true); } },
     { icon: <Plus size={14} />, label: "Add Journey Step", labelAr: "إضافة خطوة", onClick: handleAddStep },
+    ...(activeTrip ? [{ icon: <Archive size={14} />, label: "Archive Journey", labelAr: "أرشفة الرحلة", onClick: () => setArchiveTarget(activeTrip) }] : []),
     { icon: <Sparkles size={14} />, label: "Scan New Ticket", labelAr: "مسح تذكرة جديدة", onClick: () => onOpenScanner?.("flight") },
     { icon: <Plus size={14} />, label: "Add Companion Ticket", labelAr: "إضافة تذكرة مرافق", onClick: () => { if (activeTrip) setShowEditTrip(true); else setShowAddTrip(true); toast.info("Add companions in 'Edit Current Trip' · المرافقون داخل تعديل الرحلة"); } },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص", onClick: handleCopyJourney },
@@ -591,15 +610,35 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         open={showEditTrip}
         trip={activeTrip}
         onClose={() => setShowEditTrip(false)}
-        onSave={(updated) => { setTrips(prev => prev.map(t => t.id === updated.id ? updated : t)); flashTrip(updated.id); }}
+        onSave={(updated) => { void handleEditTripSave(updated); }}
       />
 
       <EditStepSheet
         open={!!editingStep}
         step={editingStep}
         onClose={() => setEditingStep(null)}
-        onSave={(updated) => { setJourneySteps(prev => prev.map(s => s.id === updated.id ? updated : s)); flashStep(updated.id); }}
-        onDelete={(id) => setJourneySteps(prev => prev.filter(s => s.id !== id))}
+        onSave={(updated) => {
+          const merged = { ...updated, dbId: editingStep?.dbId };
+          void updateJourneyStepHook(merged);
+          flashStep(updated.id);
+        }}
+        onDelete={(id) => {
+          const target = journeySteps.find((s) => s.id === id);
+          if (target) void removeJourneyStepHook(target);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!archiveTarget}
+        title="Archive journey?"
+        titleAr="أرشفة الرحلة؟"
+        description="This journey will be removed from your active list. You can restore it later from your archive."
+        descriptionAr="ستتم أرشفة الرحلة وإزالتها من القائمة النشطة."
+        confirmLabel="Archive"
+        confirmLabelAr="أرشفة"
+        destructive
+        onConfirm={handleArchiveTrip}
+        onClose={() => setArchiveTarget(null)}
       />
 
       {/* Add Transport Sheet */}
