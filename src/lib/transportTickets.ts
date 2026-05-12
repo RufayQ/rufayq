@@ -71,6 +71,10 @@ export interface TransportTicket {
   pendingSegmentRef?: string | null;
   traveler?: TravelerKind;
   source?: "ocr" | "manual";
+  /** AI extraction metadata (only present when source === "ocr"). */
+  extraction?: TicketExtractionMetadata | null;
+  /** Storage object paths in the `transport-scans` bucket for the analyzed pages. */
+  sourceImagePaths?: string[];
   createdAt: string;
   updatedAt: string;
 }
