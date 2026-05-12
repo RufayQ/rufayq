@@ -16,6 +16,21 @@ export type TripType = "one-way" | "round-trip" | "multi-city";
 export type Direction = "outbound" | "return";
 export type TravelerKind = "patient" | "companion" | "family";
 
+export type ExtractionProvider = "openai" | "gemini";
+
+/**
+ * AI vision extraction metadata persisted alongside a scanned ticket so the
+ * UI can show provider/confidence/language badges and re-scan can refresh
+ * results from the same source images.
+ */
+export interface TicketExtractionMetadata {
+  provider: ExtractionProvider;
+  confidence?: number | null;
+  detectedLanguage?: string | null;
+  translated?: boolean;
+  runAt?: string | null;
+}
+
 export interface FlightSegment {
   id: string;
   airline: string;
