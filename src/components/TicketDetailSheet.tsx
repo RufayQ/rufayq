@@ -146,17 +146,21 @@ interface TicketDetailSheetProps {
   onUpdateSystemReminders: (reminders: SmartReminder[]) => void;
   systemAlertsMuted: boolean;
   onToggleSystemAlertsMuted: () => void;
+  /** When provided, renders a "Re-scan ticket" button in the Scan info
+   *  section. Should re-run AI extraction on stored source images. */
+  onRescan?: () => Promise<void> | void;
 }
 
 const TicketDetailSheet = ({
   seg, onClose, notes, onSaveNotes, alarms, onToggleAlarm,
   overrides, onSaveOverrides, systemReminders, onUpdateSystemReminders,
-  systemAlertsMuted, onToggleSystemAlertsMuted,
+  systemAlertsMuted, onToggleSystemAlertsMuted, onRescan,
 }: TicketDetailSheetProps) => {
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "overrides" | "alarms">("details");
   const [draftNotes, setDraftNotes] = useState(notes);
   const [isExporting, setIsExporting] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [isRescanning, setIsRescanning] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
 
   const buildShareText = useCallback(() => {
