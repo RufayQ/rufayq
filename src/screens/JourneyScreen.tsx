@@ -1026,9 +1026,9 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan }: { segmen
           onUpdateSystemReminders={(reminders) => setTicketSystemReminders((prev) => ({ ...prev, [selectedSeg.id]: reminders }))}
           systemAlertsMuted={ticketMutedAlerts[selectedSeg.id] || false}
           onToggleSystemAlertsMuted={() => setTicketMutedAlerts((prev) => ({ ...prev, [selectedSeg.id]: !prev[selectedSeg.id] }))}
-          onRescan={selectedSeg.groupId ? async () => {
+          onRescan={onRescan && selectedSeg.groupId ? async () => {
             try {
-              const updated = await rescanFlightTicket(selectedSeg.groupId!);
+              const updated = await onRescan(selectedSeg.groupId!);
               const conf = updated.extraction?.confidence;
               const lang = updated.extraction?.detectedLanguage || "—";
               const provider = updated.extraction?.provider === "openai" ? "OpenAI" : "Gemini";
