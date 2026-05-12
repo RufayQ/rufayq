@@ -198,6 +198,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         traveler: payload.traveler,
         saveOptions: payload.saveOptions,
         pendingSegmentRef: payload.pendingSegmentRef,
+        pageImages: payload.pageImages,
+        extraction: payload.extraction,
       });
     };
     consume();
