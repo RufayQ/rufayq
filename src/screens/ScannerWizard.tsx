@@ -34,6 +34,15 @@ export interface ScannerSavePayload {
   /** Image data URLs of the page(s) the AI analyzed (or that the user attached
    * for manual entry). Surfaced on the success screen as a preview strip. */
   pageImages?: string[];
+  /** AI extraction metadata captured at scan time. Persisted on the ticket
+   *  so cards can show provider/confidence/language and Re-scan can refresh. */
+  extraction?: {
+    provider: "openai" | "gemini";
+    confidence?: number | null;
+    detectedLanguage?: string | null;
+    translated?: boolean;
+    runAt?: string | null;
+  };
   /** Stable id used as the storage / DB key for related documents (VISA, etc.)
    * attached during the wizard. The Journey screen reuses this as the
    * resulting first transport segment's id so attachments stay linked. */
