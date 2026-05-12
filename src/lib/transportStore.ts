@@ -26,14 +26,47 @@ import {
   type FlightSegment,
 } from "@/lib/transportTickets";
 
-const cacheKey = (deviceId: string) => `rufayq.transport.${deviceId}`;
+/**
+ * Cache scoping
+ *
+ * Signed-in users → key by user id, so a regenerated `device_id` (e.g. after
+ * the user clears site data) never blocks the cache from being repopulated
+ * from DB on the next refresh.
+ *
+ * Guests → key by device id (legacy behavior).
+ */
+export type TicketScope = { deviceId: string; userId?: string | null };
+
+const legacyCacheKey = (deviceId: string) => `rufayq.transport.${deviceId}`;
+const userCacheKey = (userId: string) => `rufayq.transport.user:${userId}`;
+const deviceCacheKey = (deviceId: string) => `rufayq.transport.device:${deviceId}`;
+
+const toScope = (s: TicketScope | string): TicketScope =>
+  typeof s === "string" ? { deviceId: s } : s;
+
+const cacheKey = (scope: TicketScope) =>
+  scope.userId ? userCacheKey(scope.userId) : deviceCacheKey(scope.deviceId);
 
 /* ─────────────────────────  cache  ───────────────────────── */
 
-export function readCache(deviceId: string): TransportTicket[] {
+export function readCache(scopeOrDeviceId: TicketScope | string): TransportTicket[] {
   if (typeof window === "undefined") return [];
+  const scope = toScope(scopeOrDeviceId);
   try {
-    const raw = window.localStorage.getItem(cacheKey(deviceId));
+    // Prefer scoped key first.
+    let raw = window.localStorage.getItem(cacheKey(scope));
+    // Migrate legacy device-only key to user-scoped one when signed in.
+    if (!raw && scope.userId) {
+      const legacy = window.localStorage.getItem(legacyCacheKey(scope.deviceId));
+      if (legacy) {
+        window.localStorage.setItem(cacheKey(scope), legacy);
+        raw = legacy;
+      }
+    }
+    // Also fall back to legacy key for guests.
+    if (!raw && !scope.userId) {
+      raw = window.localStorage.getItem(legacyCacheKey(scope.deviceId));
+    }
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as TransportTicket[]) : [];
@@ -43,10 +76,14 @@ export function readCache(deviceId: string): TransportTicket[] {
   }
 }
 
-export function writeCache(deviceId: string, tickets: TransportTicket[]) {
+export function writeCache(
+  scopeOrDeviceId: TicketScope | string,
+  tickets: TransportTicket[],
+) {
   if (typeof window === "undefined") return;
+  const scope = toScope(scopeOrDeviceId);
   try {
-    window.localStorage.setItem(cacheKey(deviceId), JSON.stringify(tickets));
+    window.localStorage.setItem(cacheKey(scope), JSON.stringify(tickets));
   } catch (e) {
     console.warn("[transportStore] cache write failed", e);
   }
