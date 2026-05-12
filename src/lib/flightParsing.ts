@@ -87,12 +87,14 @@ export function resolveAirport(rawCode?: string, rawCity?: string, rawFull?: str
   let code = (rawCode || "").trim().toUpperCase();
   let cityIn = (rawCity || "").trim();
   const fullIn = (rawFull || "").trim();
+  let cityVerified = false;
 
   // English ticket pattern "City (IATA)" can appear in any of these fields.
   for (const candidate of [rawCity, rawCode, rawFull]) {
     const split = splitCityIata(candidate || "");
     if (split) {
       cityIn = split.city;
+      cityVerified = true;
       if (!IATA_RE.test(code)) code = split.code;
       break;
     }
@@ -100,18 +102,19 @@ export function resolveAirport(rawCode?: string, rawCity?: string, rawFull?: str
 
   if (IATA_RE.test(code) && IATA[code]) {
     const entry = IATA[code];
-    return { code, city: cityIn || entry.city, airport: entry.airport };
+    return { code, city: cityVerified && cityIn ? cityIn : entry.city, airport: entry.airport };
   }
   // Sometimes the scanner shoves "Riyadh — King Khalid Intl" into city
   // or "BER — Berlin Brandenburg" into the code field. Pull out the IATA.
   const m = (cityIn + " " + fullIn + " " + code).match(/\b([A-Z]{3})\b/);
   if (m && IATA[m[1]]) {
     const entry = IATA[m[1]];
-    return { code: m[1], city: cityIn || entry.city, airport: entry.airport };
+    return { code: m[1], city: cityVerified && cityIn ? cityIn : entry.city, airport: entry.airport };
   }
   // Best-effort fallback — keep raw values, no IATA enrichment.
   return { code, city: cityIn, airport: fullIn || cityIn };
 }
+
 
 /**
  * Convert a date+time string with AM/PM into ISO `YYYY-MM-DDTHH:mm`.
