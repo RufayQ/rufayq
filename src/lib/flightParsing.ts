@@ -72,25 +72,83 @@ export const IATA: Record<string, { city: string; airport: string; country?: str
 };
 
 const IATA_RE = /^[A-Z]{3}$/;
+const CITY_IATA_RE = /^\s*([^()]+?)\s*\(\s*([A-Z]{3})\s*\)\s*$/;
+
+/** Split "Riyadh (RUH)" into { city: "Riyadh", code: "RUH" }. */
+const splitCityIata = (raw: string): { city: string; code: string } | null => {
+  if (!raw) return null;
+  const m = raw.trim().match(CITY_IATA_RE);
+  if (!m) return null;
+  return { city: m[1].trim(), code: m[2].toUpperCase() };
+};
 
 /** Normalize free-form scanner output for one airport endpoint. */
 export function resolveAirport(rawCode?: string, rawCity?: string, rawFull?: string) {
-  const code = (rawCode || "").trim().toUpperCase();
-  const cityIn = (rawCity || "").trim();
+  let code = (rawCode || "").trim().toUpperCase();
+  let cityIn = (rawCity || "").trim();
   const fullIn = (rawFull || "").trim();
+
+  // English ticket pattern "City (IATA)" can appear in any of these fields.
+  for (const candidate of [rawCity, rawCode, rawFull]) {
+    const split = splitCityIata(candidate || "");
+    if (split) {
+      cityIn = split.city;
+      if (!IATA_RE.test(code)) code = split.code;
+      break;
+    }
+  }
+
   if (IATA_RE.test(code) && IATA[code]) {
     const entry = IATA[code];
-    return { code, city: entry.city, airport: entry.airport };
+    return { code, city: cityIn || entry.city, airport: entry.airport };
   }
   // Sometimes the scanner shoves "Riyadh — King Khalid Intl" into city
   // or "BER — Berlin Brandenburg" into the code field. Pull out the IATA.
-  const candidate = (cityIn + " " + fullIn + " " + code).match(/\b([A-Z]{3})\b/);
-  if (candidate && IATA[candidate[1]]) {
-    const entry = IATA[candidate[1]];
-    return { code: candidate[1], city: entry.city, airport: entry.airport };
+  const m = (cityIn + " " + fullIn + " " + code).match(/\b([A-Z]{3})\b/);
+  if (m && IATA[m[1]]) {
+    const entry = IATA[m[1]];
+    return { code: m[1], city: cityIn || entry.city, airport: entry.airport };
   }
   // Best-effort fallback — keep raw values, no IATA enrichment.
   return { code, city: cityIn, airport: fullIn || cityIn };
+}
+
+/**
+ * Convert a date+time string with AM/PM into ISO `YYYY-MM-DDTHH:mm`.
+ * Returns the original string when the date portion isn't reliably present
+ * (we never invent a date — better to surface the issue than to lie).
+ *
+ * Accepts: "2026-05-10 7:45 PM", "2026/05/10 10:30 am", "2026-05-10T7:45 PM",
+ *          "2026-05-10 19:45" (already 24h, returned normalized).
+ */
+export function normalizeDateTime(input?: string | null): string {
+  if (!input) return "";
+  const raw = String(input).trim();
+  if (!raw) return "";
+
+  // Already ISO 24h with optional seconds: trim to YYYY-MM-DDTHH:mm.
+  const iso24 = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (iso24) {
+    const [, y, mo, d, h, mi] = iso24;
+    if (Number(h) <= 23) {
+      return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}T${h.padStart(2, "0")}:${mi}`;
+    }
+  }
+
+  // 12h with AM/PM marker.
+  const ampm = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[T\s](\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (ampm) {
+    const [, y, mo, d, hStr, mi, mer] = ampm;
+    let h = parseInt(hStr, 10);
+    const isPm = mer.toUpperCase() === "PM";
+    if (h === 12) h = isPm ? 12 : 0;
+    else if (isPm) h += 12;
+    return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}T${String(h).padStart(2, "0")}:${mi}`;
+  }
+
+  // Last resort: return the first 16 chars (legacy slice behavior) so we
+  // don't break existing clean ISO inputs.
+  return raw.slice(0, 16);
 }
 
 export interface FlightValidationIssue {
