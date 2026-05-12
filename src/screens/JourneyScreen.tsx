@@ -209,7 +209,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const applyConfirmedScan = (out: FlightInfo | null, ret: FlightInfo | null) => {
+  const applyConfirmedScan = async (out: FlightInfo | null, ret: FlightInfo | null) => {
     // Build outbound/return FlightSegment[] preserving any rich multi-segment
     // data (transit/connecting legs, terminals) from the manual-entry sheet.
     let outboundSegs: FlightSegment[] = pendingScan?.outboundSegments?.length
@@ -238,9 +238,36 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       return;
     }
 
+    const ticketId = newTicketId();
+    const deviceId = getDeviceId();
+    const source: "ocr" | "manual" = pendingScan?.source ?? "ocr";
+
+    // Upload analyzed page images to private storage so Re-scan can re-run
+    // extraction even after sign-out / clearing site data. Only for OCR
+    // tickets — manual entries don't have analyzed images.
+    let sourceImagePaths: string[] = [];
+    if (source === "ocr" && pendingScan?.pageImages && pendingScan.pageImages.length > 0) {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data: { user } } = await supabase.auth.getUser();
+        const { uploadScanImages } = await import("@/lib/transportScanStorage");
+        sourceImagePaths = await uploadScanImages(
+          { deviceId, userId: user?.id ?? null },
+          ticketId,
+          pendingScan.pageImages,
+        );
+      } catch (e) {
+        console.warn("[journey] scan image upload failed — Re-scan will be unavailable", e);
+        toast.error("Saved without source images · Re-scan unavailable", {
+          description: "إعادة المسح غير متاحة — لم يتم حفظ صور المستند",
+          duration: 4000,
+        });
+      }
+    }
+
     const ticket: TransportTicket = {
-      id: newTicketId(),
-      deviceId: getDeviceId(),
+      id: ticketId,
+      deviceId,
       sourceDocumentId: null,
       documentType: "flight_ticket",
       tripType: inferTripType(outboundSegs, returnSegs),
@@ -254,7 +281,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       sendToDoctor: pendingScan?.saveOptions?.sendToDoctor ?? false,
       pendingSegmentRef: pendingScan?.pendingSegmentRef || null,
       traveler: pendingScan?.traveler || "patient",
-      source: pendingScan?.source ?? "ocr",
+      source,
+      extraction: source === "ocr" && pendingScan?.extraction ? pendingScan.extraction : null,
+      sourceImagePaths,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
