@@ -1,10 +1,9 @@
 import { useRef, useState } from "react";
 import { X, ChevronDown, ExternalLink, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { getDeviceId } from "@/hooks/useDeviceId";
 import { pdfToImageDataUrls } from "@/lib/pdfToImages";
-import { normalizeParsedLeg, validateFlight } from "@/lib/flightParsing";
+import { validateFlight } from "@/lib/flightParsing";
+import { extractFlightTicket, FlightExtractionError } from "@/lib/flightExtraction";
 import { extractFlightTicket, FlightExtractionError } from "@/lib/flightExtraction";
 import ItineraryConfirmSheet from "@/components/ItineraryConfirmSheet";
 
