@@ -208,30 +208,29 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
         files = [await fileToDataUrl(file)];
       }
 
-      const { data, error } = await supabase.functions.invoke("scan-itinerary", {
-        body: { files },
-        headers: { "x-device-id": getDeviceId() },
-      });
-      if (error) throw error;
-      const parsed = (data as any)?.data ?? {};
-      console.debug("[scan-itinerary] parsed payload", parsed);
-
-      if (!parsed.outboundFlight && !parsed.returnFlight) {
-        toast.error("We couldn't read flight details. Try a clearer image or a higher-quality PDF.");
-        return;
+      // Shared OpenAI-primary / Gemini-fallback extraction.
+      let extracted;
+      try {
+        extracted = await extractFlightTicket({ files });
+      } catch (err) {
+        if (err instanceof FlightExtractionError && err.code === "no-legs") {
+          toast.error("We couldn't read flight details. Try a clearer image or a higher-quality PDF.");
+          return;
+        }
+        throw err;
       }
+      console.debug("[AddTripSheet] flight extraction", extracted.provider, extracted.raw);
 
-      // Normalize (resolves IATA → city/airport, swaps misplaced fields)
-      const normOut = parsed.outboundFlight ? normalizeParsedLeg(parsed.outboundFlight) : null;
-      const normRet = parsed.returnFlight ? normalizeParsedLeg(parsed.returnFlight) : null;
+      const normOut = extracted.outboundFlight;
+      const normRet = extracted.returnFlight;
 
       setPendingOut(normOut);
       setPendingRet(normRet);
-      setPendingRawOut(parsed.outboundFlight ?? null);
-      setPendingRawRet(parsed.returnFlight ?? null);
+      setPendingRawOut(extracted.rawOutbound[0] ?? null);
+      setPendingRawRet(extracted.rawReturn[0] ?? null);
       setPendingPassenger({
-        name: [parsed.passengerFirstName, parsed.passengerLastName].filter(Boolean).join(" ") || undefined,
-        passport: parsed.passportNumber || undefined,
+        name: [extracted.passengerFirstName, extracted.passengerLastName].filter(Boolean).join(" ") || undefined,
+        passport: extracted.passportNumber || undefined,
       });
       setShowConfirmItinerary(true);
     } catch (e: any) {
