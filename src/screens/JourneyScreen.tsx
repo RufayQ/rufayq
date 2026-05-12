@@ -831,7 +831,7 @@ const AddButton = ({ labelEn, labelAr, onClick }: { labelEn: string; labelAr: st
 );
 
 /* ─── TICKETS TAB ─── */
-const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void }) => {
+const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void; onRescan?: (ticketId: string) => Promise<import("@/lib/transportTickets").TransportTicket> }) => {
   const [selectedSeg, setSelectedSeg] = useState<TransportSegment | null>(null);
   const [ticketNotes, setTicketNotes] = useState<Record<string, string>>({});
   const [ticketAlarms, setTicketAlarms] = useState<Record<string, number[]>>({});
