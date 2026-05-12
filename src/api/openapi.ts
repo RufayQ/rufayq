@@ -216,6 +216,52 @@ export const openApiSpec = {
           extracted: { type: "object", additionalProperties: true },
         },
       },
+      FlightLeg: {
+        type: "object",
+        properties: {
+          airline: { type: "string", nullable: true },
+          flightNumber: { type: "string", nullable: true },
+          bookingRef: { type: "string", nullable: true },
+          fromAirport: { type: "string", nullable: true, description: "3-letter IATA" },
+          fromCity: { type: "string", nullable: true },
+          fromTerminal: { type: "string", nullable: true },
+          fromGate: { type: "string", nullable: true },
+          toAirport: { type: "string", nullable: true, description: "3-letter IATA" },
+          toCity: { type: "string", nullable: true },
+          toTerminal: { type: "string", nullable: true },
+          toGate: { type: "string", nullable: true },
+          departureDateTime: { type: "string", nullable: true, description: "ISO 8601 YYYY-MM-DDTHH:mm" },
+          arrivalDateTime: { type: "string", nullable: true },
+          seatClass: { type: "string", nullable: true },
+          fareClass: { type: "string", nullable: true },
+          seatNumber: { type: "string", nullable: true },
+          baggageAllowance: { type: "string", nullable: true },
+        },
+      },
+      FlightExtraction: {
+        type: "object",
+        properties: {
+          tripType: { type: "string", nullable: true, enum: ["one_way", "round_trip", "multi_city", null] },
+          passengerFirstName: { type: "string", nullable: true },
+          passengerLastName: { type: "string", nullable: true },
+          passportNumber: { type: "string", nullable: true },
+          dateOfBirth: { type: "string", nullable: true },
+          ticketNumbers: { type: "array", items: { type: "string" } },
+          outboundSegments: { type: "array", items: { $ref: "#/components/schemas/FlightLeg" } },
+          returnSegments: { type: "array", items: { $ref: "#/components/schemas/FlightLeg" } },
+          detectedLanguage: { type: "string", nullable: true },
+          translated: { type: "boolean", nullable: true },
+          confidence: { type: "number", minimum: 0, maximum: 1 },
+        },
+      },
+      FlightExtractionResponse: {
+        type: "object",
+        properties: {
+          ok: { type: "boolean" },
+          provider: { type: "string", enum: ["openai", "gemini"] },
+          data: { $ref: "#/components/schemas/FlightExtraction" },
+        },
+      },
       ChatMessage: {
         type: "object",
         properties: {
@@ -736,6 +782,74 @@ export const openApiSpec = {
           "200": {
             description: "Structured scan result",
             content: { "application/json": { schema: { $ref: "#/components/schemas/ScanResult" } } },
+          },
+        },
+      },
+    },
+    "/functions/v1/extract-flight-ticket-ai": {
+      post: {
+        tags: ["Patient · Scanner"],
+        summary: "AI-vision flight-ticket extraction (OpenAI gpt-5, primary engine).",
+        description:
+          "Parses boarding passes, e-tickets, and multi-page itineraries into a strict JSON schema. Requires `x-device-id` header. Falls back to `/functions/v1/scan-itinerary` (Gemini) when this returns an error.",
+        parameters: [
+          { in: "header", name: "x-device-id", required: true, schema: { type: "string", minLength: 8, maxLength: 128 } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  file: { type: "string", description: "Single image data URL (data:image/...)." },
+                  files: { type: "array", items: { type: "string" }, description: "Multiple image data URLs." },
+                  text: { type: "string", description: "Optional extracted ticket text." },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Structured flight extraction",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/FlightExtractionResponse" } } },
+          },
+          "401": { description: "Missing or invalid x-device-id." },
+          "403": { description: "No active trial or subscription for this device." },
+          "422": { description: "AI returned no usable legs — fall back to manual entry." },
+          "429": { description: "Rate limit or daily AI credit exhausted." },
+        },
+      },
+    },
+    "/functions/v1/scan-itinerary": {
+      post: {
+        tags: ["Patient · Scanner"],
+        summary: "AI-vision flight-ticket extraction (Gemini, fallback engine).",
+        description:
+          "Same response shape as `extract-flight-ticket-ai`. Used as the silent fallback when the OpenAI primary engine fails.",
+        parameters: [
+          { in: "header", name: "x-device-id", required: true, schema: { type: "string", minLength: 8, maxLength: 128 } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  file: { type: "string" },
+                  files: { type: "array", items: { type: "string" } },
+                  text: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Structured flight extraction",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/FlightExtractionResponse" } } },
           },
         },
       },

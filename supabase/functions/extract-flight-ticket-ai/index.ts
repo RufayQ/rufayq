@@ -85,7 +85,15 @@ Rules — read carefully:
 7. fromTerminal / toTerminal: terminal name as printed (e.g. "T2", "Terminal 1"); fromGate / toGate: gate code if visible.
 8. seatClass = cabin (Economy/Business/First); fareClass = booking-class letter (Y, J, F …) when present.
 9. baggageAllowance: e.g. "23 kg", "2PC", "Hand only" — exactly as shown, otherwise null.
-10. confidence: 0.0–0.6 for blurry/partial scans, 0.85–1.0 only when every leg field is unambiguously legible.`;
+10. confidence: 0.0–0.6 for blurry/partial scans, 0.85–1.0 only when every leg field is unambiguously legible.
+
+English-language ticket rules (apply when the document is in English):
+A. If a location is printed as "City (IATA)" (e.g. "Riyadh (RUH)", "Dubai (DXB)"), split it: fromCity/toCity gets the plain city name, fromAirport/toAirport gets only the 3-letter IATA. Never include parentheses in the city field.
+B. Convert AM/PM times to 24-hour values inside the ISO timestamp. "7:45 PM" → "19:45"; "12:05 AM" → "00:05"; "12:30 PM" → "12:30". Only emit a timestamp when the date is visible in the same row, column, or segment block — return null otherwise rather than inventing a date.
+C. Codeshare / "operated by" blocks: prefer the OPERATING carrier's flight number in flightNumber. Use the marketing carrier in airline only when no operating carrier is shown.
+D. Preserve terminal, gate, and concourse labels exactly as printed: "Terminal 1", "T1", "Concourse A".
+E. Treat rows like "Stop in <city> (Xh Ym)", "Layover", "Transit", or "Connection" as segment boundaries when distinct flight numbers or airport codes follow. Do NOT collapse multi-leg itineraries into a direct route.
+F. detectedLanguage = "en" when the document is predominantly English; do not set translated unless you converted from another language.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
