@@ -56,6 +56,15 @@ export interface TransportSegment {
   companions?: { name: string; relation: string; seatNumber?: string }[];
   /** Origin tag — used by Journey UI to label "OCR Scanned" vs "Manual Entry". */
   documentSource?: "OCR Scanned" | "Manual Entry";
+  /** AI extraction metadata — present only on scanned tickets. Drives the
+   *  provider/confidence/language verification chips on the card. */
+  extraction?: {
+    provider: "openai" | "gemini";
+    confidence?: number | null;
+    detectedLanguage?: string | null;
+    translated?: boolean;
+    runAt?: string | null;
+  } | null;
   /** Flight terminal info per segment (added with the multi-segment ticket model). */
   departureTerminal?: string;
   arrivalTerminal?: string;
