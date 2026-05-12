@@ -136,7 +136,8 @@ describe("rescanTicket — typed errors", () => {
   });
 
   it("wraps storage failures with code 'storage' and preserves cause", async () => {
-    const cause = new FakeScanStorageError("sign failed");
+    const { ScanStorageError } = await import("@/lib/transportScanStorage");
+    const cause = new (ScanStorageError as any)("sign failed");
     fetchScanImagesAsDataUrlsMock.mockRejectedValue(cause);
     const err = await rescanTicket(baseTicket(), scope).catch((e) => e);
     expect(err).toBeInstanceOf(RescanError);
