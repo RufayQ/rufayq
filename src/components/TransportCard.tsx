@@ -56,6 +56,15 @@ export interface TransportSegment {
   companions?: { name: string; relation: string; seatNumber?: string }[];
   /** Origin tag — used by Journey UI to label "OCR Scanned" vs "Manual Entry". */
   documentSource?: "OCR Scanned" | "Manual Entry";
+  /** AI extraction metadata — present only on scanned tickets. Drives the
+   *  provider/confidence/language verification chips on the card. */
+  extraction?: {
+    provider: "openai" | "gemini";
+    confidence?: number | null;
+    detectedLanguage?: string | null;
+    translated?: boolean;
+    runAt?: string | null;
+  } | null;
   /** Flight terminal info per segment (added with the multi-segment ticket model). */
   departureTerminal?: string;
   arrivalTerminal?: string;
@@ -382,7 +391,30 @@ const TransportCard = ({ seg, onTap }: { seg: TransportSegment; onTap?: () => vo
           <p className="font-mono text-[9px]" style={{ color: "rgba(255,255,255,0.45)" }}>
             {seg.bookingRef ? `Ref: ${seg.bookingRef}` : ""}
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            {seg.extraction?.provider && (
+              <>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono" style={{ background: "rgba(255,255,255,0.18)", color: "rgba(255,255,255,0.85)" }}>
+                  {seg.extraction.provider === "openai" ? "OpenAI" : "Gemini"}
+                </span>
+                {typeof seg.extraction.confidence === "number" && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono" style={{
+                    background:
+                      seg.extraction.confidence >= 0.85 ? "rgba(61,170,110,0.85)" :
+                      seg.extraction.confidence >= 0.6 ? "rgba(197,150,90,0.85)" :
+                      "rgba(217,79,79,0.85)",
+                    color: "white",
+                  }}>
+                    {Math.round(seg.extraction.confidence * 100)}%
+                  </span>
+                )}
+                {seg.extraction.detectedLanguage && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)" }}>
+                    {seg.extraction.detectedLanguage.slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+              </>
+            )}
             <span className="text-[10px] px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
               Tap for details →
             </span>

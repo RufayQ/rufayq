@@ -132,6 +132,23 @@ export function useTransportTimeline() {
     [scope],
   );
 
+  const rescan = useCallback(
+    async (ticketId: string) => {
+      const current = tickets.find((t) => t.id === ticketId);
+      if (!current) throw new Error("Ticket not found");
+      const { rescanTicket } = await import("@/lib/transportRescan");
+      const updated = await rescanTicket(current, scope);
+      setTickets((prev) => {
+        const without = prev.filter((t) => t.id !== updated.id);
+        return [...without, updated].sort((a, b) =>
+          a.createdAt.localeCompare(b.createdAt),
+        );
+      });
+      return updated;
+    },
+    [tickets, scope],
+  );
+
   const segments: TransportSegment[] = useMemo(
     () => tickets.flatMap((t) => ticketToTransportSegments(t)),
     [tickets],
@@ -144,6 +161,7 @@ export function useTransportTimeline() {
     error,
     addTicket,
     removeTicket,
+    rescan,
     refresh,
     deviceId,
     userId,

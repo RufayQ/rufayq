@@ -110,6 +110,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     segments: persistedFlightSegments,
     addTicket: addFlightTicket,
     removeTicket: removeFlightTicket,
+    rescan: rescanFlightTicket,
   } = useTransportTimeline();
   const [nonFlightSegments, setNonFlightSegments] = useState<TransportSegment[]>(
     isGuest ? defaultTransportSegments.filter((s) => guestCats.tickets && s.type !== "flight") : []
@@ -152,6 +153,16 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     /** Pre-allocated id used for the FIRST resulting segment so any
      *  related-document attachments uploaded in the wizard stay linked. */
     pendingSegmentRef?: string;
+    /** Raw analyzed image data URLs (before upload to private storage). */
+    pageImages?: string[];
+    /** AI extraction metadata captured by the scanner. */
+    extraction?: {
+      provider: "openai" | "gemini";
+      confidence?: number | null;
+      detectedLanguage?: string | null;
+      translated?: boolean;
+      runAt?: string | null;
+    };
   } | null>(null);
 
   // Editor state for transport segments (non-flight in particular). Opens
@@ -188,6 +199,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         traveler: payload.traveler,
         saveOptions: payload.saveOptions,
         pendingSegmentRef: payload.pendingSegmentRef,
+        pageImages: payload.pageImages,
+        extraction: payload.extraction,
       });
     };
     consume();
@@ -197,7 +210,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const applyConfirmedScan = (out: FlightInfo | null, ret: FlightInfo | null) => {
+  const applyConfirmedScan = async (out: FlightInfo | null, ret: FlightInfo | null) => {
     // Build outbound/return FlightSegment[] preserving any rich multi-segment
     // data (transit/connecting legs, terminals) from the manual-entry sheet.
     let outboundSegs: FlightSegment[] = pendingScan?.outboundSegments?.length
@@ -226,9 +239,36 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       return;
     }
 
+    const ticketId = newTicketId();
+    const deviceId = getDeviceId();
+    const source: "ocr" | "manual" = pendingScan?.source ?? "ocr";
+
+    // Upload analyzed page images to private storage so Re-scan can re-run
+    // extraction even after sign-out / clearing site data. Only for OCR
+    // tickets — manual entries don't have analyzed images.
+    let sourceImagePaths: string[] = [];
+    if (source === "ocr" && pendingScan?.pageImages && pendingScan.pageImages.length > 0) {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data: { user } } = await supabase.auth.getUser();
+        const { uploadScanImages } = await import("@/lib/transportScanStorage");
+        sourceImagePaths = await uploadScanImages(
+          { deviceId, userId: user?.id ?? null },
+          ticketId,
+          pendingScan.pageImages,
+        );
+      } catch (e) {
+        console.warn("[journey] scan image upload failed — Re-scan will be unavailable", e);
+        toast.error("Saved without source images · Re-scan unavailable", {
+          description: "إعادة المسح غير متاحة — لم يتم حفظ صور المستند",
+          duration: 4000,
+        });
+      }
+    }
+
     const ticket: TransportTicket = {
-      id: newTicketId(),
-      deviceId: getDeviceId(),
+      id: ticketId,
+      deviceId,
       sourceDocumentId: null,
       documentType: "flight_ticket",
       tripType: inferTripType(outboundSegs, returnSegs),
@@ -242,7 +282,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       sendToDoctor: pendingScan?.saveOptions?.sendToDoctor ?? false,
       pendingSegmentRef: pendingScan?.pendingSegmentRef || null,
       traveler: pendingScan?.traveler || "patient",
-      source: pendingScan?.source ?? "ocr",
+      source,
+      extraction: source === "ocr" && pendingScan?.extraction ? pendingScan.extraction : null,
+      sourceImagePaths,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -571,7 +613,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         {activeSubTab === "tickets" && (
           <>
             <FlightTripSummary segments={transportSegments} />
-            <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />
+            <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} onRescan={rescanFlightTicket} />
           </>
         )}
         {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
@@ -689,7 +731,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         passengerName={pendingScan?.passenger?.name}
         passportNumber={pendingScan?.passenger?.passport}
         onCancel={() => setPendingScan(null)}
-        onConfirm={(out, ret) => applyConfirmedScan(out, ret)}
+        onConfirm={(out, ret) => { void applyConfirmedScan(out, ret); }}
       />
 
       {/* Transport segment editor — handles draft creation + later edits */}
@@ -789,7 +831,7 @@ const AddButton = ({ labelEn, labelAr, onClick }: { labelEn: string; labelAr: st
 );
 
 /* ─── TICKETS TAB ─── */
-const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void }) => {
+const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void; onRescan?: (ticketId: string) => Promise<import("@/lib/transportTickets").TransportTicket> }) => {
   const [selectedSeg, setSelectedSeg] = useState<TransportSegment | null>(null);
   const [ticketNotes, setTicketNotes] = useState<Record<string, string>>({});
   const [ticketAlarms, setTicketAlarms] = useState<Record<string, number[]>>({});
@@ -984,6 +1026,26 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: Transp
           onUpdateSystemReminders={(reminders) => setTicketSystemReminders((prev) => ({ ...prev, [selectedSeg.id]: reminders }))}
           systemAlertsMuted={ticketMutedAlerts[selectedSeg.id] || false}
           onToggleSystemAlertsMuted={() => setTicketMutedAlerts((prev) => ({ ...prev, [selectedSeg.id]: !prev[selectedSeg.id] }))}
+          onRescan={onRescan && selectedSeg.groupId ? async () => {
+            try {
+              const updated = await onRescan(selectedSeg.groupId!);
+              const conf = updated.extraction?.confidence;
+              const lang = updated.extraction?.detectedLanguage || "—";
+              const provider = updated.extraction?.provider === "openai" ? "OpenAI" : "Gemini";
+              const pct = typeof conf === "number" ? `${Math.round(conf * 100)}%` : "—";
+              toast.success(`Re-scanned · ${provider} · ${pct} · ${lang.toUpperCase()}`, {
+                description: "تمت إعادة المسح بنجاح",
+                duration: 4000,
+              });
+              setSelectedSeg(null);
+            } catch (e: any) {
+              console.error("[journey] rescan failed", e);
+              toast.error("Re-scan failed · please try again", {
+                description: e?.message || "إعادة المسح فشلت",
+                duration: 4000,
+              });
+            }
+          } : undefined}
         />
       )}
     </div>
