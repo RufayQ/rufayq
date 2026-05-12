@@ -6431,8 +6431,13 @@ export type Database = {
           client_generated_id: string | null
           created_at: string
           deleted_at: string | null
+          detected_language: string | null
           device_id: string | null
           document_type: string
+          extraction_confidence: number | null
+          extraction_provider: string | null
+          extraction_run_at: string | null
+          extraction_translated: boolean
           id: string
           passenger_name: string | null
           passenger_passport: string | null
@@ -6443,6 +6448,7 @@ export type Database = {
           send_to_doctor: boolean
           source: string
           source_document_id: string | null
+          source_image_paths: string[]
           sync_status: string
           trip_type: string
           updated_at: string
@@ -6454,8 +6460,13 @@ export type Database = {
           client_generated_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          detected_language?: string | null
           device_id?: string | null
           document_type?: string
+          extraction_confidence?: number | null
+          extraction_provider?: string | null
+          extraction_run_at?: string | null
+          extraction_translated?: boolean
           id?: string
           passenger_name?: string | null
           passenger_passport?: string | null
@@ -6466,6 +6477,7 @@ export type Database = {
           send_to_doctor?: boolean
           source?: string
           source_document_id?: string | null
+          source_image_paths?: string[]
           sync_status?: string
           trip_type: string
           updated_at?: string
@@ -6477,8 +6489,13 @@ export type Database = {
           client_generated_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          detected_language?: string | null
           device_id?: string | null
           document_type?: string
+          extraction_confidence?: number | null
+          extraction_provider?: string | null
+          extraction_run_at?: string | null
+          extraction_translated?: boolean
           id?: string
           passenger_name?: string | null
           passenger_passport?: string | null
@@ -6489,6 +6506,7 @@ export type Database = {
           send_to_doctor?: boolean
           source?: string
           source_document_id?: string | null
+          source_image_paths?: string[]
           sync_status?: string
           trip_type?: string
           updated_at?: string
