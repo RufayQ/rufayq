@@ -199,19 +199,36 @@ const rowToTicket = (r: any, segments: FlightSegment[]): TransportTicket => {
 
 /* ─────────────────────────  CRUD  ───────────────────────── */
 
-export async function listTickets(deviceId: string): Promise<TransportTicket[]> {
-  if (!deviceId) return [];
-  const { data: tRows, error: tErr } = await (supabase as any)
+export async function listTickets(
+  scopeOrDeviceId: TicketScope | string,
+): Promise<TransportTicket[]> {
+  const scope = toScope(scopeOrDeviceId);
+  const { deviceId, userId } = scope;
+  if (!deviceId && !userId) return [];
+
+  let query = (supabase as any)
     .from("transport_tickets")
     .select("*")
-    .eq("device_id", deviceId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: true });
+
+  // When signed in, accept either ownership signal so a regenerated
+  // device_id (e.g. after the user clears site data) doesn't hide rows.
+  if (userId && deviceId) {
+    query = query.or(`user_id.eq.${userId},device_id.eq.${deviceId}`);
+  } else if (userId) {
+    query = query.eq("user_id", userId);
+  } else {
+    query = query.eq("device_id", deviceId);
+  }
+
+  const { data: tRows, error: tErr } = await query;
   if (tErr) {
     console.warn("[transportStore] list tickets failed", tErr);
-    return readCache(deviceId);
+    return readCache(scope);
   }
   if (!tRows || tRows.length === 0) {
-    writeCache(deviceId, []);
+    writeCache(scope, []);
     return [];
   }
   const ids = (tRows as any[]).map((r) => r.id);
@@ -221,7 +238,7 @@ export async function listTickets(deviceId: string): Promise<TransportTicket[]> 
     .in("ticket_id", ids);
   if (sErr) {
     console.warn("[transportStore] list segments failed", sErr);
-    return readCache(deviceId);
+    return readCache(scope);
   }
   const byTicket = new Map<string, FlightSegment[]>();
   ((sRows as any[]) || []).forEach((row) => {
@@ -233,7 +250,7 @@ export async function listTickets(deviceId: string): Promise<TransportTicket[]> 
   const tickets = (tRows as any[]).map((r) =>
     rowToTicket(r, byTicket.get(r.id) || []),
   );
-  writeCache(deviceId, tickets);
+  writeCache(scope, tickets);
   return tickets;
 }
 
@@ -241,6 +258,7 @@ export async function saveTicket(
   ticket: TransportTicket,
 ): Promise<TransportTicket> {
   if (!ticket.deviceId) throw new Error("deviceId required");
+  const scope: TicketScope = { deviceId: ticket.deviceId, userId: ticket.userId ?? null };
   const allSegments = [...ticket.outboundSegments, ...ticket.returnSegments];
 
   const { error: tErr } = await (supabase as any)
@@ -249,8 +267,8 @@ export async function saveTicket(
   if (tErr) {
     console.error("[transportStore] save ticket failed", tErr);
     // Cache locally anyway so the user doesn't lose their data
-    const local = readCache(ticket.deviceId);
-    writeCache(ticket.deviceId, [...local.filter((x) => x.id !== ticket.id), ticket]);
+    const local = readCache(scope);
+    writeCache(scope, [...local.filter((x) => x.id !== ticket.id), ticket]);
     throw tErr;
   }
 
@@ -277,23 +295,29 @@ export async function saveTicket(
   }
 
   // Update cache
-  const local = readCache(ticket.deviceId);
+  const local = readCache(scope);
   const next = [...local.filter((x) => x.id !== ticket.id), ticket].sort(
     (a, b) => a.createdAt.localeCompare(b.createdAt),
   );
-  writeCache(ticket.deviceId, next);
+  writeCache(scope, next);
   return ticket;
 }
 
-export async function deleteTicket(deviceId: string, ticketId: string): Promise<void> {
+export async function deleteTicket(
+  scopeOrDeviceId: TicketScope | string,
+  ticketId: string,
+): Promise<void> {
+  const scope = toScope(scopeOrDeviceId);
+  // Soft delete (deleted_at column exists on transport_tickets).
   const { error } = await (supabase as any)
     .from("transport_tickets")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("id", ticketId);
   if (error) {
     console.error("[transportStore] delete ticket failed", error);
     throw error;
   }
-  const local = readCache(deviceId);
-  writeCache(deviceId, local.filter((t) => t.id !== ticketId));
+  const local = readCache(scope);
+  writeCache(scope, local.filter((t) => t.id !== ticketId));
 }
+
