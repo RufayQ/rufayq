@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { pdfToImageDataUrls } from "@/lib/pdfToImages";
 import { validateFlight } from "@/lib/flightParsing";
 import { extractFlightTicket, FlightExtractionError } from "@/lib/flightExtraction";
-import { extractFlightTicket, FlightExtractionError } from "@/lib/flightExtraction";
 import ItineraryConfirmSheet from "@/components/ItineraryConfirmSheet";
 
 export interface FlightInfo {
