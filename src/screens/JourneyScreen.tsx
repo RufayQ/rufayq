@@ -1033,17 +1033,24 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan }: { segmen
               const lang = updated.extraction?.detectedLanguage || "—";
               const provider = updated.extraction?.provider === "openai" ? "OpenAI" : "Gemini";
               const pct = typeof conf === "number" ? `${Math.round(conf * 100)}%` : "—";
-              toast.success(`Re-scanned · ${provider} · ${pct} · ${lang.toUpperCase()}`, {
+              toast.success(`Ticket re-scanned · ${provider} · ${pct} · ${lang.toUpperCase()}`, {
                 description: "تمت إعادة المسح بنجاح",
                 duration: 4000,
               });
               setSelectedSeg(null);
             } catch (e: any) {
               console.error("[journey] rescan failed", e);
-              toast.error("Re-scan failed · please try again", {
-                description: e?.message || "إعادة المسح فشلت",
-                duration: 4000,
-              });
+              const code: string = e?.code || "unknown";
+              const messages: Record<string, { en: string; ar: string }> = {
+                manual:     { en: "Manual tickets cannot be re-scanned",    ar: "التذاكر اليدوية لا يمكن إعادة مسحها" },
+                "no-images":{ en: "Original scan images are missing",       ar: "صور المسح الأصلية غير متوفرة" },
+                storage:    { en: "Could not load stored scan images",      ar: "تعذر تحميل صور المسح المخزّنة" },
+                extraction: { en: "AI could not extract this ticket",       ar: "تعذر على الذكاء الاصطناعي استخراج البيانات" },
+                save:       { en: "Re-scan succeeded but saving failed",    ar: "تمت إعادة المسح لكن الحفظ فشل" },
+                unknown:    { en: "Re-scan failed · please try again",      ar: "فشلت إعادة المسح · حاول مرة أخرى" },
+              };
+              const msg = messages[code] || messages.unknown;
+              toast.error(msg.en, { description: msg.ar, duration: 4000 });
             }
           } : undefined}
         />

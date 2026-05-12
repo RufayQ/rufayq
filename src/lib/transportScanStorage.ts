@@ -17,9 +17,21 @@ export interface ScanScope {
   userId?: string | null;
 }
 
+export type ScanStorageErrorCode =
+  | "upload"
+  | "sign"
+  | "download"
+  | "read"
+  | "invalid-data-url";
+
 export class ScanStorageError extends Error {
-  constructor(message: string, public cause?: unknown) {
+  constructor(
+    message: string,
+    public code: ScanStorageErrorCode,
+    public cause?: unknown,
+  ) {
     super(message);
+    this.name = "ScanStorageError";
   }
 }
 
@@ -27,26 +39,30 @@ const ownerFolder = (scope: ScanScope) =>
   scope.userId ? scope.userId : `device:${scope.deviceId}`;
 
 const dataUrlToBlob = (dataUrl: string): Blob => {
-  if (!dataUrl.startsWith("data:")) {
-    // Treat as raw base64 PNG fallback.
-    const bin = atob(dataUrl);
+  try {
+    if (!dataUrl.startsWith("data:")) {
+      const bin = atob(dataUrl);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return new Blob([arr], { type: "image/png" });
+    }
+    const [header, body] = dataUrl.split(",");
+    const mime = /data:(.*?);base64/.exec(header)?.[1] || "image/png";
+    const bin = atob(body);
     const arr = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    return new Blob([arr], { type: "image/png" });
+    return new Blob([arr], { type: mime });
+  } catch (e) {
+    throw new ScanStorageError("Invalid data URL", "invalid-data-url", e);
   }
-  const [header, body] = dataUrl.split(",");
-  const mime = /data:(.*?);base64/.exec(header)?.[1] || "image/png";
-  const bin = atob(body);
-  const arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-  return new Blob([arr], { type: mime });
 };
 
 const blobToDataUrl = (blob: Blob): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
+    reader.onerror = () =>
+      reject(new ScanStorageError("FileReader failed", "read", reader.error));
     reader.readAsDataURL(blob);
   });
 
@@ -59,7 +75,7 @@ export async function uploadScanImages(
   ticketId: string,
   dataUrls: string[],
 ): Promise<string[]> {
-  if (!ticketId) throw new ScanStorageError("ticketId required");
+  if (!ticketId) throw new ScanStorageError("ticketId required", "upload");
   if (!Array.isArray(dataUrls) || dataUrls.length === 0) return [];
   const folder = ownerFolder(scope);
   const paths: string[] = [];
@@ -69,13 +85,20 @@ export async function uploadScanImages(
     try {
       blob = dataUrlToBlob(dataUrls[i]);
     } catch (e) {
-      throw new ScanStorageError(`Could not decode page ${i + 1}`, e);
+      if (e instanceof ScanStorageError) throw e;
+      throw new ScanStorageError(`Could not decode page ${i + 1}`, "invalid-data-url", e);
     }
     const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
       upsert: true,
       contentType: blob.type || "image/png",
     });
-    if (error) throw new ScanStorageError(`Upload failed for page ${i + 1}: ${error.message}`, error);
+    if (error) {
+      throw new ScanStorageError(
+        `Upload failed for page ${i + 1}: ${error.message}`,
+        "upload",
+        error,
+      );
+    }
     paths.push(path);
   }
   return paths;
@@ -84,6 +107,11 @@ export async function uploadScanImages(
 /**
  * Resolve signed URLs for stored scan pages and return them as base64 data
  * URLs ready to feed back into the AI extraction pipeline.
+ *
+ * Failure modes are typed via ScanStorageError.code:
+ *   - "sign"     — could not create signed URL
+ *   - "download" — fetch/HTTP/blob failure
+ *   - "read"     — FileReader failure
  */
 export async function fetchScanImagesAsDataUrls(
   paths: string[],
@@ -95,7 +123,11 @@ export async function fetchScanImagesAsDataUrls(
       .from(BUCKET)
       .createSignedUrl(path, 60);
     if (signErr || !signed?.signedUrl) {
-      throw new ScanStorageError(`Could not sign ${path}: ${signErr?.message || "no url"}`, signErr);
+      throw new ScanStorageError(
+        `Could not sign ${path}: ${signErr?.message || "no url"}`,
+        "sign",
+        signErr,
+      );
     }
     let blob: Blob;
     try {
@@ -103,9 +135,12 @@ export async function fetchScanImagesAsDataUrls(
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       blob = await res.blob();
     } catch (e) {
-      throw new ScanStorageError(`Download failed for ${path}`, e);
+      throw new ScanStorageError(`Download failed for ${path}`, "download", e);
     }
     out.push(await blobToDataUrl(blob));
   }
   return out;
 }
+
+/** Backward-compatible alias for older call sites. */
+export const downloadTransportScanDataUrls = fetchScanImagesAsDataUrls;

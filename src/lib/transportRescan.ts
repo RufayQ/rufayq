@@ -19,17 +19,22 @@ import {
   ScanStorageError,
 } from "@/lib/transportScanStorage";
 
+export type RescanErrorCode =
+  | "manual"
+  | "no-images"
+  | "storage"
+  | "extraction"
+  | "save"
+  | "unknown";
+
 export class RescanError extends Error {
-  constructor(message: string, public code:
-    | "manual"
-    | "no-images"
-    | "storage"
-    | "extraction"
-    | "save"
-    | "unknown",
+  constructor(
+    message: string,
+    public code: RescanErrorCode,
     public cause?: unknown,
   ) {
     super(message);
+    this.name = "RescanError";
   }
 }
 
