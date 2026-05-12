@@ -1,173 +1,600 @@
-# Journey Timeline Revamp — Phased Plan
+**final holistic implementation prompt**.
 
-This is a large effort. Shipping it in one pass would break the existing Journey screen and produce untested infrastructure. Below is a 5-phase plan; each phase is independently mergeable and leaves the app working. We confirm scope/Phase 1 before coding, then proceed phase by phase.
-
-## Phase 0 — Verification (no code)
-
-Before any FHIR payload work:
-
-- Confirm against the live NPHIES IG: profile canonical URLs, required fields, Bundle structures (especially `laboratory ServiceRequest`, `Claim` variants, `MedicationRequest`, `Appointment`, `Task`).
-- Inventory existing tables/functions actually in repo: `patients`, `journeys`, `journey_steps`, `medical_records`, `appointments`, `transport_tickets`, `medications`, `patient_access`/`staff_patient_grants` (exact names), audit table, `ensure_patient`, `claim_guest_patient_data`, `has_role`.
-- Confirm device-id header convention currently used by RLS (`x-device-id` vs request setting).
-- Decide audit target: reuse existing `admin_audit_log` + new `patient_audit_log`, or extend existing.
-
-Deliverable: short doc in `docs/journey-timeline.md` with verified mappings + chosen audit target. No DB or app changes.  
+`# Final Holistic Fix Prompt — Flight Persistence + AI Vision Extraction`  
   
-Approved with amendments.
+`Fix these two production-critical issues permanently:`  
+  
+`1. Signed-in patient flight details disappear after clearing browser cache / site data and hard reload.`  
+`2. Flight ticket AI vision parsing is not consistently OpenAI-first, OpenAPI-documented, normalized, or robust for English ticket layouts.`  
+  
+`This must be a complete code fix, not a plan. Implement, test, and verify end-to-end.`  
+  
+`---`  
+  
+`## Core Acceptance Criteria`  
+  
+`The fix is complete only when:`  
+  
+`- A signed-in user’s saved flight ticket survives:`  
+  `- cache clear`  
+  `- localStorage clear`  
+  `- hard reload`  
+  `- regenerated rufayq_device_id`  
+`- Signed-in retrieval works by user_id, not only by device_id.`  
+`- Guest current-device tickets are claimed on sign-in through the existing patient claim flow.`  
+`- Tickets from another device are **not** rewritten to the current device_id.`  
+`- ScannerWizard and AddTripSheet use the same extraction helper.`  
+`- OpenAI extract-flight-ticket-ai is primary.`  
+`- Gemini scan-itinerary is fallback only.`  
+`- Both engines normalize into one app-level contract before save.`  
+`- English tickets with City (IATA), AM/PM time, terminal/concourse, codeshare, and multi-leg transit parse correctly.`  
+`- OpenAPI includes both flight extraction functions.`  
+`- Tests cover transport persistence and flight extraction normalization.`  
+`- No broad device-id reassignment is introduced.`  
+  
+`---`  
+  
+`## Files To Change / Add`  
+  
+`Implement the fix across these files:`  
+  
+`1. src/lib/transportStore.ts`  
+`2. src/hooks/useTransportTimeline.ts`  
+`3. src/lib/flightExtraction.ts new shared helper`  
+`4. src/lib/flightParsing.ts`  
+`5. src/components/AddTripSheet.tsx`  
+`6. src/screens/ScannerWizard.tsx`  
+`7. supabase/functions/extract-flight-ticket-ai/index.ts`  
+`8. src/api/openapi.ts`  
+`9. supabase/functions/openapi-spec/spec.json`  
+`10. src/lib/__tests__/transportStore.test.ts`  
+`11. src/lib/__tests__/flightParsing.test.ts`  
+`12. src/lib/__tests__/flightExtraction.test.ts`  
+`13. src/screens/__tests__/ScannerWizard.e2e.test.tsx`  
+`14. src/components/__tests__/AddTripSheet.test.tsx`  
+`15. supabase/functions/extract-flight-ticket-ai/index.test.ts`  
+  
+`---`  
+  
+`# Part 1 — Durable Flight Persistence`  
+  
+`## Verified Root Cause`  
+`src/hooks/useDeviceId.ts creates a fresh UUID whenever localStorage is empty.`  
+  
+`The legacy transport path reads tickets only by device_id:`  
+  
+````ts`  
+`.from("transport_tickets")`  
+`.select("*")`  
+`.eq("device_id", deviceId)`  
 
-The 5-phase rollout is the right approach. Do not attempt the full Journey Timeline revamp in one pass.
 
-Required amendments before Phase 1:
+So this breaks:
 
-1. Phase 1 RPCs are not “skeletons”.
+1. User signs in.
+2. User saves a flight ticket.
+3. Row is saved with user_id = USER and device_id = OLD_DEVICE.
+4. User clears site data.
+5. App generates NEW_DEVICE.
+6. listTickets(NEW_DEVICE) returns nothing.
+7. Ticket appears lost forever.
 
-They must be production-grade for authorization, idempotency, version checks, state-machine validation, audit logging, and transactionality before merging. UI can wait, but unsafe RPC placeholders cannot land.
+Fix this by making signed-in transport reads user-aware.
 
-2. Phase 1 must include tests for RPC/RLS.
+---
 
-Add SQL/API tests for:
+## **src/lib/transportStore.ts**
 
-- owner can read/mutate own artifact
+Change the store API to use a scope object.
 
-- user A cannot read/mutate user B artifact
+`export type TicketScope = {`  
+  `deviceId: string;`  
+  `userId?: string | null;`  
+`};`  
 
-- device A cannot read/mutate device B artifact
 
-- future mark-done returns TEMPORAL_VIOLATION
+### **Cache keys**
 
-- version mismatch returns VERSION_CONFLICT
+Replace device-only cache keys with:
 
-- repeated idempotency key writes one audit row
+`const legacyCacheKey = (deviceId: string) => rufayq.transport.${deviceId};`  
+  
+`const cacheKey = ({ deviceId, userId }: TicketScope) =>`  
+  `userId`  
+    `? rufayq.transport.user:${userId}`  
+    `: rufayq.transport.device:${deviceId};`  
 
-3. Do not revoke anon globally without checking guest/device flows.
 
-The app has guest/device mode. If RPCs must support guest/device artifacts, anon may need EXECUTE with strict device-id validation. If signed-in only, document that explicitly.
+### **readCache / writeCache**
 
-4. Confirm existing audit infra before adding patient_audit_log.
+Update:
 
-If existing audit helpers/table can support patient-scoped audit, extend them. Create patient_audit_log only if needed.
+`readCache(scopeOrDeviceId: TicketScope | string): TransportTicket[]`  
+`writeCache(scopeOrDeviceId: TicketScope | string, tickets: TransportTicket[]): void`  
 
-5. Feature flag should be runtime-safe.
 
-Use env flag plus optional admin/internal runtime toggle if available. Do not expose an unfinished timeline to patients by accident.
+Rules:
 
-6. Phase 2 “cache-first fetch” must not use localStorage for PHI.
+- signed-in cache is keyed by user id
+- guest cache is keyed by device id
+- support legacy rufayq.transport.${deviceId} as one-time compatibility read
+- if signed-in and legacy cache exists, migrate it into the user cache
+- never let guest cache mask signed-in DB rows
 
-If IndexedDB cache is not ready until Phase 4, Phase 2 should be network-first or in-memory only. No temporary PHI localStorage.
+### **listTickets**
 
-7. Phase 3 online actions must still use idempotency and expectedVersion.
+Change:
 
-Even before offline queue, all command calls must include idempotencyKey and expectedVersion.
+`listTickets(deviceId: string)`  
 
-8. Cache encryption should not block Phase 1-3.
 
-Approve best-effort WebCrypto with documented limits for web. Native secure storage can be a later hardening layer, but do not store PHI in localStorage meanwhile.
+to:
 
-9. Add migration rollback notes.
+`listTickets(scope: TicketScope)`  
 
-Every schema phase should include reversible migration notes or explicit rollback strategy, especially enums and RPCs.
 
-10. Old Journey screen remains default until Phase 5.
+Implementation:
 
-Feature-flagged new UI is acceptable, but cutover only after E2E, perf, RLS, audit, offline, and RTL tests pass.
+`let query = supabase`  
+  `.from("transport_tickets")`  
+  `.select("*")`  
+  `.is("deleted_at", null)`  
+  `.order("created_at", { ascending: true });`  
+  
+`if (userId) {`  
+  `query = query.oruser_id.eq.${userId},device_id.eq.${deviceId});`  
+`} else {`  
+  `query = query.eq("device_id", deviceId);`  
+`}`  
 
-For the confirmations:
 
-Audit target: prefer extending existing audit infrastructure if compatible; otherwise create patient_audit_log.
+Then:
 
-Device header: use the current repo pattern from migrations: ((current_setting('request.headers', true))::json ->> 'x-device-id').
+- deduplicate by ticket id
+- load transport_flight_segments by union of ticket ids
+- map rows back into TransportTicket
+- write cache using the same { deviceId, userId } scope
 
-Feature flag: env flag is acceptable; old screen default until Phase 5.
+### **saveTicket**
 
-Cache encryption: accept best-effort WebCrypto for web with documented limits; do not delay backend/API/UI phases for native-grade encryption.
+Ensure saved signed-in tickets include:
 
-## Phase 1 — Schema + RLS + RPC skeleton
+`user_id = auth.uid()`  
+`device_id = currentDeviceId`  
 
-Migrations:
 
-- `journey_artifacts` table (UUID pk, `journey_step_id`, `patient_id`, `user_id`, `device_id`, `artifact_type`, `linked_entity_id`, `fhir_resource_type`, `fhir_resource_id`, `title`, `title_ar`, `status`, `due_at`, `completed_at`, `cancelled_at`, `cancel_reason`, `rescheduled_from_id`, `rescheduled_to_id`, `source`, `audit_locked`, `version`, `created_at`, `updated_at`, `deleted_at`).
-- Enums: `journey_artifact_type`, `journey_artifact_status`, `journey_artifact_source`.
-- `patient_audit_log` only if no compatible audit table exists (decided in Phase 0).
-- `mutation_idempotency_log` (unique on `(idempotency_key, actor_user_id, actor_device_id, rpc_name)`).
-- RLS aligned with existing repo ownership pattern (`user_id = auth.uid()`, device-id header, staff/patient_access grants). Mirror `WITH CHECK` to `USING`.
-- Indexes: `(journey_step_id, deleted_at)`, `(patient_id, due_at)`.
+But do **not** update other rows with the same user_id.
 
-RPCs (skeletons that validate ownership/version/idempotency, write audit, bump version, return `{ row, timeline_version }`):
+Forbidden:
 
-- `journey_create_artifact`
-- `journey_mark_artifact_done`
-- `journey_cancel_artifact`
-- `journey_reschedule_artifact` (atomic: lock + clone)
-- `journey_archive_journey`
-- `journey_get_timeline(journey_id)` returning JSON `{ milestones, timeline_version, updated_at_max, server_time }` with `temporal_state` computed in `Asia/Riyadh`.
+`update transport_tickets`  
+`set device_id = current_device`  
+`where user_id = auth.uid()`  
+  `and device_id <> current_device;`  
 
-Permissions: `REVOKE ALL ... FROM PUBLIC, anon; GRANT EXECUTE TO authenticated`. No client direct writes.
 
-Deliverable: migrations + RPCs landed, no UI yet. Existing JourneyScreen unaffected.
+That breaks multi-device provenance.
 
-## Phase 2 — Typed API wrappers + read hook
+### **deleteTicket**
 
-Files:
+Change legacy hard delete to soft delete if deleted_at exists:
 
-- `src/lib/api/journeyTimelineApi.ts`: typed wrappers around the new RPCs; normalize errors to the `ApiError` shape (`FORBIDDEN`, `NOT_FOUND`, `INVALID_TRANSITION`, `TEMPORAL_VIOLATION`, `VERSION_CONFLICT`, `VALIDATION`, `QUEUED_OFFLINE`, `INTERNAL`).
-- `src/lib/journey/journeyTimelineRules.ts`: pure state-machine + temporal rules (mirrors server) for client validation.
-- `src/lib/journey/journeyArtifactCopy.ts`: bilingual labels.
-- `src/hooks/useJourneyTimeline.ts`: read-only first cut. Plain React state + cache-first fetch. Realtime + optimistic come in Phase 4.
+`.update({ deleted_at: new Date().toISOString() })`  
+`.eq("id", ticketId)`  
 
-Deliverable: hook returns full timeline projection. Still not wired into the screen.
 
-## Phase 3 — UI components (read + simple actions)
+Then remove from scoped cache.
 
-New, behind a feature flag (`VITE_JOURNEY_TIMELINE_V2` or runtime toggle):
+---
 
-- `JourneyTimeline.tsx` — subway renderer, max 6 stations, "‹ Earlier (N)" collapse, RTL-aware direction.
-- `JourneyMilestoneCard.tsx` — selected milestone header.
-- `JourneyArtifactCard.tsx` — status pill, strikethrough cancelled, "Rescheduled →" link, action buttons gated by rules.
-- `JourneyAddArtifactSheet.tsx`, `JourneyRescheduleSheet.tsx`.
-- Loading skeletons (6 stations + 3 rows), empty states, 403 screen, error banner.
-- Accessibility: aria labels, keyboard reachable stations, `aria-live="polite"` for status changes, focus rings.
-- Selected milestone id + scroll position in refs (not query state).
+## **src/hooks/useTransportTimeline.ts**
 
-`JourneyScreen.tsx` orchestrates: when flag on → new timeline; otherwise current screen. No drag/drop. No hard delete.
+Wire auth state into the transport hook.
 
-Actions wired: `mark done`, `cancel`, `reschedule`, `add artifact`, `archive journey`. Optimistic with rollback (no offline queue yet — failures just rollback + toast).
+Required behavior:
 
-Deliverable: feature-flagged elite timeline working online. Existing screen still default.
+- use supabase.auth.getSession()
+- subscribe to supabase.auth.onAuthStateChange
+- maintain userId
+- maintain authReady
+- before auth is resolved, do not perform authoritative refresh
+- on user change, clear in-memory tickets to prevent cross-user paint
+- call existing claimGuestPatientData() when signed in
+- then refresh tickets by { deviceId, userId }
 
-## Phase 4 — Offline queue + realtime + idempotency
+Update calls:
 
-- `src/lib/sync/mutationQueue.ts`: IndexedDB store `local_mutation_queue`, `enqueueMutation` wrapper used by all command wrappers. States: `pending | succeeded | queued_offline | failed`. Exponential backoff. Replay on boot, per-artifact serialization.
-- `src/lib/sync/timelineCache.ts`: IndexedDB read cache, encrypted at rest (best-effort web crypto with key derived from session; documented threat model). Wipe on different-user login.
-- Realtime subscription on `journey_artifacts` and `journey_steps` for authenticated users; merge by `version`; debounce 200ms. Guest/device → polling fallback (until `x-device-id` realtime is verified).
-- Server idempotency replay via `mutation_idempotency_log`.
+`readCache({ deviceId, userId })`  
+`listTickets({ deviceId, userId })`  
+`deleteTicket({ deviceId, userId }, ticketId)`  
 
-Deliverable: offline-first behavior + 2-device realtime within 2s.
 
-## Phase 5 — Tests, perf, cutover
+In addTicket, enrich with:
 
-- Playwright E2E for every flow listed in §15 (past read-only, today done, cancel, future TEMPORAL_VIOLATION, reschedule, add, role transitions, RLS isolation user+device, idempotency, version conflict, audit completeness, offline replay, RTL, Hijri toggle, cross-user cache wipe, realtime).
-- Perf marks (`performance.mark("journey:timeline:paint")`), Lighthouse run.
-- Bundle delta check < 80KB gz.
-- Flip flag default → on. Keep old screen behind opposite flag for one release for rollback. Remove old code one release later.
+`const enriched = {`  
+  `...ticket,`  
+  `deviceId,`  
+  `userId,`  
+`};`  
 
-## Hard rules carried through every phase
 
-- No localStorage for PHI.
-- No direct table writes from React.
-- All mutations: idempotencyKey + expectedVersion + audit row in same tx + version bump.
-- RLS uses repo's ownership semantics (`user_id = auth.uid()`, device-id header, patient_access grants); never `patient_id = auth.uid()`.
-- Server is authoritative for temporal state and state-machine validation.
+Then:
 
-## Out of scope for this plan
+`await saveTicket(enriched);`  
+`await refresh();`  
 
-- Drag-and-drop reschedule.
-- Hard delete UI.
-- New NPHIES profile authoring (we map to verified existing profiles only).
-- Provider-side timeline UI.
 
-## Confirmations needed before Phase 1
+This ensures the saved row is user-owned and reloadable after device id changes.
 
-1. Audit target: new `patient_audit_log` table OK, or extend `admin_audit_log`?
-2. Device-id header convention: confirm current repo pattern for guest RLS so the new policies match exactly.
-3. Feature flag mechanism: env var (`VITE_JOURNEY_TIMELINE_V2`) acceptable, or use Settings toggle?
-4. Cache encryption: best-effort WebCrypto with documented limits acceptable for web, or defer encryption to native shells only?
+---
+
+## **RLS Verification**
+
+Confirm migrations already allow:
+
+`transport_tickets.user_id = auth.uid()`  
+
+
+and segments are readable through parent ticket ownership.
+
+If missing, add migration policies.
+
+Do not rely on x-device-id for signed-in recovery.
+
+---
+
+# **Part 2 — Shared AI Vision Extraction**
+
+## **src/lib/flightExtraction.ts**
+
+Create a new shared helper.
+
+`export async function extractFlightTicket(input: {`  
+  `file?: string;`  
+  `files?: string[];`  
+  `text?: string;`  
+`}): Promise<NormalizedFlightExtraction>`  
+
+
+Behavior:
+
+1. Call Supabase function extract-flight-ticket-ai.
+2. If it throws/fails/returns no data, fallback to scan-itinerary.
+3. Normalize either response with normalizeFlightExtraction.
+4. Return one consistent app contract.
+
+Use:
+
+`supabase.functions.invoke(name, {`  
+  `body,`  
+  `headers: { "x-device-id": getDeviceId() },`  
+`});`  
+
+
+Define:
+
+`type Provider = "openai" | "gemini";`  
+
+
+Return provider in the normalized payload.
+
+---
+
+## **normalizeFlightExtraction**
+
+In the same helper or separate module, normalize both engine outputs:
+
+- If outboundSegments exists, use it.
+- Else fallback to outboundFlight.
+- If returnSegments exists, use it.
+- Else fallback to returnFlight.
+- Normalize each leg via normalizeParsedLeg.
+- Preserve rich fields like:
+  - terminals
+  - gates
+  - fare class
+  - baggage allowance
+  - raw provider fields
+
+The UI must not care which engine produced the result.
+
+---
+
+# **Part 3 — English Flight Recognition**
+
+## **src/lib/flightParsing.ts**
+
+Enhance deterministic normalization.
+
+Add support for:
+
+### **City IATA pattern**
+
+`"Riyadh (RUH)" -> city "Riyadh", airport "RUH"`  
+`"Dubai (DXB)" -> city "Dubai", airport "DXB"`  
+
+
+Never keep (RUH) inside the city field.
+
+Add regex:
+
+`const CITY_IATA_RE = /^\s*([^()]+?)\s*\(([A-Z]{3})\)\s*$/i;`  
+
+
+Apply it inside resolveAirport.
+
+### **AM/PM normalization**
+
+Normalize:
+
+`2026-05-10 7:45 PM -> 2026-05-10T19:45`  
+`2026-05-10 10:30 AM -> 2026-05-10T10:30`  
+`2026-05-10 12:05 AM -> 2026-05-10T00:05`  
+
+
+Only infer time if date is present in the same datetime string.
+
+---
+
+# **Part 4 — Wire Both UI Surfaces**
+
+## **src/components/AddTripSheet.tsx**
+
+Remove direct scan-itinerary call.
+
+Replace with:
+
+`const parsed = await extractFlightTicket({ files });`  
+
+
+Then use normalized:
+
+`parsed.outboundSegments`  
+`parsed.returnSegments`  
+`parsed.outboundFlight`  
+`parsed.returnFlight`  
+
+
+Do not leave AddTripSheet as Gemini-only.
+
+---
+
+## **src/screens/ScannerWizard.tsx**
+
+Remove duplicated extraction logic.
+
+Replace direct OpenAI/Gemini branching with:
+
+`const parsed = await extractFlightTicket({ files });`  
+`console.info("[scanner] flight extraction provider:", parsed.provider);`  
+
+
+Keep the existing OCR/manual fallback UX.
+
+---
+
+# **Part 5 — Edge Function Prompt Improvements**
+
+## **supabase/functions/extract-flight-ticket-ai/index.ts**
+
+Keep the strict JSON schema.
+
+Do not loosen output validation.
+
+Add English-specific rules to the prompt/input context:
+
+`English ticket rules:`  
+`- If a location appears as "City (IATA)", split it into city and airport code.`  
+`- Never include parenthesized IATA in fromCity/toCity.`  
+`- Convert AM/PM times to 24-hour ISO timestamps when the date is visible in the same row, column, or segment.`  
+`- If a time is visible without reliable date context, return null rather than inventing a date.`  
+`- For codeshare / "operated by" blocks, prefer the operating carrier flight number when explicitly shown.`  
+`- Preserve terminal, gate, and concourse labels exactly as printed, including "Terminal 1", "T1", and "Concourse A".`  
+`- Treat "Stop in <city>", "Layover", "Transit", and "Connection" rows as segment boundaries when flight numbers or airport codes indicate multiple legs.`  
+`- Do not collapse multi-leg itineraries into a direct route.`  
+
+
+If text is more than 80% ASCII, add an English hint inside the input text.
+
+Do not add unsupported OpenAI API params such as fake language fields.
+
+Do not add temperature unless the current Responses model supports it.
+
+---
+
+# **Part 6 — OpenAPI**
+
+## **src/api/openapi.ts**
+
+Add schemas:
+
+- FlightExtractionLeg
+- FlightExtraction
+
+Add paths:
+
+`POST /functions/v1/extract-flight-ticket-ai`  
+`POST /functions/v1/scan-itinerary`  
+
+
+Both must document:
+
+`{`  
+  `file?: string;   // image data URL`  
+  `files?: string[]; // image data URLs`  
+  `text?: string;`  
+`}`  
+
+
+Both require:
+
+`x-device-id`  
+
+
+Do not document raw binary upload unless actually implemented.
+
+## **supabase/functions/openapi-spec/spec.json**
+
+Regenerate with:
+
+`node scripts/export-openapi.mjs`  
+
+
+If generation is unavailable, manually keep it in sync and validate JSON.
+
+---
+
+# **Part 7 — Tests**
+
+## **src/lib/__tests__/transportStore.test.ts**
+
+Add tests for:
+
+1. signed-in read after device id changes:
+  - row has device_id = old-device
+  - row has user_id = user-1
+  - call listTickets({ deviceId: "new-device", userId: "user-1" })
+  - expect ticket returned
+2. guest-only read:
+  - no userId
+  - query only by device_id
+3. cache isolation:
+  - guest cache and user cache are separate
+  - signed-in cache is not masked by guest cache
+4. no broad device rewrite:
+  - confirm no function updates all user rows to current device id
+
+## **src/lib/__tests__/flightParsing.test.ts**
+
+Add tests for:
+
+- Riyadh (RUH) split
+- Dubai (DXB) split
+- AM/PM conversion
+- 12 AM / 12 PM edge cases
+- unknown airport fallback
+
+## **src/lib/__tests__/flightExtraction.test.ts**
+
+Mock supabase.functions.invoke.
+
+Test:
+
+1. OpenAI success:
+  - calls extract-flight-ticket-ai
+  - does not call scan-itinerary
+  - returns normalized legs
+2. OpenAI failure:
+  - falls back to scan-itinerary
+  - returns provider gemini
+3. no provider data:
+  - throws meaningful extraction error
+
+## **src/screens/__tests__/ScannerWizard.e2e.test.tsx**
+
+Update existing scanner tests so mocked invoke expects:
+
+1. first call to extract-flight-ticket-ai
+2. fallback call to scan-itinerary only when primary fails
+
+Add English fixture with:
+
+`fromAirport: "Riyadh (RUH)"`  
+`toAirport: "Dubai (DXB)"`  
+`departureDateTime: "2026-05-10 7:45 PM"`  
+
+
+Verify rendered result uses:
+
+`RUH`  
+`DXB`  
+`19:45`  
+
+
+## **src/components/__tests__/AddTripSheet.test.tsx**
+
+Add test proving AddTripSheet uses the shared extraction path and no longer calls scan-itinerary directly unless OpenAI fails.
+
+## **supabase/functions/extract-flight-ticket-ai/index.test.ts**
+
+Add edge function tests or mocked response tests for:
+
+- Saudia multi-leg
+- flynas one-way
+- Emirates/codeshare multi-leg
+
+Do not make normal CI depend on live paid AI calls unless repo has explicit gated integration-test convention.
+
+---
+
+# **Part 8 — Verification Commands**
+
+Run:
+
+`npm test`  
+`npm run build`  
+`npm run lint`  
+`node scripts/export-openapi.mjs`  
+
+
+If available:
+
+`npm run test:e2e`  
+`supabase test edge functions extract-flight-ticket-ai`  
+
+
+Manual smoke:
+
+1. Sign in.
+2. Scan/save an English flight ticket.
+3. Confirm it appears in Journey transport timeline.
+4. Clear site data/localStorage.
+5. Hard reload.
+6. Confirm ticket reappears from Supabase by user_id.
+7. Confirm guest-only unsynced ticket disappears after site data clear; document this as expected unless user signs in first.
+8. Confirm AddTripSheet and ScannerWizard both use OpenAI primary, Gemini fallback.
+
+---
+
+# **Important Forbidden Fixes**
+
+Do not implement:
+
+`update transport_tickets`  
+`set device_id = current_device`  
+`where user_id = auth.uid()`  
+  `and device_id <> current_device;`  
+
+
+Do not make device id authoritative for signed-in users.
+
+Do not keep AddTripSheet on Gemini-only extraction.
+
+Do not add unsupported OpenAI parameters.
+
+Do not loosen the strict JSON schema.
+
+Do not introduce new hard deletes for transport tickets.
+
+---
+
+# **Summary of Expected Change Size**
+
+This should be a multi-file production fix touching roughly these areas:
+
+- transport persistence
+- auth-aware ticket retrieval
+- scoped cache
+- guest claim integration
+- shared AI extraction helper
+- English parsing normalization
+- ScannerWizard wiring
+- AddTripSheet wiring
+- OpenAI prompt rules
+- OpenAPI source
+- OpenAPI generated spec
+- unit tests
+- scanner tests
+- edge function tests
+
+Expect a substantial patch, roughly 15 files and several hundred lines of changes. Do not reduce this to a superficial prompt-only or UI-only fix.
