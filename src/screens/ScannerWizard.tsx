@@ -712,6 +712,13 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
         },
         source: "ocr",
         pageImages: files,
+        extraction: {
+          provider: extracted.provider,
+          confidence: extracted.confidence ?? null,
+          detectedLanguage: extracted.detectedLanguage ?? null,
+          translated: !!extracted.translated,
+          runAt: new Date().toISOString(),
+        },
       });
       setTimeout(() => {
         if (cancelRef.current || runRef.current !== myRun) return;
