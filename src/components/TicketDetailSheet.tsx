@@ -503,6 +503,7 @@ const TicketDetailSheet = ({
                   )}
                 </div>
               )}
+              {hasBarcode && (
                 <div className="rounded-2xl p-4 text-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
                   <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gray)" }}>BOARDING PASS BARCODE</p>
                   <BoardingBarcode code={barcodeCode} />
