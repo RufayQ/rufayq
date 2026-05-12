@@ -152,6 +152,16 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     /** Pre-allocated id used for the FIRST resulting segment so any
      *  related-document attachments uploaded in the wizard stay linked. */
     pendingSegmentRef?: string;
+    /** Raw analyzed image data URLs (before upload to private storage). */
+    pageImages?: string[];
+    /** AI extraction metadata captured by the scanner. */
+    extraction?: {
+      provider: "openai" | "gemini";
+      confidence?: number | null;
+      detectedLanguage?: string | null;
+      translated?: boolean;
+      runAt?: string | null;
+    };
   } | null>(null);
 
   // Editor state for transport segments (non-flight in particular). Opens
