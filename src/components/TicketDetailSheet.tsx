@@ -454,7 +454,55 @@ const TicketDetailSheet = ({
           {/* ─── DETAILS TAB ─── */}
           {activeTab === "details" && (
             <div className="space-y-4 pt-2" ref={captureRef}>
-              {hasBarcode && (
+              {seg.extraction?.provider && (
+                <div className="rounded-2xl p-3" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+                  <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--navy)" }}>
+                    🔍 Scan info · <span className="font-arabic">معلومات المسح</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--navy)", color: "white" }}>
+                      {seg.extraction.provider === "openai" ? "OpenAI" : "Gemini"}
+                    </span>
+                    {typeof seg.extraction.confidence === "number" && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-mono" style={{
+                        background: seg.extraction.confidence >= 0.85 ? "#3DAA6E" : seg.extraction.confidence >= 0.6 ? "#C5965A" : "#D94F4F",
+                        color: "white",
+                      }}>
+                        {Math.round(seg.extraction.confidence * 100)}%
+                      </span>
+                    )}
+                    {seg.extraction.detectedLanguage && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--gray-light)", color: "var(--navy)" }}>
+                        {seg.extraction.detectedLanguage.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                    {seg.extraction.translated && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--teal-mid)", color: "white" }}>
+                        Translated · مترجم
+                      </span>
+                    )}
+                  </div>
+                  {seg.extraction.runAt && (
+                    <p className="text-[10px] mb-2" style={{ color: "var(--gray)" }}>
+                      Last scan: {new Date(seg.extraction.runAt).toLocaleString()}
+                    </p>
+                  )}
+                  {onRescan && (
+                    <button
+                      onClick={async () => {
+                        if (isRescanning) return;
+                        setIsRescanning(true);
+                        try { await onRescan(); } finally { setIsRescanning(false); }
+                      }}
+                      disabled={isRescanning}
+                      className="w-full text-[12px] py-2 rounded-xl font-semibold btn-press disabled:opacity-50"
+                      style={{ background: "var(--teal-mid)", color: "white" }}
+                    >
+                      {isRescanning ? "Re-scanning…" : "🔄 Re-scan ticket · إعادة المسح"}
+                    </button>
+                  )}
+                </div>
+              )}
                 <div className="rounded-2xl p-4 text-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
                   <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gray)" }}>BOARDING PASS BARCODE</p>
                   <BoardingBarcode code={barcodeCode} />
