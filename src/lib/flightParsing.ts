@@ -193,8 +193,8 @@ export function normalizeParsedLeg(leg: any): FlightInfo {
     toAirport: to.code,
     toCity: to.city,
     toAirportFull: to.airport,
-    departureDateTime: String(leg?.departureDateTime || "").slice(0, 16),
-    arrivalDateTime: String(leg?.arrivalDateTime || "").slice(0, 16),
+    departureDateTime: normalizeDateTime(leg?.departureDateTime),
+    arrivalDateTime: normalizeDateTime(leg?.arrivalDateTime),
     seatClass: String(leg?.seatClass || "Economy").replace(/^./, (c: string) => c.toUpperCase()),
     seatNumber: String(leg?.seatNumber || "").toUpperCase(),
   };
