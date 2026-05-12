@@ -110,6 +110,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     segments: persistedFlightSegments,
     addTicket: addFlightTicket,
     removeTicket: removeFlightTicket,
+    rescan: rescanFlightTicket,
   } = useTransportTimeline();
   const [nonFlightSegments, setNonFlightSegments] = useState<TransportSegment[]>(
     isGuest ? defaultTransportSegments.filter((s) => guestCats.tickets && s.type !== "flight") : []
