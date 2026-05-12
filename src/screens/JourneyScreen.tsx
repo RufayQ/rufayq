@@ -1026,6 +1026,26 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate }: { segments: Transp
           onUpdateSystemReminders={(reminders) => setTicketSystemReminders((prev) => ({ ...prev, [selectedSeg.id]: reminders }))}
           systemAlertsMuted={ticketMutedAlerts[selectedSeg.id] || false}
           onToggleSystemAlertsMuted={() => setTicketMutedAlerts((prev) => ({ ...prev, [selectedSeg.id]: !prev[selectedSeg.id] }))}
+          onRescan={selectedSeg.groupId ? async () => {
+            try {
+              const updated = await rescanFlightTicket(selectedSeg.groupId!);
+              const conf = updated.extraction?.confidence;
+              const lang = updated.extraction?.detectedLanguage || "—";
+              const provider = updated.extraction?.provider === "openai" ? "OpenAI" : "Gemini";
+              const pct = typeof conf === "number" ? `${Math.round(conf * 100)}%` : "—";
+              toast.success(`Re-scanned · ${provider} · ${pct} · ${lang.toUpperCase()}`, {
+                description: "تمت إعادة المسح بنجاح",
+                duration: 4000,
+              });
+              setSelectedSeg(null);
+            } catch (e: any) {
+              console.error("[journey] rescan failed", e);
+              toast.error("Re-scan failed · please try again", {
+                description: e?.message || "إعادة المسح فشلت",
+                duration: 4000,
+              });
+            }
+          } : undefined}
         />
       )}
     </div>
