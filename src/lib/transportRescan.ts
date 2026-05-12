@@ -35,7 +35,7 @@ export class RescanError extends Error {
 
 export async function rescanTicket(
   ticket: TransportTicket,
-  _scope: TicketScope,
+  scope: TicketScope,
 ): Promise<TransportTicket> {
   if (ticket.source === "manual") {
     throw new RescanError("Cannot re-scan a manually entered ticket", "manual");
@@ -73,6 +73,10 @@ export async function rescanTicket(
     (raw, i) => parsedLegToSegment(raw, "return", i),
   );
 
+  if (outboundSegments.length === 0 && returnSegments.length === 0) {
+    throw new RescanError("Extraction returned no segments", "extraction");
+  }
+
   const passengerName =
     [extracted.passengerFirstName, extracted.passengerLastName]
       .filter(Boolean)
@@ -81,6 +85,8 @@ export async function rescanTicket(
 
   const updated: TransportTicket = {
     ...ticket,
+    deviceId: ticket.deviceId || scope.deviceId,
+    userId: ticket.userId ?? scope.userId ?? null,
     outboundSegments,
     returnSegments,
     passengerName: passengerName || undefined,
