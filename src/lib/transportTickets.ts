@@ -306,6 +306,7 @@ export function ticketToTransportSegments(t: TransportTicket): TransportSegment[
       direction: s.direction,
       layoverAfter,
       documentSource: t.source === "manual" ? "Manual Entry" : "OCR Scanned",
+      extraction: t.source === "manual" ? null : (t.extraction ?? null),
     };
   });
 }
