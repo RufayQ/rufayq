@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { pdfToImageDataUrls } from "@/lib/pdfToImages";
 import { normalizeParsedLeg, validateFlight } from "@/lib/flightParsing";
+import { extractFlightTicket, FlightExtractionError } from "@/lib/flightExtraction";
 import ItineraryConfirmSheet from "@/components/ItineraryConfirmSheet";
 
 export interface FlightInfo {
