@@ -730,7 +730,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         passengerName={pendingScan?.passenger?.name}
         passportNumber={pendingScan?.passenger?.passport}
         onCancel={() => setPendingScan(null)}
-        onConfirm={(out, ret) => applyConfirmedScan(out, ret)}
+        onConfirm={(out, ret) => { void applyConfirmedScan(out, ret); }}
       />
 
       {/* Transport segment editor — handles draft creation + later edits */}
