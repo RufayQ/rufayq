@@ -808,6 +808,7 @@ export const openApiSpec = {
         },
       },
     },
+    "/functions/v1/chat": {
       post: {
         tags: ["Patient · Chat"],
         summary: "RufayQ AI chat — voice notes, image uploads, record references.",
