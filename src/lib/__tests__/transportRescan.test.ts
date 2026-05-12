@@ -13,18 +13,19 @@ const fetchScanImagesAsDataUrlsMock = vi.fn();
 const extractFlightTicketMock = vi.fn();
 const saveTicketMock = vi.fn();
 
-class FakeScanStorageError extends Error {
-  constructor(message: string, public cause?: unknown) {
-    super(message);
-    this.name = "ScanStorageError";
+vi.mock("@/lib/transportScanStorage", () => {
+  class ScanStorageError extends Error {
+    constructor(message: string, public cause?: unknown) {
+      super(message);
+      this.name = "ScanStorageError";
+    }
   }
-}
-
-vi.mock("@/lib/transportScanStorage", () => ({
-  ScanStorageError: FakeScanStorageError,
-  fetchScanImagesAsDataUrls: (...args: unknown[]) =>
-    fetchScanImagesAsDataUrlsMock(...args),
-}));
+  return {
+    ScanStorageError,
+    fetchScanImagesAsDataUrls: (...args: unknown[]) =>
+      fetchScanImagesAsDataUrlsMock(...args),
+  };
+});
 
 vi.mock("@/lib/flightExtraction", () => ({
   extractFlightTicket: (...args: unknown[]) => extractFlightTicketMock(...args),
