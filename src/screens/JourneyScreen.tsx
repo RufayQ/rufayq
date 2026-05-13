@@ -1024,13 +1024,16 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         matches={pendingDuplicate?.matches || []}
         onAddAnyway={() => {
           if (!pendingDuplicate) return;
-          void commitTicket(pendingDuplicate.ticket, pendingDuplicate.out, pendingDuplicate.ret);
+          void addFlightTicket(pendingDuplicate.ticket);
+          setPendingDuplicate(null);
+          setPendingScan(null);
         }}
         onReplace={(existingId) => {
           if (!pendingDuplicate) return;
-          void removeFlightTicket(existingId).then(() =>
-            commitTicket(pendingDuplicate.ticket, pendingDuplicate.out, pendingDuplicate.ret),
-          );
+          const t = pendingDuplicate.ticket;
+          void removeFlightTicket(existingId).then(() => addFlightTicket(t));
+          setPendingDuplicate(null);
+          setPendingScan(null);
         }}
         onCancel={() => { setPendingDuplicate(null); setPendingScan(null); }}
       />
