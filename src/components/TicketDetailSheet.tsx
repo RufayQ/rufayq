@@ -147,6 +147,9 @@ interface TicketDetailSheetProps {
   onUpdateSystemReminders: (reminders: SmartReminder[]) => void;
   systemAlertsMuted: boolean;
   onToggleSystemAlertsMuted: () => void;
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
   /** When provided, renders a "Re-scan ticket" button in the Scan info
    *  section. Should re-run AI extraction on stored source images. */
   onRescan?: () => Promise<void> | void;
@@ -155,13 +158,40 @@ interface TicketDetailSheetProps {
   /** Optional delete handler — surfaces a "Delete" action that calls
    *  this with the ticket/group id. The dialog confirmation is handled
    *  by the parent. */
+=======
+  ticket?: TransportTicket;
+  onRescanTicket?: (ticketId: string) => Promise<TransportTicket>;
+  onEdit?: () => void;
+>>>>>>> theirs
+=======
+  ticket?: TransportTicket;
+  onRescanTicket?: (ticketId: string) => Promise<TransportTicket>;
+  onEdit?: () => void;
+>>>>>>> theirs
+=======
+  ticket?: TransportTicket;
+  onRescanTicket?: (ticketId: string) => Promise<TransportTicket>;
+  onEdit?: () => void;
+>>>>>>> theirs
   onDelete?: () => void;
 }
 
 const TicketDetailSheet = ({
   seg, onClose, notes, onSaveNotes, alarms, onToggleAlarm,
   overrides, onSaveOverrides, systemReminders, onUpdateSystemReminders,
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
   systemAlertsMuted, onToggleSystemAlertsMuted, onRescan, onEdit, onDelete,
+=======
+  systemAlertsMuted, onToggleSystemAlertsMuted, ticket, onRescanTicket, onEdit, onDelete,
+>>>>>>> theirs
+=======
+  systemAlertsMuted, onToggleSystemAlertsMuted, ticket, onRescanTicket, onEdit, onDelete,
+>>>>>>> theirs
+=======
+  systemAlertsMuted, onToggleSystemAlertsMuted, ticket, onRescanTicket, onEdit, onDelete,
+>>>>>>> theirs
 }: TicketDetailSheetProps) => {
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "overrides" | "alarms">("details");
   const [draftNotes, setDraftNotes] = useState(notes);

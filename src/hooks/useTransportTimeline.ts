@@ -160,6 +160,9 @@ export function useTransportTimeline() {
     [scope],
   );
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
   const updateTicket = useCallback(
     async (ticketId: string, mutator: (t: TransportTicket) => TransportTicket) => {
       const current = tickets.find((t) => t.id === ticketId);
@@ -201,12 +204,24 @@ export function useTransportTimeline() {
           a.createdAt.localeCompare(b.createdAt),
         );
       });
+=======
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
   const rescan = useCallback(
     async (ticketId: string) => {
       const ticket = tickets.find((t) => t.id === ticketId);
       if (!ticket) throw new Error("Ticket not found");
       const updated = await rescanTransportTicket(ticket, scope);
       setTickets((prev) => [...prev.filter((t) => t.id !== updated.id), updated].sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
+<<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
       return updated;
     },
     [tickets, scope],
