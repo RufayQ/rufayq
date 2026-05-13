@@ -109,11 +109,13 @@ function layout(milestones: JourneyMilestone[]): {
 
 /* ------------------------------------------------------------------ */
 
-const formatChipDate = (iso?: string) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }).toUpperCase();
+import { formatChipDate } from "@/lib/journeyOverview";
+
+const PHASE_LABELS: Record<JourneyMilestone["phase"], { en: string; order: number }> = {
+  before: { en: "BEFORE", order: 0 },
+  travel: { en: "TRAVEL", order: 1 },
+  care:   { en: "CARE",   order: 2 },
+  after:  { en: "AFTER",  order: 3 },
 };
 
 const JourneyConstellation = ({
@@ -135,7 +137,6 @@ const JourneyConstellation = ({
     for (let i = 1; i < nodes.length; i++) {
       const a = nodes[i - 1];
       const b = nodes[i];
-      // Two control points pulled vertically for a smooth S-curve feel.
       const c1x = a.cx;
       const c1y = a.cy + (b.cy - a.cy) * 0.55;
       const c2x = b.cx;
@@ -161,19 +162,42 @@ const JourneyConstellation = ({
     return d;
   }, [nodes]);
 
+  // One chip per phase, anchored to the FIRST node of that phase, dated
+  // from that node's actual milestone date (or trip dep/ret for travel/after).
+  const chips = useMemo(() => {
+    if (nodes.length === 0) return [];
+    const seen = new Set<string>();
+    const out: { id: string; label: string; sub: string; cx: number; cy: number }[] = [];
+    // Iterate in phase order so chips list stays predictable for a11y.
+    const ordered = [...nodes].sort((a, b) => {
+      const oa = PHASE_LABELS[a.m.phase].order;
+      const ob = PHASE_LABELS[b.m.phase].order;
+      if (oa !== ob) return oa - ob;
+      return a.idx - b.idx;
+    });
+    for (const n of ordered) {
+      const phase = n.m.phase;
+      if (seen.has(phase)) continue;
+      seen.add(phase);
+      // Date source: prefer trip dates for the travel/after anchors.
+      const dateSrc =
+        phase === "travel" ? (departureDate ?? n.m.date ?? null) :
+        phase === "after"  && n.m.refId === "return" ? (returnDate ?? n.m.date ?? null) :
+        n.m.date ?? null;
+      // Place opposite to the node's column to avoid overlap.
+      const cx = n.col === 0 ? 78 : n.col === 2 ? 22 : (n.idx % 2 === 0 ? 82 : 18);
+      const cy = Math.max(20, n.cy - 30);
+      out.push({
+        id: `chip-${phase}`,
+        label: PHASE_LABELS[phase].en,
+        sub: formatChipDate(dateSrc),
+        cx, cy,
+      });
+    }
+    return out;
+  }, [nodes, departureDate, returnDate]);
+
   if (nodes.length === 0) return null;
-
-  // Place phase chips between specific nodes.
-  const firstAppt = nodes.find((n) => n.m.kind === "appointment" || n.m.kind === "treatment");
-  const departure = nodes.find((n) => n.m.kind === "departure");
-  const treatment = nodes.find((n) => n.m.kind === "treatment");
-  const ret       = nodes.find((n) => n.m.kind === "return");
-
-  const chips: { label: string; sub: string; cx: number; cy: number; side: "left" | "right" }[] = [];
-  if (firstAppt) chips.push({ label: "BEFORE", sub: formatChipDate(firstAppt.m.date ?? undefined), cx: firstAppt.col === 2 ? 28 : 78, cy: firstAppt.cy - 28, side: firstAppt.col === 2 ? "left" : "right" });
-  if (departure) chips.push({ label: "TRAVEL", sub: formatChipDate(departureDate ?? departure.m.date ?? undefined), cx: departure.col === 0 ? 78 : 18, cy: departure.cy - 18, side: departure.col === 0 ? "right" : "left" });
-  if (treatment) chips.push({ label: "CARE",   sub: formatChipDate(treatment.m.date ?? undefined),  cx: treatment.col === 2 ? 18 : 82, cy: treatment.cy + 18, side: treatment.col === 2 ? "left" : "right" });
-  if (ret)       chips.push({ label: "AFTER",  sub: formatChipDate(returnDate ?? ret.m.date ?? undefined), cx: ret.col === 0 ? 78 : 18, cy: ret.cy - 18, side: ret.col === 0 ? "right" : "left" });
 
   return (
     <section
@@ -253,7 +277,7 @@ const JourneyConstellation = ({
         {/* Phase chips */}
         {chips.map((c, i) => (
           <div
-            key={`${c.label}-${i}`}
+            key={c.id}
             className="absolute z-10"
             style={{
               left: `${c.cx}%`,

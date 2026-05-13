@@ -5,10 +5,10 @@ import HelicopterCanvas from "@/components/journey/HelicopterCanvas";
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
 
 const milestones: JourneyMilestone[] = [
-  { id: "m1", kind: "departure", title: "Depart", titleAr: "السفر", date: "2026-04-01", state: "done" },
-  { id: "m2", kind: "appointment", title: "Pre-op", titleAr: "ما قبل العملية", date: "2026-04-05", state: "current" },
-  { id: "m3", kind: "treatment", title: "Surgery", titleAr: "الجراحة", date: "2026-04-08", state: "upcoming" },
-  { id: "m4", kind: "return", title: "Return", titleAr: "العودة", date: "2026-04-15", state: "upcoming" },
+  { id: "m1", refId: "departure", kind: "departure", title: "Depart", titleAr: "السفر", date: "2026-04-01", state: "done", phase: "travel" },
+  { id: "m2", refId: "apt-1", kind: "appointment", title: "Pre-op", titleAr: "ما قبل العملية", date: "2026-04-05", state: "current", phase: "care" },
+  { id: "m3", refId: "apt-2", kind: "treatment", title: "Surgery", titleAr: "الجراحة", date: "2026-04-08", state: "upcoming", phase: "care" },
+  { id: "m4", refId: "return", kind: "return", title: "Return", titleAr: "العودة", date: "2026-04-15", state: "upcoming", phase: "after" },
 ];
 
 describe("HelicopterCanvas", () => {
