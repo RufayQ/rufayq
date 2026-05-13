@@ -217,6 +217,7 @@ export function useJourneyOverview(opts: { isGuest?: boolean } = {}): JourneyOve
       nextMedication,
       todayMedications,
       upcomingAppointments,
+      allAppointments: allAppts,
       milestones,
       alerts,
     };
