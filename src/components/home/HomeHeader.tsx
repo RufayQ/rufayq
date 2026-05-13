@@ -1,6 +1,8 @@
 import RufayQWordmark from "@/components/RufayQWordmark";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import NotificationBell from "@/components/NotificationBell";
+import PhaseRibbon from "@/components/home/PhaseRibbon";
+import { type Phase } from "@/components/home/journeyPhase";
 
 export type HomeHeaderMenuItem = HeaderMenuItem;
 
@@ -9,6 +11,8 @@ interface HomeHeaderProps {
   patientNameAr: string;
   onProfile: () => void;
   menuItems: HomeHeaderMenuItem[];
+  /** Optional: when present, renders a faint phase ribbon along the bottom edge. */
+  phase?: Phase;
 }
 
 function greetingForHour(hour: number) {
@@ -18,7 +22,7 @@ function greetingForHour(hour: number) {
   };
 }
 
-const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: HomeHeaderProps) => {
+const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase }: HomeHeaderProps) => {
   const dateStr = new Date()
     .toLocaleDateString("en-US", {
       weekday: "short",
@@ -32,11 +36,26 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: HomeHe
 
   return (
     <div
-      className="relative px-5 pt-3 pb-16 overflow-hidden"
-      style={{ background: "linear-gradient(145deg, var(--header-teal-from), var(--header-teal-to))" }}
+      className="relative px-5 pt-3 pb-20 overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(155deg, var(--header-teal-from) 0%, var(--header-teal-to) 60%, #003B47 100%)",
+      }}
     >
-      <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.15)" }} />
-      <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.08)" }} />
+      {/* Decorative concentric rings */}
+      <div
+        className="absolute -top-12 -right-12 w-44 h-44 rounded-full pointer-events-none"
+        style={{ border: "1px solid rgba(197,150,90,0.18)" }}
+      />
+      <div
+        className="absolute -top-24 -right-24 w-72 h-72 rounded-full pointer-events-none"
+        style={{ border: "1px solid rgba(197,150,90,0.08)" }}
+      />
+      {/* Subtle gold glow */}
+      <span
+        className="absolute -top-8 right-8 w-32 h-32 rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(closest-side, rgba(197,150,90,0.16), transparent)" }}
+      />
 
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-3">
@@ -47,20 +66,50 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: HomeHe
             <button
               onClick={onProfile}
               className="w-9 h-9 rounded-full flex items-center justify-center font-arabic text-sm font-bold btn-press"
-              style={{ background: "var(--gold)", color: "#fff" }}
+              style={{
+                background: "linear-gradient(140deg, var(--gold), #B07A3A)",
+                color: "#fff",
+                boxShadow: "0 4px 12px -4px rgba(197,150,90,0.55)",
+              }}
             >
               {profileInitial}
             </button>
           </div>
         </div>
-        <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>{dateStr}</p>
-        <p className="font-display text-xl italic text-white" style={{ fontWeight: 300 }}>
+
+        <div className="flex items-center gap-2 mb-1">
+          <span
+            className="w-1 h-1 rounded-full"
+            style={{ background: "var(--gold)" }}
+          />
+          <p
+            className="font-mono text-[10px] tracking-[0.22em]"
+            style={{ color: "rgba(255,255,255,0.55)" }}
+          >
+            {dateStr}
+          </p>
+        </div>
+        <p className="font-display text-[22px] italic text-white leading-tight" style={{ fontWeight: 300 }}>
           {patientName ? `${greeting.en}, ${patientName}` : `${greeting.en} 👋`}
         </p>
-        <p className="font-arabic text-sm mt-0.5" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>
+        <p
+          className="font-arabic text-[13px] mt-0.5"
+          dir="rtl"
+          style={{ color: "rgba(255,255,255,0.6)" }}
+        >
           {patientNameAr || patientName ? `${greeting.ar}، ${patientNameAr || patientName}` : `${greeting.ar} 👋`}
         </p>
       </div>
+
+      {/* Phase ribbon embedded near the bottom edge of the hero */}
+      {phase && (
+        <div
+          className="absolute left-5 right-5 z-10"
+          style={{ bottom: 14 }}
+        >
+          <PhaseRibbon current={phase} variant="ondark" />
+        </div>
+      )}
     </div>
   );
 };
