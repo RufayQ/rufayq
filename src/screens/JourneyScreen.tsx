@@ -904,6 +904,12 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
             nextAppointment={nextAppointment}
           />
         )}
+
+        <MilestoneSheet
+          milestone={selectedMilestone}
+          onClose={() => setSelectedMilestoneId(null)}
+          onOpenSubTab={(key) => setActiveSubTab(key)}
+        />
       </div>
 
       <PaywallModal
