@@ -132,6 +132,35 @@ export function useTransportTimeline() {
     [scope],
   );
 
+  const updateTicket = useCallback(
+    async (ticketId: string, mutator: (t: TransportTicket) => TransportTicket) => {
+      const current = tickets.find((t) => t.id === ticketId);
+      if (!current) throw new Error("Ticket not found");
+      const next: TransportTicket = {
+        ...mutator(current),
+        id: current.id,
+        deviceId: current.deviceId || deviceId,
+        userId: current.userId ?? userId ?? null,
+        createdAt: current.createdAt,
+        updatedAt: new Date().toISOString(),
+      };
+      setTickets((prev) => {
+        const without = prev.filter((t) => t.id !== next.id);
+        return [...without, next].sort((a, b) =>
+          a.createdAt.localeCompare(b.createdAt),
+        );
+      });
+      try {
+        await saveTicket(next);
+      } catch (e) {
+        console.error("[useTransportTimeline] updateTicket save failed", e);
+        setError(e as Error);
+      }
+      return next;
+    },
+    [tickets, deviceId, userId],
+  );
+
   const rescan = useCallback(
     async (ticketId: string) => {
       const current = tickets.find((t) => t.id === ticketId);
