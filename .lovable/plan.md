@@ -1,135 +1,216 @@
-- modify exactly HomeScreen.tsx and HomeScreen.test.tsx;
-- add isGuest gating;
-- add medicationSummary;
-- add appointment and medication empty states;
-- add signed-in/guest tests;
-- run typecheck and the HomeScreen test.
+I **do not approve Lovable’s latest claim**.
 
-But do **not** approve the claim that the behavior is already present.
+Lovable says the requested code is “already present,” but the current repo state I inspected still shows the opposite.
 
 ---
 
-# **Revised prompt to send Lovable**
+## **What is actually in HomeScreen.tsx**
 
-`Your premise is incorrect: the requested behavior is not already present in the current branch.`  
-  
-`Please stop checking for a nonexistent already-implemented state and make the actual code changes.`  
-  
-`Modify exactly these files:`  
-`- src/screens/HomeScreen.tsx`  
-`- src/screens/__tests__/HomeScreen.test.tsx`  
-  
-`Do not modify:`  
-`- transport code`  
-`- scanner code`  
-`- duplicate-ticket code`  
-`- JourneyScreen`  
-`- Index`  
-`- useMedications`  
-`- useAppointments`  
-`- broad HomeScreen decomposition`  
-  
-`Current branch reality:`  
-`- HomeScreen.tsx still has:`  
-  ````ts`  
-  `const todayMeds = medications.filter((_, i) => i < 3);`  
-  `const upcomingAppointments = appointments.filter((_, i) => i < 2);`  
+### **Demo medications are still not guest-gated**
 
-
-- HomeScreen.tsx still directly maps appointments and medications inline.
-- HomeScreen.test.tsx still only has journey tests.
-
-Required changes in src/screens/HomeScreen.tsx:
-
-1. Replace:
+Current code:
 
 `const todayMeds = medications.filter((_, i) => i < 3);`  
+
+
+This still pulls demo medications for all users, including signed-in/default users. 【F:src/screens/HomeScreen.tsx†L51-L63】
+
+Expected:
+
+`const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];`  
+
+
+---
+
+### **Demo appointments are still not guest-gated**
+
+Current code:
+
 `const upcomingAppointments = appointments.filter((_, i) => i < 2);`  
 
 
-with:
+This still pulls demo appointments for all users, including signed-in/default users. 【F:src/screens/HomeScreen.tsx†L51-L63】
 
-`const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];`  
+Expected:
+
 `const upcomingAppointments = isGuest ? appointments.filter((_, i) => i < 2) : [];`  
 
 
-Do not rename upcomingAppointments.  
-Do not change appointment filtering to status === "upcoming".
+---
 
-2. In the Copy Summary handler, before navigator.clipboard.writeText, add:
+### **medicationSummary still does not exist**
+
+The Copy Summary action still directly maps todayMeds:
+
+`navigator.clipboard.writeTextRufayQ – Trip Summary\n${summary}\nMedications: ${todayMeds.map(m => ${m.name} (${m.status}).join(", ")});`  
+
+
+【F:src/screens/HomeScreen.tsx†L98-L108】
+
+Expected:
 
 `const medicationSummary = todayMeds.length`  
   `? todayMeds.map((m) => ${m.name} (${m.status})).join(", ")`  
   `: "No medications scheduled today";`  
 
 
-Then change the copy call to:
+And then the copy call should use medicationSummary.
 
-`navigator.clipboard.writeText(`  
-  `RufayQ – Trip Summary\n${summary}\nMedications: ${medicationSummary},`  
-`);`  
+---
 
+### **Appointment empty state is still missing**
 
-3. In the existing UPCOMING APPOINTMENTS section, keep the label and View all → CTA. Replace the direct map with:
+The appointments section still directly maps upcomingAppointments:
 
-`{upcomingAppointments.length === 0 ? (`  
-  `<div`  
-    `className="rounded-xl p-3 text-center"`  
-    `style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}`  
-  `>`  
-    `<p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>`  
-      `No upcoming appointments`  
-    `</p>`  
-    `<p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>`  
-      `لا توجد مواعيد قادمة`  
-    `</p>`  
-  `</div>`  
-`) : (`  
-  `upcomingAppointments.map((apt) => (`  
-    `// preserve the existing appointment row markup exactly`  
-  `))`  
-`)}`  
+`{upcomingAppointments.map((apt) => (...))}`  
 
 
-4. In the existing TODAY'S MEDICATIONS section, keep the label and View all medications → CTA. Replace the direct map with:
+【F:src/screens/HomeScreen.tsx†L255-L274】
 
-`{todayMeds.length === 0 ? (`  
-  `<div`  
-    `className="rounded-xl p-3 text-center"`  
-    `style={{ background: "var(--white)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}`  
-  `>`  
-    `<p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>`  
-      `No medications scheduled today`  
-    `</p>`  
-    `<p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>`  
-      `لا توجد أدوية مجدولة اليوم`  
-    `</p>`  
-  `</div>`  
-`) : (`  
-  `todayMeds.map((med, i) => (`  
-    `// preserve the existing medication row markup exactly`  
-  `))`  
-`)}`
+There is no No upcoming appointments / لا توجد مواعيد قادمة empty state in the current code.
 
-Required test changes in src/screens/__tests__/HomeScreen.test.tsx:
+---
 
-Add tests that verify:
+### **Medication empty state is still missing**
 
-- default/signed-in Home does not render Enoxaparin;
-- default/signed-in Home does not render Amoxicillin;
-- default/signed-in Home does not render Klaus Mueller;
-- default/signed-in Home does not render Charité;
-- default/signed-in Home renders No medications scheduled today;
-- default/signed-in Home renders No upcoming appointments;
-- guest Home still renders Enoxaparin 40mg;
-- guest Home still renders Dr. Klaus Mueller;
-- existing journey CTA tests still pass.
+The medications section still directly maps todayMeds:
 
-Run and report exact output:
-
-`npx tsc --noEmit -p tsconfig.app.json`  
-`npx vitest run src/screens/__tests__/HomeScreen.test.tsx`  
-`git diff -- src/screens/HomeScreen.tsx src/screens/__tests__/HomeScreen.test.tsx`  
+`{todayMeds.map((med, i) => (...))}`  
 
 
-Do not report success unless git diff shows actual changes in those two files.
+【F:src/screens/HomeScreen.tsx†L276-L296】
+
+There is no No medications scheduled today / لا توجد أدوية مجدولة اليوم empty state in the current code.
+
+---
+
+## **What is actually in HomeScreen.test.tsx**
+
+HomeScreen.test.tsx still only has the two journey-related tests:
+
+1. no journeys → first-trip CTA;
+2. active journey summary and CTAs. 【F:src/screens/**tests**/HomeScreen.test.tsx†L53-L85】
+
+It does **not** include tests for:
+
+- no Enoxaparin;
+- no Amoxicillin;
+- no Klaus Mueller;
+- no Charité;
+- No medications scheduled today;
+- No upcoming appointments;
+- guest users still seeing demo data.
+
+So Lovable’s claim about tests at lines 123–137 is not true in this branch.
+
+---
+
+# **Recommendation**
+
+Do **not** approve Lovable’s “already present” claim.
+
+The fix is still missing and should be implemented as actual code changes in exactly:
+
+- src/screens/HomeScreen.tsx
+- src/screens/__tests__/HomeScreen.test.tsx
+
+---
+
+## **Correct message to send Lovable**
+
+`This is still not implemented in the current branch.`  
+  
+`Your claim that the behavior is already present is false. Current HomeScreen.tsx still contains:`  
+`- const todayMeds = medications.filter((_, i) => i < 3);`  
+`- const upcomingAppointments = appointments.filter((_, i) => i < 2);`  
+  
+`Current HomeScreen.test.tsx still only has journey tests.`  
+  
+`Please make the actual code changes now in exactly:`  
+`- src/screens/HomeScreen.tsx`  
+`- src/screens/__tests__/HomeScreen.test.tsx`  
+  
+`Do not modify any other files.`  
+  
+`Required:`  
+`1. Gate demo meds/appointments by isGuest.`  
+`2. Add medicationSummary.`  
+`3. Add inline empty states for appointments and medications.`  
+`4. Add tests for signed-in users not seeing demo data.`  
+`5. Add tests for guest users still seeing demo data.`  
+`6. Run:`  
+   `- npx tsc --noEmit -p tsconfig.app.json`  
+   `- npx vitest run src/screens/__tests__/HomeScreen.test.tsx`  
+`7. Provide:`  
+   `- git diff -- src/screens/HomeScreen.tsx src/screens/__tests__/HomeScreen.test.tsx`  
+  
+`Do not report success unless the diff actually shows these changes.`  
+
+
+---
+
+## **Final decision**
+
+- ❌ **Do not approve.**
+- ❌ **Do not accept “already present” as accurate.**
+- ✅ The desired fix remains correct and small.
+- ✅ Require an actual diff before accepting.
+
+No code changes were made in this turn.
+
+---
+
+## **Commands used**
+
+- ✅ git status --short && git log -1 --oneline
+- ✅ rg -n "todayMeds|upcomingAppointments|medicationSummary|No upcoming appointments|No medications scheduled|Enoxaparin|Amoxicillin|Klaus Mueller|Charité|isGuest \\? medications|isGuest \\? appointments" src/screens/HomeScreen.tsx src/screens/__tests__/HomeScreen.test.tsx 2>/dev/null || true
+- ✅ nl -ba src/screens/HomeScreen.tsx | sed -n '51,115p;250,305p'
+- ✅ nl -ba src/screens/__tests__/HomeScreen.test.tsx | sed -n '1,180p'
+
+21 files changed+2073-221
+
+UndoReview
+
+docs/data-model.md
+
+src/components/DuplicateTicketDialog.tsx
+
+src/components/JourneyHelicopterTimeline.tsx
+
+src/components/TicketDetailSheet.tsx
+
+src/components/TicketsFilterBar.tsx
+
+src/components/TransportCard.tsx
+
+src/hooks/useTransportTimeline.ts
+
+src/lib/__tests__/transportDuplicates.test.ts
+
+src/lib/__tests__/transportRescan.test.ts
+
+src/lib/__tests__/transportStore.crud.test.ts
+
+src/lib/transportRescan.ts
+
+src/lib/transportScanStorage.ts
+
+src/lib/transportStore.ts
+
+src/lib/transportTickets.ts
+
+src/pages/Index.tsx
+
+src/screens/HomeScreen.tsx
+
+src/screens/JourneyScreen.tsx
+
+src/screens/ScannerWizard.tsx
+
+src/screens/__tests__/HomeScreen.test.tsx
+
+src/screens/__tests__/ScannerWizard.e2e.test.tsx
+
+supabase/migrations/20260512120000_transport_scan_metadata.sql
+
+  
