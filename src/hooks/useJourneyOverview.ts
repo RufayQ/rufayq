@@ -80,29 +80,58 @@ function normalizeMed(m: Medication, idx: number): DashboardMedication {
 
 function buildMilestones(trip: TripData | null, appts: Appointment[]): JourneyMilestone[] {
   if (!trip) return [];
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayUTC = new Date();
+  const todayKey = `${todayUTC.getUTCFullYear()}-${String(todayUTC.getUTCMonth() + 1).padStart(2, "0")}-${String(todayUTC.getUTCDate()).padStart(2, "0")}`;
   const dep = trip.departureDate;
   const ret = trip.returnDate;
   const stateFor = (date?: string | null): JourneyMilestone["state"] => {
     if (!date) return "upcoming";
-    if (date < todayIso) return "done";
-    if (date === todayIso) return "current";
+    const d = parseDate(date);
+    if (!d) return "upcoming";
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    if (key < todayKey) return "done";
+    if (key === todayKey) return "current";
     return "upcoming";
   };
+  const depDate = parseDate(dep);
+  const retDate = parseDate(ret);
+  const phaseFor = (date?: string | null, kind?: JourneyMilestone["kind"]): JourneyMilestone["phase"] => {
+    if (kind === "departure") return "travel";
+    if (kind === "return") return "after";
+    if (kind === "treatment") return "care";
+    const d = parseDate(date);
+    if (!d) return "care";
+    if (depDate && d.getTime() < depDate.getTime()) return "before";
+    if (retDate && d.getTime() > retDate.getTime()) return "after";
+    return "care";
+  };
+
   const items: JourneyMilestone[] = [
-    { id: "m-departure", kind: "departure", title: "Departure", titleAr: "السفر", date: dep, state: stateFor(dep) },
+    { id: "m-departure", refId: "departure", kind: "departure", title: "Departure", titleAr: "السفر", date: dep, state: stateFor(dep), phase: "travel" },
   ];
   appts.slice(0, 3).forEach((apt, i) => {
+    const kind: JourneyMilestone["kind"] =
+      i === 0 && apt.specialty?.toLowerCase().includes("surg") ? "treatment" : "appointment";
     items.push({
       id: `m-appt-${apt.id}`,
-      kind: i === 0 && apt.specialty?.toLowerCase().includes("surg") ? "treatment" : "appointment",
+      refId: apt.id,
+      kind,
       title: apt.specialty || apt.doctorName || "Appointment",
       titleAr: apt.specialtyAr || apt.doctorNameAr || "موعد",
       date: apt.date,
-      state: apt.status === "completed" ? "done" : apt.status === "upcoming" ? "upcoming" : "upcoming",
+      state: apt.status === "completed" ? "done" : "upcoming",
+      phase: phaseFor(apt.date, kind),
     });
   });
-  items.push({ id: "m-return", kind: "return", title: "Return Home", titleAr: "العودة", date: ret, state: stateFor(ret) });
+  items.push({ id: "m-return", refId: "return", kind: "return", title: "Return Home", titleAr: "العودة", date: ret, state: stateFor(ret), phase: "after" });
+
+  // Sort by date so the canvas renders chronologically (departure can be after consults).
+  items.sort((a, b) => {
+    const da = parseDate(a.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    const db = parseDate(b.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    return da - db;
+  });
+
   // Mark the first non-done as current if nothing is current yet.
   if (!items.some((m) => m.state === "current")) {
     const next = items.find((m) => m.state === "upcoming");
