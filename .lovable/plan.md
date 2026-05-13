@@ -1,169 +1,333 @@
-## Goal
+Please finish the Journey ticket integration and verification without changing DB schema.
 
-Validate and fix four areas of the Journey/Tickets experience:
+Context:
 
-1. CRUD for airline tickets (create/read/update/delete)
-2. Duplicate-ticket detection with user confirmation
-3. Refined Filter & Search UI/UX in the Journey > Tickets tab
-4. A holistic "helicopter view" iconic timeline replacing the linear card-by-card list
+The repo already has:
 
----
+- `TicketsFilterBar` with controlled filter-state props: `value`, `onChange`, `segments`, `filteredCount`, `onClear`.
 
-## 1. CRUD audit & fixes for airline tickets
+- `JourneyHelicopterTimeline` with `segments` and `onSelect`.
 
-Current state:
+- `DuplicateTicketDialog`.
 
-- **Create**: works via `addFlightTicket` (scan + manual entry).
-- **Read**: works via `useTransportTimeline` (Supabase + local cache, user/device scoped).
-- **Update**: `EditTransportSheet` exists, but for **flight** segments edits today only mutate `nonFlightSegments` local state — flight ticket edits do NOT round-trip back to `transport_tickets`/`transport_flight_segments`. Re-saving a flight ticket via `saveTicket` is supported (idempotent upsert + segment replace) but isn't wired from the edit flow.
-- **Delete**: `removeFlightTicket` (soft delete) wired only when a flight is removed; verify it's reachable from `TicketDetailSheet` and from the Tickets list.
-- **Re-scan**: typed `RescanError` flow already in place.
+- `findDuplicateTickets`.
 
-Fixes:
+- `useTransportTimeline.updateTicket`.
 
-- Add an `updateFlightTicket(ticketId, mutator)` to `useTransportTimeline` that calls `saveTicket` and updates state.
-- Wire `EditTransportSheet` save handler in `JourneyScreen` so flight edits route to `updateFlightTicket` (find the ticket via `seg.groupId`, mutate the matching `FlightSegment` by `seg.id`, persist).
-- Ensure `TicketDetailSheet` exposes "Edit" and "Delete" actions for flight tickets and that delete invokes `removeFlightTicket` with a `ConfirmDialog`.
-- Add a small e2e/unit test in `src/lib/__tests__/transportStore.test.ts` covering save → list → update → delete round-trip.
+- Store-level duplicate and CRUD tests.
 
-## 2. Duplicate-ticket detection + confirmation
+Do not reintroduce the old inline filter UI. Do not replace `TicketsFilterBar` with an `onChange(filteredSegments)` API unless absolutely necessary.
 
-Add `findDuplicateTickets(candidate, existing)` in `src/lib/transportTickets.ts`:
+Tasks:
 
-- Match if any outbound/return segment matches another by:
-  - Same `flightNumber` (case-insensitive, whitespace-stripped) AND same `departureDate`, OR
-  - Same `pnr` (when both non-empty), OR
-  - Same `fromAirport.code` + `toAirport.code` + `departureDate` + `departureTime`.
-- Return list of `{ ticketId, reason }` matches.
+1. JourneyScreen / TicketsTab cleanup
 
-Wire into `applyConfirmedScan` and the manual-entry save path in `JourneyScreen`:
+- Keep the current `TicketsFilterBar` controlled API.
 
-- Before `addFlightTicket`, run duplicate check against `flightTickets`.
-- If matches found, open a new `DuplicateTicketDialog` (small component) listing the conflicting flight (airline, flight #, route, date) with bilingual EN/AR copy and three actions:
-  - **Add anyway** → proceed with `addFlightTicket`.
-  - **Replace existing** → call `removeFlightTicket(existingId)` then `addFlightTicket(new)`.
-  - **Cancel** → discard and reopen `pendingScan`/edit sheet.
-- Add unit tests for `findDuplicateTickets` covering each match rule and no-match case.
+- Keep `filters` state in `TicketsTab`.
 
-## 3. Filter & Search UI/UX improvements
+- Keep `filteredSegments` computed in `TicketsTab`.
 
-Refactor the search/filter block in `TicketsTab` (`JourneyScreen.tsx` ~lines 883–931) into a dedicated `TicketsFilterBar` component for clarity:
+- Ensure all section grouping uses `filteredSegments`.
 
-- Sticky filter bar under the tab strip with:
-  - Search input with leading 🔍 icon, clear (✕) button inside the field, debounced 200 ms.
-  - Collapsible "Advanced filters" sheet (date range + transport type chips + traveler chips) so the default view isn't crowded.
-  - Quick chip row: `All`, `Upcoming`, `In progress`, `Past`, `Family`, `Scanned`, `Manual` — single-select highlight, count badge per chip.
-  - Active-filter summary line: e.g. `Showing 4 of 12 · Upcoming · April`.
-  - Empty state with bilingual hint and a "Clear filters" CTA.
-- Persist filter state to `sessionStorage` (`rufayq.tickets.filters`) so the UX survives nav.
-- Bilingual labels everywhere (EN + Arabic, RTL-safe).
+- Pass `filteredSegments` into `JourneyHelicopterTimeline` so the helicopter overview reflects active filters.
 
-## 4. Iconic "helicopter view" timeline
+- Add a `data-ticket-id={seg.id}` attribute to each rendered ticket wrapper in the sectioned list.
 
-Add a new `JourneyHelicopterTimeline` component rendered above the sectioned list when there are 2+ flight segments. It shows the entire trip on one horizontal rail:
+2. Helicopter node behavior
 
-```text
-RUH ✈ ─ IST ✈ ─ FRA  •  🏨 5d  •  FRA ✈ ─ RUH
- Apr 5     Apr 5      Apr 10        Apr 12
-```
+- Keep the existing `JourneyHelicopterTimeline` prop name `onSelect`.
 
-Behavior:
+- Change the `onSelect` handler in `JourneyScreen` so it:
 
-- Build from `useTransportTimeline().segments` (sorted by departure).
-- Each node is an icon (✈ 🚄 🚌 🚕 🚗 🚑 🏨 🩺) sized 28 px with airport/city code below and date below that.
-- Connector line color encodes status: green = past, gold = active, gray = upcoming.
-- Tap a node = scrolls the underlying card into view + highlights it (reuse `flashStep` pattern).
-- Horizontal scroll-snap on overflow; chevron hint when scrollable.
-- Compact mode (3-segment limit + "+N more" pill) when zoomed out.
-- Accessible: `role="list"`, `aria-label="Journey overview"`, keyboard ←/→ navigation.
-- Bilingual screen-reader labels.
+  - finds `[data-ticket-id="${seg.id}"]`;
 
-Render order in Tickets tab:
+  - scrolls it into view with `{ behavior: "smooth", block: "center" }`;
 
-1. Helicopter timeline (sticky-ish, top)
-2. Filter bar
-3. Sectioned ticket list (existing)
+  - applies a temporary highlighted state for that segment;
 
-## Technical details
+  - still keeps the existing accessible live announcement.
 
-Files to create:
+- Add a simple highlight style to the rendered ticket wrapper when its id matches the temporary highlighted id.
 
-- `src/components/DuplicateTicketDialog.tsx`
-- `src/components/TicketsFilterBar.tsx`
-- `src/components/JourneyHelicopterTimeline.tsx`
-- `src/lib/__tests__/transportDuplicates.test.ts`
-- `src/lib/__tests__/transportStore.crud.test.ts`
+- If no matching element exists, fall back to opening/selecting the segment detail.
 
-Files to modify:
+3. Flight edit/delete callbacks
 
-- `src/lib/transportTickets.ts` — add `findDuplicateTickets`.
-- `src/hooks/useTransportTimeline.ts` — add `updateTicket`.
-- `src/screens/JourneyScreen.tsx` — wire CRUD edit, duplicate dialog, new filter bar, helicopter view.
-- `src/components/TicketDetailSheet.tsx` — surface Edit + Delete actions for flight tickets.
+- Keep the current `onEditSegment` / `onDeleteSegment` callback names unless a rename is needed.
 
-Verification:
+- In `TicketDetailSheet`, only pass `onEdit` and `onDelete` when `selectedSeg.type === "flight"`.
 
-- `npx vitest run src/lib/__tests__/transportDuplicates.test.ts src/lib/__tests__/transportStore.crud.test.ts src/screens/__tests__/ScannerWizard.e2e.test.tsx`
+- Keep the existing `ConfirmDialog` delete flow.
+
+- Preserve `handleDeleteTransportSegment` and persisted `removeFlightTicket` behavior.
+
+4. Duplicate dialog Lovable UX refactor
+
+- Introduce exported types in `src/lib/transportTickets.ts`:
+
+  - `DuplicateMatchReason`
+
+  - `DuplicateMatch`
+
+- Migrate reason values to:
+
+  - `"flight-number-and-date"`
+
+  - `"shared-pnr"`
+
+  - `"same-route-and-time"`
+
+- Keep backward compatibility:
+
+  - `export type DuplicateTicketMatch = DuplicateMatch`
+
+- Enrich `findDuplicateTickets()` to return:
+
+  - `ticketId`
+
+  - `reason`
+
+  - `label`
+
+  - `labelAr`
+
+- Update `DuplicateTicketDialog` to use the simplified Lovable-style props:
+
+  - `open`
+
+  - `matches`
+
+  - `onAddAnyway`
+
+  - `onReplace`
+
+  - `onCancel`
+
+- Remove `candidate` and `existingTickets` props from the dialog and from `JourneyScreen`.
+
+- Show “Replace existing” only when exactly one match exists.
+
+- Keep bilingual EN/AR copy and accessibility basics: `role="dialog"`, `aria-modal="true"`, labelled title.
+
+5. Tests
+
+- Update `src/lib/__tests__/transportDuplicates.test.ts`:
+
+  - no overlap returns `[]`;
+
+  - detects same flight number + departure date;
+
+  - detects same PNR;
+
+  - detects same route + departure date + departure time;
+
+  - ignores candidate’s own ID when re-saving;
+
+  - asserts `label` and `labelAr` are populated for matches;
+
+  - expects the new reason values.
+
+- Keep `src/lib/__tests__/transportStore.crud.test.ts` for store-level CRUD.
+
+- Add a hook-level test for `useTransportTimeline.updateTicket` if feasible:
+
+  - render a tiny test component using the hook;
+
+  - seed/mocks tickets;
+
+  - call `updateTicket`;
+
+  - assert state updates and `saveTicket` is called/persisted.
+
+  If hook test setup is too heavy, document why and keep store-level CRUD coverage.
+
+6. Verification
+
+Run:
+
 - `npx tsc --noEmit -p tsconfig.app.json`
-- Manual: scan ticket twice → duplicate dialog; edit a flight → persisted after reload; helicopter timeline appears for multi-leg trips.
 
-### **Summary**
+- `npx vitest run src/lib/__tests__/transportDuplicates.test.ts src/lib/__tests__/transportStore.crud.test.ts src/lib/__tests__/transportRescan.test.ts src/screens/__tests__/ScannerWizard.e2e.test.tsx`
 
-- Added canonical duplicate-flight detection via findDuplicateTickets, covering normalized flight-number/date, shared non-empty PNR, and route/date/time matching. 【F:src/lib/transportTickets.ts†L133-L217】
-- Added duplicate-ticket confirmation handling in Journey with “add anyway,” “replace existing,” and “cancel” flows, including preservation of scan image uploads for duplicate scan decisions. 【F:src/screens/JourneyScreen.tsx†L223-L275】【F:src/components/DuplicateTicketDialog.tsx†L22-L98】
-- Added persisted flight-ticket update support to useTransportTimeline, and wired Journey’s flight edit flow to update the matching stored flight segment instead of only local non-flight state. 【F:src/hooks/useTransportTimeline.ts†L123-L147】【F:src/screens/JourneyScreen.tsx†L600-L627】【F:src/screens/JourneyScreen.tsx†L899-L917】
-- Added flight delete UX through the detail sheet plus a branded confirmation dialog before removing the persisted ticket. 【F:src/components/TicketDetailSheet.tsx†L137-L154】【F:src/components/TicketDetailSheet.tsx†L607-L624】【F:src/screens/JourneyScreen.tsx†L1156-L1167】【F:src/screens/JourneyScreen.tsx†L1178-L1187】
-- Replaced the inline tickets search/filter block with a sticky TicketsFilterBar that supports debounced search, session-persisted state, quick chips with counts, advanced date/type filters, bilingual labels, and a clear-filters empty state. 【F:src/components/TicketsFilterBar.tsx†L26-L60】【F:src/components/TicketsFilterBar.tsx†L117-L188】【F:src/screens/JourneyScreen.tsx†L1027-L1069】
-- Added a multi-leg “helicopter view” flight overview rail with icons, status-colored connectors, keyboard navigation, accessibility labels, overflow handling, and node selection into ticket details. 【F:src/components/JourneyHelicopterTimeline.tsx†L39-L110】【F:src/screens/JourneyScreen.tsx†L1053-L1064】
-- Added duplicate-matching unit tests and a transport-store CRUD round-trip test for save → list → update → delete. 【F:src/lib/**tests**/transportDuplicates.test.ts†L40-L72】【F:src/lib/**tests**/transportStore.crud.test.ts†L122-L145】
+- optionally targeted eslint on touched files.
 
-**Testing**
+Constraints:
 
-- ✅ npx vitest run src/lib/__tests__/transportDuplicates.test.ts src/lib/__tests__/transportStore.crud.test.ts src/screens/__tests__/ScannerWizard.e2e.test.tsx
-- ✅ npx tsc --noEmit -p [tsconfig.app](http://tsconfig.app).json
-- ⚠️ npx eslint src/lib/transportTickets.ts src/hooks/useTransportTimeline.ts src/components/DuplicateTicketDialog.tsx src/components/TicketsFilterBar.tsx src/components/JourneyHelicopterTimeline.tsx src/screens/JourneyScreen.tsx src/components/TicketDetailSheet.tsx src/lib/__tests__/transportDuplicates.test.ts src/lib/__tests__/transportStore.crud.test.ts — exited successfully with warnings only.
+- No DB/schema changes.
 
-18 files changed+1717-74
+- No changes to core duplicate detection rules except reason-name migration and label enrichment.
 
-UndoReview
+- Preserve duplicate scan image enrichment before add/replace.
+
+- Preserve current add-anyway / replace / cancel behavior.
+
+- Commit the changes and open a PR.
+
+Why this reshaped version is safer
+
+The original plan assumes a TicketsFilterBar API that does not exist in the current code. Current TicketsFilterBar is controlled by TicketsFilterState, not by an onChange(filteredSegments) callback. 【F:src/components/TicketsFilterBar.tsx†L10-L35】【F:src/components/TicketsFilterBar.tsx†L81-L188】
+
+The reshaped prompt keeps the existing structure and only finishes missing integration:
+
+filtered helicopter timeline;
+
+scroll/highlight ticket card;
+
+data-ticket-id;
+
+stricter duplicate type/UX refactor;
+
+missing duplicate own-ID test;
+
+optional hook-level updateTicket test.
+
+That avoids a large unnecessary rewrite.
+
+Bottom line
+
+Your plan is good as a high-level checklist, but I would not use it verbatim. Use the reshaped prompt above instead. It aligns with the actual current code and avoids regressing the working TicketsFilterBar, TicketsTab, and edit/delete wiring.
+
+No code changes were made in this turn.
+
+Commands used
+
+✅ git status --short
+
+✅ rg -n "const TicketsTab|TicketsFilterBar|JourneyHelicopterTimeline|filteredSegments|data-ticket-id|onEditSegment|onDeleteSegment|TicketDetailSheet|ConfirmDialog|transportDuplicates|transportStore.crud" src/screens/JourneyScreen.tsx src/components/TicketsFilterBar.tsx src/components/JourneyHelicopterTimeline.tsx src/lib/__tests__/transportDuplicates.test.ts src/lib/__tests__/transportStore.crud.test.ts
+
+✅ nl -ba src/lib/__tests__/transportDuplicates.test.ts | sed -n '40,80p'
+
+✅ nl -ba src/lib/__tests__/transportStore.crud.test.ts | sed -n '120,150p'
+
+✅ nl -ba src/screens/JourneyScreen.tsx | sed -n '993,1078p'
+
+✅ nl -ba src/screens/JourneyScreen.tsx | sed -n '1148,1188p'
+
+✅ nl -ba src/components/TicketsFilterBar.tsx | sed -n '10,35p'
+
+✅ nl -ba src/components/TicketsFilterBar.tsx | sed -n '81,188p'
+
+✅ nl -ba src/components/JourneyHelicopterTimeline.tsx | sed -n '1,115p'
+
+✅ nl -ba src/hooks/useTransportTimeline.ts | sed -n '120,148p'
+
+18 files changed
+
++1717
+
+-74
+
+Undo
+
+Review
 
 docs/[data-model.md](http://data-model.md)
 
++6
+
+-0
+
 src/components/DuplicateTicketDialog.tsx
+
++100
+
+-0
 
 src/components/JourneyHelicopterTimeline.tsx
 
++114
+
+-0
+
 src/components/TicketDetailSheet.tsx
+
++68
+
+-1
 
 src/components/TicketsFilterBar.tsx
 
++192
+
+-0
+
 src/components/TransportCard.tsx
+
++29
+
+-0
 
 src/hooks/useTransportTimeline.ts
 
++41
+
+-0
+
 src/lib/__tests__/transportDuplicates.test.ts
+
++72
+
+-0
 
 src/lib/__tests__/transportRescan.test.ts
 
++254
+
+-0
+
 src/lib/__tests__/transportStore.crud.test.ts
+
++121
+
+-0
 
 src/lib/transportRescan.ts
 
++114
+
+-0
+
 src/lib/transportScanStorage.ts
+
++138
+
+-0
 
 src/lib/transportStore.ts
 
++14
+
+-0
+
 src/lib/transportTickets.ts
+
++100
+
+-0
 
 src/screens/JourneyScreen.tsx
 
++273
+
+-73
+
 src/screens/ScannerWizard.tsx
+
++8
+
+-0
 
 src/screens/__tests__/ScannerWizard.e2e.test.tsx
 
++6
+
+-0
+
 supabase/migrations/20260512120000_transport_scan_metadata.sql
 
-  
++67
 
+-0
 
-No DB schema changes needed — all existing columns suffice.
+&nbsp;
