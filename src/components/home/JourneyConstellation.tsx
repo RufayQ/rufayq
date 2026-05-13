@@ -9,6 +9,7 @@ import {
   Home as HomeIcon,
   RotateCw,
   Check,
+  type LucideIcon,
 } from "lucide-react";
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
 
