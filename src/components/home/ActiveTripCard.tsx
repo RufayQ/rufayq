@@ -21,9 +21,6 @@ const ActiveTripCard = ({
   formattedReturnDate,
   onViewJourney,
   onNewTrip,
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 }: ActiveTripCardProps) => {
   const dest = (trip.destination || "Journey").toUpperCase();
   const journeyLabel = journeyCount === 1 ? "Journey" : "Journeys";
@@ -114,11 +111,6 @@ const ActiveTripCard = ({
     </div>
   );
 };
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 }: ActiveTripCardProps) => (
   <div
     className="rounded-2xl p-5 animate-fade-in-up"
@@ -177,12 +169,5 @@ const ActiveTripCard = ({
     </div>
   </div>
 );
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 
 export default ActiveTripCard;
