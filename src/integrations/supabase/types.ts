@@ -1940,6 +1940,30 @@ export type Database = {
         }
         Relationships: []
       }
+      otp_verify_attempts: {
+        Row: {
+          attempt_at: string
+          id: string
+          ip_address: string | null
+          recipient: string
+          succeeded: boolean
+        }
+        Insert: {
+          attempt_at?: string
+          id?: string
+          ip_address?: string | null
+          recipient: string
+          succeeded?: boolean
+        }
+        Update: {
+          attempt_at?: string
+          id?: string
+          ip_address?: string | null
+          recipient?: string
+          succeeded?: boolean
+        }
+        Relationships: []
+      }
       patient_claims: {
         Row: {
           admin_decision_at: string | null
