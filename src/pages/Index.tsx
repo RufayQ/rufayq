@@ -256,6 +256,10 @@ const Index = () => {
       setChatContext(context);
       setActiveTab("chat");
       setAppView("main");
+    } else if (tab === "journey" && (context === "new-trip" || context === "view")) {
+      setJourneyIntent(context);
+      setActiveTab("journey");
+      setAppView("main");
     } else {
       setActiveTab(tab as Tab);
       setAppView("main");
