@@ -834,7 +834,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         <div className="px-4 pt-3">
-          <JourneyTimelineMount activeTrip={activeTrip} />
+          <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} />
         </div>
         {activeSubTab === "tickets" && (
           <>
@@ -867,6 +867,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
             onAddStep={handleAddStep}
             registerStepRef={registerStepRef}
             onJumpToStep={jumpToStep}
+            nextAppointment={nextAppointment}
           />
         )}
       </div>
@@ -1023,13 +1024,16 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         matches={pendingDuplicate?.matches || []}
         onAddAnyway={() => {
           if (!pendingDuplicate) return;
-          void commitTicket(pendingDuplicate.ticket, pendingDuplicate.out, pendingDuplicate.ret);
+          void addFlightTicket(pendingDuplicate.ticket);
+          setPendingDuplicate(null);
+          setPendingScan(null);
         }}
         onReplace={(existingId) => {
           if (!pendingDuplicate) return;
-          void removeFlightTicket(existingId).then(() =>
-            commitTicket(pendingDuplicate.ticket, pendingDuplicate.out, pendingDuplicate.ret),
-          );
+          const t = pendingDuplicate.ticket;
+          void removeFlightTicket(existingId).then(() => addFlightTicket(t));
+          setPendingDuplicate(null);
+          setPendingScan(null);
         }}
         onCancel={() => { setPendingDuplicate(null); setPendingScan(null); }}
       />
@@ -1599,7 +1603,7 @@ const StepsTab = ({
   expanded, setExpanded, activeTrip, trips, steps,
   flashStepId, flashTripId, dragStepId, setDragStepId, onReorderStep,
   onAddTrip, onEditTrip, onEditStep, onAddStep,
-  registerStepRef, onJumpToStep,
+  registerStepRef, onJumpToStep, nextAppointment,
 }: {
   expanded: number | null;
   setExpanded: (v: number | null) => void;
@@ -1617,6 +1621,7 @@ const StepsTab = ({
   onAddStep: () => void;
   registerStepRef: (id: number, el: HTMLDivElement | null) => void;
   onJumpToStep: (id: number) => void;
+  nextAppointment?: Appointment | null;
 }) => (
   <div>
     {/* PROMINENT ADD-TRIP CTA at top */}

@@ -73,7 +73,6 @@ export interface TransportSegment {
   groupId?: string;
   segmentOrder?: number;
   direction?: "outbound" | "return";
-  extraction?: import("@/lib/transportTickets").TicketExtractionMetadata;
 }
 
 const statusColors: Record<string, string> = {

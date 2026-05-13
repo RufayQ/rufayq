@@ -186,7 +186,6 @@ export function useTransportTimeline() {
     removeTicket,
     rescan,
     refresh,
-    rescan,
     deviceId,
     userId,
     setTickets,
