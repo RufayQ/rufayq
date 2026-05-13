@@ -48,7 +48,8 @@ import type { TicketExtractionMetadata } from "@/lib/transportTickets";
 import DuplicateTicketDialog from "@/components/DuplicateTicketDialog";
 import TicketsFilterBar, { defaultTicketsFilterState, loadTicketsFilterState, type TicketsFilterState, type TicketQuickFilter } from "@/components/TicketsFilterBar";
 import JourneyHelicopterTimeline from "@/components/JourneyHelicopterTimeline";
-import { appointmentFormToRowInput, appointmentRowToAppointment, sortAppointmentRowsByStart } from "@/lib/appointmentRows";
+import { appointmentFormToRowInput, appointmentRowToAppointment, sortAppointmentRowsByStart, type AppointmentCardModel } from "@/lib/appointmentRows";
+import { type DuplicateMatch } from "@/lib/transportTickets";
 
 
 const rescanProviderLabel = (provider?: string) =>
@@ -437,8 +438,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       extraction: source === "ocr" && pendingScan?.extraction ? pendingScan.extraction : null,
       sourceImagePaths,
       createdAt: new Date().toISOString(),
-      extraction: pendingScan?.source === "manual" ? null : pendingScan?.extraction ?? null,
-      sourceImagePaths: [],
       updatedAt: new Date().toISOString(),
     };
 
@@ -466,8 +465,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     })();
     setActiveSubTab("tickets");
 
-    const outboundSegs = ticket.outboundSegments;
-    const returnSegs = ticket.returnSegments;
     const first = outboundSegs[0] || returnSegs[0];
     toast.success(
       ticket.source === "manual"
@@ -1142,7 +1139,6 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
 
   // Filtered segments produced by TicketsFilterBar.
-  const [filteredSegments, setFilteredSegments] = useState<TransportSegment[]>(segments);
   // Track helicopter-jump highlight so the targeted card flashes briefly.
   const [highlightId, setHighlightId] = useState<string | null>(null);
   // Filter UI state
