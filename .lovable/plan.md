@@ -1,43 +1,25 @@
-## Context
+## Status
 
-Your review is based on a pre-refactor snapshot. The current repo already implements the recommended target:
+Both polish items from your plan are already in main:
 
-- `src/lib/transportTickets.ts` (lines 325–340) already exports `DuplicateMatchReason` with the new names (`flight-number-and-date`, `shared-pnr`, `same-route-and-time`) and `DuplicateMatch` with `ticketId`, `reason`, `label`, `labelAr`.
-- `findDuplicateTickets()` already enriches matches with `label` / `labelAr` via inline `segLabel` / `segLabelAr` helpers.
-- `DuplicateTicketDialog.tsx` already consumes the new `DuplicateMatch` / `DuplicateMatchReason` types.
-- `JourneyScreen.tsx` already calls `findDuplicateTickets(ticket, flightTickets)` and renders the simplified dialog.
-- `src/lib/__tests__/transportDuplicates.test.ts` already asserts the new reason names.
-
-So steps 1–4 of your sequence are already done. Only two small polish items remain.
+1. **Backward-compat alias** — `src/lib/transportTickets.ts` already has:
+   ```ts
+   /** @deprecated use DuplicateMatch */
+   export type DuplicateTicketMatch = DuplicateMatch;
+   ```
+2. **Deterministic test fixture IDs** — `src/lib/__tests__/transportDuplicates.test.ts` already uses `id: over.id ?? "seg-1"` and asserts `expect(matches[0].label).toContain("SV123")`.
 
 ## Plan
 
-### 1. Add backward-compat alias in `src/lib/transportTickets.ts`
-
-Append a one-liner after the `DuplicateMatch` interface so any external/legacy imports keep compiling:
-
-```ts
-/** @deprecated use DuplicateMatch */
-export type DuplicateTicketMatch = DuplicateMatch;
-```
-
-No call sites in the repo depend on this today, but it's cheap insurance.
-
-### 2. Make test fixture IDs deterministic in `src/lib/__tests__/transportDuplicates.test.ts`
-
-Replace `id: \`s-${Math.random()...}\`` with `id: over.id ?? "seg-1"` and pass explicit `id` overrides where two segments coexist in one assertion, mirroring the test you proposed.
-
-Optionally tighten the "flight-number-and-date" assertion with `expect(matches[0].label).toContain("SV123")` to lock the label shape.
-
-### 3. Verify
-
-Run:
+Single step: run verification to confirm everything is green.
 
 ```
 npx tsc --noEmit -p tsconfig.app.json
 npx vitest run transportDuplicates
 ```
 
+If both pass, no code changes are needed and this thread closes. If anything fails, I'll come back with a focused follow-up plan for the specific failure.
+
 ## Out of scope
 
-Type renames, label enrichment, dialog prop refactor, and JourneyScreen wiring — all already in main. No business-logic changes.
+No source edits — items 1 and 2 are already merged. No business-logic, type, dialog, or JourneyScreen changes.
