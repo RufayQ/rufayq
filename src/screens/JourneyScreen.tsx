@@ -156,6 +156,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const [archiveTarget, setArchiveTarget] = useState<TripData | null>(null);
   const [activeSubTab, setActiveSubTab] = useState("overview");
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
+  const overview = useJourneyOverview({ isGuest });
+  const selectedMilestone = overview.milestones.find((m) => m.id === selectedMilestoneId) ?? null;
   // Flight tickets are persisted (per-device) via Supabase + local cache so
   // they survive navigation, reload, and offline. Non-flight transport
   // segments stay in local state for now (separate persistence epic).
