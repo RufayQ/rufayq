@@ -103,7 +103,7 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
       onClick: () => { toast("Notifications · الإشعارات", { description: "All notifications are up to date · جميع الإشعارات محدّثة" }); } },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص",
       onClick: () => {
-        const text = `RufayQ – Home Summary\nActive Trip: ${activeTrip?.destination ?? "—"}\nMedications: ${todayMeds.map(m => `${m.name} (${m.status})`).join(", ")}`;
+        const text = `RufayQ – Home Summary\nActive Trip: ${activeTrip?.destination ?? "—"}\nMedications: ${medicationSummary}`;
         navigator.clipboard.writeText(text);
         toast("Copied · تم النسخ");
       } },
