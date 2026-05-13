@@ -666,6 +666,9 @@ const JourneyScreen = ({
 
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
+        <div className="px-4 pt-3">
+          <JourneyTimelineMount activeTrip={activeTrip} />
+        </div>
         {activeSubTab === "tickets" && (
           <>
             <FlightTripSummary segments={transportSegments} />
