@@ -44,7 +44,7 @@ const ProviderDashboard = () => {
   // Medication form
   const [med, setMed] = useState({ action: "add", med_name: "", dose: "", frequency: "", notes: "" });
   // Appointment form
-  const [appt, setAppt] = useState({ title: "", location: "", scheduled_at: "", notes: "" });
+  const [appt, setAppt] = useState({ title: "", location: "", scheduled_at: "", notes: "", appointment_type: "physician" as "physician"|"lab"|"radiology", visit_type: "in-person" as "in-person"|"telemedicine"|"clinic" });
 
   // History
   const [history, setHistory] = useState<{ instructions: any[]; meds: any[]; appts: any[] }>({ instructions: [], meds: [], appts: [] });
