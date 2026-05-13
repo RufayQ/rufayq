@@ -24,27 +24,6 @@ export interface TicketExtractionMetadata {
   translated?: boolean;
   runAt?: string | null;
 }
-<<<<<<< ours
-<<<<<<< ours
-
-export type ExtractionProvider = "openai" | "gemini";
-
-/**
- * AI vision extraction metadata persisted alongside a scanned ticket so the
- * UI can show provider/confidence/language badges and re-scan can refresh
- * results from the same source images.
- */
-export interface TicketExtractionMetadata {
-  provider: ExtractionProvider;
-  confidence?: number | null;
-  detectedLanguage?: string | null;
-  translated?: boolean;
-  runAt?: string | null;
-}
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 
 export interface FlightSegment {
   id: string;
@@ -86,21 +65,7 @@ export interface TransportTicket {
   pendingSegmentRef?: string | null;
   traveler?: TravelerKind;
   source?: "ocr" | "manual";
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-  /** AI extraction metadata (only present when source === "ocr"). */
   extraction?: TicketExtractionMetadata | null;
-  /** Storage object paths in the `transport-scans` bucket for the analyzed pages. */
-=======
-  extraction?: TicketExtractionMetadata | null;
->>>>>>> theirs
-=======
-  extraction?: TicketExtractionMetadata | null;
->>>>>>> theirs
-=======
-  extraction?: TicketExtractionMetadata | null;
->>>>>>> theirs
   sourceImagePaths?: string[];
   createdAt: string;
   updatedAt: string;
@@ -451,19 +416,7 @@ export function ticketToTransportSegments(t: TransportTicket): TransportSegment[
       direction: s.direction,
       layoverAfter,
       documentSource: t.source === "manual" ? "Manual Entry" : "OCR Scanned",
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-      extraction: t.source === "manual" ? null : (t.extraction ?? null),
-=======
       extraction: t.extraction ?? undefined,
->>>>>>> theirs
-=======
-      extraction: t.extraction ?? undefined,
->>>>>>> theirs
-=======
-      extraction: t.extraction ?? undefined,
->>>>>>> theirs
     };
   });
 }
