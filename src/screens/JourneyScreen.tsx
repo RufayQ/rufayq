@@ -92,7 +92,17 @@ const stayTypeOptions = [
   { icon: "🏥", en: "Hospital Stay", ar: "إقامة مستشفى" },
 ];
 
-const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string) => void }) => {
+const JourneyScreen = ({
+  onOpenScanner,
+  onNavigate,
+  initialIntent,
+  onIntentHandled,
+}: {
+  onOpenScanner?: (cat?: string) => void;
+  onNavigate?: (tab: string) => void;
+  initialIntent?: "new-trip" | "view" | null;
+  onIntentHandled?: () => void;
+}) => {
   const isGuest = useGuestMode();
   const { categories: guestCats } = useGuestCategories();
   const [expanded, setExpanded] = useState<number | null>(null);
