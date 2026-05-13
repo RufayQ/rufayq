@@ -9,9 +9,10 @@ const corsHeaders = {
 };
 
 const generatePwd = () => {
-  const c = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
-  let p = ""; for (let i = 0; i < 14; i++) p += c[Math.floor(Math.random() * c.length)];
-  return p;
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
+  const buf = new Uint8Array(14);
+  crypto.getRandomValues(buf);
+  return Array.from(buf).map((b) => chars[b % chars.length]).join("");
 };
 
 Deno.serve(async (req) => {

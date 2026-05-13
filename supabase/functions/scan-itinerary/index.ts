@@ -79,10 +79,11 @@ serve(async (req) => {
 
     const { data: trial } = await admin
       .from("user_trials")
-      .select("device_id, plan")
+      .select("device_id, trial_ends_at, plan")
       .eq("device_id", deviceId)
+      .gt("trial_ends_at", new Date().toISOString())
       .maybeSingle();
-    if (!trial) return json({ error: "No active trial or subscription for this device" }, 403);
+    if (!trial) return json({ error: "Trial or subscription has expired" }, 403);
 
     const PLAN_LIMITS: Record<string, number> = {
       trial: 5, basic: 25, companion: 50, family: 100, premium: 200,
