@@ -776,8 +776,31 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         segment={editingSegment}
         onCancel={() => { setEditingSegment(null); setIsNewSegment(false); }}
         onSave={(seg) => {
-          // EditTransportSheet only handles non-flight transport. Flight
-          // tickets persist via the transport store and are not edited here.
+          // Flight edits — route back into the persisted ticket store via
+          // updateFlightTicket so changes survive reload/sign-out.
+          if (seg.type === "flight" && seg.groupId) {
+            void updateFlightTicket(seg.groupId, (t) => {
+              const mutate = (segs: FlightSegment[]): FlightSegment[] =>
+                segs.map((fs) => fs.id !== seg.id ? fs : {
+                  ...fs,
+                  airline: seg.airline || fs.airline,
+                  flightNumber: seg.flightNumber || fs.flightNumber,
+                  fromAirport: { ...fs.fromAirport, code: seg.fromCode || fs.fromAirport.code, city: seg.fromCity || fs.fromAirport.city, name: seg.fromFull || fs.fromAirport.name },
+                  toAirport: { ...fs.toAirport, code: seg.toCode || fs.toAirport.code, city: seg.toCity || fs.toAirport.city, name: seg.toFull || fs.toAirport.name },
+                  departureDate: (seg.departureDateTime || "").split("T")[0] || fs.departureDate,
+                  departureTime: ((seg.departureDateTime || "").split("T")[1] || "").slice(0, 5) || fs.departureTime,
+                  arrivalDate: (seg.arrivalDateTime || "").split("T")[0] || fs.arrivalDate,
+                  arrivalTime: ((seg.arrivalDateTime || "").split("T")[1] || "").slice(0, 5) || fs.arrivalTime,
+                  cabinClass: seg.seatClass || fs.cabinClass,
+                  pnr: seg.bookingRef || fs.pnr,
+                });
+              return { ...t, outboundSegments: mutate(t.outboundSegments), returnSegments: mutate(t.returnSegments) };
+            }).then(() => toast.success("Flight updated · تم التحديث"))
+              .catch((e) => toast.error(e?.message || "Could not update flight"));
+            setEditingSegment(null);
+            setIsNewSegment(false);
+            return;
+          }
           setNonFlightSegments(prev => {
             const exists = prev.some(p => p.id === seg.id);
             return exists ? prev.map(p => p.id === seg.id ? seg : p) : [...prev, seg];
@@ -791,6 +814,43 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
           setNonFlightSegments(prev => prev.filter(p => p.id !== id));
           setEditingSegment(null);
         }}
+      />
+
+      {/* Duplicate-ticket confirmation */}
+      <DuplicateTicketDialog
+        open={!!pendingDuplicate}
+        matches={pendingDuplicate?.matches || []}
+        onAddAnyway={() => {
+          if (!pendingDuplicate) return;
+          void commitTicket(pendingDuplicate.ticket, pendingDuplicate.out, pendingDuplicate.ret);
+        }}
+        onReplace={(existingId) => {
+          if (!pendingDuplicate) return;
+          void removeFlightTicket(existingId).then(() =>
+            commitTicket(pendingDuplicate.ticket, pendingDuplicate.out, pendingDuplicate.ret),
+          );
+        }}
+        onCancel={() => { setPendingDuplicate(null); setPendingScan(null); }}
+      />
+
+      {/* Delete-flight confirmation */}
+      <ConfirmDialog
+        open={!!pendingDeleteTicketId}
+        title="Delete flight ticket?"
+        titleAr="حذف تذكرة الطيران؟"
+        description="This will remove the ticket and all its segments from your timeline."
+        descriptionAr="سيتم حذف التذكرة وجميع مقاطعها من رحلتك."
+        confirmLabel="Delete"
+        confirmLabelAr="حذف"
+        destructive
+        onConfirm={() => {
+          if (!pendingDeleteTicketId) return;
+          void removeFlightTicket(pendingDeleteTicketId)
+            .then(() => toast.success("Flight removed · تم الحذف"))
+            .catch((e) => toast.error(e?.message || "Could not delete flight"));
+          setPendingDeleteTicketId(null);
+        }}
+        onClose={() => setPendingDeleteTicketId(null)}
       />
 
 
