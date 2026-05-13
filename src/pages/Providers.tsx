@@ -6,6 +6,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
+import { Seo } from "@/seo/Seo";
 
 const BG = "#06101A", BG2 = "#0B1A28", BORDER = "rgba(197,150,90,0.12)";
 const TEXT = "#E8ECF0", MUTED = "rgba(232,236,240,0.6)", GOLD = "#C5965A", TEAL = "#1FB6A7";
@@ -164,6 +165,13 @@ const Providers = () => {
   }
 
   return (
+    <>
+      <Seo
+        title={mode === "ar" ? "للمزودين — رُفَيِّق" : "For Providers — Onboard your organization"}
+        description={mode === "ar"
+          ? "تستطيع المستشفيات والعيادات والأطباء وشركات التأمين التقدّم لمتابعة مرضاهم على رُفَيِّق."
+          : "Hospitals, clinics, physicians, vendors and insurance companies can apply to follow up with their patients on RufayQ."}
+      />
     <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }} dir={mode === "ar" ? "rtl" : "ltr"}>
       <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.85)", borderBottom: `1px solid ${BORDER}` }}>
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
