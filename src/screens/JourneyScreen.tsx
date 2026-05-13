@@ -834,7 +834,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         <div className="px-4 pt-3">
-          <JourneyTimelineMount activeTrip={activeTrip} />
+          <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: a.startAt ?? null, title: a.title || a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} />
         </div>
         {activeSubTab === "tickets" && (
           <>
