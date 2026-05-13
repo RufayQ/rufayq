@@ -114,17 +114,22 @@ Deno.serve(async (req) => {
 
       if (!resp.ok) {
         console.error("[verify-otp] Twilio error", resp.status, JSON.stringify(data));
+        await recordAttempt(false);
         return new Response(JSON.stringify({
           approved: false,
           error: data?.message || "Verification not found or expired",
         }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       if (data.status !== "approved") {
+        await recordAttempt(false);
         return new Response(JSON.stringify({ approved: false, status: data.status, error: "Code did not match" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       approved = true;
     }
+
+    // Track the successful attempt for monitoring (does not count toward limits).
+    await recordAttempt(true);
 
     // 3. Approved → create or fetch Supabase Auth user
     const usingEmail = isEmail(recipientKey);
