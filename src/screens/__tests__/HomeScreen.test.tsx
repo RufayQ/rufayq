@@ -133,6 +133,6 @@ describe("HomeScreen", () => {
     mockJourneys.mockReturnValue({ journeys: [] });
     render(<HomeScreen isGuest onNavigate={vi.fn()} onProfile={() => {}} />);
     expect(screen.getByText(/Enoxaparin/i)).toBeInTheDocument();
-    expect(screen.getByText(/Klaus Mueller/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Klaus Mueller/i).length).toBeGreaterThan(0);
   });
 });

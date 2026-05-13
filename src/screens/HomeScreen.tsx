@@ -89,9 +89,7 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const formattedReturnDate = formatDate(activeTrip?.returnDate);
 
   const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];
-  const upcomingAppts = isGuest
-    ? appointments.filter((a) => a.status === "upcoming").slice(0, 2)
-    : [];
+  const upcomingAppts = isGuest ? appointments.filter((_, i) => i < 2) : [];
 
   const medicationSummary = todayMeds.length
     ? todayMeds.map((m) => `${m.name} (${m.status})`).join(", ")

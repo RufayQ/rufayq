@@ -18,8 +18,8 @@ const UpcomingAppointmentsList = ({ appointments, onSelect, onViewAll }: Props) 
         className="rounded-xl p-3 text-center"
         style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
       >
-        <p className="text-[12px]" style={{ color: "var(--gray)" }}>No upcoming appointments</p>
-        <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد مواعيد قادمة</p>
+        <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>No upcoming appointments</p>
+        <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد مواعيد قادمة</p>
       </div>
     ) : (
       <div className="space-y-2">

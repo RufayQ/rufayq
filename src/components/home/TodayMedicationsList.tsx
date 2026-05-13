@@ -17,10 +17,10 @@ const TodayMedicationsList = ({ medications, onViewAll }: Props) => (
     {medications.length === 0 ? (
       <div
         className="rounded-xl p-3 text-center"
-        style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+        style={{ background: "var(--white)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
       >
-        <p className="text-[12px]" style={{ color: "var(--gray)" }}>No medications scheduled today</p>
-        <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد أدوية مجدولة اليوم</p>
+        <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>No medications scheduled today</p>
+        <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد أدوية مجدولة اليوم</p>
       </div>
     ) : (
       <div className="space-y-2">
