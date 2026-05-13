@@ -977,56 +977,19 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlig
           <p className="font-arabic text-[8px]" dir="rtl" style={{ color: "var(--error)" }}>جميع معلومات النقل مُدخلة يدوياً. تحقق من شركة النقل مباشرة.</p>
         </div>
 
-        {/* Search + filter controls */}
-        <div className="mt-3 space-y-2">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search airline, flight #, city, PNR…"
-            className="w-full px-3 py-2 rounded-lg text-[12px] outline-none"
-            style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
-          />
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <p className="font-mono text-[8px] tracking-wider mb-0.5" style={{ color: "var(--gray)" }}>FROM</p>
-              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-[11px] outline-none"
-                style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
-            </div>
-            <div className="flex-1">
-              <p className="font-mono text-[8px] tracking-wider mb-0.5" style={{ color: "var(--gray)" }}>TO</p>
-              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-[11px] outline-none"
-                style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-1.5 items-center">
-            <button
-              onClick={() => setFamilyOnly(v => !v)}
-              className="text-[10px] font-bold px-2.5 py-1 rounded-full btn-press transition-all"
-              style={{
-                background: familyOnly ? "var(--gold)" : "var(--white)",
-                color: familyOnly ? "white" : "var(--navy)",
-                border: `1px solid ${familyOnly ? "var(--gold)" : "var(--gray-light)"}`,
-              }}
-            >
-              👨‍👩‍👧‍👦 Family / Companion {familyCount > 0 ? `· ${familyCount}` : ""}
-            </button>
-            {(search || dateFrom || dateTo || familyOnly) && (
-              <button
-                onClick={() => { setSearch(""); setDateFrom(""); setDateTo(""); setFamilyOnly(false); }}
-                className="text-[10px] px-2 py-1 rounded-full btn-press"
-                style={{ color: "var(--teal-deep)" }}
-              >
-                ✕ Clear
-              </button>
-            )}
-            <span className="ml-auto font-mono text-[9px]" style={{ color: "var(--gray)" }}>
-              {filteredSegments.length} / {segments.length}
-            </span>
-          </div>
-        </div>
       </div>
+
+      {/* Refined search + filter bar (debounced, persisted, advanced filters) */}
+      <TicketsFilterBar
+        segments={segments}
+        onChange={(filtered) => setFilteredSegments(filtered)}
+      />
+
+      {/* Helicopter view — iconic single-rail overview of all transport */}
+      <JourneyHelicopterTimeline
+        segments={filteredSegments}
+        onNodeClick={handleHelicopterJump}
+      />
       {(() => {
         const now = Date.now();
         const annotated = filteredSegments.map((s) => {
