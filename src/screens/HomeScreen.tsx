@@ -6,18 +6,7 @@ import { medications, appointments } from "@/constants/data";
 import type { TripData } from "@/components/AddTripSheet";
 
 import { useJourneys } from "@/hooks/useJourneys";
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-=======
 import { useAppointments } from "@/hooks/useAppointments";
->>>>>>> theirs
-=======
-import { useAppointments } from "@/hooks/useAppointments";
->>>>>>> theirs
-=======
-import { useAppointments } from "@/hooks/useAppointments";
->>>>>>> theirs
 import { usePatientName } from "@/hooks/usePatientName";
 
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
@@ -27,18 +16,7 @@ import OtherJourneysList from "@/components/home/OtherJourneysList";
 import DischargeAlertBanner from "@/components/home/DischargeAlertBanner";
 import type { Medication } from "@/constants/data";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-=======
 import { appointmentRowToAppointment, sortAppointmentRowsByStart } from "@/lib/appointmentRows";
->>>>>>> theirs
-=======
-import { appointmentRowToAppointment, sortAppointmentRowsByStart } from "@/lib/appointmentRows";
->>>>>>> theirs
-=======
-import { appointmentRowToAppointment, sortAppointmentRowsByStart } from "@/lib/appointmentRows";
->>>>>>> theirs
 
 function daysBetween(a?: string | null, b?: string | null): number | null {
   if (!a || !b) return null;
@@ -79,84 +57,7 @@ const guestTrip: TripData = {
   returnFlight: null,
 };
 <<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-
-const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps) => {
-  const { patientName, patientNameAr } = usePatientName();
-  const { journeys } = useJourneys(isGuest ? [guestTrip] : []);
-
-  // Prefer active over upcoming so an active trip always wins.
-  const activeTrip = useMemo(
-    () =>
-      journeys.find((j) => j.status === "active") ??
-      journeys.find((j) => j.status === "upcoming") ??
-      null,
-    [journeys],
-  );
-  const otherTrips = useMemo(
-    () => journeys.filter((j) => j.id !== activeTrip?.id).slice(0, 3),
-    [journeys, activeTrip?.id],
-  );
-
-  const journeyCount = journeys.length;
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const totalDays = daysBetween(activeTrip?.departureDate, activeTrip?.returnDate);
-  const dayNRaw = daysBetween(activeTrip?.departureDate, todayIso);
-  const dayN =
-    dayNRaw == null ? null : totalDays != null ? Math.min(dayNRaw, totalDays) : dayNRaw;
-  const daysLeft =
-    totalDays != null && dayN != null ? Math.max(0, totalDays - dayN) : null;
-  const progressPct =
-    totalDays && totalDays > 0 && dayN != null
-      ? Math.max(8, Math.min(100, Math.round((dayN / totalDays) * 100)))
-      : 20;
-  const formattedDepartureDate = formatDate(activeTrip?.departureDate);
-  const formattedReturnDate = formatDate(activeTrip?.returnDate);
-
-  // Single Home medication source — every section below derives from this.
-  const homeMedications = isGuest ? medications.filter((_, i) => i < 3) : [];
-  const todayMeds = homeMedications;
-  const upcomingAppointments = isGuest ? appointments.filter((_, i) => i < 2) : [];
-
-  const medicationSummary = todayMeds.length
-    ? todayMeds.map((m) => `${m.name} (${m.status})`).join(", ")
-    : "No medications scheduled today";
-
-  // Medication reminders are derived from the same source — never from raw demo
-  // constants — so the Today's Medications card and the Reminders strip cannot
-  // contradict each other for signed-in users.
-  const medicationReminders = homeMedications
-    .filter((m) => m.status === "due" || m.status === "upcoming")
-    .map((m) => ({
-      emoji: "💊",
-      en: `${m.name} due`,
-      ar: `${m.nameAr} — الجرعة القادمة`,
-      date: m.time,
-      color: "var(--warning)",
-    }));
-
-  // Non-medication reminders only show when there's an active trip; otherwise
-  // a signed-in user with no data would see stale demo flight/follow-up rows.
-  const tripReminders = activeTrip
-    ? [
-        { emoji: "📅", en: "30-Day Follow-up — Riyadh", ar: "متابعة ٣٠ يوم — الرياض", date: "May 15", color: "var(--gold)" },
-        { emoji: "✈️", en: "Return Flight — Berlin → Riyadh", ar: "رحلة العودة", date: "Apr 15", color: "var(--teal-deep)" },
-      ]
-    : [];
-  const reminders = [...tripReminders, ...medicationReminders];
-
-  const statusColor = (s: Medication["status"]) =>
-    s === "taken" ? "var(--success)"
-      : s === "due" ? "var(--warning)"
-      : s === "upcoming" ? "var(--gray)"
-      : "var(--error)";
-
 =======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 
 const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps) => {
   const { patientName, patientNameAr } = usePatientName();
@@ -234,13 +135,6 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
       : s === "upcoming" ? "var(--gray)"
       : "var(--error)";
 
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   const homeMenuItems: HomeHeaderMenuItem[] = [
     { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: () => { window.location.reload(); } },
     { icon: <Bell size={14} />, label: "Notifications", labelAr: "الإشعارات",
@@ -302,25 +196,11 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
           <div className="flex items-center justify-between mb-2">
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>UPCOMING APPOINTMENTS</p>
 <<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-            <button onClick={() => onNavigate("journey", "view")} className="text-[10px] btn-press" style={{ color: "var(--teal-mid)" }}>View all →</button>
 =======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
             <div className="flex items-center gap-2">
               <button onClick={() => onNavigate("journey", "new-appointment")} className="text-[10px] font-semibold btn-press" style={{ color: "var(--gold)" }}>+ Add</button>
               <button onClick={() => onNavigate("journey", "appointments")} className="text-[10px] btn-press" style={{ color: "var(--teal-mid)" }}>View all →</button>
             </div>
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
           </div>
           {upcomingAppointments.length === 0 ? (
             <div
@@ -339,19 +219,7 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
               {upcomingAppointments.map((apt) => (
                 <button
                   key={apt.id}
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-                  onClick={() => onNavigate("journey", "view")}
-=======
                   onClick={() => onNavigate("journey", "appointments")}
->>>>>>> theirs
-=======
-                  onClick={() => onNavigate("journey", "appointments")}
->>>>>>> theirs
-=======
-                  onClick={() => onNavigate("journey", "appointments")}
->>>>>>> theirs
                   className="w-full rounded-xl p-3 flex items-center gap-3 text-left card-press"
                   style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
                 >
@@ -377,19 +245,7 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
         </div>
 
         <div className="stagger-4">
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>TODAY'S MEDICATIONS</p>
-=======
           <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>TODAY&apos;S MEDICATIONS</p>
->>>>>>> theirs
-=======
-          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>TODAY&apos;S MEDICATIONS</p>
->>>>>>> theirs
-=======
-          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>TODAY&apos;S MEDICATIONS</p>
->>>>>>> theirs
           {todayMeds.length === 0 ? (
             <div
               className="rounded-xl p-3 text-center"
