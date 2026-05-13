@@ -19,7 +19,12 @@ import {
   flightInfoToSegment,
   segmentToFlightInfo as legacyFromSegment,
   inferTripType,
+  findDuplicateTickets,
+  type DuplicateMatch,
 } from "@/lib/transportTickets";
+import DuplicateTicketDialog from "@/components/DuplicateTicketDialog";
+import TicketsFilterBar, { applyTicketFilters, type TicketFilterState } from "@/components/TicketsFilterBar";
+import JourneyHelicopterTimeline from "@/components/JourneyHelicopterTimeline";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import EditStepSheet from "@/components/EditStepSheet";
 import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard";
