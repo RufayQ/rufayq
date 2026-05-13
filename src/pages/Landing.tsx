@@ -207,6 +207,7 @@ const Landing = () => {
           )}
         </nav>
 
+        <main>
         {/* HERO — desktop blurs hidden on mobile to slash paint cost */}
         <section className="lcp-hero relative overflow-hidden" style={{ background: BG_DARK }}>
           <div className="lcp-blur absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-30 blur-[120px] hidden md:block" style={{ background: `radial-gradient(circle, ${TEAL} 0%, transparent 70%)` }} />
