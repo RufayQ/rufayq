@@ -140,15 +140,16 @@ const ProviderDashboard = () => {
   };
 
   const sendAppt = async () => {
-    if (!selectedPatient || !activeOrg || !appt.title.trim() || !appt.scheduled_at) { toast.error("Title and date required"); return; }
+    if (!selectedPatient || !activeOrg || !appt.title.trim() || !appt.scheduled_at) { toast.error("Patient, title and date required"); return; }
     const { error } = await supabase.from("provider_appointments").insert({
       organization_id: activeOrg, patient_device_id: selectedPatient.patient_device_id,
       author_id: user?.id, title: appt.title, location: appt.location || null,
       scheduled_at: new Date(appt.scheduled_at).toISOString(), notes: appt.notes || null,
-    });
+      appointment_type: appt.appointment_type, visit_type: appt.visit_type,
+    } as any);
     if (error) { toast.error(error.message); return; }
     toast.success("Appointment scheduled — patient will be notified");
-    setAppt({ title: "", location: "", scheduled_at: "", notes: "" });
+    setAppt({ title: "", location: "", scheduled_at: "", notes: "", appointment_type: "physician", visit_type: "in-person" });
     const { data } = await supabase.from("provider_appointments").select("*").eq("organization_id", activeOrg).eq("patient_device_id", selectedPatient.patient_device_id).order("scheduled_at", { ascending: false });
     setHistory(h => ({ ...h, appts: data || [] }));
   };
