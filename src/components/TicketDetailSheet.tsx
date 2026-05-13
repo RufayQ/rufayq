@@ -149,12 +149,18 @@ interface TicketDetailSheetProps {
   /** When provided, renders a "Re-scan ticket" button in the Scan info
    *  section. Should re-run AI extraction on stored source images. */
   onRescan?: () => Promise<void> | void;
+  /** Optional edit handler — surfaces an "Edit" action in the header. */
+  onEdit?: () => void;
+  /** Optional delete handler — surfaces a "Delete" action that calls
+   *  this with the ticket/group id. The dialog confirmation is handled
+   *  by the parent. */
+  onDelete?: () => void;
 }
 
 const TicketDetailSheet = ({
   seg, onClose, notes, onSaveNotes, alarms, onToggleAlarm,
   overrides, onSaveOverrides, systemReminders, onUpdateSystemReminders,
-  systemAlertsMuted, onToggleSystemAlertsMuted, onRescan,
+  systemAlertsMuted, onToggleSystemAlertsMuted, onRescan, onEdit, onDelete,
 }: TicketDetailSheetProps) => {
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "overrides" | "alarms">("details");
   const [draftNotes, setDraftNotes] = useState(notes);
@@ -403,6 +409,26 @@ const TicketDetailSheet = ({
                 </button>
                 </div>
               </>
+            )}
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                aria-label="Edit ticket"
+                className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
+                style={{ background: "var(--teal-light)" }}
+              >
+                <Edit3 size={14} color="var(--teal-deep)" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                aria-label="Delete ticket"
+                className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
+                style={{ background: "rgba(217,79,79,0.1)" }}
+              >
+                <Trash2 size={14} color="var(--error)" />
+              </button>
             )}
             <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "#F0F2F5" }}>
               <X size={16} color="var(--gray)" />

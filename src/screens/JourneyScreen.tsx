@@ -19,7 +19,12 @@ import {
   flightInfoToSegment,
   segmentToFlightInfo as legacyFromSegment,
   inferTripType,
+  findDuplicateTickets,
+  type DuplicateMatch,
 } from "@/lib/transportTickets";
+import DuplicateTicketDialog from "@/components/DuplicateTicketDialog";
+import TicketsFilterBar, { applyTicketFilters, type TicketFilterState } from "@/components/TicketsFilterBar";
+import JourneyHelicopterTimeline from "@/components/JourneyHelicopterTimeline";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import EditStepSheet from "@/components/EditStepSheet";
 import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard";
@@ -109,6 +114,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     tickets: flightTickets,
     segments: persistedFlightSegments,
     addTicket: addFlightTicket,
+    updateTicket: updateFlightTicket,
     removeTicket: removeFlightTicket,
     rescan: rescanFlightTicket,
   } = useTransportTimeline();
@@ -289,12 +295,29 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       updatedAt: new Date().toISOString(),
     };
 
+    // Duplicate detection — confirm with user before saving when there's
+    // an overlap with an existing flight ticket.
+    const dupes = findDuplicateTickets(ticket, flightTickets);
+    if (dupes.length > 0) {
+      setPendingDuplicate({ ticket, matches: dupes, out, ret });
+      return;
+    }
+    await commitTicket(ticket, out, ret);
+  };
+
+  const commitTicket = async (
+    ticket: TransportTicket,
+    out: FlightInfo | null,
+    ret: FlightInfo | null,
+  ) => {
     void addFlightTicket(ticket);
     setActiveSubTab("tickets");
 
+    const outboundSegs = ticket.outboundSegments;
+    const returnSegs = ticket.returnSegments;
     const first = outboundSegs[0] || returnSegs[0];
     toast.success(
-      pendingScan?.source === "manual"
+      ticket.source === "manual"
         ? "✈️ Flight added to your timeline (manual entry)"
         : "✈️ Flight added to your timeline",
       {
@@ -315,7 +338,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         departureDate: firstOut?.departureDate || "",
         returnDate: lastRet?.departureDate || firstRet?.departureDate || "",
         treatingDoctor: "", companion: false,
-        companionName: pendingScan?.passenger?.name || "",
+        companionName: ticket.passengerName || "",
         insuranceRef: "", status: "active",
         outboundFlight: out || (firstOut ? legacyFromSegment(firstOut) : null),
         returnFlight: ret || (firstRet ? legacyFromSegment(firstRet) : null),
@@ -323,7 +346,20 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       void persistTrip(seed).catch((e) => console.warn("[journey] auto-seed save failed", e));
     }
     setPendingScan(null);
+    setPendingDuplicate(null);
   };
+
+  // Pending duplicate confirmation state.
+  const [pendingDuplicate, setPendingDuplicate] = useState<{
+    ticket: TransportTicket;
+    matches: DuplicateMatch[];
+    out: FlightInfo | null;
+    ret: FlightInfo | null;
+  } | null>(null);
+
+  // Pending delete confirmation for a flight ticket (group id).
+  const [pendingDeleteTicketId, setPendingDeleteTicketId] = useState<string | null>(null);
+
 
   const [editingStep, setEditingStep] = useState<(JourneyStep & { dbId?: string }) | null>(null);
   const [flashStepId, setFlashStepId] = useState<number | null>(null);
@@ -740,8 +776,31 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         segment={editingSegment}
         onCancel={() => { setEditingSegment(null); setIsNewSegment(false); }}
         onSave={(seg) => {
-          // EditTransportSheet only handles non-flight transport. Flight
-          // tickets persist via the transport store and are not edited here.
+          // Flight edits — route back into the persisted ticket store via
+          // updateFlightTicket so changes survive reload/sign-out.
+          if (seg.type === "flight" && seg.groupId) {
+            void updateFlightTicket(seg.groupId, (t) => {
+              const mutate = (segs: FlightSegment[]): FlightSegment[] =>
+                segs.map((fs) => fs.id !== seg.id ? fs : {
+                  ...fs,
+                  airline: seg.airline || fs.airline,
+                  flightNumber: seg.flightNumber || fs.flightNumber,
+                  fromAirport: { ...fs.fromAirport, code: seg.fromCode || fs.fromAirport.code, city: seg.fromCity || fs.fromAirport.city, name: seg.fromFull || fs.fromAirport.name },
+                  toAirport: { ...fs.toAirport, code: seg.toCode || fs.toAirport.code, city: seg.toCity || fs.toAirport.city, name: seg.toFull || fs.toAirport.name },
+                  departureDate: (seg.departureDateTime || "").split("T")[0] || fs.departureDate,
+                  departureTime: ((seg.departureDateTime || "").split("T")[1] || "").slice(0, 5) || fs.departureTime,
+                  arrivalDate: (seg.arrivalDateTime || "").split("T")[0] || fs.arrivalDate,
+                  arrivalTime: ((seg.arrivalDateTime || "").split("T")[1] || "").slice(0, 5) || fs.arrivalTime,
+                  cabinClass: seg.seatClass || fs.cabinClass,
+                  pnr: seg.bookingRef || fs.pnr,
+                });
+              return { ...t, outboundSegments: mutate(t.outboundSegments), returnSegments: mutate(t.returnSegments) };
+            }).then(() => toast.success("Flight updated · تم التحديث"))
+              .catch((e) => toast.error(e?.message || "Could not update flight"));
+            setEditingSegment(null);
+            setIsNewSegment(false);
+            return;
+          }
           setNonFlightSegments(prev => {
             const exists = prev.some(p => p.id === seg.id);
             return exists ? prev.map(p => p.id === seg.id ? seg : p) : [...prev, seg];
@@ -755,6 +814,43 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
           setNonFlightSegments(prev => prev.filter(p => p.id !== id));
           setEditingSegment(null);
         }}
+      />
+
+      {/* Duplicate-ticket confirmation */}
+      <DuplicateTicketDialog
+        open={!!pendingDuplicate}
+        matches={pendingDuplicate?.matches || []}
+        onAddAnyway={() => {
+          if (!pendingDuplicate) return;
+          void commitTicket(pendingDuplicate.ticket, pendingDuplicate.out, pendingDuplicate.ret);
+        }}
+        onReplace={(existingId) => {
+          if (!pendingDuplicate) return;
+          void removeFlightTicket(existingId).then(() =>
+            commitTicket(pendingDuplicate.ticket, pendingDuplicate.out, pendingDuplicate.ret),
+          );
+        }}
+        onCancel={() => { setPendingDuplicate(null); setPendingScan(null); }}
+      />
+
+      {/* Delete-flight confirmation */}
+      <ConfirmDialog
+        open={!!pendingDeleteTicketId}
+        title="Delete flight ticket?"
+        titleAr="حذف تذكرة الطيران؟"
+        description="This will remove the ticket and all its segments from your timeline."
+        descriptionAr="سيتم حذف التذكرة وجميع مقاطعها من رحلتك."
+        confirmLabel="Delete"
+        confirmLabelAr="حذف"
+        destructive
+        onConfirm={() => {
+          if (!pendingDeleteTicketId) return;
+          void removeFlightTicket(pendingDeleteTicketId)
+            .then(() => toast.success("Flight removed · تم الحذف"))
+            .catch((e) => toast.error(e?.message || "Could not delete flight"));
+          setPendingDeleteTicketId(null);
+        }}
+        onClose={() => setPendingDeleteTicketId(null)}
       />
 
 
@@ -831,7 +927,7 @@ const AddButton = ({ labelEn, labelAr, onClick }: { labelEn: string; labelAr: st
 );
 
 /* ─── TICKETS TAB ─── */
-const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void; onRescan?: (ticketId: string) => Promise<import("@/lib/transportTickets").TransportTicket> }) => {
+const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlight, onDeleteFlight }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void; onRescan?: (ticketId: string) => Promise<import("@/lib/transportTickets").TransportTicket>; onEditFlight?: (seg: TransportSegment) => void; onDeleteFlight?: (ticketId: string) => void }) => {
   const [selectedSeg, setSelectedSeg] = useState<TransportSegment | null>(null);
   const [ticketNotes, setTicketNotes] = useState<Record<string, string>>({});
   const [ticketAlarms, setTicketAlarms] = useState<Record<string, number[]>>({});
