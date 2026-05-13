@@ -56,8 +56,6 @@ const guestTrip: TripData = {
   outboundFlight: null,
   returnFlight: null,
 };
-<<<<<<< ours
-=======
 
 const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps) => {
   const { patientName, patientNameAr } = usePatientName();
@@ -195,8 +193,6 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
         <div className="stagger-3">
           <div className="flex items-center justify-between mb-2">
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>UPCOMING APPOINTMENTS</p>
-<<<<<<< ours
-=======
             <div className="flex items-center gap-2">
               <button onClick={() => onNavigate("journey", "new-appointment")} className="text-[10px] font-semibold btn-press" style={{ color: "var(--gold)" }}>+ Add</button>
               <button onClick={() => onNavigate("journey", "appointments")} className="text-[10px] btn-press" style={{ color: "var(--teal-mid)" }}>View all →</button>

@@ -255,8 +255,6 @@ const Index = () => {
       setChatContext(context);
       setActiveTab("chat");
       setAppView("main");
-<<<<<<< ours
-=======
     } else if (tab === "journey") {
       setJourneyIntent(
         context === "new-trip"
@@ -308,8 +306,6 @@ const Index = () => {
         switch (activeTab) {
           case "home":
             return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} isGuest={isGuest} />;
-<<<<<<< ours
-=======
           case "journey": return (
             <JourneyScreen
               onOpenScanner={openScanner}

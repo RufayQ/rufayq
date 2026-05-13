@@ -251,8 +251,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     /** Pre-allocated id used for the FIRST resulting segment so any
      *  related-document attachments uploaded in the wizard stay linked. */
     pendingSegmentRef?: string;
-<<<<<<< ours
-=======
     pageImages?: string[];
     extraction?: TicketExtractionMetadata;
   } | null>(null);
@@ -449,8 +447,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       updatedAt: new Date().toISOString(),
     };
 
-<<<<<<< ours
-=======
     const duplicateMatches = findDuplicateTickets(ticket, flightTickets);
     if (duplicateMatches.length > 0) {
       setDuplicateTicketDecision({ ticket, matches: duplicateMatches, reopenPendingScan: pendingScan });
@@ -1010,8 +1006,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         segment={editingSegment}
         onCancel={() => { setEditingSegment(null); setIsNewSegment(false); }}
         onSave={(seg) => {
-<<<<<<< ours
-=======
           if (seg.type === "flight" && seg.groupId) {
             void updateFlightTicket(seg.groupId, (ticket) => applySegmentEditsToTicket(ticket, seg));
           } else {
@@ -1152,12 +1146,10 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
   const [ticketMutedAlerts, setTicketMutedAlerts] = useState<Record<string, boolean>>({});
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
 
-<<<<<<< ours
   // Filtered segments produced by TicketsFilterBar.
   const [filteredSegments, setFilteredSegments] = useState<TransportSegment[]>(segments);
   // Track helicopter-jump highlight so the targeted card flashes briefly.
   const [highlightId, setHighlightId] = useState<string | null>(null);
-=======
   // Filter UI state
   const [filters, setFilters] = useState<TicketsFilterState>(() => loadTicketsFilterState());
 
@@ -1168,8 +1160,6 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
     });
   };
 
-<<<<<<< ours
-=======
   const quickGroup = (segment: TransportSegment): TicketQuickFilter => {
     const now = Date.now();
     const dep = new Date(segment.departureDateTime).getTime();
@@ -1211,8 +1201,6 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
         </div>
 
       </div>
-<<<<<<< ours
-=======
       <JourneyHelicopterTimeline segments={segments} onSelect={(seg) => {
         setSelectedSeg(seg);
         setLiveAnnouncement(`Selected ${seg.fromCode || seg.fromCity} to ${seg.toCode || seg.toCity}`);
@@ -1351,8 +1339,6 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
           onUpdateSystemReminders={(reminders) => setTicketSystemReminders((prev) => ({ ...prev, [selectedSeg.id]: reminders }))}
           systemAlertsMuted={ticketMutedAlerts[selectedSeg.id] || false}
           onToggleSystemAlertsMuted={() => setTicketMutedAlerts((prev) => ({ ...prev, [selectedSeg.id]: !prev[selectedSeg.id] }))}
-<<<<<<< ours
-=======
           ticket={tickets.find((t) => t.id === selectedSeg.groupId)}
           onRescanTicket={onRescanTicket}
           onEdit={() => { onEditSegment(selectedSeg); setSelectedSeg(null); }}
@@ -1839,8 +1825,6 @@ const AppointmentsTab = ({
   isGuest: boolean;
 }) => {
   const [showAddAppt, setShowAddAppt] = useState(false);
-<<<<<<< ours
-=======
   const [guestAppts, setGuestAppts] = useState<Appointment[]>(appointmentItems);
   const displayedAppts = isGuest ? guestAppts : appointmentItems;
   const upcomingAppts = displayedAppts.filter(a => a.status === "upcoming");
@@ -1896,8 +1880,6 @@ const AppointmentsTab = ({
       return;
     }
 
-<<<<<<< ours
-=======
     try {
       await onSaveAppointment(appointmentFormToRowInput(data));
       toast.success("Appointment saved · تم حفظ الموعد", { duration: 3000 });
