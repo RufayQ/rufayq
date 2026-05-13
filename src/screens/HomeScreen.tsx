@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
-import { CreditCard, Wallet } from "lucide-react";
+import { CreditCard, Wallet, MapPin, Video, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { medications, appointments } from "@/constants/data";
 import type { TripData } from "@/components/AddTripSheet";
@@ -13,8 +13,7 @@ import EmptyJourneyCard from "@/components/home/EmptyJourneyCard";
 import ActiveTripCard from "@/components/home/ActiveTripCard";
 import OtherJourneysList from "@/components/home/OtherJourneysList";
 import DischargeAlertBanner from "@/components/home/DischargeAlertBanner";
-import UpcomingAppointmentsList from "@/components/home/UpcomingAppointmentsList";
-import TodayMedicationsList from "@/components/home/TodayMedicationsList";
+import type { Medication } from "@/constants/data";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
 
 function daysBetween(a?: string | null, b?: string | null): number | null {
@@ -89,11 +88,17 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const formattedReturnDate = formatDate(activeTrip?.returnDate);
 
   const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];
-  const upcomingAppts = isGuest ? appointments.filter((_, i) => i < 2) : [];
+  const upcomingAppointments = isGuest ? appointments.filter((_, i) => i < 2) : [];
 
   const medicationSummary = todayMeds.length
     ? todayMeds.map((m) => `${m.name} (${m.status})`).join(", ")
     : "No medications scheduled today";
+
+  const statusColor = (s: Medication["status"]) =>
+    s === "taken" ? "var(--success)"
+      : s === "due" ? "var(--warning)"
+      : s === "upcoming" ? "var(--gray)"
+      : "var(--error)";
 
   const homeMenuItems: HomeHeaderMenuItem[] = [
     { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: () => { window.location.reload(); } },
@@ -101,8 +106,10 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
       onClick: () => { toast("Notifications · الإشعارات", { description: "All notifications are up to date · جميع الإشعارات محدّثة" }); } },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص",
       onClick: () => {
-        const text = `RufayQ – Home Summary\nActive Trip: ${activeTrip?.destination ?? "—"}\nMedications: ${medicationSummary}`;
-        navigator.clipboard.writeText(text);
+        const summary = `Active Trip: ${activeTrip?.destination ?? "—"}`;
+        navigator.clipboard.writeText(
+          `RufayQ – Trip Summary\n${summary}\nMedications: ${medicationSummary}`,
+        );
         toast("Copied · تم النسخ");
       } },
     { icon: <Share2 size={14} />, label: "Share App", labelAr: "مشاركة التطبيق",
@@ -150,13 +157,94 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
 
         <DischargeAlertBanner onClick={() => onNavigate("records")} />
 
-        <UpcomingAppointmentsList
-          appointments={upcomingAppts}
-          onSelect={() => onNavigate("journey", "view")}
-          onViewAll={() => onNavigate("journey", "view")}
-        />
+        <div className="stagger-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>UPCOMING APPOINTMENTS</p>
+            <button onClick={() => onNavigate("journey", "view")} className="text-[10px] btn-press" style={{ color: "var(--teal-mid)" }}>View all →</button>
+          </div>
+          {upcomingAppointments.length === 0 ? (
+            <div
+              className="rounded-xl p-3 text-center"
+              style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+            >
+              <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+                No upcoming appointments
+              </p>
+              <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>
+                لا توجد مواعيد قادمة
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingAppointments.map((apt) => (
+                <button
+                  key={apt.id}
+                  onClick={() => onNavigate("journey", "view")}
+                  className="w-full rounded-xl p-3 flex items-center gap-3 text-left card-press"
+                  style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: apt.type === "telemedicine" ? "var(--teal-light)" : "var(--gold-pale)" }}
+                  >
+                    {apt.type === "telemedicine"
+                      ? <Video size={16} style={{ color: "var(--teal-deep)" }} />
+                      : apt.type === "clinic"
+                        ? <Building2 size={16} style={{ color: "var(--gold)" }} />
+                        : <MapPin size={16} style={{ color: "var(--success)" }} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{apt.doctorName}</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>{apt.specialty} · {apt.date}</p>
+                  </div>
+                  <span className="font-mono text-[10px] font-semibold" style={{ color: "var(--teal-deep)" }}>{apt.time}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-        <TodayMedicationsList medications={todayMeds} onViewAll={() => onNavigate("medications")} />
+        <div className="stagger-4">
+          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>TODAY'S MEDICATIONS</p>
+          {todayMeds.length === 0 ? (
+            <div
+              className="rounded-xl p-3 text-center"
+              style={{ background: "var(--white)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+            >
+              <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+                No medications scheduled today
+              </p>
+              <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>
+                لا توجد أدوية مجدولة اليوم
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {todayMeds.map((med, i) => (
+                <div key={i} className="rounded-xl p-3 flex items-center gap-3" style={{ background: "var(--white)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                      background: statusColor(med.status),
+                      boxShadow: med.status === "due" ? "0 0 0 3px rgba(224,160,48,0.2)" : "none",
+                    }}
+                  />
+                  <div className="flex-1">
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{med.name}</p>
+                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{med.nameAr}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-semibold" style={{ color: statusColor(med.status) }}>{med.time}</p>
+                    <p className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{med.frequency}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <button onClick={() => onNavigate("medications")} className="block ml-auto mt-2 text-[11px] btn-press" style={{ color: "var(--teal-mid)" }}>
+            View all medications →
+          </button>
+        </div>
 
         <QuickActionsGrid onNavigate={onNavigate} />
 
