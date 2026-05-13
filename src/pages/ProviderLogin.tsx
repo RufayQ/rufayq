@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Seo } from "@/seo/Seo";
 
 const ProviderLogin = () => {
   const navigate = useNavigate();
@@ -75,6 +76,14 @@ const ProviderLogin = () => {
   };
 
   return (
+    <>
+      <Seo
+        title={mode === "ar" ? "بوابة مقدّمي الرعاية — رُفَيِّق" : "Provider portal sign-in — RufayQ"}
+        description={mode === "ar"
+          ? "تسجيل دخول مقدّمي الرعاية المعتمدين على رُفَيِّق."
+          : "Sign in to the RufayQ provider portal for approved healthcare organizations."}
+        noindex
+      />
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }} dir={mode === "ar" ? "rtl" : "ltr"}>
       <div className="w-full max-w-md">
         <div className="flex items-center justify-between mb-6">
@@ -133,6 +142,7 @@ const ProviderLogin = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

@@ -4,6 +4,7 @@ import { ArrowLeft, User, Building2, Stethoscope, Shield, Package, ChevronRight 
 import { useLanguage } from "@/contexts/LanguageContext";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { Seo } from "@/seo/Seo";
 
 const BG_DARK = "#06101A";
 const BG_DARK_2 = "#0B1A28";
@@ -31,6 +32,14 @@ const Auth = () => {
   ];
 
   return (
+    <>
+      <Seo
+        title={isAr ? "تسجيل الدخول — رُفَيِّق" : "Sign in — RufayQ"}
+        description={isAr
+          ? "سجّل الدخول إلى حسابك في رُفَيِّق — للمرضى ومقدمي الرعاية في رحلة العلاج بالخارج."
+          : "Sign in to your RufayQ account — for patients and providers managing medical travel abroad."}
+        noindex
+      />
     <div className="min-h-screen" style={{ background: BG_DARK, color: TEXT, fontFamily: "'DM Sans', system-ui" }} dir={isAr ? "rtl" : "ltr"}>
       {/* NAV */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.75)", borderBottom: `1px solid ${BORDER}` }}>
@@ -155,6 +164,7 @@ const Auth = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 
