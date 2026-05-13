@@ -1021,7 +1021,16 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlig
               <div className="h-px flex-1" style={{ background: "var(--gray-light)" }} />
             </div>
             {sec.items.map(({ seg, group }) => (
-              <div key={seg.id} style={{ opacity: group === "past" ? 0.85 : 1 }}>
+              <div
+                key={seg.id}
+                data-ticket-id={seg.id}
+                style={{
+                  opacity: group === "past" ? 0.85 : 1,
+                  transition: "box-shadow 300ms ease, transform 300ms ease",
+                  boxShadow: highlightId === seg.id ? "0 0 0 2px var(--gold)" : "none",
+                  borderRadius: 16,
+                }}
+              >
                 <div className="relative">
                   {group === "past" && (
                     <div className="absolute top-2 right-6 z-10 flex items-center gap-1 px-2 py-1 rounded-full" style={{ background: "rgba(0,0,0,0.7)" }}>
