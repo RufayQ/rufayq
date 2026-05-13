@@ -88,11 +88,17 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const formattedReturnDate = formatDate(activeTrip?.returnDate);
 
   const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];
-  const upcomingAppts = isGuest ? appointments.filter((_, i) => i < 2) : [];
+  const upcomingAppointments = isGuest ? appointments.filter((_, i) => i < 2) : [];
 
   const medicationSummary = todayMeds.length
     ? todayMeds.map((m) => `${m.name} (${m.status})`).join(", ")
     : "No medications scheduled today";
+
+  const statusColor = (s: Medication["status"]) =>
+    s === "taken" ? "var(--success)"
+      : s === "due" ? "var(--warning)"
+      : s === "upcoming" ? "var(--gray)"
+      : "var(--error)";
 
   const homeMenuItems: HomeHeaderMenuItem[] = [
     { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: () => { window.location.reload(); } },
