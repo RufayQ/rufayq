@@ -49,6 +49,43 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
     const recipientKey = normalizeRecipient(body.to);
+    const ipAddress = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || null;
+
+    // --- Rate limit: max 8 failed attempts per recipient per 15 minutes,
+    //                 max 30 failed attempts per IP per 15 minutes.
+    const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { count: recipFails } = await admin
+      .from("otp_verify_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("recipient", recipientKey)
+      .eq("succeeded", false)
+      .gte("attempt_at", windowStart);
+    if ((recipFails ?? 0) >= 8) {
+      return new Response(JSON.stringify({
+        approved: false,
+        error: "Too many failed attempts. Please request a new code in 15 minutes.",
+      }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (ipAddress) {
+      const { count: ipFails } = await admin
+        .from("otp_verify_attempts")
+        .select("id", { count: "exact", head: true })
+        .eq("ip_address", ipAddress)
+        .eq("succeeded", false)
+        .gte("attempt_at", windowStart);
+      if ((ipFails ?? 0) >= 30) {
+        return new Response(JSON.stringify({
+          approved: false,
+          error: "Too many failed attempts from your network. Try again later.",
+        }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    const recordAttempt = async (succeeded: boolean) => {
+      await admin.from("otp_verify_attempts").insert({
+        recipient: recipientKey, ip_address: ipAddress, succeeded,
+      });
+    };
 
     // 1. Try manual admin-issued OTP first (free path)
     const { data: manualMatch } = await admin.rpc("consume_manual_otp", {
@@ -77,17 +114,22 @@ Deno.serve(async (req) => {
 
       if (!resp.ok) {
         console.error("[verify-otp] Twilio error", resp.status, JSON.stringify(data));
+        await recordAttempt(false);
         return new Response(JSON.stringify({
           approved: false,
           error: data?.message || "Verification not found or expired",
         }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       if (data.status !== "approved") {
+        await recordAttempt(false);
         return new Response(JSON.stringify({ approved: false, status: data.status, error: "Code did not match" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       approved = true;
     }
+
+    // Track the successful attempt for monitoring (does not count toward limits).
+    await recordAttempt(true);
 
     // 3. Approved → create or fetch Supabase Auth user
     const usingEmail = isEmail(recipientKey);

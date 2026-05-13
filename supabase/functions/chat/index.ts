@@ -49,9 +49,10 @@ serve(async (req) => {
       .from("user_trials")
       .select("device_id, trial_ends_at, plan")
       .eq("device_id", deviceId)
+      .gt("trial_ends_at", new Date().toISOString())
       .maybeSingle();
     if (trialErr || !trial) {
-      return new Response(JSON.stringify({ error: "No trial or subscription for this device" }), {
+      return new Response(JSON.stringify({ error: "Trial or subscription has expired" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
