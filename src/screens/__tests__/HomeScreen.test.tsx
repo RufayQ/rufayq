@@ -79,7 +79,7 @@ describe("HomeScreen dashboard", () => {
     render(<HomeScreen onNavigate={onNavigate} onProfile={vi.fn()} />);
 
     expect(screen.getByText(/Frankfurt, Germany/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/Open Journey/i));
+    fireEvent.click(screen.getByRole("button", { name: /Open Journey/i }));
     expect(onNavigate).toHaveBeenCalledWith("journey", "view");
   });
 
