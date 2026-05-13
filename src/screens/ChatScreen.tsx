@@ -258,6 +258,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
 
       // If no content was streamed, add a fallback message
       if (!assistantMsgCreated) {
+        if (firstChunkGate) { await firstChunkGate; firstChunkGate = null; }
         setMessages(prev => [...prev, {
           id: assistantId,
           text: "عذراً، لم أتمكن من الرد. يرجى المحاولة مرة أخرى.",
@@ -267,6 +268,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
       }
     } catch (err) {
       console.error("Chat error:", err);
+      await waitForMinTyping();
       setIsTyping(false);
       toast.error("Connection error · خطأ في الاتصال");
     }
