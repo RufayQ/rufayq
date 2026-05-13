@@ -113,6 +113,13 @@ const JourneyScreen = ({
     setTrips(dbTrips);
   }, [dbTrips]);
   const [showAddTrip, setShowAddTrip] = useState(false);
+
+  // Consume Home → Journey intent: auto-open Add Trip when requested.
+  useEffect(() => {
+    if (!initialIntent) return;
+    if (initialIntent === "new-trip") setShowAddTrip(true);
+    onIntentHandled?.();
+  }, [initialIntent, onIntentHandled]);
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<TripData | null>(null);
