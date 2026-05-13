@@ -4,7 +4,7 @@ import { useAppointments } from "@/hooks/useAppointments";
 import { medications as demoMedications, appointments as demoAppointments, type Medication, type Appointment } from "@/constants/data";
 import type { TripData } from "@/components/AddTripSheet";
 import { appointmentRowToAppointment, sortAppointmentRowsByStart } from "@/lib/appointmentRows";
-import { computeProgress, formatDate } from "@/lib/journeyOverview";
+import { computeProgress, formatDate, parseDate } from "@/lib/journeyOverview";
 
 // Single Berlin demo trip used when isGuest === true. Kept here so HomeScreen
 // and JourneyScreen always see the same guest seed.
