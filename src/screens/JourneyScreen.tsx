@@ -82,10 +82,11 @@ const phases = [
 ];
 
 const subTabs = [
+  { key: "overview", icon: "🗺️", label: "Map" },
   { key: "tickets", icon: "✈️", label: "Tickets" },
   { key: "stay", icon: "🏨", label: "Stay" },
   { key: "appointments", icon: "🩺", label: "Appts" },
-  { key: "steps", icon: "🗺️", label: "Steps" },
+  { key: "steps", icon: "📋", label: "Steps" },
 ];
 
 const defaultTrip: TripData = {
@@ -125,7 +126,7 @@ const stayTypeOptions = [
   { icon: "🏥", en: "Hospital Stay", ar: "إقامة مستشفى" },
 ];
 
-type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | null;
+type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | null;
 
 const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
   const isGuest = useGuestMode();
@@ -152,7 +153,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<TripData | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState("tickets");
+  const [activeSubTab, setActiveSubTab] = useState("overview");
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
   // Flight tickets are persisted (per-device) via Supabase + local cache so
   // they survive navigation, reload, and offline. Non-flight transport
   // segments stay in local state for now (separate persistence epic).
