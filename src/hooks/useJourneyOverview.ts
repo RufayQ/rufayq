@@ -36,10 +36,14 @@ export interface DashboardMedication {
 
 export interface JourneyMilestone {
   id: string;
+  /** Stable reference back to the source record (appointment id, "departure", "return"). */
+  refId: string;
   kind: "departure" | "appointment" | "treatment" | "return" | "followup";
   title: string;
   titleAr: string;
   date?: string | null;
+  /** Bucket used for phase-chip placement on the home canvas. */
+  phase: "before" | "travel" | "care" | "after";
   state: "done" | "current" | "upcoming";
 }
 
