@@ -144,12 +144,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   }, [dbTrips]);
   const [showAddTrip, setShowAddTrip] = useState(false);
 
-  // Consume Home → Journey intent: auto-open Add Trip when requested.
-  useEffect(() => {
-    if (!initialIntent) return;
-    if (initialIntent === "new-trip") setShowAddTrip(true);
-    onIntentHandled?.();
-  }, [initialIntent, onIntentHandled]);
+  // Intent handling lives in a single effect below.
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<TripData | null>(null);
@@ -209,17 +204,22 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const [appointmentFormIntent, setAppointmentFormIntent] = useState(0);
 
   useEffect(() => {
+    if (!initialIntent) return;
     if (initialIntent === "new-trip") {
       setShowAddTrip(true);
-      onIntentHandled?.();
     } else if (initialIntent === "new-appointment") {
       setActiveSubTab("appointments");
       setAppointmentFormIntent((value) => value + 1);
-      onIntentHandled?.();
     } else if (initialIntent === "appointments") {
       setActiveSubTab("appointments");
-      onIntentHandled?.();
-    } else if (initialIntent) {
+    } else if (initialIntent === "view") {
+      setActiveSubTab("overview");
+    } else if (typeof initialIntent === "string" && initialIntent.startsWith("milestone:")) {
+      setActiveSubTab("overview");
+      setSelectedMilestoneId(initialIntent.slice("milestone:".length));
+    }
+    onIntentHandled?.();
+  }, [initialIntent, onIntentHandled]);
       onIntentHandled?.();
     }
   }, [initialIntent, onIntentHandled]);
