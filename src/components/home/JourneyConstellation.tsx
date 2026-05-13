@@ -38,7 +38,7 @@ interface JourneyConstellationProps {
 /* Visual mappings                                                     */
 /* ------------------------------------------------------------------ */
 
-type IconCmp = React.ComponentType<{ size?: number; strokeWidth?: number }>;
+
 
 interface KindStyle {
   Icon: LucideIcon;
