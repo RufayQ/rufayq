@@ -220,9 +220,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     }
     onIntentHandled?.();
   }, [initialIntent, onIntentHandled]);
-      onIntentHandled?.();
-    }
-  }, [initialIntent, onIntentHandled]);
 
   // Staged scan payload — populated when a flight scan arrives. Shows the
   // ItineraryConfirmSheet preview so the user can review/edit the parsed
