@@ -26,6 +26,10 @@ import DuplicateTicketDialog from "@/components/DuplicateTicketDialog";
 import TicketsFilterBar, { applyTicketFilters, type TicketFilterState } from "@/components/TicketsFilterBar";
 import JourneyHelicopterTimeline from "@/components/JourneyHelicopterTimeline";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { useAppointments } from "@/hooks/useAppointments";
+import type { AppointmentRow } from "@/lib/api/appointmentApi";
+import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/useProviderAppointments";
+import UnifiedTimeline from "@/components/journey/UnifiedTimeline";
 import EditStepSheet from "@/components/EditStepSheet";
 import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard";
 import { PlaneTakeoff, PlaneLanding, Hotel, Stethoscope, ChevronRight, X as XIcon } from "lucide-react";
@@ -663,6 +667,9 @@ const JourneyScreen = ({
 
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
+        <div className="px-4 pt-3">
+          <JourneyTimelineMount activeTrip={activeTrip} />
+        </div>
         {activeSubTab === "tickets" && (
           <>
             <FlightTripSummary segments={transportSegments} />
@@ -1608,12 +1615,109 @@ const StepsTab = ({
   </div>
 );
 
+/* ─── JOURNEY TIMELINE MOUNT — unified flights + appointments ─── */
+const JourneyTimelineMount = ({ activeTrip }: { activeTrip: TripData | null }) => {
+  const isGuest = useGuestMode();
+  const { items: dbRows } = useAppointments();
+  const { appointments: providerRows } = useProviderAppointments();
+  if (isGuest) return null;
+  const inputs = [
+    ...dbRows.filter((r) => !r.deleted_at).map((r) => ({
+      id: r.id,
+      kind: ((r.appointment_type as any) || "appointment") as "physician" | "lab" | "radiology" | "appointment",
+      whenIso: r.start_at,
+      title: r.doctor_name || r.title || "Appointment",
+      subtitle: r.facility_name || r.location || undefined,
+      source: "self" as const,
+    })),
+    ...providerRows.map((r) => ({
+      id: r.id,
+      kind: ((r.appointment_type as any) || "appointment") as "physician" | "lab" | "radiology" | "appointment",
+      whenIso: r.scheduled_at,
+      title: r.title,
+      subtitle: r.location || undefined,
+      source: "provider" as const,
+    })),
+  ];
+  return <UnifiedTimeline activeTrip={activeTrip} appointments={inputs} />;
+};
+
+
+type AppointmentCardModel = Appointment & { source?: "self" | "provider" };
+
+const fmtCardDate = (d: Date) =>
+  d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const fmtCardTime = (d: Date) =>
+  d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+const visitTypeToCardType = (v?: string | null): Appointment["type"] =>
+  v === "telemedicine" ? "telemedicine" : v === "clinic" ? "clinic" : "in-person";
+
+const dbAppointmentToCard = (row: AppointmentRow): AppointmentCardModel => {
+  const startIso = row.start_at;
+  const d = startIso ? new Date(startIso) : null;
+  const valid = d && !isNaN(d.getTime());
+  const status: Appointment["status"] = valid && d!.getTime() < Date.now() ? "completed" : "upcoming";
+  return {
+    id: row.id,
+    doctorName: row.doctor_name || row.title || "Appointment",
+    doctorNameAr: row.doctor_name || row.title || "موعد",
+    specialty: row.specialty || row.appointment_type || "Appointment",
+    specialtyAr: row.specialty || row.appointment_type || "موعد",
+    location: row.location || row.facility_name || "TBD",
+    locationAr: row.location || row.facility_name || "لم يحدد",
+    type: visitTypeToCardType((row as any).visit_type),
+    date: valid ? fmtCardDate(d!) : "TBD",
+    time: valid ? fmtCardTime(d!) : "TBD",
+    status,
+    hospital: row.facility_name || undefined,
+    notes: row.notes || undefined,
+    source: "self",
+  };
+};
+
+const providerRowToCard = (row: ProviderAppointmentRow): AppointmentCardModel => {
+  const d = new Date(row.scheduled_at);
+  const valid = !isNaN(d.getTime());
+  const status: Appointment["status"] = valid && d.getTime() < Date.now() ? "completed" : "upcoming";
+  return {
+    id: row.id,
+    doctorName: row.title || "Appointment",
+    doctorNameAr: row.title || "موعد",
+    specialty: row.appointment_type || "Appointment",
+    specialtyAr: row.appointment_type || "موعد",
+    location: row.location || "TBD",
+    locationAr: row.location || "لم يحدد",
+    type: visitTypeToCardType(row.visit_type),
+    date: valid ? fmtCardDate(d) : "TBD",
+    time: valid ? fmtCardTime(d) : "TBD",
+    status,
+    notes: row.notes || undefined,
+    source: "provider",
+  };
+};
+
 /* ─── APPOINTMENTS TAB ─── */
 const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => void }) => {
   const isGuest = useGuestMode();
   const { categories: guestCats } = useGuestCategories();
   const [showAddAppt, setShowAddAppt] = useState(false);
-  const [localAppts, setLocalAppts] = useState<Appointment[]>(isGuest && guestCats.appointments ? appointments : []);
+
+  // Signed-in users: persist via the appointments domain hook.
+  const { items: dbRows, save: saveAppointment } = useAppointments();
+  // Provider-pushed appointments are read-through via RLS on x-device-id.
+  const { appointments: providerRows } = useProviderAppointments();
+  // Guest demo seed (kept local; never written to DB).
+  const [guestAppts, setGuestAppts] = useState<AppointmentCardModel[]>(
+    isGuest && guestCats.appointments ? appointments.map((a) => ({ ...a, source: "self" as const })) : [],
+  );
+
+  const selfAppts: AppointmentCardModel[] = isGuest
+    ? guestAppts
+    : dbRows.filter((r) => !r.deleted_at).map(dbAppointmentToCard);
+  const providerAppts: AppointmentCardModel[] = isGuest ? [] : providerRows.map(providerRowToCard);
+  const localAppts: AppointmentCardModel[] = [...selfAppts, ...providerAppts];
+
   const upcomingAppts = localAppts.filter(a => a.status === "upcoming");
   const pastAppts = localAppts.filter(a => a.status === "completed" || a.status === "cancelled");
 
@@ -1635,29 +1739,62 @@ const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => 
     return { label: "UPCOMING", bg: "rgba(197,150,90,0.1)", color: "var(--gold)" };
   };
 
-  const handleAddAppointment = (data: AppointmentFormData) => {
-    const newAppt: Appointment = {
-      id: `apt-${Date.now()}`,
-      doctorName: data.doctorName || "TBD",
-      doctorNameAr: data.doctorNameAr || "لم يحدد",
-      specialty: data.specialty || data.appointmentType,
-      specialtyAr: data.specialty || data.appointmentType,
-      location: data.location || data.hospital || "TBD",
-      locationAr: data.locationAr || data.hospitalAr || "لم يحدد",
-      type: data.visitType === "telemedicine" ? "telemedicine" : data.visitType === "clinic" ? "clinic" : "in-person",
-      date: data.date ? new Date(data.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "TBD",
-      time: data.time || "TBD",
-      status: "upcoming",
-      hospital: data.hospital,
-      hospitalAr: data.hospitalAr,
-      notes: data.notes,
-      notesAr: data.notesAr,
-    };
-    setLocalAppts(prev => [...prev, newAppt]);
-    toast.success("Appointment added · تم إضافة الموعد", { duration: 3000 });
+  const handleAddAppointment = async (data: AppointmentFormData) => {
+    if (isGuest) {
+      const newAppt: AppointmentCardModel = {
+        id: `apt-${Date.now()}`,
+        doctorName: data.doctorName || "TBD",
+        doctorNameAr: data.doctorNameAr || "لم يحدد",
+        specialty: data.specialty || data.appointmentType,
+        specialtyAr: data.specialty || data.appointmentType,
+        location: data.location || data.hospital || "TBD",
+        locationAr: data.locationAr || data.hospitalAr || "لم يحدد",
+        type: visitTypeToCardType(data.visitType),
+        date: data.date ? new Date(data.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "TBD",
+        time: data.time || "TBD",
+        status: "upcoming",
+        hospital: data.hospital,
+        hospitalAr: data.hospitalAr,
+        notes: data.notes,
+        notesAr: data.notesAr,
+        source: "self",
+      };
+      setGuestAppts(prev => [...prev, newAppt]);
+      toast.success("Appointment added · تم إضافة الموعد", { duration: 3000 });
+      return;
+    }
+
+    // Signed-in: persist to public.appointments.
+    if (!data.date || !data.time) {
+      toast.error("Date and time are required");
+      return;
+    }
+    const startAt = new Date(`${data.date}T${data.time}`);
+    if (isNaN(startAt.getTime())) {
+      toast.error("Invalid date/time");
+      return;
+    }
+    try {
+      await saveAppointment({
+        title: data.doctorName || data.specialty || data.appointmentType || "Appointment",
+        appointment_type: data.appointmentType,
+        // visit_type lives in DB but isn't on the manual TS type yet — cast.
+        ...({ visit_type: data.visitType } as any),
+        facility_name: data.hospital || null,
+        doctor_name: data.doctorName || null,
+        specialty: data.specialty || data.appointmentType || null,
+        location: data.location || data.hospital || null,
+        start_at: startAt.toISOString(),
+        notes: data.notes || null,
+        source: "manual",
+      } as Partial<AppointmentRow>);
+      toast.success("Appointment saved · تم حفظ الموعد", { duration: 3000 });
+    } catch (e: any) {
+      toast.error(`Could not save appointment: ${e?.message || "unknown error"}`);
+    }
   };
 
-  const renderApptCard = (apt: Appointment) => {
+  const renderApptCard = (apt: AppointmentCardModel) => {
     const sb = statusBadge(apt.status);
     return (
       <div key={apt.id} className="rounded-xl p-4 card-press" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
@@ -1671,9 +1808,12 @@ const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => 
               <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0 ml-2" style={{ background: sb.bg, color: sb.color }}>{sb.label}</span>
             </div>
             <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{apt.doctorNameAr}</p>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>{apt.specialty}</span>
               <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>{typeLabel(apt.type)}</span>
+              {apt.source === "provider" && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono" style={{ background: "var(--gold-pale)", color: "var(--gold)" }}>FROM PROVIDER</span>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-1.5">
               <span className="font-mono text-[10px]" style={{ color: "var(--teal-deep)" }}>📅 {apt.date}</span>

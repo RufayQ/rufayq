@@ -206,6 +206,7 @@ export type Database = {
           updated_at: string
           user_id: string | null
           version: number
+          visit_type: string | null
         }
         Insert: {
           appointment_type?: string | null
@@ -228,6 +229,7 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           version?: number
+          visit_type?: string | null
         }
         Update: {
           appointment_type?: string | null
@@ -250,6 +252,7 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           version?: number
+          visit_type?: string | null
         }
         Relationships: [
           {
@@ -2704,6 +2707,7 @@ export type Database = {
       }
       provider_appointments: {
         Row: {
+          appointment_type: string | null
           author_id: string | null
           created_at: string
           id: string
@@ -2714,8 +2718,10 @@ export type Database = {
           scheduled_at: string
           status: string
           title: string
+          visit_type: string | null
         }
         Insert: {
+          appointment_type?: string | null
           author_id?: string | null
           created_at?: string
           id?: string
@@ -2726,8 +2732,10 @@ export type Database = {
           scheduled_at: string
           status?: string
           title: string
+          visit_type?: string | null
         }
         Update: {
+          appointment_type?: string | null
           author_id?: string | null
           created_at?: string
           id?: string
@@ -2738,6 +2746,7 @@ export type Database = {
           scheduled_at?: string
           status?: string
           title?: string
+          visit_type?: string | null
         }
         Relationships: [
           {
