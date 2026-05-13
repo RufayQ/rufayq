@@ -124,7 +124,9 @@ describe("HomeScreen", () => {
     mockJourneys.mockReturnValue({ journeys: [] });
     render(<HomeScreen onNavigate={vi.fn()} onProfile={() => {}} />);
     expect(screen.queryByText(/Enoxaparin/i)).toBeNull();
+    expect(screen.queryByText(/Amoxicillin/i)).toBeNull();
     expect(screen.queryByText(/Klaus Mueller/i)).toBeNull();
+    expect(screen.queryByText(/Charité/i)).toBeNull();
     expect(screen.getByText(/No medications scheduled today/i)).toBeInTheDocument();
     expect(screen.getByText(/No upcoming appointments/i)).toBeInTheDocument();
   });
@@ -132,7 +134,7 @@ describe("HomeScreen", () => {
   it("renders demo medications and appointments for guest users", () => {
     mockJourneys.mockReturnValue({ journeys: [] });
     render(<HomeScreen isGuest onNavigate={vi.fn()} onProfile={() => {}} />);
-    expect(screen.getByText(/Enoxaparin/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Klaus Mueller/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Enoxaparin 40mg/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Dr\. Klaus Mueller/i).length).toBeGreaterThan(0);
   });
 });
