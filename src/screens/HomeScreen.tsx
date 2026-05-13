@@ -273,32 +273,31 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
 
         <QuickActionsGrid onNavigate={onNavigate} />
 
-        {/* Upcoming Reminders — small, single-use; kept inline */}
-        <div className="stagger-5">
-          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>UPCOMING REMINDERS</p>
-          <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            {[
-              { emoji: "📅", en: "30-Day Follow-up — Riyadh", ar: "متابعة ٣٠ يوم — الرياض", date: "May 15", color: "var(--gold)" },
-              { emoji: "✈️", en: "Return Flight — Berlin → Riyadh", ar: "رحلة العودة", date: "Apr 15", color: "var(--teal-deep)" },
-              { emoji: "💊", en: "Next Medication Due", ar: "الجرعة القادمة", date: "8:00 PM", color: "var(--warning)" },
-            ].map((r, i) => (
-              <div key={i}>
-                {i > 0 && <div className="mx-4 h-px" style={{ background: "var(--gray-light)" }} />}
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <span className="text-base">{r.emoji}</span>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium" style={{ color: "var(--navy)" }}>{r.en}</p>
-                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{r.ar}</p>
+        {/* Upcoming Reminders — derived from one Home source so the medication
+            row can never contradict the Today's Medications card. */}
+        {reminders.length > 0 && (
+          <div className="stagger-5">
+            <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>UPCOMING REMINDERS</p>
+            <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              {reminders.map((r, i) => (
+                <div key={i}>
+                  {i > 0 && <div className="mx-4 h-px" style={{ background: "var(--gray-light)" }} />}
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <span className="text-base">{r.emoji}</span>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium" style={{ color: "var(--navy)" }}>{r.en}</p>
+                      <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{r.ar}</p>
+                    </div>
+                    <span className="text-xs font-semibold" style={{ color: r.color }}>{r.date}</span>
                   </div>
-                  <span className="text-xs font-semibold" style={{ color: r.color }}>{r.date}</span>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <button className="w-full mt-2 py-2.5 rounded-xl text-xs font-medium btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--gray)" }}>
+              + Add reminder<span className="font-arabic"> · إضافة تذكير</span>
+            </button>
           </div>
-          <button className="w-full mt-2 py-2.5 rounded-xl text-xs font-medium btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--gray)" }}>
-            + Add reminder<span className="font-arabic"> · إضافة تذكير</span>
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );
