@@ -277,7 +277,7 @@ const JourneyConstellation = ({
         {/* Phase chips */}
         {chips.map((c, i) => (
           <div
-            key={`${c.label}-${i}`}
+            key={c.id}
             className="absolute z-10"
             style={{
               left: `${c.cx}%`,
