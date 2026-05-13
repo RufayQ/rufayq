@@ -10,7 +10,7 @@ import {
 } from "@/lib/transportTickets";
 
 const seg = (over: Partial<FlightSegment> = {}): FlightSegment => ({
-  id: `s-${Math.random().toString(36).slice(2, 8)}`,
+  id: over.id ?? "seg-1",
   airline: "Saudia",
   flightNumber: "SV123",
   fromAirport: { code: "RUH", city: "Riyadh" },
