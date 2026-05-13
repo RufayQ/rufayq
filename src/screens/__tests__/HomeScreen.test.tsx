@@ -119,4 +119,20 @@ describe("HomeScreen", () => {
     expect(screen.getByText("Companion")).toBeInTheDocument();
     expect(screen.queryByText(/^Total$/)).toBeNull();
   });
+
+  it("does not render demo medications or appointments for signed-in users", () => {
+    mockJourneys.mockReturnValue({ journeys: [] });
+    render(<HomeScreen onNavigate={vi.fn()} onProfile={() => {}} />);
+    expect(screen.queryByText(/Enoxaparin/i)).toBeNull();
+    expect(screen.queryByText(/Klaus Mueller/i)).toBeNull();
+    expect(screen.getByText(/No medications scheduled today/i)).toBeInTheDocument();
+    expect(screen.getByText(/No upcoming appointments/i)).toBeInTheDocument();
+  });
+
+  it("renders demo medications and appointments for guest users", () => {
+    mockJourneys.mockReturnValue({ journeys: [] });
+    render(<HomeScreen isGuest onNavigate={vi.fn()} onProfile={() => {}} />);
+    expect(screen.getByText(/Enoxaparin/i)).toBeInTheDocument();
+    expect(screen.getByText(/Klaus Mueller/i)).toBeInTheDocument();
+  });
 });

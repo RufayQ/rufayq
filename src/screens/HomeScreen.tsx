@@ -88,8 +88,14 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const formattedDepartureDate = formatDate(activeTrip?.departureDate);
   const formattedReturnDate = formatDate(activeTrip?.returnDate);
 
-  const todayMeds = medications.filter((_, i) => i < 3);
-  const upcomingAppts = appointments.filter((a) => a.status === "upcoming").slice(0, 2);
+  const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];
+  const upcomingAppts = isGuest
+    ? appointments.filter((a) => a.status === "upcoming").slice(0, 2)
+    : [];
+
+  const medicationSummary = todayMeds.length
+    ? todayMeds.map((m) => `${m.name} (${m.status})`).join(", ")
+    : "No medications scheduled today";
 
   const homeMenuItems: HomeHeaderMenuItem[] = [
     { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: () => { window.location.reload(); } },
@@ -97,7 +103,7 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
       onClick: () => { toast("Notifications · الإشعارات", { description: "All notifications are up to date · جميع الإشعارات محدّثة" }); } },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص",
       onClick: () => {
-        const text = `RufayQ – Home Summary\nActive Trip: ${activeTrip?.destination ?? "—"}\nMedications: ${todayMeds.map(m => `${m.name} (${m.status})`).join(", ")}`;
+        const text = `RufayQ – Home Summary\nActive Trip: ${activeTrip?.destination ?? "—"}\nMedications: ${medicationSummary}`;
         navigator.clipboard.writeText(text);
         toast("Copied · تم النسخ");
       } },
