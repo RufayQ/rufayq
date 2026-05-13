@@ -1,216 +1,69 @@
-I **do not approve Lovable’s latest claim**.
+## Goal
 
-Lovable says the requested code is “already present,” but the current repo state I inspected still shows the opposite.
+Make appointment cards display reliable date/time plus appointment_type and visit_type, confirm UnifiedTimeline ordering is timezone-correct across self/provider/flight items, and add end-to-end tests for AppointmentsTab persistence, provider merging, and guest isolation.
 
----
+## 1. Card mapping (`src/screens/JourneyScreen.tsx`)
 
-## **What is actually in HomeScreen.tsx**
+Extract a single shared formatter and use it from both `dbAppointmentToCard` and `providerRowToCard` so behavior is identical.
 
-### **Demo medications are still not guest-gated**
+- New helper `formatWhen(iso)` returning `{ date, time, valid, dateObj }`:
+  - Parse with `new Date(iso)`; treat invalid/missing as `valid=false`.
+  - Format using `Intl.DateTimeFormat` with explicit `timeZone: undefined` (browser local) and options `{ month: "short", day: "numeric" }` / `{ hour: "numeric", minute: "2-digit" }`. This anchors the user-visible time to their local zone while the DB stores UTC.
+  - Returns `"TBD" / "TBD"` when invalid.
+- New helpers:
+  - `appointmentTypeLabel(t)` → `"Physician" | "Lab" | "Radiology" | "Appointment"` (+ Arabic variants).
+  - `visitTypeLabel(v)` → `"In-person" | "Telemedicine" | "Clinic"` (+ Arabic).
+- Update both mappers to:
+  - Always populate `specialty` from `appointment_type` label (not raw enum) and fall back to row.specialty only when present.
+  - Carry `appointment_type` and `visit_type` through to the card model so the renderer can show them as small chips below the title.
+- Card model gains optional `appointmentType?: AppointmentKind` and `visitType?: "in-person" | "telemedicine" | "clinic"`.
+- `renderApptCard` adds two pill chips next to the existing status badge:
+  - Type chip (uses `typeIcon` + `visitTypeLabel`).
+  - Kind chip (icon + `appointmentTypeLabel`).
+  - Bilingual labels under each chip.
+- Status derivation moves into the shared helper so self/provider rows compute `completed` vs `upcoming` identically using `dateObj.getTime() < Date.now()`.
 
-Current code:
+## 2. UnifiedTimeline ordering (`src/components/journey/UnifiedTimeline.tsx`)
 
-`const todayMeds = medications.filter((_, i) => i < 3);`  
+Confirm correctness, then harden:
 
+- `buildTimelineItems` already sorts by `when.getTime()` (UTC ms), which is timezone-agnostic and correct. Keep ISO strings as the source of truth.
+- Add a deterministic tiebreaker for equal timestamps: secondary sort by `kind` priority (`flight` < `physician` < `lab` < `radiology` < `appointment`) then by `id`, so test output is stable across runs and zones.
+- Drop appointments with missing/invalid `whenIso` silently (already done) but log once via `console.warn` in dev to surface bad data.
+- Export `buildTimelineItems` is already public — used in tests.
 
-This still pulls demo medications for all users, including signed-in/default users. 【F:src/screens/HomeScreen.tsx†L51-L63】
+## 3. Tests
 
-Expected:
+### 3a. Extend `src/components/journey/__tests__/UnifiedTimeline.test.tsx`
 
-`const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];`  
+- Add a case mixing flights + self + provider items defined in different ISO zones (e.g. `2026-06-01T10:00:00Z`, `2026-06-01T13:00:00+03:00`, `2026-06-01T08:00:00-04:00`) and assert the resulting `when.getTime()` order is monotonically increasing.
+- Add tiebreaker test: two items at identical ISO → flight precedes physician precedes lab.
 
+### 3b. New `src/screens/__tests__/JourneyScreen.appointments.e2e.test.tsx`
 
----
+Use the same patterns as `MedicationsScreen.e2e.test.tsx` and `HomeScreen.test.tsx` (vitest + RTL, mocked Supabase client, mocked `useGuestMode`, `useAppointments`, `useProviderAppointments`).
 
-### **Demo appointments are still not guest-gated**
+Cases:
+1. **Persistence (signed-in self-add):** open AppointmentsTab → click "+ Add Appointment" → fill form (physician, in-person, date/time) → submit → assert `saveAppointment` called once with mapped payload (`appointment_type: "physician"`, `visit_type: "in-person"`, ISO `start_at`) and success toast shown.
+2. **Provider merge:** mock `useProviderAppointments` to return one row with `appointment_type: "lab"`, `visit_type: "clinic"`. Render and assert: card shows "FROM PROVIDER" badge, lab chip, clinic chip, and formatted local date/time.
+3. **Guest isolation:** with `useGuestMode → true`, assert `useAppointments.save` is **not** called when the form is submitted, and that the appointment shows up in local guest list only. Also assert provider rows do not appear (provider hook still mocked with one row).
+4. **Mapping fallbacks:** render a self row with missing `start_at` and missing `visit_type` → card shows `"TBD" / "TBD"` and defaults to in-person chip; status is `"upcoming"`.
 
-Current code:
+## 4. Verification
 
-`const upcomingAppointments = appointments.filter((_, i) => i < 2);`  
+- `npx vitest run src/components/journey/__tests__/UnifiedTimeline.test.tsx src/screens/__tests__/JourneyScreen.appointments.e2e.test.tsx`
+- `npx tsc --noEmit`
 
+## Out of scope
 
-This still pulls demo appointments for all users, including signed-in/default users. 【F:src/screens/HomeScreen.tsx†L51-L63】
+- No DB schema changes (columns already exist).
+- No provider-side dashboard changes.
+- No edits to flights/transport timeline beyond the tiebreaker.
+- No editing/cancelling provider appointments from the patient side.
 
-Expected:
+## Files touched
 
-`const upcomingAppointments = isGuest ? appointments.filter((_, i) => i < 2) : [];`  
-
-
----
-
-### **medicationSummary still does not exist**
-
-The Copy Summary action still directly maps todayMeds:
-
-`navigator.clipboard.writeTextRufayQ – Trip Summary\n${summary}\nMedications: ${todayMeds.map(m => ${m.name} (${m.status}).join(", ")});`  
-
-
-【F:src/screens/HomeScreen.tsx†L98-L108】
-
-Expected:
-
-`const medicationSummary = todayMeds.length`  
-  `? todayMeds.map((m) => ${m.name} (${m.status})).join(", ")`  
-  `: "No medications scheduled today";`  
-
-
-And then the copy call should use medicationSummary.
-
----
-
-### **Appointment empty state is still missing**
-
-The appointments section still directly maps upcomingAppointments:
-
-`{upcomingAppointments.map((apt) => (...))}`  
-
-
-【F:src/screens/HomeScreen.tsx†L255-L274】
-
-There is no No upcoming appointments / لا توجد مواعيد قادمة empty state in the current code.
-
----
-
-### **Medication empty state is still missing**
-
-The medications section still directly maps todayMeds:
-
-`{todayMeds.map((med, i) => (...))}`  
-
-
-【F:src/screens/HomeScreen.tsx†L276-L296】
-
-There is no No medications scheduled today / لا توجد أدوية مجدولة اليوم empty state in the current code.
-
----
-
-## **What is actually in HomeScreen.test.tsx**
-
-HomeScreen.test.tsx still only has the two journey-related tests:
-
-1. no journeys → first-trip CTA;
-2. active journey summary and CTAs. 【F:src/screens/**tests**/HomeScreen.test.tsx†L53-L85】
-
-It does **not** include tests for:
-
-- no Enoxaparin;
-- no Amoxicillin;
-- no Klaus Mueller;
-- no Charité;
-- No medications scheduled today;
-- No upcoming appointments;
-- guest users still seeing demo data.
-
-So Lovable’s claim about tests at lines 123–137 is not true in this branch.
-
----
-
-# **Recommendation**
-
-Do **not** approve Lovable’s “already present” claim.
-
-The fix is still missing and should be implemented as actual code changes in exactly:
-
-- src/screens/HomeScreen.tsx
-- src/screens/__tests__/HomeScreen.test.tsx
-
----
-
-## **Correct message to send Lovable**
-
-`This is still not implemented in the current branch.`  
-  
-`Your claim that the behavior is already present is false. Current HomeScreen.tsx still contains:`  
-`- const todayMeds = medications.filter((_, i) => i < 3);`  
-`- const upcomingAppointments = appointments.filter((_, i) => i < 2);`  
-  
-`Current HomeScreen.test.tsx still only has journey tests.`  
-  
-`Please make the actual code changes now in exactly:`  
-`- src/screens/HomeScreen.tsx`  
-`- src/screens/__tests__/HomeScreen.test.tsx`  
-  
-`Do not modify any other files.`  
-  
-`Required:`  
-`1. Gate demo meds/appointments by isGuest.`  
-`2. Add medicationSummary.`  
-`3. Add inline empty states for appointments and medications.`  
-`4. Add tests for signed-in users not seeing demo data.`  
-`5. Add tests for guest users still seeing demo data.`  
-`6. Run:`  
-   `- npx tsc --noEmit -p tsconfig.app.json`  
-   `- npx vitest run src/screens/__tests__/HomeScreen.test.tsx`  
-`7. Provide:`  
-   `- git diff -- src/screens/HomeScreen.tsx src/screens/__tests__/HomeScreen.test.tsx`  
-  
-`Do not report success unless the diff actually shows these changes.`  
-
-
----
-
-## **Final decision**
-
-- ❌ **Do not approve.**
-- ❌ **Do not accept “already present” as accurate.**
-- ✅ The desired fix remains correct and small.
-- ✅ Require an actual diff before accepting.
-
-No code changes were made in this turn.
-
----
-
-## **Commands used**
-
-- ✅ git status --short && git log -1 --oneline
-- ✅ rg -n "todayMeds|upcomingAppointments|medicationSummary|No upcoming appointments|No medications scheduled|Enoxaparin|Amoxicillin|Klaus Mueller|Charité|isGuest \\? medications|isGuest \\? appointments" src/screens/HomeScreen.tsx src/screens/__tests__/HomeScreen.test.tsx 2>/dev/null || true
-- ✅ nl -ba src/screens/HomeScreen.tsx | sed -n '51,115p;250,305p'
-- ✅ nl -ba src/screens/__tests__/HomeScreen.test.tsx | sed -n '1,180p'
-
-21 files changed+2073-221
-
-UndoReview
-
-docs/data-model.md
-
-src/components/DuplicateTicketDialog.tsx
-
-src/components/JourneyHelicopterTimeline.tsx
-
-src/components/TicketDetailSheet.tsx
-
-src/components/TicketsFilterBar.tsx
-
-src/components/TransportCard.tsx
-
-src/hooks/useTransportTimeline.ts
-
-src/lib/__tests__/transportDuplicates.test.ts
-
-src/lib/__tests__/transportRescan.test.ts
-
-src/lib/__tests__/transportStore.crud.test.ts
-
-src/lib/transportRescan.ts
-
-src/lib/transportScanStorage.ts
-
-src/lib/transportStore.ts
-
-src/lib/transportTickets.ts
-
-src/pages/Index.tsx
-
-src/screens/HomeScreen.tsx
-
-src/screens/JourneyScreen.tsx
-
-src/screens/ScannerWizard.tsx
-
-src/screens/__tests__/HomeScreen.test.tsx
-
-src/screens/__tests__/ScannerWizard.e2e.test.tsx
-
-supabase/migrations/20260512120000_transport_scan_metadata.sql
-
-  
+- `src/screens/JourneyScreen.tsx` — mapping helpers, card chips.
+- `src/components/journey/UnifiedTimeline.tsx` — tiebreaker + dev warn.
+- `src/components/journey/__tests__/UnifiedTimeline.test.tsx` — added cases.
+- `src/screens/__tests__/JourneyScreen.appointments.e2e.test.tsx` — new file.
