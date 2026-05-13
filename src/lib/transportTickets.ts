@@ -335,6 +335,9 @@ export interface DuplicateMatch {
   labelAr: string;
 }
 
+/** @deprecated use DuplicateMatch */
+export type DuplicateTicketMatch = DuplicateMatch;
+
 const norm = (v: string | undefined | null): string =>
   (v || "").toString().trim().toUpperCase().replace(/\s+/g, "");
 

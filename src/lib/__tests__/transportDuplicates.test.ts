@@ -10,7 +10,7 @@ import {
 } from "@/lib/transportTickets";
 
 const seg = (over: Partial<FlightSegment> = {}): FlightSegment => ({
-  id: `s-${Math.random().toString(36).slice(2, 8)}`,
+  id: over.id ?? "seg-1",
   airline: "Saudia",
   flightNumber: "SV123",
   fromAirport: { code: "RUH", city: "Riyadh" },
@@ -57,7 +57,7 @@ describe("findDuplicateTickets", () => {
     expect(matches).toHaveLength(1);
     expect(matches[0].ticketId).toBe("t-existing");
     expect(matches[0].reason).toBe("flight-number-and-date");
-    expect(matches[0].label).toBeTruthy();
+    expect(matches[0].label).toContain("SV123");
     expect(matches[0].labelAr).toBeTruthy();
   });
 
