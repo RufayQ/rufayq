@@ -189,6 +189,7 @@ export function useTransportTimeline() {
     loading,
     error,
     addTicket,
+    updateTicket,
     removeTicket,
     rescan,
     refresh,
