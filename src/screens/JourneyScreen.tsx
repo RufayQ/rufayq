@@ -29,6 +29,7 @@ import { getDeviceId } from "@/hooks/useDeviceId";
 import { useAppointments } from "@/hooks/useAppointments";
 import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/useProviderAppointments";
+import UnifiedTimeline from "@/components/journey/UnifiedTimeline";
 import EditStepSheet from "@/components/EditStepSheet";
 import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard";
 import { PlaneTakeoff, PlaneLanding, Hotel, Stethoscope, ChevronRight, X as XIcon } from "lucide-react";
