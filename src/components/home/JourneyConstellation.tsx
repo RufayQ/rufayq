@@ -41,7 +41,7 @@ interface JourneyConstellationProps {
 type IconCmp = React.ComponentType<{ size?: number; strokeWidth?: number }>;
 
 interface KindStyle {
-  Icon: IconCmp;
+  Icon: LucideIcon;
   ring: string;        // icon ring color
   tint: string;        // soft fill behind icon
   ink: string;         // icon stroke color
