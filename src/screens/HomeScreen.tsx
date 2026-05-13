@@ -87,12 +87,37 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const formattedDepartureDate = formatDate(activeTrip?.departureDate);
   const formattedReturnDate = formatDate(activeTrip?.returnDate);
 
-  const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];
+  // Single Home medication source — every section below derives from this.
+  const homeMedications = isGuest ? medications.filter((_, i) => i < 3) : [];
+  const todayMeds = homeMedications;
   const upcomingAppointments = isGuest ? appointments.filter((_, i) => i < 2) : [];
 
   const medicationSummary = todayMeds.length
     ? todayMeds.map((m) => `${m.name} (${m.status})`).join(", ")
     : "No medications scheduled today";
+
+  // Medication reminders are derived from the same source — never from raw demo
+  // constants — so the Today's Medications card and the Reminders strip cannot
+  // contradict each other for signed-in users.
+  const medicationReminders = homeMedications
+    .filter((m) => m.status === "due" || m.status === "upcoming")
+    .map((m) => ({
+      emoji: "💊",
+      en: `${m.name} due`,
+      ar: `${m.nameAr} — الجرعة القادمة`,
+      date: m.time,
+      color: "var(--warning)",
+    }));
+
+  // Non-medication reminders only show when there's an active trip; otherwise
+  // a signed-in user with no data would see stale demo flight/follow-up rows.
+  const tripReminders = activeTrip
+    ? [
+        { emoji: "📅", en: "30-Day Follow-up — Riyadh", ar: "متابعة ٣٠ يوم — الرياض", date: "May 15", color: "var(--gold)" },
+        { emoji: "✈️", en: "Return Flight — Berlin → Riyadh", ar: "رحلة العودة", date: "Apr 15", color: "var(--teal-deep)" },
+      ]
+    : [];
+  const reminders = [...tripReminders, ...medicationReminders];
 
   const statusColor = (s: Medication["status"]) =>
     s === "taken" ? "var(--success)"
