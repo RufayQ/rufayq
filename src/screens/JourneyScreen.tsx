@@ -295,12 +295,29 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       updatedAt: new Date().toISOString(),
     };
 
+    // Duplicate detection — confirm with user before saving when there's
+    // an overlap with an existing flight ticket.
+    const dupes = findDuplicateTickets(ticket, flightTickets);
+    if (dupes.length > 0) {
+      setPendingDuplicate({ ticket, matches: dupes, out, ret });
+      return;
+    }
+    await commitTicket(ticket, out, ret);
+  };
+
+  const commitTicket = async (
+    ticket: TransportTicket,
+    out: FlightInfo | null,
+    ret: FlightInfo | null,
+  ) => {
     void addFlightTicket(ticket);
     setActiveSubTab("tickets");
 
+    const outboundSegs = ticket.outboundSegments;
+    const returnSegs = ticket.returnSegments;
     const first = outboundSegs[0] || returnSegs[0];
     toast.success(
-      pendingScan?.source === "manual"
+      ticket.source === "manual"
         ? "✈️ Flight added to your timeline (manual entry)"
         : "✈️ Flight added to your timeline",
       {
@@ -321,7 +338,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         departureDate: firstOut?.departureDate || "",
         returnDate: lastRet?.departureDate || firstRet?.departureDate || "",
         treatingDoctor: "", companion: false,
-        companionName: pendingScan?.passenger?.name || "",
+        companionName: ticket.passengerName || "",
         insuranceRef: "", status: "active",
         outboundFlight: out || (firstOut ? legacyFromSegment(firstOut) : null),
         returnFlight: ret || (firstRet ? legacyFromSegment(firstRet) : null),
@@ -329,7 +346,20 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
       void persistTrip(seed).catch((e) => console.warn("[journey] auto-seed save failed", e));
     }
     setPendingScan(null);
+    setPendingDuplicate(null);
   };
+
+  // Pending duplicate confirmation state.
+  const [pendingDuplicate, setPendingDuplicate] = useState<{
+    ticket: TransportTicket;
+    matches: DuplicateMatch[];
+    out: FlightInfo | null;
+    ret: FlightInfo | null;
+  } | null>(null);
+
+  // Pending delete confirmation for a flight ticket (group id).
+  const [pendingDeleteTicketId, setPendingDeleteTicketId] = useState<string | null>(null);
+
 
   const [editingStep, setEditingStep] = useState<(JourneyStep & { dbId?: string }) | null>(null);
   const [flashStepId, setFlashStepId] = useState<number | null>(null);
