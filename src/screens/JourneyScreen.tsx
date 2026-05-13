@@ -867,6 +867,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
             onAddStep={handleAddStep}
             registerStepRef={registerStepRef}
             onJumpToStep={jumpToStep}
+            nextAppointment={nextAppointment}
           />
         )}
       </div>
