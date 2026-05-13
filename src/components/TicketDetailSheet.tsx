@@ -524,12 +524,12 @@ const TicketDetailSheet = ({
                       Last scan: {new Date(seg.extraction.runAt).toLocaleString()}
                     </p>
                   )}
-                  {onRescan && (
+                  {onRescanTicket && ticket && (
                     <button
                       onClick={async () => {
                         if (isRescanning) return;
                         setIsRescanning(true);
-                        try { await onRescan(); } finally { setIsRescanning(false); }
+                        try { await onRescanTicket(ticket.id); } finally { setIsRescanning(false); }
                       }}
                       disabled={isRescanning}
                       className="w-full text-[12px] py-2 rounded-xl font-semibold btn-press disabled:opacity-50"
