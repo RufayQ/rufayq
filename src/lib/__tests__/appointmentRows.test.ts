@@ -9,7 +9,8 @@ const baseRow: AppointmentRow = {
   device_id: "device-1",
   client_generated_id: null,
   title: "Dr. Care appointment",
-  appointment_type: "clinic",
+  appointment_type: "physician",
+  visit_type: "clinic",
   facility_name: "Care Clinic",
   doctor_name: "Dr. Care",
   specialty: "Cardiology",
@@ -45,7 +46,8 @@ describe("appointment row mapping", () => {
 
     expect(input).toMatchObject({
       title: "Dr. Care appointment",
-      appointment_type: "clinic",
+      appointment_type: "physician",
+      visit_type: "clinic",
       facility_name: "Care Clinic",
       doctor_name: "Dr. Care",
       specialty: "Cardiology",
@@ -65,10 +67,13 @@ describe("appointment row mapping", () => {
       specialty: "Cardiology",
       location: "Building A",
       type: "clinic",
+      visitType: "clinic",
+      appointmentType: "physician",
       date: "Jun 1",
       status: "upcoming",
       hospital: "Care Clinic",
       notes: "Bring records",
+      source: "self",
     });
   });
 });
