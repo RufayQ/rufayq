@@ -22,9 +22,6 @@ import {
   findDuplicateTickets,
   type DuplicateTicketMatch,
 } from "@/lib/transportTickets";
-import DuplicateTicketDialog from "@/components/DuplicateTicketDialog";
-import TicketsFilterBar, { applyTicketFilters, type TicketFilterState } from "@/components/TicketsFilterBar";
-import JourneyHelicopterTimeline from "@/components/JourneyHelicopterTimeline";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useAppointments } from "@/hooks/useAppointments";
 import type { AppointmentRow } from "@/lib/api/appointmentApi";
