@@ -72,15 +72,11 @@ describe("findDuplicateTickets", () => {
     expect(matches.map((m) => m.reason)).toContain("shared-pnr");
   });
 
-  it("detects same route plus departure date and time", () => {
+  it("detects same route plus departure date and time when flight numbers differ", () => {
     const existing = ticket("t-existing", [seg({ flightNumber: "SV999", pnr: "NONE" })]);
-    const candidate = ticket("t-new", [seg({ flightNumber: "DIFF", pnr: "OTHER" })]);
+    const candidate = ticket("t-new", [seg({ flightNumber: "QR55", pnr: "OTHER" })]);
     const matches = findDuplicateTickets(candidate, [existing]);
-    expect(matches[0].reason).toBe("flight-number-and-date");
-    // override flight number so flight-and-date does not match — should fall back to same-route-and-time
-    const candidate2 = ticket("t-new2", [seg({ flightNumber: "QR55", pnr: "OTHER" })]);
-    const matches2 = findDuplicateTickets(candidate2, [existing]);
-    expect(matches2[0].reason).toBe("same-route-and-time");
+    expect(matches[0].reason).toBe("same-route-and-time");
   });
 
   it("ignores the candidate's own id when re-saving", () => {
