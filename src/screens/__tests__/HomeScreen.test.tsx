@@ -7,7 +7,7 @@ vi.mock("@/hooks/usePatientName", () => ({
   usePatientName: () => ({ patientName: "Mona", patientNameAr: "منى", loading: false }),
 }));
 
-const mockJourneys = vi.fn<[TripData[]?], { journeys: TripData[] }>();
+const mockJourneys = vi.fn((_seed?: TripData[]): { journeys: TripData[] } => ({ journeys: [] }));
 vi.mock("@/hooks/useJourneys", () => ({
   useJourneys: (seed?: TripData[]) => mockJourneys(seed),
 }));
