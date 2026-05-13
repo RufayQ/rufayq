@@ -649,7 +649,15 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         {activeSubTab === "tickets" && (
           <>
             <FlightTripSummary segments={transportSegments} />
-            <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} onRescan={rescanFlightTicket} />
+            <TicketsTab
+              segments={transportSegments}
+              onAdd={() => setShowAddTransport(true)}
+              onScan={() => onOpenScanner?.("flight")}
+              onReplicate={handleReplicateSegment}
+              onRescan={rescanFlightTicket}
+              onEditFlight={(seg) => { setIsNewSegment(false); setEditingSegment(seg); }}
+              onDeleteFlight={(ticketId) => setPendingDeleteTicketId(ticketId)}
+            />
           </>
         )}
         {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
