@@ -352,11 +352,10 @@ const JourneyConstellation = ({
                       height: 38,
                       background: s.tint,
                       border: `1.5px solid ${s.ring}`,
+                      color: s.ink,
                     }}
                   >
                     <Icon size={18} strokeWidth={1.8} />
-                    {/* override stroke via wrapper – Lucide picks up currentColor */}
-                    <style>{``}</style>
                   </div>
                   {isDone && (
                     <span
