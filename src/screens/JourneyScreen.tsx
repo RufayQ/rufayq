@@ -1618,6 +1618,7 @@ const StepsTab = ({
   onAddStep: () => void;
   registerStepRef: (id: number, el: HTMLDivElement | null) => void;
   onJumpToStep: (id: number) => void;
+  nextAppointment?: Appointment | null;
 }) => (
   <div>
     {/* PROMINENT ADD-TRIP CTA at top */}
