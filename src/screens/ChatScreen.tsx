@@ -160,6 +160,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
+        await waitForMinTyping();
         if (resp.status === 429) {
           // Server-side daily AI cap — show upgrade prompt for subscribers.
           setUpgradeCtx({
@@ -178,6 +179,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
       }
 
       if (!resp.body) {
+        await waitForMinTyping();
         setIsTyping(false);
         return;
       }
@@ -191,7 +193,12 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
       const assistantId = Date.now() + 1;
       const assistantTime = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
-      setIsTyping(false);
+      // Hold the typing indicator for at least MIN_TYPING_MS before showing the
+      // first assistant bubble — keeps RTL/LTR bubble layout from snapping in
+      // instantly and matches the designed pacing.
+      let firstChunkGate: Promise<void> | null = waitForMinTyping().then(() => {
+        setIsTyping(false);
+      });
 
       while (true) {
         const { done, value } = await reader.read();
