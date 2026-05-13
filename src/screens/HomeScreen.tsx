@@ -157,13 +157,94 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
 
         <DischargeAlertBanner onClick={() => onNavigate("records")} />
 
-        <UpcomingAppointmentsList
-          appointments={upcomingAppts}
-          onSelect={() => onNavigate("journey", "view")}
-          onViewAll={() => onNavigate("journey", "view")}
-        />
+        <div className="stagger-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>UPCOMING APPOINTMENTS</p>
+            <button onClick={() => onNavigate("journey", "view")} className="text-[10px] btn-press" style={{ color: "var(--teal-mid)" }}>View all →</button>
+          </div>
+          {upcomingAppointments.length === 0 ? (
+            <div
+              className="rounded-xl p-3 text-center"
+              style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+            >
+              <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+                No upcoming appointments
+              </p>
+              <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>
+                لا توجد مواعيد قادمة
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingAppointments.map((apt) => (
+                <button
+                  key={apt.id}
+                  onClick={() => onNavigate("journey", "view")}
+                  className="w-full rounded-xl p-3 flex items-center gap-3 text-left card-press"
+                  style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: apt.type === "telemedicine" ? "var(--teal-light)" : "var(--gold-pale)" }}
+                  >
+                    {apt.type === "telemedicine"
+                      ? <Video size={16} style={{ color: "var(--teal-deep)" }} />
+                      : apt.type === "clinic"
+                        ? <Building2 size={16} style={{ color: "var(--gold)" }} />
+                        : <MapPin size={16} style={{ color: "var(--success)" }} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{apt.doctorName}</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>{apt.specialty} · {apt.date}</p>
+                  </div>
+                  <span className="font-mono text-[10px] font-semibold" style={{ color: "var(--teal-deep)" }}>{apt.time}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-        <TodayMedicationsList medications={todayMeds} onViewAll={() => onNavigate("medications")} />
+        <div className="stagger-4">
+          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>TODAY'S MEDICATIONS</p>
+          {todayMeds.length === 0 ? (
+            <div
+              className="rounded-xl p-3 text-center"
+              style={{ background: "var(--white)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+            >
+              <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+                No medications scheduled today
+              </p>
+              <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>
+                لا توجد أدوية مجدولة اليوم
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {todayMeds.map((med, i) => (
+                <div key={i} className="rounded-xl p-3 flex items-center gap-3" style={{ background: "var(--white)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                      background: statusColor(med.status),
+                      boxShadow: med.status === "due" ? "0 0 0 3px rgba(224,160,48,0.2)" : "none",
+                    }}
+                  />
+                  <div className="flex-1">
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{med.name}</p>
+                    <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{med.nameAr}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-semibold" style={{ color: statusColor(med.status) }}>{med.time}</p>
+                    <p className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{med.frequency}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <button onClick={() => onNavigate("medications")} className="block ml-auto mt-2 text-[11px] btn-press" style={{ color: "var(--teal-mid)" }}>
+            View all medications →
+          </button>
+        </div>
 
         <QuickActionsGrid onNavigate={onNavigate} />
 
