@@ -837,10 +837,37 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       </div>
 
       {/* Tab content — scrollable */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-        <div className="px-4 pt-3">
-          <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} />
-        </div>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6 relative" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
+        {activeSubTab === "overview" && (
+          <>
+            {activeTrip ? (
+              <>
+                <JourneyHero
+                  trip={activeTrip}
+                  daysLeft={overview.daysLeft}
+                  progressPct={overview.progressPct}
+                  formattedDepartureDate={overview.formattedDepartureDate}
+                  formattedReturnDate={overview.formattedReturnDate}
+                />
+                <HelicopterCanvas
+                  milestones={overview.milestones}
+                  selectedId={selectedMilestoneId}
+                  onSelect={(id) => setSelectedMilestoneId(id)}
+                />
+                <div className="px-4 pt-3">
+                  <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} />
+                </div>
+                <div className="px-4 pt-3">
+                  <OtherJourneysList trips={overview.otherTrips} onSelect={() => setActiveSubTab("steps")} />
+                </div>
+              </>
+            ) : (
+              <div className="px-4 pt-4">
+                <EmptyJourneyCard onAddTrip={() => setShowAddTrip(true)} />
+              </div>
+            )}
+          </>
+        )}
         {activeSubTab === "tickets" && (
           <>
             <FlightTripSummary segments={transportSegments} />
