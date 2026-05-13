@@ -1,217 +1,387 @@
-# **Real fix prompt to send Lovable**
+Please make the actual code changes now.
 
-`Do not mark this as complete. The current branch still shows demo medication and appointment data to signed-in/default users.`  
-  
-`Please implement the actual minimum-safe Home demo-data leakage fix in the current codebase.`  
-  
-`Current branch reality:`  
-`- HomeScreen.tsx still has:`  
-  `const todayMeds = medications.filter((_, i) => i < 3);`  
-  `const upcomingAppointments = appointments.filter((_, i) => i < 2);`  
-`- HomeScreen.tsx still renders appointments and medications inline.`  
-`- src/components/home/UpcomingAppointmentsList.tsx and src/components/home/TodayMedicationsList.tsx do not exist in this branch.`  
-`- HomeScreen.test.tsx does not include demo-data leakage tests.`  
-  
-`Goal:`  
-`- Signed-in/default Home must not render demo medications or demo appointments.`  
-`- Guest Home may continue to render demo medications and demo appointments.`  
-`- Do not wire useMedications or useAppointments in this pass.`  
-`- Do not introduce MedicationRow/AppointmentRow mappers in this pass.`  
-`- Do not perform broad HomeScreen decomposition in this pass.`  
-`- Do not touch transport/duplicate/scanner/JourneyScreen/Index code.`  
-  
-`Required src/screens/HomeScreen.tsx changes:`  
-  
-`1. Replace:`  
-````ts`  
-`const todayMeds = medications.filter((_, i) => i < 3);`  
-`const upcomingAppointments = appointments.filter((_, i) => i < 2);`  
+Only modify:
 
+- `src/screens/HomeScreen.tsx`
+
+- `src/screens/__tests__/HomeScreen.test.tsx`
+
+Do not modify:
+
+- transport code
+
+- scanner code
+
+- duplicate-ticket code
+
+- JourneyScreen
+
+- Index
+
+- `useMedications`
+
+- `useAppointments`
+
+- broad HomeScreen decomposition
+
+Current branch reality:
+
+- `HomeScreen.tsx` still has:
+
+  ```ts
+
+  const todayMeds = medications.filter((_, i) => i < 3);
+
+  const upcomingAppointments = appointments.filter((_, i) => i < 2);
+
+HomeScreen.tsx still renders appointments and medications inline.
+
+src/components/home/UpcomingAppointmentsList.tsx and src/components/home/TodayMedicationsList.tsx do not exist.
+
+HomeScreen.test.tsx does not include demo-data leakage tests.
+
+Required changes in src/screens/HomeScreen.tsx:
+
+Replace:
+
+ts
+
+const todayMeds = medications.filter((_, i) => i < 3);
+
+const upcomingAppointments = appointments.filter((_, i) => i < 2);
 
 with:
 
-`const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];`  
-`const upcomingAppointments = isGuest ? appointments.filter((_, i) => i < 2) : [];`  
+ts
 
+const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];
+
+const upcomingAppointments = isGuest ? appointments.filter((_, i) => i < 2) : [];
 
 Important:
 
-- Do not change appointment filtering to status === "upcoming".
-- Preserve current guest behavior: first two appointments.
+Do not rename upcomingAppointments.
 
-2. Add Copy Summary fallback:
+Do not change appointment filtering to status === "upcoming".
 
-`const medicationSummary = todayMeds.length`  
-  `? todayMeds.map((m) => ${m.name} (${m.status})).join(", ")`  
-  `: "No medications scheduled today";`  
+Preserve current guest behavior: first two appointments.
 
+Add this inside the Copy Summary action before navigator.clipboard.writeText:
 
-Then use:
+ts
 
-`navigator.clipboard.writeText(`  
-  `RufayQ – Trip Summary\n${summary}\nMedications: ${medicationSummary},`  
-`);`  
+const medicationSummary = todayMeds.length
 
+  ? [todayMeds.map](http://todayMeds.map)((m) => `${m.name} (${m.status})`).join(", ")
 
-3. Add inline empty state for appointments.
+  : "No medications scheduled today";
 
-In the UPCOMING APPOINTMENTS section, keep the section label and View all → CTA. Inside the space-y-2 list, render:
+Then change the copy call to:
 
-`{upcomingAppointments.length === 0 ? (`  
-  `<div`  
-    `className="rounded-xl p-3 text-center"`  
-    `style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}`  
-  `>`  
-    `<p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>`  
-      `No upcoming appointments`  
-    `</p>`  
-    `<p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>`  
-      `لا توجد مواعيد قادمة`  
-    `</p>`  
-  `</div>`  
-`) : (`  
-  `upcomingAppointments.map(...)`  
-`)}`  
+ts
 
+navigator.clipboard.writeText(
 
-4. Add inline empty state for medications.
+  `RufayQ – Trip Summary\n${summary}\nMedications: ${medicationSummary}`,
 
-In the TODAY'S MEDICATIONS section, keep the section label and View all medications → CTA. Inside the space-y-2 list, render:
+);
 
-`{todayMeds.length === 0 ? (`  
-  `<div`  
-    `className="rounded-xl p-3 text-center"`  
-    `style={{ background: "var(--white)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}`  
-  `>`  
-    `<p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>`  
-      `No medications scheduled today`  
-    `</p>`  
-    `<p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>`  
-      `لا توجد أدوية مجدولة اليوم`  
-    `</p>`  
-  `</div>`  
-`) : (`  
-  `todayMeds.map(...)`  
-`)}`  
+Add inline appointment empty state.
 
+In the existing UPCOMING APPOINTMENTS section, keep the section label and View all → CTA. Inside the existing space-y-2 wrapper, replace the direct map with:
+
+tsx
+
+{upcomingAppointments.length === 0 ? (
+
+  <div
+
+    className="rounded-xl p-3 text-center"
+
+    style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+
+  >
+
+    <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+
+      No upcoming appointments
+
+    </p>
+
+    <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>
+
+      لا توجد مواعيد قادمة
+
+    </p>
+
+  </div>
+
+) : (
+
+  [upcomingAppointments.map](http://upcomingAppointments.map)((apt) => (
+
+    // preserve the existing appointment row markup exactly
+
+  ))
+
+)}
+
+Add inline medication empty state.
+
+In the existing TODAY'S MEDICATIONS section, keep the section label and View all medications → CTA. Inside the existing space-y-2 wrapper, replace the direct map with:
+
+tsx
+
+{todayMeds.length === 0 ? (
+
+  <div
+
+    className="rounded-xl p-3 text-center"
+
+    style={{ background: "var(--white)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+
+  >
+
+    <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+
+      No medications scheduled today
+
+    </p>
+
+    <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>
+
+      لا توجد أدوية مجدولة اليوم
+
+    </p>
+
+  </div>
+
+) : (
+
+  [todayMeds.map](http://todayMeds.map)((med, i) => (
+
+    // preserve the existing medication row markup exactly
+
+  ))
+
+)}
 
 Required test changes in src/screens/__tests__/HomeScreen.test.tsx:
 
-Add tests for:
+Add tests that verify:
 
-1. Default/signed-in Home does not render demo medication data:
+Default/signed-in Home does not render demo medications:
 
-`expect(screen.queryByText(/Enoxaparin/i)).not.toBeInTheDocument();`  
-`expect(screen.queryByText(/Amoxicillin/i)).not.toBeInTheDocument();`  
+ts
 
+expect(screen.queryByText(/Enoxaparin/i)).not.toBeInTheDocument();
 
-2. Default/signed-in Home does not render demo appointment data:
+expect(screen.queryByText(/Amoxicillin/i)).not.toBeInTheDocument();
 
-`expect(screen.queryByText(/Klaus Mueller/i)).not.toBeInTheDocument();`  
-`expect(screen.queryByText(/Charité/i)).not.toBeInTheDocument();`  
+Default/signed-in Home does not render demo appointments:
 
+ts
 
-3. Default/signed-in Home renders neutral empty states:
+expect(screen.queryByText(/Klaus Mueller/i)).not.toBeInTheDocument();
 
-`expect(screen.getByText(/No medications scheduled today/i)).toBeInTheDocument();`  
-`expect(screen.getByText(/No upcoming appointments/i)).toBeInTheDocument();`  
+expect(screen.queryByText(/Charité/i)).not.toBeInTheDocument();
 
+Default/signed-in Home renders neutral empty states:
 
-4. Guest Home still renders demo data:
+ts
 
-`render(<HomeScreen isGuest onNavigate={onNavigate} onProfile={vi.fn()} />);`  
-`expect(screen.getByText(/Enoxaparin 40mg/i)).toBeInTheDocument();`  
-`expect(screen.getByText(/Dr\. Klaus Mueller/i)).toBeInTheDocument();`  
+expect(screen.getByText(/No medications scheduled today/i)).toBeInTheDocument();
 
+expect(screen.getByText(/No upcoming appointments/i)).toBeInTheDocument();
 
-5. Existing journey CTA tests must continue passing.
+Guest Home still renders demo data:
 
-Verification:  
-Run:
+ts
 
-`npx tsc --noEmit -p tsconfig.app.json`  
-`npx vitest run src/screens/__tests__/HomeScreen.test.tsx`  
-`npx vitest run`  
+render(<HomeScreen isGuest onNavigate={onNavigate} onProfile={vi.fn()} />);
 
+expect(screen.getByText(/Enoxaparin 40mg/i)).toBeInTheDocument();
 
-Constraints:
+expect(screen.getByText(/Dr\. Klaus Mueller/i)).toBeInTheDocument();
 
-- No real-data hook wiring in this pass.
-- No mapper extraction in this pass.
-- No broad HomeScreen decomposition in this pass.
-- No new fake signed-in data.
-- No new libraries.
-- Do not remove guestTrip.
-- Do not remove demo constants globally.
-- Do not modify transport/duplicate/scanner code.
+Existing journey CTA tests must keep passing.
 
-  
-`---`  
-  
-`## Final recommendation`  
-  
-`* ❌ **Do not approve Lovable’s “already implemented” status.**`  
-`* ✅ **Approve the intended minimum-safe fix.**`  
-`* ⚠️ Ask Lovable to apply the actual code changes in HomeScreen.tsx.`  
-`* ⚠️ Ask Lovable to add the missing tests.`  
-`* ❌ Do not accept the status === "upcoming" appointment-filter deviation for this specific fix unless you explicitly want to change guest behavior.`  
-`* ❌ Do not accept claims about components/home/* list components unless those files are actually present on Lovable’s working branch.`  
-  
-`No code changes were made in this turn.`  
-  
-`---`  
-  
-`## Commands used`  
-  
-`* ✅ git status --short && git log -1 --oneline`  
-`* ✅ rg -n "todayMeds|upcomingAppts|upcomingAppointments|medicationSummary|UpcomingAppointmentsList|TodayMedicationsList|No upcoming appointments|No medications scheduled" src/screens/HomeScreen.tsx src/components/home src/screens/__tests__/HomeScreen.test.tsx 2>/dev/null || true`  
-`* ✅ for f in src/components/home/UpcomingAppointmentsList.tsx src/components/home/TodayMedicationsList.tsx src/screens/HomeScreen.tsx src/screens/__tests__/HomeScreen.test.tsx; do echo "--- $f"; test -f "$f" && nl -ba "$f" | sed -n '1,220p' || echo missing; done`  
+Verification:
 
+Run and report exact output:
 
-21 files changed+2073-221
+bash
 
-UndoReview
+npx tsc --noEmit -p [tsconfig.app](http://tsconfig.app).json
 
-docs/data-model.md
+npx vitest run src/screens/__tests__/HomeScreen.test.tsx
+
+Then report the actual diff for:
+
+bash
+
+git diff -- src/screens/HomeScreen.tsx src/screens/__tests__/HomeScreen.test.tsx
+
+---
+
+## Final recommendation
+
+* ❌ **Do not approve Lovable’s “already implemented” claim.**
+
+* ✅ **Approve the intended minimum-safe fix.**
+
+* ⚠️ The next step should be actual code changes in `HomeScreen.tsx` and `HomeScreen.test.tsx`.
+
+* ❌ Do not accept claims about extracted `components/home/*` list components unless those files are actually present on the branch.
+
+* ❌ Do not accept status-based appointment filtering in this minimum-safe fix.
+
+No code changes were made in this turn.
+
+---
+
+## Commands used
+
+* ✅ `git status --short && git log -1 --oneline`
+
+* ✅ `rg -n "todayMeds|upcomingAppts|upcomingAppointments|medicationSummary|UpcomingAppointmentsList|TodayMedicationsList|No upcoming appointments|No medications scheduled|Enoxaparin|Klaus Mueller|isGuest \\? medications|isGuest \\? appointments" src/screens/HomeScreen.tsx src/components/home src/screens/__tests__/HomeScreen.test.tsx 2>/dev/null || true`
+
+* ✅ `find src/components -maxdepth 2 -path 'src/components/home/*' -type f -print 2>/dev/null | sort`
+
+21 files changed
+
++2073
+
+-221
+
+Undo
+
+Review
+
+docs/[data-model.md](http://data-model.md)
+
++6
+
+-0
 
 src/components/DuplicateTicketDialog.tsx
 
++106
+
+-0
+
 src/components/JourneyHelicopterTimeline.tsx
+
++114
+
+-0
 
 src/components/TicketDetailSheet.tsx
 
++68
+
+-1
+
 src/components/TicketsFilterBar.tsx
+
++192
+
+-0
 
 src/components/TransportCard.tsx
 
++29
+
+-0
+
 src/hooks/useTransportTimeline.ts
+
++41
+
+-0
 
 src/lib/__tests__/transportDuplicates.test.ts
 
++125
+
+-0
+
 src/lib/__tests__/transportRescan.test.ts
+
++254
+
+-0
 
 src/lib/__tests__/transportStore.crud.test.ts
 
++121
+
+-0
+
 src/lib/transportRescan.ts
+
++114
+
+-0
 
 src/lib/transportScanStorage.ts
 
++138
+
+-0
+
 src/lib/transportStore.ts
+
++14
+
+-0
 
 src/lib/transportTickets.ts
 
++130
+
+-0
+
 src/pages/Index.tsx
+
++14
+
+-5
 
 src/screens/HomeScreen.tsx
 
++160
+
+-141
+
 src/screens/JourneyScreen.tsx
+
++281
+
+-74
 
 src/screens/ScannerWizard.tsx
 
++8
+
+-0
+
 src/screens/__tests__/HomeScreen.test.tsx
+
++85
+
+-0
 
 src/screens/__tests__/ScannerWizard.e2e.test.tsx
 
++6
+
+-0
+
 supabase/migrations/20260512120000_transport_scan_metadata.sql
 
-  
++67
+
+-0
+
+&nbsp;
