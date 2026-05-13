@@ -220,6 +220,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
             if (content) {
               assistantSoFar += content;
               if (!assistantMsgCreated) {
+                if (firstChunkGate) { await firstChunkGate; firstChunkGate = null; }
                 assistantMsgCreated = true;
                 setMessages(prev => [...prev, { id: assistantId, text: assistantSoFar, sender: "ai", time: assistantTime }]);
               } else {
