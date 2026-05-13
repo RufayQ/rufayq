@@ -1095,6 +1095,8 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlig
           onUpdateSystemReminders={(reminders) => setTicketSystemReminders((prev) => ({ ...prev, [selectedSeg.id]: reminders }))}
           systemAlertsMuted={ticketMutedAlerts[selectedSeg.id] || false}
           onToggleSystemAlertsMuted={() => setTicketMutedAlerts((prev) => ({ ...prev, [selectedSeg.id]: !prev[selectedSeg.id] }))}
+          onEdit={selectedSeg.type === "flight" && onEditFlight ? () => { onEditFlight(selectedSeg); setSelectedSeg(null); } : undefined}
+          onDelete={selectedSeg.type === "flight" && selectedSeg.groupId && onDeleteFlight ? () => { onDeleteFlight(selectedSeg.groupId!); setSelectedSeg(null); } : undefined}
           onRescan={onRescan && selectedSeg.groupId ? async () => {
             try {
               const updated = await onRescan(selectedSeg.groupId!);
