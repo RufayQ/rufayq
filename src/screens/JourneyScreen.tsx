@@ -4,8 +4,6 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard, Wallet, Archive, CalendarClock } from "lucide-react";
 import { defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
 import { useJourneys } from "@/hooks/useJourneys";
-import { useAppointments } from "@/hooks/useAppointments";
-import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { useJourneySteps } from "@/hooks/useJourneySteps";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useGuestMode } from "@/hooks/useGuestMode";
