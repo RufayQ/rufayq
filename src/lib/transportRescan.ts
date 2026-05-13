@@ -1,5 +1,6 @@
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 /**
  * Re-run AI vision extraction on a previously-scanned ticket using the
  * source images stored in the `transport-scans` bucket.
@@ -23,11 +24,16 @@ import {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
 import { extractFlightTicket } from "@/lib/flightExtraction";
 import { parsedLegToSegment, type FlightSegment, type TransportTicket } from "@/lib/transportTickets";
 import { saveTicket, type TicketScope } from "@/lib/transportStore";
 import { fetchScanImagesAsDataUrls, ScanStorageError } from "@/lib/transportScanStorage";
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -60,6 +66,10 @@ export async function rescanTicket(
   }
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+=======
+
+>>>>>>> theirs
 =======
 
 >>>>>>> theirs
@@ -74,6 +84,7 @@ export async function rescanTicket(
   let files: string[];
   try {
     files = await fetchScanImagesAsDataUrls(paths);
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
   } catch (e) {
@@ -102,6 +113,8 @@ export async function rescanTicket(
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
   } catch (error) {
     if (error instanceof ScanStorageError) {
       throw new RescanError(error.message, "storage", error);
@@ -126,6 +139,9 @@ export async function rescanTicket(
   const returnSegments: FlightSegment[] = extracted.rawReturn.map((raw, i) =>
     parsedLegToSegment(raw, "return", i),
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -135,6 +151,7 @@ export async function rescanTicket(
     throw new RescanError("Extraction returned no segments", "extraction");
   }
 
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
   const passengerName =
@@ -148,6 +165,8 @@ export async function rescanTicket(
     deviceId: ticket.deviceId || scope.deviceId,
     userId: ticket.userId ?? scope.userId ?? null,
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
   const now = new Date().toISOString();
@@ -171,6 +190,9 @@ export async function rescanTicket(
     source: ticket.source ?? "ocr",
     sourceImagePaths: paths,
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -180,8 +202,12 @@ export async function rescanTicket(
     passengerPassport: extracted.passportNumber || ticket.passengerPassport,
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     bookingReference:
       outboundSegments[0]?.pnr || returnSegments[0]?.pnr || ticket.bookingReference,
+=======
+    bookingReference: outboundSegments[0]?.pnr || returnSegments[0]?.pnr || ticket.bookingReference,
+>>>>>>> theirs
 =======
     bookingReference: outboundSegments[0]?.pnr || returnSegments[0]?.pnr || ticket.bookingReference,
 >>>>>>> theirs
@@ -193,6 +219,7 @@ export async function rescanTicket(
       confidence: extracted.confidence ?? null,
       detectedLanguage: extracted.detectedLanguage ?? null,
       translated: !!extracted.translated,
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
       runAt: new Date().toISOString(),
@@ -214,6 +241,8 @@ export async function rescanTicket(
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
       runAt: now,
     },
     updatedAt: now,
@@ -229,6 +258,9 @@ export async function rescanTicket(
     );
   }
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

@@ -8,6 +8,10 @@ import type { TripData } from "@/components/AddTripSheet";
 import { useJourneys } from "@/hooks/useJourneys";
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+=======
+import { useAppointments } from "@/hooks/useAppointments";
+>>>>>>> theirs
 =======
 import { useAppointments } from "@/hooks/useAppointments";
 >>>>>>> theirs
@@ -25,6 +29,10 @@ import type { Medication } from "@/constants/data";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+=======
+import { appointmentRowToAppointment, sortAppointmentRowsByStart } from "@/lib/appointmentRows";
+>>>>>>> theirs
 =======
 import { appointmentRowToAppointment, sortAppointmentRowsByStart } from "@/lib/appointmentRows";
 >>>>>>> theirs
@@ -70,6 +78,7 @@ const guestTrip: TripData = {
   outboundFlight: null,
   returnFlight: null,
 };
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
 
@@ -144,6 +153,8 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
       : "var(--error)";
 
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 
@@ -224,6 +235,9 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
       : "var(--error)";
 
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -289,8 +303,11 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>UPCOMING APPOINTMENTS</p>
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
             <button onClick={() => onNavigate("journey", "view")} className="text-[10px] btn-press" style={{ color: "var(--teal-mid)" }}>View all →</button>
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
             <div className="flex items-center gap-2">
@@ -298,6 +315,9 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
               <button onClick={() => onNavigate("journey", "appointments")} className="text-[10px] btn-press" style={{ color: "var(--teal-mid)" }}>View all →</button>
             </div>
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -321,7 +341,11 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
                   key={apt.id}
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
                   onClick={() => onNavigate("journey", "view")}
+=======
+                  onClick={() => onNavigate("journey", "appointments")}
+>>>>>>> theirs
 =======
                   onClick={() => onNavigate("journey", "appointments")}
 >>>>>>> theirs
@@ -355,7 +379,11 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
         <div className="stagger-4">
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
           <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>TODAY'S MEDICATIONS</p>
+=======
+          <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>TODAY&apos;S MEDICATIONS</p>
+>>>>>>> theirs
 =======
           <p className="font-mono text-[10px] tracking-widest mb-2" style={{ color: "var(--gray)" }}>TODAY&apos;S MEDICATIONS</p>
 >>>>>>> theirs

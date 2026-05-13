@@ -1,6 +1,7 @@
 import RufayQWordmark from "@/components/RufayQWordmark";
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 import HeaderMenu from "@/components/HeaderMenu";
 import NotificationBell from "@/components/NotificationBell";
 import type { ReactNode } from "react";
@@ -16,6 +17,8 @@ interface Props {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -23,6 +26,9 @@ export type HomeHeaderMenuItem = HeaderMenuItem;
 
 interface HomeHeaderProps {
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -34,6 +40,7 @@ interface HomeHeaderProps {
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: Props) => {
   const dateStr = new Date()
     .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
@@ -42,6 +49,8 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: Props)
   const greetEn = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const greetAr = hour < 12 ? "صباح الخير" : hour < 18 ? "مساء الخير" : "مساء الخير";
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 function greetingForHour(hour: number) {
@@ -63,6 +72,9 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: HomeHe
   const greeting = greetingForHour(new Date().getHours());
   const profileInitial = patientNameAr?.[0] || patientName?.[0] || "م";
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -88,7 +100,11 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: HomeHe
             >
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
               م
+=======
+              {profileInitial}
+>>>>>>> theirs
 =======
               {profileInitial}
 >>>>>>> theirs
@@ -102,6 +118,7 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: HomeHe
         <p className="font-display text-xl italic text-white" style={{ fontWeight: 300 }}>
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
           {patientName ? `${greetEn}, ${patientName}` : `${greetEn} 👋`}
         </p>
         <p className="font-arabic text-sm mt-0.5" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>
@@ -109,11 +126,16 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: HomeHe
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
           {patientName ? `${greeting.en}, ${patientName}` : `${greeting.en} 👋`}
         </p>
         <p className="font-arabic text-sm mt-0.5" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>
           {patientNameAr || patientName ? `${greeting.ar}، ${patientNameAr || patientName}` : `${greeting.ar} 👋`}
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

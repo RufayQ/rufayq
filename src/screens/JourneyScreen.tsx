@@ -24,7 +24,11 @@ import {
   findDuplicateTickets,
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   type DuplicateMatch,
+=======
+  type DuplicateTicketMatch,
+>>>>>>> theirs
 =======
   type DuplicateTicketMatch,
 >>>>>>> theirs
@@ -139,6 +143,7 @@ const stayTypeOptions = [
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 const JourneyScreen = ({
   onOpenScanner,
   onNavigate,
@@ -150,6 +155,11 @@ const JourneyScreen = ({
   initialIntent?: "new-trip" | "view" | null;
   onIntentHandled?: () => void;
 }) => {
+=======
+type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | null;
+
+const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
+>>>>>>> theirs
 =======
 type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | null;
 
@@ -197,6 +207,10 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     rescan: rescanFlightTicket,
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+=======
+    userId,
+>>>>>>> theirs
 =======
     userId,
 >>>>>>> theirs
@@ -288,6 +302,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     pendingSegmentRef?: string;
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     /** Raw analyzed image data URLs (before upload to private storage). */
     pageImages?: string[];
     /** AI extraction metadata captured by the scanner. */
@@ -301,6 +316,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
     pageImages?: string[];
     extraction?: TicketExtractionMetadata;
   } | null>(null);
@@ -309,6 +326,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     matches: DuplicateTicketMatch[];
     reopenPendingScan?: typeof pendingScan;
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -503,6 +523,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     // Duplicate detection — confirm with user before saving when there's
     // an overlap with an existing flight ticket.
     const dupes = findDuplicateTickets(ticket, flightTickets);
@@ -520,6 +541,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   ) => {
     void addFlightTicket(ticket);
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
     const duplicateMatches = findDuplicateTickets(ticket, flightTickets);
@@ -545,6 +568,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       await addFlightTicket(ticket);
     })();
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -928,6 +954,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
             <FlightTripSummary segments={transportSegments} />
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
             <TicketsTab
               segments={transportSegments}
               onAdd={() => setShowAddTransport(true)}
@@ -937,6 +964,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
               onEditFlight={(seg) => { setIsNewSegment(false); setEditingSegment(seg); }}
               onDeleteFlight={(ticketId) => setPendingDeleteTicketId(ticketId)}
             />
+=======
+            <TicketsTab segments={transportSegments} tickets={flightTickets} onRescanTicket={handleRescanFlightTicket} onEditSegment={(seg) => { setIsNewSegment(false); setEditingSegment(seg); }} onDeleteSegment={handleDeleteTransportSegment} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />
+>>>>>>> theirs
 =======
             <TicketsTab segments={transportSegments} tickets={flightTickets} onRescanTicket={handleRescanFlightTicket} onEditSegment={(seg) => { setIsNewSegment(false); setEditingSegment(seg); }} onDeleteSegment={handleDeleteTransportSegment} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />
 >>>>>>> theirs
@@ -1087,12 +1117,21 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         onCancel={cancelDuplicateTicket}
       />
 
+      <DuplicateTicketDialog
+        open={!!duplicateTicketDecision}
+        matches={duplicateTicketDecision?.matches || []}
+        onAddAnyway={addDuplicateTicketAnyway}
+        onReplace={replaceDuplicateTicket}
+        onCancel={cancelDuplicateTicket}
+      />
+
       {/* Transport segment editor — handles draft creation + later edits */}
       <EditTransportSheet
         open={!!editingSegment}
         segment={editingSegment}
         onCancel={() => { setEditingSegment(null); setIsNewSegment(false); }}
         onSave={(seg) => {
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
           // Flight edits — route back into the persisted ticket store via
@@ -1127,6 +1166,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
           if (seg.type === "flight" && seg.groupId) {
             void updateFlightTicket(seg.groupId, (ticket) => applySegmentEditsToTicket(ticket, seg));
           } else {
@@ -1136,6 +1177,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
             });
           }
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -1263,7 +1307,11 @@ const AddButton = ({ labelEn, labelAr, onClick }: { labelEn: string; labelAr: st
 /* ─── TICKETS TAB ─── */
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlight, onDeleteFlight }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void; onRescan?: (ticketId: string) => Promise<import("@/lib/transportTickets").TransportTicket>; onEditFlight?: (seg: TransportSegment) => void; onDeleteFlight?: (ticketId: string) => void }) => {
+=======
+const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDeleteSegment, onAdd, onScan, onReplicate }: { segments: TransportSegment[]; tickets: TransportTicket[]; onRescanTicket: (ticketId: string) => Promise<TransportTicket>; onEditSegment: (seg: TransportSegment) => void; onDeleteSegment: (seg: TransportSegment) => void; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void }) => {
+>>>>>>> theirs
 =======
 const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDeleteSegment, onAdd, onScan, onReplicate }: { segments: TransportSegment[]; tickets: TransportTicket[]; onRescanTicket: (ticketId: string) => Promise<TransportTicket>; onEditSegment: (seg: TransportSegment) => void; onDeleteSegment: (seg: TransportSegment) => void; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void }) => {
 >>>>>>> theirs
@@ -1288,6 +1336,9 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
   // Filter UI state
   const [filters, setFilters] = useState<TicketsFilterState>(() => loadTicketsFilterState());
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -1301,6 +1352,7 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   const handleHelicopterJump = (seg: TransportSegment) => {
     const el = document.querySelector(`[data-ticket-id="${seg.id}"]`);
     if (el) {
@@ -1312,6 +1364,8 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
     }
   };
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
   const quickGroup = (segment: TransportSegment): TicketQuickFilter => {
@@ -1343,6 +1397,9 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
     return true;
   });
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -1361,6 +1418,7 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
       </div>
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 
       {/* Refined search + filter bar (debounced, persisted, advanced filters) */}
       <TicketsFilterBar
@@ -1374,6 +1432,8 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
         onNodeClick={handleHelicopterJump}
       />
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
       <JourneyHelicopterTimeline segments={segments} onSelect={(seg) => {
@@ -1395,6 +1455,9 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
         </div>
       )}
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -1520,6 +1583,7 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
           onToggleSystemAlertsMuted={() => setTicketMutedAlerts((prev) => ({ ...prev, [selectedSeg.id]: !prev[selectedSeg.id] }))}
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
           onEdit={selectedSeg.type === "flight" && onEditFlight ? () => { onEditFlight(selectedSeg); setSelectedSeg(null); } : undefined}
           onDelete={selectedSeg.type === "flight" && selectedSeg.groupId && onDeleteFlight ? () => { onDeleteFlight(selectedSeg.groupId!); setSelectedSeg(null); } : undefined}
           onRescan={onRescan && selectedSeg.groupId ? async () => {
@@ -1552,11 +1616,16 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
           ticket={tickets.find((t) => t.id === selectedSeg.groupId)}
           onRescanTicket={onRescanTicket}
           onEdit={() => { onEditSegment(selectedSeg); setSelectedSeg(null); }}
           onDelete={() => { setDeleteTarget(selectedSeg); setSelectedSeg(null); }}
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -2028,6 +2097,7 @@ const StepsTab = ({
 );
 
 <<<<<<< ours
+<<<<<<< ours
 /* ─── JOURNEY TIMELINE MOUNT — unified flights + appointments ─── */
 const JourneyTimelineMount = ({ activeTrip }: { activeTrip: TripData | null }) => {
   const isGuest = useGuestMode();
@@ -2112,6 +2182,8 @@ const providerRowToCard = (row: ProviderAppointmentRow): AppointmentCardModel =>
 
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
 /* ─── APPOINTMENTS TAB ─── */
 const AppointmentsTab = ({
   onOpenScanner,
@@ -2127,6 +2199,7 @@ const AppointmentsTab = ({
   isGuest: boolean;
 }) => {
   const [showAddAppt, setShowAddAppt] = useState(false);
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
 
@@ -2150,6 +2223,8 @@ const AppointmentsTab = ({
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
   const [guestAppts, setGuestAppts] = useState<Appointment[]>(appointmentItems);
   const displayedAppts = isGuest ? guestAppts : appointmentItems;
   const upcomingAppts = displayedAppts.filter(a => a.status === "upcoming");
@@ -2163,6 +2238,9 @@ const AppointmentsTab = ({
     if (isGuest) setGuestAppts(appointmentItems);
   }, [appointmentItems, isGuest]);
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -2189,9 +2267,15 @@ const AppointmentsTab = ({
     if (isGuest) {
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
       const newAppt: AppointmentCardModel = {
         id: `apt-${Date.now()}`,
         doctorName: data.doctorName || "TBD",
+=======
+      const newAppt: Appointment = {
+        id: `apt-${Date.now()}`,
+        doctorName: data.doctorName || data.hospital || "Appointment",
+>>>>>>> theirs
 =======
       const newAppt: Appointment = {
         id: `apt-${Date.now()}`,
@@ -2209,7 +2293,11 @@ const AppointmentsTab = ({
         locationAr: data.locationAr || data.hospitalAr || "لم يحدد",
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
         type: visitTypeToCardType(data.visitType),
+=======
+        type: data.visitType === "telemedicine" ? "telemedicine" : data.visitType === "clinic" ? "clinic" : "in-person",
+>>>>>>> theirs
 =======
         type: data.visitType === "telemedicine" ? "telemedicine" : data.visitType === "clinic" ? "clinic" : "in-person",
 >>>>>>> theirs
@@ -2225,7 +2313,10 @@ const AppointmentsTab = ({
         notesAr: data.notesAr,
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
         source: "self",
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 =======
@@ -2236,6 +2327,7 @@ const AppointmentsTab = ({
       return;
     }
 
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
     // Signed-in: persist to public.appointments.
@@ -2268,6 +2360,8 @@ const AppointmentsTab = ({
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
     try {
       await onSaveAppointment(appointmentFormToRowInput(data));
       toast.success("Appointment saved · تم حفظ الموعد", { duration: 3000 });
@@ -2276,6 +2370,9 @@ const AppointmentsTab = ({
       toast.error("Could not save appointment · تعذر حفظ الموعد");
       throw error;
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -2297,9 +2394,12 @@ const AppointmentsTab = ({
             </div>
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
             <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{apt.doctorNameAr}</p>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
             {apt.doctorNameAr && <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{apt.doctorNameAr}</p>}

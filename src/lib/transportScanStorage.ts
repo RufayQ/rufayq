@@ -1,5 +1,6 @@
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 /**
  * Helpers for persisting and re-loading the analyzed page images
  * associated with a scanned flight ticket.
@@ -21,11 +22,16 @@ export interface ScanScope {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 
 export const TRANSPORT_SCANS_BUCKET = "transport-scans";
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -48,6 +54,7 @@ export class ScanStorageError extends Error {
   }
 }
 
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
 const ownerFolder = (scope: ScanScope) =>
@@ -159,6 +166,8 @@ export async function fetchScanImagesAsDataUrls(
 
 /** Backward-compatible alias for older call sites. */
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 export const scanOwnerPrefix = (scope: { userId?: string | null; deviceId?: string | null }) =>
@@ -276,6 +285,9 @@ export async function fetchScanImagesAsDataUrls(paths: string[]): Promise<string
 }
 
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

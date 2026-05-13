@@ -169,6 +169,7 @@ const ticketToRow = (t: TransportTicket) => ({
   pending_segment_ref: t.pendingSegmentRef || null,
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   extraction_provider: t.extraction?.provider ?? null,
   extraction_confidence:
     typeof t.extraction?.confidence === "number" ? t.extraction.confidence : null,
@@ -179,6 +180,8 @@ const ticketToRow = (t: TransportTicket) => ({
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
   extraction_provider: t.extraction?.provider || null,
   extraction_confidence: typeof t.extraction?.confidence === "number" ? t.extraction.confidence : null,
   detected_language: t.extraction?.detectedLanguage || null,
@@ -186,6 +189,9 @@ const ticketToRow = (t: TransportTicket) => ({
   extraction_run_at: t.extraction?.runAt || null,
   source_image_paths: t.sourceImagePaths || [],
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -226,8 +232,11 @@ const rowToTicket = (r: any, segments: FlightSegment[]): TransportTicket => {
     pendingSegmentRef: r.pending_segment_ref || null,
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     extraction,
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
     extraction: r.extraction_provider ? {
@@ -238,6 +247,9 @@ const rowToTicket = (r: any, segments: FlightSegment[]): TransportTicket => {
       runAt: r.extraction_run_at || null,
     } : null,
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

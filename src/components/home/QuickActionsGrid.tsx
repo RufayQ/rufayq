@@ -1,5 +1,6 @@
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 interface Props {
   onNavigate: (tab: string) => void;
 }
@@ -8,12 +9,17 @@ const QUICK_ACTIONS = [
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
 interface QuickActionsGridProps {
   onNavigate: (tab: string, context?: string) => void;
 }
 
 const quickActions = [
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -23,6 +29,7 @@ const quickActions = [
   { emoji: "💎", label: "Plans & Pricing", labelAr: "الأسعار والباقات", tab: "pricing" },
   { emoji: "🎫", label: "Customer Support", labelAr: "الدعم الفني", tab: "support" },
   { emoji: "💊", label: "Medications", labelAr: "الأدوية", tab: "medications" },
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
 ];
@@ -44,6 +51,8 @@ const QuickActionsGrid = ({ onNavigate }: Props) => (
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
   { emoji: "📅", label: "Add Appointment", labelAr: "إضافة موعد", tab: "journey", context: "new-appointment" },
 ];
 
@@ -62,6 +71,9 @@ const QuickActionsGrid = ({ onNavigate }: QuickActionsGridProps) => (
           <span className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{action.label}</span>
           <span className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{action.labelAr}</span>
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

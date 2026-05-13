@@ -1,5 +1,6 @@
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import HomeScreen from "@/screens/HomeScreen";
@@ -149,6 +150,8 @@ describe("HomeScreen", () => {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -264,6 +267,9 @@ describe("HomeScreen journey dashboard", () => {
   });
 
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

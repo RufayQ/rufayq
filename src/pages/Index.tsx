@@ -26,7 +26,10 @@ import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 =======
@@ -105,7 +108,11 @@ const Index = () => {
   const [chatContext, setChatContext] = useState<string | null>(null);
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | null>(null);
+=======
+  const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | null>(null);
+>>>>>>> theirs
 =======
   const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | null>(null);
 >>>>>>> theirs
@@ -272,9 +279,12 @@ const Index = () => {
       setAppView("main");
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     } else if (tab === "journey" && (context === "new-trip" || context === "view")) {
       setJourneyIntent(context);
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
     } else if (tab === "journey") {
@@ -290,6 +300,9 @@ const Index = () => {
                 : null,
       );
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -334,6 +347,7 @@ const Index = () => {
             return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} isGuest={isGuest} />;
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
           case "journey":
             return (
               <JourneyScreen
@@ -346,6 +360,8 @@ const Index = () => {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
           case "journey": return (
             <JourneyScreen
               onOpenScanner={openScanner}
@@ -355,6 +371,9 @@ const Index = () => {
             />
           );
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

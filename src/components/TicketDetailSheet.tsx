@@ -149,6 +149,7 @@ interface TicketDetailSheetProps {
   onToggleSystemAlertsMuted: () => void;
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   /** When provided, renders a "Re-scan ticket" button in the Scan info
    *  section. Should re-run AI extraction on stored source images. */
   onRescan?: () => Promise<void> | void;
@@ -167,6 +168,11 @@ interface TicketDetailSheetProps {
   onRescanTicket?: (ticketId: string) => Promise<TransportTicket>;
   onEdit?: () => void;
 >>>>>>> theirs
+=======
+  ticket?: TransportTicket;
+  onRescanTicket?: (ticketId: string) => Promise<TransportTicket>;
+  onEdit?: () => void;
+>>>>>>> theirs
   onDelete?: () => void;
 }
 
@@ -175,7 +181,11 @@ const TicketDetailSheet = ({
   overrides, onSaveOverrides, systemReminders, onUpdateSystemReminders,
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   systemAlertsMuted, onToggleSystemAlertsMuted, onRescan, onEdit, onDelete,
+=======
+  systemAlertsMuted, onToggleSystemAlertsMuted, ticket, onRescanTicket, onEdit, onDelete,
+>>>>>>> theirs
 =======
   systemAlertsMuted, onToggleSystemAlertsMuted, ticket, onRescanTicket, onEdit, onDelete,
 >>>>>>> theirs

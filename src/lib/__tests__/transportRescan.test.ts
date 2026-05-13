@@ -7,6 +7,7 @@
  */
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ---- Mocks (must be declared before importing the module under test) ----
@@ -19,6 +20,8 @@ vi.mock("@/lib/transportScanStorage", () => {
   class ScanStorageError extends Error {
     constructor(message: string, public cause?: unknown) {
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -34,6 +37,9 @@ vi.mock("@/lib/transportScanStorage", () => {
   class ScanStorageError extends Error {
     constructor(message: string, public code = "sign", public cause?: unknown) {
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -46,7 +52,11 @@ vi.mock("@/lib/transportScanStorage", () => {
     fetchScanImagesAsDataUrls: (...args: unknown[]) =>
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
       fetchScanImagesAsDataUrlsMock(...args),
+=======
+      mocks.fetchScanImagesAsDataUrls(...args),
+>>>>>>> theirs
 =======
       mocks.fetchScanImagesAsDataUrls(...args),
 >>>>>>> theirs
@@ -57,6 +67,7 @@ vi.mock("@/lib/transportScanStorage", () => {
 });
 
 vi.mock("@/lib/flightExtraction", () => ({
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
   extractFlightTicket: (...args: unknown[]) => extractFlightTicketMock(...args),
@@ -73,6 +84,8 @@ import type { TransportTicket } from "@/lib/transportTickets";
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
   extractFlightTicket: (...args: unknown[]) => mocks.extractFlightTicket(...args),
 }));
 
@@ -82,6 +95,9 @@ vi.mock("@/lib/transportStore", () => ({
 
 import { rescanTicket, RescanError } from "@/lib/transportRescan";
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -99,9 +115,15 @@ const baseTicket = (overrides: Partial<TransportTicket> = {}): TransportTicket =
       airline: "Saudia",
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
       flightNumber: "SV 100",
       fromAirport: { iata: "JED", name: "Jeddah", city: "Jeddah", country: "SA" } as any,
       toAirport: { iata: "LHR", name: "Heathrow", city: "London", country: "GB" } as any,
+=======
+      flightNumber: "SV100",
+      fromAirport: { code: "JED", name: "Jeddah", city: "Jeddah", country: "SA" },
+      toAirport: { code: "LHR", name: "Heathrow", city: "London", country: "GB" },
+>>>>>>> theirs
 =======
       flightNumber: "SV100",
       fromAirport: { code: "JED", name: "Jeddah", city: "Jeddah", country: "SA" },
@@ -154,7 +176,11 @@ const okExtraction = {
       airline: "Saudia",
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
       flightNumber: "SV 215",
+=======
+      flightNumber: "SV215",
+>>>>>>> theirs
 =======
       flightNumber: "SV215",
 >>>>>>> theirs
@@ -178,6 +204,7 @@ const scope = { deviceId: "device-1", userId: "user-1" };
 beforeEach(() => {
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   fetchScanImagesAsDataUrlsMock.mockReset();
   extractFlightTicketMock.mockReset();
   saveTicketMock.mockReset();
@@ -197,6 +224,8 @@ describe("rescanTicket — typed errors", () => {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
   mocks.fetchScanImagesAsDataUrls.mockReset();
   mocks.extractFlightTicket.mockReset();
   mocks.saveTicket.mockReset();
@@ -213,6 +242,9 @@ describe("rescanTicket — typed errors", () => {
     expect(mocks.extractFlightTicket).not.toHaveBeenCalled();
     expect(mocks.saveTicket).not.toHaveBeenCalled();
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -222,10 +254,13 @@ describe("rescanTicket — typed errors", () => {
     const err = await rescanTicket(baseTicket({ sourceImagePaths: [] }), scope).catch((e) => e);
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     expect(err).toBeInstanceOf(RescanError);
     expect(err.code).toBe("no-images");
     expect(fetchScanImagesAsDataUrlsMock).not.toHaveBeenCalled();
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 
@@ -235,6 +270,9 @@ describe("rescanTicket — typed errors", () => {
     expect(mocks.extractFlightTicket).not.toHaveBeenCalled();
     expect(mocks.saveTicket).not.toHaveBeenCalled();
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -242,6 +280,7 @@ describe("rescanTicket — typed errors", () => {
 
   it("wraps storage failures with code 'storage' and preserves cause", async () => {
     const { ScanStorageError } = await import("@/lib/transportScanStorage");
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
     const cause = new (ScanStorageError as any)("sign failed");
@@ -267,6 +306,8 @@ describe("rescanTicket — typed errors", () => {
     fetchScanImagesAsDataUrlsMock.mockResolvedValue(["data:image/png;base64,A"]);
     extractFlightTicketMock.mockResolvedValue({
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
     const cause = new ScanStorageError("sign failed", "sign");
@@ -296,6 +337,9 @@ describe("rescanTicket — typed errors", () => {
     mocks.fetchScanImagesAsDataUrls.mockResolvedValue(["data:image/png;base64,A"]);
     mocks.extractFlightTicket.mockResolvedValue({
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -303,6 +347,7 @@ describe("rescanTicket — typed errors", () => {
       rawOutbound: [],
       rawReturn: [],
     });
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
     const err = await rescanTicket(baseTicket(), scope).catch((e) => e);
@@ -319,6 +364,8 @@ describe("rescanTicket — typed errors", () => {
     expect(err).toBeInstanceOf(RescanError);
     expect(err.code).toBe("save");
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 
@@ -341,6 +388,9 @@ describe("rescanTicket — typed errors", () => {
     expect(err.code).toBe("save");
     expect(err.cause).toBe(cause);
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -351,8 +401,13 @@ describe("rescanTicket — happy path", () => {
   it("preserves identity, refreshes segments + metadata, calls saveTicket once", async () => {
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     fetchScanImagesAsDataUrlsMock.mockResolvedValue(["data:image/png;base64,A"]);
     extractFlightTicketMock.mockResolvedValue(okExtraction);
+=======
+    mocks.fetchScanImagesAsDataUrls.mockResolvedValue(["data:image/png;base64,A"]);
+    mocks.extractFlightTicket.mockResolvedValue(okExtraction);
+>>>>>>> theirs
 =======
     mocks.fetchScanImagesAsDataUrls.mockResolvedValue(["data:image/png;base64,A"]);
     mocks.extractFlightTicket.mockResolvedValue(okExtraction);
@@ -367,7 +422,12 @@ describe("rescanTicket — happy path", () => {
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     // Identity preserved
+=======
+    expect(mocks.fetchScanImagesAsDataUrls).toHaveBeenCalledWith(original.sourceImagePaths);
+    expect(mocks.extractFlightTicket).toHaveBeenCalledWith({ files: ["data:image/png;base64,A"] });
+>>>>>>> theirs
 =======
     expect(mocks.fetchScanImagesAsDataUrls).toHaveBeenCalledWith(original.sourceImagePaths);
     expect(mocks.extractFlightTicket).toHaveBeenCalledWith({ files: ["data:image/png;base64,A"] });
@@ -389,7 +449,10 @@ describe("rescanTicket — happy path", () => {
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     // Refreshed
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 =======
@@ -408,6 +471,7 @@ describe("rescanTicket — happy path", () => {
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     expect(saveTicketMock).toHaveBeenCalledTimes(1);
     expect(saveTicketMock.mock.calls[0][0].id).toBe(original.id);
   });
@@ -418,6 +482,8 @@ describe("rescanTicket — happy path", () => {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
     expect(mocks.saveTicket).toHaveBeenCalledTimes(1);
     expect(mocks.saveTicket.mock.calls[0][0].id).toBe(original.id);
   });
@@ -426,6 +492,9 @@ describe("rescanTicket — happy path", () => {
     mocks.fetchScanImagesAsDataUrls.mockResolvedValue(["data:image/png;base64,A"]);
     mocks.extractFlightTicket.mockResolvedValue(okExtraction);
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -440,8 +509,13 @@ describe("rescanTicket — happy path", () => {
   it("is idempotent — sequential calls keep same id and createdAt", async () => {
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     fetchScanImagesAsDataUrlsMock.mockResolvedValue(["data:image/png;base64,A"]);
     extractFlightTicketMock.mockResolvedValue(okExtraction);
+=======
+    mocks.fetchScanImagesAsDataUrls.mockResolvedValue(["data:image/png;base64,A"]);
+    mocks.extractFlightTicket.mockResolvedValue(okExtraction);
+>>>>>>> theirs
 =======
     mocks.fetchScanImagesAsDataUrls.mockResolvedValue(["data:image/png;base64,A"]);
     mocks.extractFlightTicket.mockResolvedValue(okExtraction);
@@ -459,9 +533,15 @@ describe("rescanTicket — happy path", () => {
     expect(second.createdAt).toBe(original.createdAt);
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     expect(saveTicketMock).toHaveBeenCalledTimes(2);
     expect(saveTicketMock.mock.calls[0][0].id).toBe(original.id);
     expect(saveTicketMock.mock.calls[1][0].id).toBe(original.id);
+=======
+    expect(mocks.saveTicket).toHaveBeenCalledTimes(2);
+    expect(mocks.saveTicket.mock.calls[0][0].id).toBe(original.id);
+    expect(mocks.saveTicket.mock.calls[1][0].id).toBe(original.id);
+>>>>>>> theirs
 =======
     expect(mocks.saveTicket).toHaveBeenCalledTimes(2);
     expect(mocks.saveTicket.mock.calls[0][0].id).toBe(original.id);

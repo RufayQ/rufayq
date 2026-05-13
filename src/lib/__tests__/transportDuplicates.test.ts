@@ -4,7 +4,11 @@
  */
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 import { describe, it, expect } from "vitest";
+=======
+import { describe, expect, it } from "vitest";
+>>>>>>> theirs
 =======
 import { describe, expect, it } from "vitest";
 >>>>>>> theirs
@@ -28,8 +32,13 @@ const seg = (over: Partial<FlightSegment> = {}): FlightSegment => ({
   cabinClass: "Economy",
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   pnr: "ABC123",
   segmentOrder: 1,
+=======
+  pnr: Object.prototype.hasOwnProperty.call(over, "pnr") ? over.pnr : "ABC123",
+  segmentOrder: 0,
+>>>>>>> theirs
 =======
   pnr: Object.prototype.hasOwnProperty.call(over, "pnr") ? over.pnr : "ABC123",
   segmentOrder: 0,
@@ -51,6 +60,11 @@ const ticket = (
   deviceId: "device-1",
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+=======
+  userId: "user-1",
+  sourceDocumentId: null,
+>>>>>>> theirs
 =======
   userId: "user-1",
   sourceDocumentId: null,
@@ -65,6 +79,10 @@ const ticket = (
   returnSegments: [],
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+=======
+  passengerName: "Patient",
+>>>>>>> theirs
 =======
   passengerName: "Patient",
 >>>>>>> theirs
@@ -77,9 +95,12 @@ const ticket = (
   sendToDoctor: false,
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
   pendingSegmentRef: null,
@@ -88,6 +109,9 @@ const ticket = (
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -95,6 +119,7 @@ const ticket = (
 
 describe("findDuplicateTickets", () => {
   it("returns empty when there is no overlap", () => {
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
     const a = ticket("t1", [seg()]);
@@ -110,6 +135,8 @@ describe("findDuplicateTickets", () => {
     expect(matches[0].ticketId).toBe("t-existing");
     expect(matches[0].reason).toBe("flight-number-and-date");
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
     const candidate = ticket("t1", [seg()]);
@@ -138,6 +165,9 @@ describe("findDuplicateTickets", () => {
       reason: "flight-number-and-date",
     });
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -148,6 +178,7 @@ describe("findDuplicateTickets", () => {
   it("detects matching booking reference (PNR)", () => {
     const existing = ticket(
       "t-existing",
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
       [seg({ flightNumber: "LH100", fromAirport: { code: "JED", city: "Jeddah" }, toAirport: { code: "MUC", city: "Munich" }, departureDate: "2026-09-01", pnr: "" })],
@@ -163,6 +194,8 @@ describe("findDuplicateTickets", () => {
     const candidate = ticket("t-new", [seg({ flightNumber: "QR55", pnr: "OTHER" })]);
     const matches = findDuplicateTickets(candidate, [existing]);
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
       [
@@ -198,6 +231,9 @@ describe("findDuplicateTickets", () => {
 
     expect(matches).toHaveLength(1);
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -207,8 +243,13 @@ describe("findDuplicateTickets", () => {
   it("ignores the candidate's own id when re-saving", () => {
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     const t = ticket("self", [seg()]);
     expect(findDuplicateTickets(t, [t])).toEqual([]);
+=======
+    const saved = ticket("self", [seg()]);
+    expect(findDuplicateTickets(saved, [saved])).toEqual([]);
+>>>>>>> theirs
 =======
     const saved = ticket("self", [seg()]);
     expect(findDuplicateTickets(saved, [saved])).toEqual([]);

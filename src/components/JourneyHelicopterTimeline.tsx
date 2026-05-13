@@ -1,5 +1,6 @@
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 /**
  * JourneyHelicopterTimeline — single-rail iconic overview of all transport
  * segments in the trip. Lets the user see the whole journey at a glance and
@@ -12,6 +13,8 @@ const typeIcon: Record<TransportSegment["type"], string> = {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
 import { useMemo, useRef, useState } from "react";
 import type { TransportSegment } from "@/components/TransportCard";
 
@@ -22,6 +25,9 @@ interface Props {
 
 const iconFor = (type: TransportSegment["type"]) => ({
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -31,6 +37,7 @@ const iconFor = (type: TransportSegment["type"]) => ({
   taxi: "🚕",
   rental: "🚗",
   medical: "🚑",
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
 };
@@ -156,6 +163,8 @@ const JourneyHelicopterTimeline = ({ segments, onNodeClick }: Props) => {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
 }[type] || "📍");
 
 const statusFor = (segment: TransportSegment) => {
@@ -252,6 +261,9 @@ const JourneyHelicopterTimeline = ({ segments, onSelect }: Props) => {
       </div>
     </section>
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

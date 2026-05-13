@@ -2,8 +2,12 @@
  * DuplicateTicketDialog — confirms intent when a saved ticket conflicts
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
  * with one or more existing flight tickets (matched on flight#+date,
  * shared PNR, or same route+date+time).
+=======
+ * with one or more existing flight tickets.
+>>>>>>> theirs
 =======
  * with one or more existing flight tickets.
 >>>>>>> theirs
@@ -32,6 +36,7 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
   const single = matches[0];
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   return (
     <div className="absolute inset-0 z-[80] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.45)" }} onClick={onCancel}>
       <div
@@ -44,6 +49,8 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
           <div>
             <p className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 
@@ -65,6 +72,9 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
           <div>
             <p id="duplicate-ticket-title" className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -78,7 +88,11 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
         <p className="text-[12px] mb-3" style={{ color: "var(--gray)" }}>
+=======
+        <p className="text-[12px] mb-1" style={{ color: "var(--gray)" }}>
+>>>>>>> theirs
 =======
         <p className="text-[12px] mb-1" style={{ color: "var(--gray)" }}>
 >>>>>>> theirs
@@ -92,6 +106,7 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
         </p>
 
         <div className="space-y-2 mb-4">
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
           {matches.map((m) => (
@@ -108,6 +123,8 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
             </div>
           ))}
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
           {matches.map((match) => {
@@ -127,6 +144,9 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
             );
           })}
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

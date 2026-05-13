@@ -1,5 +1,6 @@
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 import { Plus } from "lucide-react";
 
 interface Props {
@@ -27,6 +28,8 @@ const EmptyJourneyCard = ({ onAddTrip }: Props) => (
       <Plus size={12} /> Start a new trip
       <span className="font-arabic"> · رحلة جديدة</span>
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 import { Plus, Sparkles } from "lucide-react";
@@ -62,6 +65,9 @@ const EmptyJourneyCard = ({ onAddTrip }: EmptyJourneyCardProps) => (
     >
       <Plus size={14} /> Add your first trip
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

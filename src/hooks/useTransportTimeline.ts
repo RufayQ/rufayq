@@ -162,6 +162,7 @@ export function useTransportTimeline() {
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   const updateTicket = useCallback(
     async (ticketId: string, mutator: (t: TransportTicket) => TransportTicket) => {
       const current = tickets.find((t) => t.id === ticketId);
@@ -206,6 +207,8 @@ export function useTransportTimeline() {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
   const rescan = useCallback(
     async (ticketId: string) => {
       const ticket = tickets.find((t) => t.id === ticketId);
@@ -213,6 +216,9 @@ export function useTransportTimeline() {
       const updated = await rescanTransportTicket(ticket, scope);
       setTickets((prev) => [...prev.filter((t) => t.id !== updated.id), updated].sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs

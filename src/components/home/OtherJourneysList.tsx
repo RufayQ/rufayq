@@ -2,8 +2,11 @@ import type { TripData } from "@/components/AddTripSheet";
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 interface Props {
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 function formatDate(date?: string | null): string {
@@ -15,6 +18,9 @@ function formatDate(date?: string | null): string {
 
 interface OtherJourneysListProps {
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -24,8 +30,14 @@ interface OtherJourneysListProps {
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 const OtherJourneysList = ({ trips, onSelect }: Props) => {
   if (trips.length === 0) return null;
+=======
+const OtherJourneysList = ({ trips, onSelect }: OtherJourneysListProps) => {
+  if (trips.length === 0) return null;
+
+>>>>>>> theirs
 =======
 const OtherJourneysList = ({ trips, onSelect }: OtherJourneysListProps) => {
   if (trips.length === 0) return null;
@@ -49,6 +61,7 @@ const OtherJourneysList = ({ trips, onSelect }: OtherJourneysListProps) => {
           >
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
             <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0" style={{ background: "var(--off-white)" }}>
               {trip.specialtyEmoji || "🧳"}
             </div>
@@ -56,6 +69,8 @@ const OtherJourneysList = ({ trips, onSelect }: OtherJourneysListProps) => {
               <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{trip.destination}</p>
               <p className="text-[10px]" style={{ color: "var(--gray)" }}>{trip.specialty} · {trip.departureDate || ""}</p>
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
             <div
@@ -70,6 +85,9 @@ const OtherJourneysList = ({ trips, onSelect }: OtherJourneysListProps) => {
                 {trip.specialty || trip.hospital || "Treatment travel"} · {formatDate(trip.departureDate)}
               </p>
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -80,7 +98,11 @@ const OtherJourneysList = ({ trips, onSelect }: OtherJourneysListProps) => {
             >
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
               {trip.status === "active" ? "ACTIVE" : "UPCOMING"}
+=======
+              {trip.status.toUpperCase()}
+>>>>>>> theirs
 =======
               {trip.status.toUpperCase()}
 >>>>>>> theirs

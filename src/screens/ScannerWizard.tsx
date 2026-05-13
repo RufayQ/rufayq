@@ -36,6 +36,7 @@ export interface ScannerSavePayload {
   pageImages?: string[];
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
   /** AI extraction metadata captured at scan time. Persisted on the ticket
    *  so cards can show provider/confidence/language and Re-scan can refresh. */
   extraction?: {
@@ -45,6 +46,9 @@ export interface ScannerSavePayload {
     translated?: boolean;
     runAt?: string | null;
   };
+=======
+  extraction?: import("@/lib/transportTickets").TicketExtractionMetadata;
+>>>>>>> theirs
 =======
   extraction?: import("@/lib/transportTickets").TicketExtractionMetadata;
 >>>>>>> theirs

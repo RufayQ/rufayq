@@ -4,6 +4,7 @@ import { getDeviceId } from "@/hooks/useDeviceId";
 
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
 export interface PatientNameState {
   patientName: string;
   patientNameAr: string;
@@ -28,6 +29,8 @@ export function usePatientName(): PatientNameState {
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
 export function usePatientName() {
   const [patientName, setPatientName] = useState("");
   const [patientNameAr, setPatientNameAr] = useState("");
@@ -44,6 +47,9 @@ export function usePatientName() {
       let ar = "";
 
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -54,6 +60,7 @@ export function usePatientName() {
           .select("full_name_en, full_name_ar")
           .eq("device_id", did)
           .maybeSingle();
+<<<<<<< ours
 <<<<<<< ours
 <<<<<<< ours
         en = (prof?.full_name_en || "").trim();
@@ -71,6 +78,8 @@ export function usePatientName() {
 
   return state;
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 
@@ -93,6 +102,9 @@ export function usePatientName() {
 
   return { patientName, patientNameAr };
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
