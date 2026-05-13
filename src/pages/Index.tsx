@@ -24,7 +24,7 @@ import { validateLoginRole } from "@/lib/roleValidation";
 import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
 import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
-import HomeScreenEmpty from "@/screens/HomeScreenEmpty";
+
 import TourGuide from "@/components/TourGuide";
 import TourRunner from "@/components/TourRunner";
 import { useFreshStart } from "@/hooks/useFreshStart";
@@ -97,6 +97,7 @@ const Index = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
+  const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | null>(null);
   const [badges, setBadges] = useState<Partial<Record<Tab, boolean>>>({
     carehub: true,
   });
@@ -255,6 +256,10 @@ const Index = () => {
       setChatContext(context);
       setActiveTab("chat");
       setAppView("main");
+    } else if (tab === "journey" && (context === "new-trip" || context === "view")) {
+      setJourneyIntent(context);
+      setActiveTab("journey");
+      setAppView("main");
     } else {
       setActiveTab(tab as Tab);
       setAppView("main");
@@ -291,10 +296,16 @@ const Index = () => {
       case "main":
         switch (activeTab) {
           case "home":
-            return isGuest
-              ? <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />
-              : <HomeScreenEmpty onNavigate={handleNavigate} onProfile={() => setAppView("profile")} />;
-          case "journey": return <JourneyScreen onOpenScanner={openScanner} onNavigate={handleNavigate} />;
+            return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} isGuest={isGuest} />;
+          case "journey":
+            return (
+              <JourneyScreen
+                onOpenScanner={openScanner}
+                onNavigate={handleNavigate}
+                initialIntent={journeyIntent}
+                onIntentHandled={() => setJourneyIntent(null)}
+              />
+            );
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
           case "carehub": return <CareHubScreen />;
           case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} onUpgrade={() => setAppView("pricing")} />;

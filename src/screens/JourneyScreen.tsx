@@ -92,7 +92,17 @@ const stayTypeOptions = [
   { icon: "🏥", en: "Hospital Stay", ar: "إقامة مستشفى" },
 ];
 
-const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string) => void }) => {
+const JourneyScreen = ({
+  onOpenScanner,
+  onNavigate,
+  initialIntent,
+  onIntentHandled,
+}: {
+  onOpenScanner?: (cat?: string) => void;
+  onNavigate?: (tab: string) => void;
+  initialIntent?: "new-trip" | "view" | null;
+  onIntentHandled?: () => void;
+}) => {
   const isGuest = useGuestMode();
   const { categories: guestCats } = useGuestCategories();
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -103,6 +113,13 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     setTrips(dbTrips);
   }, [dbTrips]);
   const [showAddTrip, setShowAddTrip] = useState(false);
+
+  // Consume Home → Journey intent: auto-open Add Trip when requested.
+  useEffect(() => {
+    if (!initialIntent) return;
+    if (initialIntent === "new-trip") setShowAddTrip(true);
+    onIntentHandled?.();
+  }, [initialIntent, onIntentHandled]);
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<TripData | null>(null);
