@@ -4,6 +4,7 @@ import { ArrowLeft, User, Building2, Stethoscope, Shield, Package, ChevronRight 
 import { useLanguage } from "@/contexts/LanguageContext";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { Seo } from "@/seo/Seo";
 
 const BG_DARK = "#06101A";
 const BG_DARK_2 = "#0B1A28";
