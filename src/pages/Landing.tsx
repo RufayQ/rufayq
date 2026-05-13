@@ -297,6 +297,7 @@ const Landing = () => {
             <LandingBelow goToApp={goToApp} theme={{ BG_DARK, BG_DARK_2, BORDER, TEXT, TEXT_MUTED, GOLD, GOLD_BRIGHT, TEAL }} />
           </Suspense>
         </LazyOnView>
+        </main>
       </div>
     </>
   );
