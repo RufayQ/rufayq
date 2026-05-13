@@ -101,6 +101,13 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
     setRecordingTime(0);
   }, []);
 
+  /**
+   * Minimum visible duration for the typing indicator.
+   * Designed to give the bilingual bubble + RTL spacing time to settle
+   * and to avoid jarring instant replies when the AI streams quickly.
+   */
+  const MIN_TYPING_MS = 1800;
+
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
 
@@ -123,6 +130,12 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
+    const typingStartedAt = Date.now();
+    const waitForMinTyping = async () => {
+      const elapsed = Date.now() - typingStartedAt;
+      const remaining = MIN_TYPING_MS - elapsed;
+      if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
+    };
 
     // Build message history for AI
     const allMessages = [...messages, userMsg];
@@ -147,6 +160,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
+        await waitForMinTyping();
         if (resp.status === 429) {
           // Server-side daily AI cap — show upgrade prompt for subscribers.
           setUpgradeCtx({
@@ -165,6 +179,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
       }
 
       if (!resp.body) {
+        await waitForMinTyping();
         setIsTyping(false);
         return;
       }
@@ -178,7 +193,12 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
       const assistantId = Date.now() + 1;
       const assistantTime = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
-      setIsTyping(false);
+      // Hold the typing indicator for at least MIN_TYPING_MS before showing the
+      // first assistant bubble — keeps RTL/LTR bubble layout from snapping in
+      // instantly and matches the designed pacing.
+      let firstChunkGate: Promise<void> | null = waitForMinTyping().then(() => {
+        setIsTyping(false);
+      });
 
       while (true) {
         const { done, value } = await reader.read();
@@ -200,6 +220,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
             if (content) {
               assistantSoFar += content;
               if (!assistantMsgCreated) {
+                if (firstChunkGate) { await firstChunkGate; firstChunkGate = null; }
                 assistantMsgCreated = true;
                 setMessages(prev => [...prev, { id: assistantId, text: assistantSoFar, sender: "ai", time: assistantTime }]);
               } else {
@@ -237,6 +258,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
 
       // If no content was streamed, add a fallback message
       if (!assistantMsgCreated) {
+        if (firstChunkGate) { await firstChunkGate; firstChunkGate = null; }
         setMessages(prev => [...prev, {
           id: assistantId,
           text: "عذراً، لم أتمكن من الرد. يرجى المحاولة مرة أخرى.",
@@ -246,6 +268,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
       }
     } catch (err) {
       console.error("Chat error:", err);
+      await waitForMinTyping();
       setIsTyping(false);
       toast.error("Connection error · خطأ في الاتصال");
     }
