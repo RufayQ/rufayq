@@ -359,13 +359,36 @@ const ProviderDashboard = () => {
 
               {tab === "appointments" && (
                 <div className="space-y-4">
+                  {!selectedPatient && (
+                    <div className="p-3 rounded-lg text-xs" style={{ background: "rgba(233,69,96,0.10)", color: "#E94560", border: `1px solid ${BORDER}` }}>
+                      Select a linked patient before scheduling an appointment.
+                    </div>
+                  )}
                   <div className="p-4 rounded-xl space-y-2" style={{ background: BG, border: `1px solid ${BORDER}` }}>
                     <p className="text-xs uppercase tracking-wider" style={{ color: GOLD }}>Schedule appointment</p>
+                    {selectedPatient && (
+                      <div className="text-[11px]" style={{ color: MUTED }}>
+                        For: <span style={{ color: TEXT }}>{selectedPatient.patient_name || "—"}</span>
+                        {" · "}<span className="font-mono">{selectedPatient.patient_device_id}</span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <select className={inputCls} style={inputStyle} value={appt.appointment_type} onChange={e => setAppt(s => ({ ...s, appointment_type: e.target.value as any }))}>
+                        <option value="physician">Physician</option>
+                        <option value="lab">Laboratory</option>
+                        <option value="radiology">Radiology</option>
+                      </select>
+                      <select className={inputCls} style={inputStyle} value={appt.visit_type} onChange={e => setAppt(s => ({ ...s, visit_type: e.target.value as any }))}>
+                        <option value="in-person">In-person</option>
+                        <option value="telemedicine">Telemedicine</option>
+                        <option value="clinic">Clinic</option>
+                      </select>
+                    </div>
                     <input className={inputCls} style={inputStyle} placeholder="Title (e.g., Follow-up consultation)" value={appt.title} onChange={e => setAppt(s => ({ ...s, title: e.target.value }))} />
                     <input className={inputCls} style={inputStyle} placeholder="Location" value={appt.location} onChange={e => setAppt(s => ({ ...s, location: e.target.value }))} />
                     <input type="datetime-local" className={inputCls} style={inputStyle} value={appt.scheduled_at} onChange={e => setAppt(s => ({ ...s, scheduled_at: e.target.value }))} />
                     <textarea className={inputCls} style={inputStyle} rows={2} placeholder="Notes" value={appt.notes} onChange={e => setAppt(s => ({ ...s, notes: e.target.value }))} />
-                    <button onClick={sendAppt} className="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2" style={{ background: GOLD, color: BG }}>
+                    <button onClick={sendAppt} disabled={!selectedPatient} className="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 disabled:opacity-40" style={{ background: GOLD, color: BG }}>
                       <Calendar size={12} /> Schedule & notify
                     </button>
                   </div>
@@ -375,7 +398,9 @@ const ProviderDashboard = () => {
                     {history.appts.map((a: any) => (
                       <div key={a.id} className="p-3 rounded-lg mb-2" style={{ background: BG, border: `1px solid ${BORDER}` }}>
                         <p className="text-sm font-semibold">{a.title}</p>
-                        <p className="text-xs opacity-70">{a.location || "—"} · {new Date(a.scheduled_at).toLocaleString()}</p>
+                        <p className="text-xs opacity-70">
+                          {a.appointment_type ? `${a.appointment_type} · ` : ""}{a.visit_type ? `${a.visit_type} · ` : ""}{a.location || "—"} · {new Date(a.scheduled_at).toLocaleString()}
+                        </p>
                       </div>
                     ))}
                   </div>
