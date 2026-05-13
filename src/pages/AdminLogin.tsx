@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Shield, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Seo } from "@/seo/Seo";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -48,6 +49,12 @@ const AdminLogin = () => {
   };
 
   return (
+    <>
+      <Seo
+        title="Admin sign-in — RufayQ"
+        description="Staff sign-in for RufayQ administrators and moderators."
+        noindex
+      />
     <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100 px-4" style={{ fontFamily: "'DM Sans', system-ui" }}>
       <div className="w-full max-w-md">
         <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white mb-6">
