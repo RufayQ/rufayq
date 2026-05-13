@@ -1,109 +1,64 @@
-# Appointment Persistence & Timeline Hardening
+## Goal
 
-## Root cause
+The CI workflow already runs `bunx tsc --noEmit`, but a failure shows up as a raw log dump that's easy to miss in PR reviews. Make TypeScript errors impossible to ignore by:
 
-Signed-in appointments disappear after refresh because `AppointmentsTab` keeps them in local component state instead of persisting through `useAppointments().save`. Mapping between DB rows and cards is also fragmented, and `visit_type` (delivery mode) is conflated with `appointment_type` (kind).
+1. Always running typecheck (even if Lint fails earlier in the job).
+2. Capturing tsc output and posting a grouped, human-readable summary to the GitHub Actions **Step Summary** (the panel shown at the top of every PR check).
+3. Emitting inline PR annotations via GitHub's `::error file=...` workflow command so failures appear directly on the offending lines in the PR diff.
 
-## 1. Schema migration
+No source code changes — only `.github/workflows/ci.yml`, a new helper script, and a `typecheck` npm script.
 
-File: `supabase/migrations/20260513120000_appointment_visit_type.sql`
+## Changes
 
-- `ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS visit_type text NULL;`
-- `ALTER TABLE public.provider_appointments ADD COLUMN IF NOT EXISTS appointment_type text NULL;` (already exists from earlier migration — guard with IF NOT EXISTS)
-- `ALTER TABLE public.provider_appointments ADD COLUMN IF NOT EXISTS visit_type text NULL;` (idem)
-- No CHECK constraints (use validation in app layer per project rules).
+### 1. `package.json`
+Add a script so typecheck is runnable identically locally and in CI:
+```json
+"typecheck": "tsc --noEmit --pretty false"
+```
+(`--pretty false` keeps output in the stable `file(line,col): error TSxxxx: msg` format the parser expects.)
 
-## 2. API + schema
+### 2. `scripts/summarize-tsc.mjs` (new)
+Reads tsc output from stdin and:
+- Counts errors, groups them by file, sorts by error count.
+- Writes a Markdown table to `$GITHUB_STEP_SUMMARY` (totals, top files, first ~50 errors with file:line links).
+- Re-emits each error as a GitHub annotation: `::error file=PATH,line=L,col=C::TSxxxx: message`.
+- Exits with the original tsc exit code so the job still fails.
 
-- `src/lib/api/appointmentApi.ts`: add `visit_type: string | null` to `AppointmentRow`.
-- `src/lib/api/schemas.ts`: add optional `visit_type` to `appointmentSchema`.
+### 3. `.github/workflows/ci.yml`
+Replace the current Typecheck step with:
+```yaml
+- name: Typecheck
+  if: always()        # run even if Lint failed, so authors see both
+  run: |
+    set -o pipefail
+    bun run typecheck 2>&1 | tee tsc.log | node scripts/summarize-tsc.mjs
+```
+And add a final guard step (also `if: always()`) that re-prints the summary path so it's discoverable in logs.
 
-## 3. Shared mapper — `src/lib/appointmentRows.ts`
+### Output example (Step Summary panel)
 
-Replace current file with:
+```text
+TypeScript check failed — 7 errors across 3 files
 
-- Types: `AppointmentKind`, `VisitType`, `ProviderAppointmentRow`.
-- `formatWhen(iso)` → `{ date, time, valid, dateObj }`; "TBD"/"TBD" on missing/invalid; `Intl.DateTimeFormat("en-US", …)` with `timeZone: undefined`.
-- `appointmentTypeLabel(kind)` → `{ en, ar, icon }` (physician/lab/radiology/appointment).
-- `visitTypeLabel(visit)` → `{ en, ar, icon }` (in-person/telemedicine/clinic).
-- `appointmentFormToRowInput(form)`: persists `appointment_type=kind`, `visit_type=mode`, `start_at` ISO from `date+time`, plus title/doctor/facility/specialty/location/notes.
-- `dbAppointmentToCard(row, now=new Date())`: uses `formatWhen(row.start_at)`; `appointmentType=row.appointment_type ?? "appointment"`; `visitType=row.visit_type ?? "in-person"`; status=`upcoming` when invalid date else `completed` if past; carries `whenIso=row.start_at`, `source:"self"`.
-- `providerRowToCard(row, now)`: same date/status logic on `scheduled_at`; `source:"provider"`.
-- Re-export `appointmentRowToAppointment = dbAppointmentToCard` for back-compat.
-- Card type extended with `appointmentType`, `visitType`, `whenIso`, `source`.
+| File                              | Errors |
+| --------------------------------- | -----: |
+| src/screens/JourneyScreen.tsx     |      4 |
+| src/components/TransportCard.tsx  |      2 |
+| src/hooks/useTransportTimeline.ts |      1 |
 
-## 4. Hooks
-
-- `src/hooks/useDomainData.ts`: already accepts `enabled` flag — verify it skips `listCached`/`refresh` when false (current code does — keep).
-- `src/hooks/useAppointments.ts`: pass `!isGuest` (already does — keep).
-- `src/hooks/useProviderAppointments.ts`: add a `skip` param (or read `useGuestMode()`); when guest → return empty list, no fetch. Restrict select to `id,title,location,scheduled_at,notes,status,appointment_type,visit_type,patient_device_id,organization_id,author_id,created_at`.
-
-## 5. JourneyScreen — `src/screens/JourneyScreen.tsx`
-
-- Use `useAppointments()` for self rows + `useProviderAppointments()` for provider rows; map both via shared helpers.
-- Guest branch: keep local-only demo list, skip both hooks' data.
-- Merge + sort by `whenIso` UTC ms with stable `id` tiebreaker.
-- `AppointmentsTab` submit handler:
-  - Signed-in: `await save(appointmentFormToRowInput(form))`; close on success; on failure keep sheet open + toast.
-  - Guest: append to local list only.
-- Cards render: status badge, `FROM PROVIDER` badge for provider source, chips for visit type + appointment kind, TBD fallbacks.
-- Export `AppointmentsTab` for tests.
-
-## 6. AppointmentFormSheet — `src/components/AppointmentFormSheet.tsx`
-
-- Expand specialty list, add search input, allow custom value when no match.
-- `onSubmit` becomes async-aware: local `submitting` state, await parent, only close on resolved success; on throw keep open.
-
-## 7. HomeScreen — `src/screens/HomeScreen.tsx`
-
-- Signed-in: derive upcoming appointments from `useAppointments().items` mapped via `dbAppointmentToCard` (filter `status==="upcoming"`, sort by whenIso, slice 3). No demo data for signed-in users.
-- Add "+ Add" and "View all" in `UpcomingAppointmentsList` header; add "Add Appointment" tile to quick actions; both navigate to Journey appointments tab with intent to open form (e.g. via `setActiveTab("journey")` + a query/state flag the JourneyScreen reads to auto-open `AppointmentFormSheet`).
-
-## 8. UnifiedTimeline — `src/components/journey/UnifiedTimeline.tsx`
-
-- Update `buildTimelineItems` to:
-  - Drop items with missing/invalid `whenIso` (already does).
-  - Dev-only `console.warn` once per render when items are dropped.
-  - Sort by `when.getTime()`, then by kind priority `flight < physician < lab < radiology < appointment`, then by `id`.
-
-## 9. Tests
-
-- `src/lib/__tests__/appointmentRows.test.ts`: form→row payload; row→card chips/status/date/time; provider row→card; invalid date → TBD/TBD/upcoming.
-- `src/components/journey/__tests__/UnifiedTimeline.test.tsx`: extend with mixed-zone monotonic sort, equal-timestamp tiebreaker (flight<physician<lab), invalid drop.
-- `src/screens/__tests__/JourneyScreen.appointments.e2e.test.tsx` (new):
-  - signed-in self-add → `save` called once with `appointment_type:"physician"`, `visit_type:"in-person"`, ISO `start_at`.
-  - provider lab/clinic row → renders `FROM PROVIDER` + Lab + Clinic chips + local date/time.
-  - guest submit → `save` not called; provider rows absent.
-  - missing start_at/visit_type → TBD/TBD/In-person/upcoming.
-- Mock `useAppointments`, `useProviderAppointments`, `useGuestMode`, `getDeviceId`.
-
-## 10. Verification
-
-Run only the targeted tests + typecheck (skip full `npm test`/`build`/`lint` per project guidance — harness handles those):
-
-- `npx vitest run src/lib/__tests__/appointmentRows.test.ts src/components/journey/__tests__/UnifiedTimeline.test.tsx src/screens/__tests__/JourneyScreen.appointments.e2e.test.tsx`
-- `npx tsc --noEmit`  
-Review the current implementation of Appointment Persistence & Timeline Hardening. Do not rewrite unless necessary. Verify that:
-  1. signed-in appointment submit persists via useAppointments().save,
-  2. guest appointments remain local only,
-  3. provider appointments merge only for signed-in users,
-  4. appointment_type and visit_type are stored separately,
-  5. date/time/status mapping uses the shared appointmentRows helpers,
-  6. Home and Journey use persisted appointment rows,
-  7. UnifiedTimeline sorts by UTC ms with stable tiebreakers,
-  8. tests cover self-add, provider merge, guest isolation, fallback mapping, timezone ordering, and tiebreakers.
-  If anything is missing, make the smallest patch only.
-  Run:
-  - npx vitest run src/lib/__tests__/appointmentRows.test.ts src/components/journey/__tests__/UnifiedTimeline.test.tsx src/screens/__tests__/JourneyScreen.appointments.e2e.test.tsx
-  - npx tsc --noEmit
-
-## Files touched
-
-- New: migration sql, `JourneyScreen.appointments.e2e.test.tsx`
-- Edit: `appointmentApi.ts`, `schemas.ts`, `appointmentRows.ts`, `useProviderAppointments.ts`, `JourneyScreen.tsx`, `AppointmentFormSheet.tsx`, `HomeScreen.tsx`, `UnifiedTimeline.tsx`, `appointmentRows.test.ts`, `UnifiedTimeline.test.tsx`
+First errors:
+- src/screens/JourneyScreen.tsx:837 — TS2304 Cannot find name 'JourneyTimelineMount'.
+- src/components/TransportCard.tsx:61 — TS2300 Duplicate identifier 'extraction'.
+...
+```
 
 ## Out of scope
 
-- Provider dashboard changes (already handled in prior task).
-- Flight/transport timeline edits beyond ordering.
-- Auth/role changes.
+- No changes to lint, test, build steps.
+- No changes to tsconfig or source files.
+- No new CI jobs — keeps the existing single job to preserve concurrency/cancel behavior.
+
+## Verification
+
+- Run `bun run typecheck` locally to confirm the script works.
+- Open a throwaway PR with one intentional type error to confirm the annotation appears on the diff and the Step Summary renders.
