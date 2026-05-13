@@ -93,7 +93,30 @@ describe("HomeScreen", () => {
       ],
     });
     render(<HomeScreen onNavigate={vi.fn()} onProfile={() => {}} />);
-    // ACTIVE TRIP banner appears for the active one
     expect(screen.getByText(/ACTIVE TRIP — BERLIN/i)).toBeInTheDocument();
+  });
+
+  it("renders specialty emoji + specialty text on the active card", () => {
+    mockJourneys.mockReturnValue({
+      journeys: [sampleTrip({ specialtyEmoji: "❤️", specialty: "Cardiology" })],
+    });
+    render(<HomeScreen onNavigate={vi.fn()} onProfile={() => {}} />);
+    expect(screen.getByText(/❤️\s*Cardiology/)).toBeInTheDocument();
+  });
+
+  it("renders Arabic subline and date range on the active card", () => {
+    mockJourneys.mockReturnValue({ journeys: [sampleTrip()] });
+    render(<HomeScreen onNavigate={vi.fn()} onProfile={() => {}} />);
+    expect(screen.getByText("رحلتك العلاجية الحالية")).toBeInTheDocument();
+    expect(screen.getByText(/May 1.*→.*May 15/)).toBeInTheDocument();
+  });
+
+  it("renders Journey/Days Left/Companion stats and not the redesigned Total stat", () => {
+    mockJourneys.mockReturnValue({ journeys: [sampleTrip()] });
+    render(<HomeScreen onNavigate={vi.fn()} onProfile={() => {}} />);
+    expect(screen.getByText(/Journey$|Journeys$/)).toBeInTheDocument();
+    expect(screen.getByText("Days Left")).toBeInTheDocument();
+    expect(screen.getByText("Companion")).toBeInTheDocument();
+    expect(screen.queryByText(/^Total$/)).toBeNull();
   });
 });
