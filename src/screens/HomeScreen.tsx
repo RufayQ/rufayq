@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
-import { CreditCard, Wallet } from "lucide-react";
+import { CreditCard, Wallet, MapPin, Video, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { medications, appointments } from "@/constants/data";
 import type { TripData } from "@/components/AddTripSheet";
