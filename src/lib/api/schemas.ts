@@ -23,6 +23,7 @@ export const appointmentSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(1),
   appointment_type: z.string().nullable().optional(),
+  visit_type: z.string().nullable().optional(),
   start_at: z.string().nullable().optional(),
   end_at: z.string().nullable().optional(),
 });
