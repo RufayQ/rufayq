@@ -34,7 +34,17 @@ jobs:
         run: bun run lint
 
       - name: Typecheck
-        run: bunx tsc --noEmit
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          bun run typecheck 2>&1 | node scripts/summarize-tsc.mjs
+          status=$?
+          if [ $status -ne 0 ]; then
+            echo "::notice::TypeScript errors detected — see the job summary at the top of this run for a grouped breakdown."
+          fi
+          exit $status
 
       - name: Validate OpenAPI spec
         run: node scripts/validate-openapi.mjs
