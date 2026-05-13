@@ -24,7 +24,7 @@ import { validateLoginRole } from "@/lib/roleValidation";
 import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
 import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
-import HomeScreenEmpty from "@/screens/HomeScreenEmpty";
+
 import TourGuide from "@/components/TourGuide";
 import TourRunner from "@/components/TourRunner";
 import { useFreshStart } from "@/hooks/useFreshStart";
