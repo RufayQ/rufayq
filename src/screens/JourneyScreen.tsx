@@ -943,11 +943,10 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlig
   const [ticketSystemReminders, setTicketSystemReminders] = useState<Record<string, SmartReminder[]>>({});
   const [ticketMutedAlerts, setTicketMutedAlerts] = useState<Record<string, boolean>>({});
 
-  // Filter UI state
-  const [search, setSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [familyOnly, setFamilyOnly] = useState(false);
+  // Filtered segments produced by TicketsFilterBar.
+  const [filteredSegments, setFilteredSegments] = useState<TransportSegment[]>(segments);
+  // Track helicopter-jump highlight so the targeted card flashes briefly.
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const handleToggleAlarm = (segId: string, minutes: number) => {
     setTicketAlarms((prev) => {
@@ -956,22 +955,16 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlig
     });
   };
 
-  // Apply search/date/family filters before grouping
-  const filteredSegments = segments.filter((s) => {
-    if (familyOnly && !(s.companions && s.companions.length > 0)) return false;
-    if (dateFrom && new Date(s.departureDateTime) < new Date(dateFrom)) return false;
-    if (dateTo && new Date(s.departureDateTime) > new Date(`${dateTo}T23:59:59`)) return false;
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      const hay = [
-        s.airline, s.flightNumber, s.trainNumber, s.busNumber,
-        s.fromCity, s.toCity, s.fromCode, s.toCode, s.bookingRef,
-      ].filter(Boolean).join(" ").toLowerCase();
-      if (!hay.includes(q)) return false;
+  const handleHelicopterJump = (seg: TransportSegment) => {
+    const el = document.querySelector(`[data-ticket-id="${seg.id}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightId(seg.id);
+      window.setTimeout(() => setHighlightId((cur) => (cur === seg.id ? null : cur)), 1600);
+    } else {
+      setSelectedSeg(seg);
     }
-    return true;
-  });
-  const familyCount = segments.filter(s => (s.companions?.length || 0) > 0).length;
+  };
 
   return (
     <div className="pt-2">
