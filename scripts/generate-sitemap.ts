@@ -35,6 +35,9 @@ const STATIC_ROUTES: RouteEntry[] = [
   { en: "/privacy",     ar: "/ar/privacy",    priority: 0.5, changefreq: "monthly" },
   { en: "/terms",       ar: "/ar/terms",      priority: 0.5, changefreq: "monthly" },
   { en: "/security",    ar: "/ar/security",   priority: 0.5, changefreq: "monthly" },
+  { en: "/conditions/cancer-treatment-abroad",          ar: "/ar/conditions/cancer-treatment-abroad",          priority: 0.7, changefreq: "monthly" },
+  { en: "/destinations/germany-medical-treatment",      ar: "/ar/destinations/germany-medical-treatment",      priority: 0.7, changefreq: "monthly" },
+  { en: "/guides/medical-visa-germany-saudi-citizens",  ar: "/ar/guides/medical-visa-germany-saudi-citizens",  priority: 0.7, changefreq: "monthly" },
 ];
 
 const slugify = (s: string) =>
