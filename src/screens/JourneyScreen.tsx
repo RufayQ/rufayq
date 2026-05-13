@@ -1614,7 +1614,34 @@ const StepsTab = ({
   </div>
 );
 
-/** Card model used by the existing renderApptCard view; gets a `source` tag. */
+/* ─── JOURNEY TIMELINE MOUNT — unified flights + appointments ─── */
+const JourneyTimelineMount = ({ activeTrip }: { activeTrip: TripData | null }) => {
+  const isGuest = useGuestMode();
+  const { items: dbRows } = useAppointments();
+  const { appointments: providerRows } = useProviderAppointments();
+  if (isGuest) return null;
+  const inputs = [
+    ...dbRows.filter((r) => !r.deleted_at).map((r) => ({
+      id: r.id,
+      kind: ((r.appointment_type as any) || "appointment") as "physician" | "lab" | "radiology" | "appointment",
+      whenIso: r.start_at,
+      title: r.doctor_name || r.title || "Appointment",
+      subtitle: r.facility_name || r.location || undefined,
+      source: "self" as const,
+    })),
+    ...providerRows.map((r) => ({
+      id: r.id,
+      kind: ((r.appointment_type as any) || "appointment") as "physician" | "lab" | "radiology" | "appointment",
+      whenIso: r.scheduled_at,
+      title: r.title,
+      subtitle: r.location || undefined,
+      source: "provider" as const,
+    })),
+  ];
+  return <UnifiedTimeline activeTrip={activeTrip} appointments={inputs} />;
+};
+
+
 type AppointmentCardModel = Appointment & { source?: "self" | "provider" };
 
 const fmtCardDate = (d: Date) =>
