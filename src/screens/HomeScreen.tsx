@@ -13,8 +13,7 @@ import EmptyJourneyCard from "@/components/home/EmptyJourneyCard";
 import ActiveTripCard from "@/components/home/ActiveTripCard";
 import OtherJourneysList from "@/components/home/OtherJourneysList";
 import DischargeAlertBanner from "@/components/home/DischargeAlertBanner";
-import UpcomingAppointmentsList from "@/components/home/UpcomingAppointmentsList";
-import TodayMedicationsList from "@/components/home/TodayMedicationsList";
+import type { Medication } from "@/constants/data";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
 
 function daysBetween(a?: string | null, b?: string | null): number | null {
