@@ -101,6 +101,13 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
     setRecordingTime(0);
   }, []);
 
+  /**
+   * Minimum visible duration for the typing indicator.
+   * Designed to give the bilingual bubble + RTL spacing time to settle
+   * and to avoid jarring instant replies when the AI streams quickly.
+   */
+  const MIN_TYPING_MS = 1800;
+
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
 
@@ -123,6 +130,12 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
+    const typingStartedAt = Date.now();
+    const waitForMinTyping = async () => {
+      const elapsed = Date.now() - typingStartedAt;
+      const remaining = MIN_TYPING_MS - elapsed;
+      if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
+    };
 
     // Build message history for AI
     const allMessages = [...messages, userMsg];
