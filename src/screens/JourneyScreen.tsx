@@ -1600,7 +1600,7 @@ const StepsTab = ({
   expanded, setExpanded, activeTrip, trips, steps,
   flashStepId, flashTripId, dragStepId, setDragStepId, onReorderStep,
   onAddTrip, onEditTrip, onEditStep, onAddStep,
-  registerStepRef, onJumpToStep,
+  registerStepRef, onJumpToStep, nextAppointment,
 }: {
   expanded: number | null;
   setExpanded: (v: number | null) => void;
