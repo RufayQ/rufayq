@@ -70,6 +70,8 @@ export interface JourneyOverview {
   nextMedication: DashboardMedication | null;
   todayMedications: DashboardMedication[];
   upcomingAppointments: Appointment[];
+  /** All known appointments (persisted or demo), sorted chronologically. Used to resolve milestone refIds. */
+  allAppointments: Appointment[];
   milestones: JourneyMilestone[];
   alerts: DashboardAlert[];
 }
