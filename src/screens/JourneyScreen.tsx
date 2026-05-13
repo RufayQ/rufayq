@@ -1763,7 +1763,7 @@ const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => 
     }
   };
 
-  const renderApptCard = (apt: Appointment) => {
+  const renderApptCard = (apt: AppointmentCardModel) => {
     const sb = statusBadge(apt.status);
     return (
       <div key={apt.id} className="rounded-xl p-4 card-press" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
@@ -1777,9 +1777,12 @@ const AppointmentsTab = ({ onOpenScanner }: { onOpenScanner?: (cat?: string) => 
               <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0 ml-2" style={{ background: sb.bg, color: sb.color }}>{sb.label}</span>
             </div>
             <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{apt.doctorNameAr}</p>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>{apt.specialty}</span>
               <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>{typeLabel(apt.type)}</span>
+              {apt.source === "provider" && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono" style={{ background: "var(--gold-pale)", color: "var(--gold)" }}>FROM PROVIDER</span>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-1.5">
               <span className="font-mono text-[10px]" style={{ color: "var(--teal-deep)" }}>📅 {apt.date}</span>
