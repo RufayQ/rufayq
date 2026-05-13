@@ -10,6 +10,7 @@ import TodayCard from "@/components/home/TodayCard";
 import MiniHelicopterStrip from "@/components/home/MiniHelicopterStrip";
 import AlertsStack from "@/components/home/AlertsStack";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
+import { derivePhase } from "@/components/home/journeyPhase";
 
 interface HomeScreenProps {
   onNavigate: (tab: string, context?: string) => void;
@@ -20,7 +21,8 @@ interface HomeScreenProps {
 const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps) => {
   const { patientName, patientNameAr } = usePatientName();
   const overview = useJourneyOverview({ isGuest });
-  const { activeTrip, milestones, alerts } = overview;
+  const { activeTrip, milestones, alerts, dayN, totalDays } = overview;
+  const phase = activeTrip ? derivePhase(dayN, totalDays) : undefined;
 
   const homeMenuItems: HomeHeaderMenuItem[] = [
     { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: () => { window.location.reload(); } },
@@ -51,6 +53,7 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
         patientNameAr={patientNameAr}
         onProfile={onProfile}
         menuItems={homeMenuItems}
+        phase={phase}
       />
 
       <div
