@@ -649,7 +649,15 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
         {activeSubTab === "tickets" && (
           <>
             <FlightTripSummary segments={transportSegments} />
-            <TicketsTab segments={transportSegments} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} onRescan={rescanFlightTicket} />
+            <TicketsTab
+              segments={transportSegments}
+              onAdd={() => setShowAddTransport(true)}
+              onScan={() => onOpenScanner?.("flight")}
+              onReplicate={handleReplicateSegment}
+              onRescan={rescanFlightTicket}
+              onEditFlight={(seg) => { setIsNewSegment(false); setEditingSegment(seg); }}
+              onDeleteFlight={(ticketId) => setPendingDeleteTicketId(ticketId)}
+            />
           </>
         )}
         {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
@@ -935,11 +943,10 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlig
   const [ticketSystemReminders, setTicketSystemReminders] = useState<Record<string, SmartReminder[]>>({});
   const [ticketMutedAlerts, setTicketMutedAlerts] = useState<Record<string, boolean>>({});
 
-  // Filter UI state
-  const [search, setSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [familyOnly, setFamilyOnly] = useState(false);
+  // Filtered segments produced by TicketsFilterBar.
+  const [filteredSegments, setFilteredSegments] = useState<TransportSegment[]>(segments);
+  // Track helicopter-jump highlight so the targeted card flashes briefly.
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const handleToggleAlarm = (segId: string, minutes: number) => {
     setTicketAlarms((prev) => {
@@ -948,22 +955,16 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlig
     });
   };
 
-  // Apply search/date/family filters before grouping
-  const filteredSegments = segments.filter((s) => {
-    if (familyOnly && !(s.companions && s.companions.length > 0)) return false;
-    if (dateFrom && new Date(s.departureDateTime) < new Date(dateFrom)) return false;
-    if (dateTo && new Date(s.departureDateTime) > new Date(`${dateTo}T23:59:59`)) return false;
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      const hay = [
-        s.airline, s.flightNumber, s.trainNumber, s.busNumber,
-        s.fromCity, s.toCity, s.fromCode, s.toCode, s.bookingRef,
-      ].filter(Boolean).join(" ").toLowerCase();
-      if (!hay.includes(q)) return false;
+  const handleHelicopterJump = (seg: TransportSegment) => {
+    const el = document.querySelector(`[data-ticket-id="${seg.id}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightId(seg.id);
+      window.setTimeout(() => setHighlightId((cur) => (cur === seg.id ? null : cur)), 1600);
+    } else {
+      setSelectedSeg(seg);
     }
-    return true;
-  });
-  const familyCount = segments.filter(s => (s.companions?.length || 0) > 0).length;
+  };
 
   return (
     <div className="pt-2">
@@ -976,56 +977,19 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlig
           <p className="font-arabic text-[8px]" dir="rtl" style={{ color: "var(--error)" }}>جميع معلومات النقل مُدخلة يدوياً. تحقق من شركة النقل مباشرة.</p>
         </div>
 
-        {/* Search + filter controls */}
-        <div className="mt-3 space-y-2">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search airline, flight #, city, PNR…"
-            className="w-full px-3 py-2 rounded-lg text-[12px] outline-none"
-            style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
-          />
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <p className="font-mono text-[8px] tracking-wider mb-0.5" style={{ color: "var(--gray)" }}>FROM</p>
-              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-[11px] outline-none"
-                style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
-            </div>
-            <div className="flex-1">
-              <p className="font-mono text-[8px] tracking-wider mb-0.5" style={{ color: "var(--gray)" }}>TO</p>
-              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-[11px] outline-none"
-                style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-1.5 items-center">
-            <button
-              onClick={() => setFamilyOnly(v => !v)}
-              className="text-[10px] font-bold px-2.5 py-1 rounded-full btn-press transition-all"
-              style={{
-                background: familyOnly ? "var(--gold)" : "var(--white)",
-                color: familyOnly ? "white" : "var(--navy)",
-                border: `1px solid ${familyOnly ? "var(--gold)" : "var(--gray-light)"}`,
-              }}
-            >
-              👨‍👩‍👧‍👦 Family / Companion {familyCount > 0 ? `· ${familyCount}` : ""}
-            </button>
-            {(search || dateFrom || dateTo || familyOnly) && (
-              <button
-                onClick={() => { setSearch(""); setDateFrom(""); setDateTo(""); setFamilyOnly(false); }}
-                className="text-[10px] px-2 py-1 rounded-full btn-press"
-                style={{ color: "var(--teal-deep)" }}
-              >
-                ✕ Clear
-              </button>
-            )}
-            <span className="ml-auto font-mono text-[9px]" style={{ color: "var(--gray)" }}>
-              {filteredSegments.length} / {segments.length}
-            </span>
-          </div>
-        </div>
       </div>
+
+      {/* Refined search + filter bar (debounced, persisted, advanced filters) */}
+      <TicketsFilterBar
+        segments={segments}
+        onChange={(filtered) => setFilteredSegments(filtered)}
+      />
+
+      {/* Helicopter view — iconic single-rail overview of all transport */}
+      <JourneyHelicopterTimeline
+        segments={filteredSegments}
+        onNodeClick={handleHelicopterJump}
+      />
       {(() => {
         const now = Date.now();
         const annotated = filteredSegments.map((s) => {
@@ -1057,7 +1021,16 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlig
               <div className="h-px flex-1" style={{ background: "var(--gray-light)" }} />
             </div>
             {sec.items.map(({ seg, group }) => (
-              <div key={seg.id} style={{ opacity: group === "past" ? 0.85 : 1 }}>
+              <div
+                key={seg.id}
+                data-ticket-id={seg.id}
+                style={{
+                  opacity: group === "past" ? 0.85 : 1,
+                  transition: "box-shadow 300ms ease, transform 300ms ease",
+                  boxShadow: highlightId === seg.id ? "0 0 0 2px var(--gold)" : "none",
+                  borderRadius: 16,
+                }}
+              >
                 <div className="relative">
                   {group === "past" && (
                     <div className="absolute top-2 right-6 z-10 flex items-center gap-1 px-2 py-1 rounded-full" style={{ background: "rgba(0,0,0,0.7)" }}>
@@ -1122,6 +1095,8 @@ const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlig
           onUpdateSystemReminders={(reminders) => setTicketSystemReminders((prev) => ({ ...prev, [selectedSeg.id]: reminders }))}
           systemAlertsMuted={ticketMutedAlerts[selectedSeg.id] || false}
           onToggleSystemAlertsMuted={() => setTicketMutedAlerts((prev) => ({ ...prev, [selectedSeg.id]: !prev[selectedSeg.id] }))}
+          onEdit={selectedSeg.type === "flight" && onEditFlight ? () => { onEditFlight(selectedSeg); setSelectedSeg(null); } : undefined}
+          onDelete={selectedSeg.type === "flight" && selectedSeg.groupId && onDeleteFlight ? () => { onDeleteFlight(selectedSeg.groupId!); setSelectedSeg(null); } : undefined}
           onRescan={onRescan && selectedSeg.groupId ? async () => {
             try {
               const updated = await onRescan(selectedSeg.groupId!);
