@@ -17,6 +17,21 @@ import UpcomingAppointmentsList from "@/components/home/UpcomingAppointmentsList
 import TodayMedicationsList from "@/components/home/TodayMedicationsList";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
 
+function daysBetween(a?: string | null, b?: string | null): number | null {
+  if (!a || !b) return null;
+  const d1 = new Date(a);
+  const d2 = new Date(b);
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null;
+  return Math.max(0, Math.round((d2.getTime() - d1.getTime()) / 86400000));
+}
+
+function formatDate(iso?: string | null): string {
+  if (!iso) return "TBD";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 interface HomeScreenProps {
   onNavigate: (tab: string, context?: string) => void;
   onProfile: () => void;
@@ -57,6 +72,21 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
     () => journeys.filter((j) => j.id !== activeTrip?.id).slice(0, 3),
     [journeys, activeTrip?.id],
   );
+
+  const journeyCount = journeys.length;
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const totalDays = daysBetween(activeTrip?.departureDate, activeTrip?.returnDate);
+  const dayNRaw = daysBetween(activeTrip?.departureDate, todayIso);
+  const dayN =
+    dayNRaw == null ? null : totalDays != null ? Math.min(dayNRaw, totalDays) : dayNRaw;
+  const daysLeft =
+    totalDays != null && dayN != null ? Math.max(0, totalDays - dayN) : null;
+  const progressPct =
+    totalDays && totalDays > 0 && dayN != null
+      ? Math.max(8, Math.min(100, Math.round((dayN / totalDays) * 100)))
+      : 20;
+  const formattedDepartureDate = formatDate(activeTrip?.departureDate);
+  const formattedReturnDate = formatDate(activeTrip?.returnDate);
 
   const todayMeds = medications.filter((_, i) => i < 3);
   const upcomingAppts = appointments.filter((a) => a.status === "upcoming").slice(0, 2);
@@ -102,6 +132,11 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
           <>
             <ActiveTripCard
               trip={activeTrip}
+              journeyCount={journeyCount}
+              daysLeft={daysLeft}
+              progressPct={progressPct}
+              formattedDepartureDate={formattedDepartureDate}
+              formattedReturnDate={formattedReturnDate}
               onViewJourney={() => onNavigate("journey", "view")}
               onNewTrip={() => onNavigate("journey", "new-trip")}
             />
