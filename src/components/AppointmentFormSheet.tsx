@@ -195,11 +195,11 @@ const AppointmentFormSheet = ({ open, onClose, onSubmit, onScan }: {
             <>
               <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>APPOINTMENT TYPE · نوع الموعد</p>
               <div className="grid grid-cols-3 gap-2">
-                {[
+                {([
                   { value: "physician", emoji: "🩺", en: "Physician", ar: "طبيب" },
                   { value: "lab", emoji: "🔬", en: "Laboratory", ar: "مختبر" },
                   { value: "radiology", emoji: "🩻", en: "Radiology", ar: "أشعة" },
-                ].map(t => (
+                ] as const).map(t => (
                   <button key={t.value} onClick={() => { setAppointmentType(t.value); setStep(2); }}
                     className="rounded-xl py-4 flex flex-col items-center gap-1.5 card-press"
                     style={{ background: appointmentType === t.value ? "var(--teal-light)" : "var(--off-white)", border: appointmentType === t.value ? "2px solid var(--teal-deep)" : "1px solid var(--gray-light)" }}>
@@ -212,11 +212,11 @@ const AppointmentFormSheet = ({ open, onClose, onSubmit, onScan }: {
 
               <p className="font-mono text-[9px] tracking-widest mt-2" style={{ color: "var(--gold)" }}>VISIT TYPE · نوع الزيارة</p>
               <div className="grid grid-cols-3 gap-2">
-                {[
+                {([
                   { value: "in-person", emoji: "🏥", en: "Hospital", ar: "مستشفى" },
                   { value: "clinic", emoji: "🏢", en: "Clinic", ar: "عيادة" },
                   { value: "telemedicine", emoji: "💻", en: "Telemedicine", ar: "عن بُعد" },
-                ].map(t => (
+                ] as const).map(t => (
                   <button key={t.value} onClick={() => setVisitType(t.value)}
                     className="rounded-xl py-3 flex flex-col items-center gap-1 card-press"
                     style={{ background: visitType === t.value ? "var(--teal-light)" : "var(--off-white)", border: visitType === t.value ? "2px solid var(--teal-deep)" : "1px solid var(--gray-light)" }}>

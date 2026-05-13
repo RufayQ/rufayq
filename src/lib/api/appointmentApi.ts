@@ -8,6 +8,7 @@ export interface AppointmentRow {
   client_generated_id: string | null;
   title: string;
   appointment_type: string | null;
+  visit_type: string | null;
   facility_name: string | null;
   doctor_name: string | null;
   specialty: string | null;

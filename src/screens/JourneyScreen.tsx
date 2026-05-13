@@ -4,8 +4,6 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard, Wallet, Archive, CalendarClock } from "lucide-react";
 import { defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
 import { useJourneys } from "@/hooks/useJourneys";
-import { useAppointments } from "@/hooks/useAppointments";
-import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { useJourneySteps } from "@/hooks/useJourneySteps";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useGuestMode } from "@/hooks/useGuestMode";
@@ -22,23 +20,8 @@ import {
   segmentToFlightInfo as legacyFromSegment,
   inferTripType,
   findDuplicateTickets,
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-  type DuplicateMatch,
-=======
   type DuplicateTicketMatch,
->>>>>>> theirs
-=======
-  type DuplicateTicketMatch,
->>>>>>> theirs
-=======
-  type DuplicateTicketMatch,
->>>>>>> theirs
 } from "@/lib/transportTickets";
-import DuplicateTicketDialog from "@/components/DuplicateTicketDialog";
-import TicketsFilterBar, { applyTicketFilters, type TicketFilterState } from "@/components/TicketsFilterBar";
-import JourneyHelicopterTimeline from "@/components/JourneyHelicopterTimeline";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useAppointments } from "@/hooks/useAppointments";
 import type { AppointmentRow } from "@/lib/api/appointmentApi";
@@ -65,7 +48,8 @@ import type { TicketExtractionMetadata } from "@/lib/transportTickets";
 import DuplicateTicketDialog from "@/components/DuplicateTicketDialog";
 import TicketsFilterBar, { defaultTicketsFilterState, loadTicketsFilterState, type TicketsFilterState, type TicketQuickFilter } from "@/components/TicketsFilterBar";
 import JourneyHelicopterTimeline from "@/components/JourneyHelicopterTimeline";
-import { appointmentFormToRowInput, appointmentRowToAppointment, sortAppointmentRowsByStart } from "@/lib/appointmentRows";
+import { appointmentFormToRowInput, appointmentRowToAppointment, sortAppointmentRowsByStart, type AppointmentCardModel } from "@/lib/appointmentRows";
+import { type DuplicateMatch } from "@/lib/transportTickets";
 
 
 const rescanProviderLabel = (provider?: string) =>
@@ -141,35 +125,9 @@ const stayTypeOptions = [
   { icon: "🏥", en: "Hospital Stay", ar: "إقامة مستشفى" },
 ];
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-const JourneyScreen = ({
-  onOpenScanner,
-  onNavigate,
-  initialIntent,
-  onIntentHandled,
-}: {
-  onOpenScanner?: (cat?: string) => void;
-  onNavigate?: (tab: string) => void;
-  initialIntent?: "new-trip" | "view" | null;
-  onIntentHandled?: () => void;
-}) => {
-=======
 type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | null;
 
 const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
->>>>>>> theirs
-=======
-type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | null;
-
-const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
->>>>>>> theirs
-=======
-type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | null;
-
-const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
->>>>>>> theirs
   const isGuest = useGuestMode();
   const { categories: guestCats } = useGuestCategories();
   const { items: appointmentRows, save: saveAppointment } = useAppointments();
@@ -205,18 +163,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     updateTicket: updateFlightTicket,
     removeTicket: removeFlightTicket,
     rescan: rescanFlightTicket,
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-=======
     userId,
->>>>>>> theirs
-=======
-    userId,
->>>>>>> theirs
-=======
-    userId,
->>>>>>> theirs
   } = useTransportTimeline();
   const handleRescanFlightTicket = async (ticketId: string): Promise<TransportTicket> => {
     try {
@@ -300,24 +247,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     /** Pre-allocated id used for the FIRST resulting segment so any
      *  related-document attachments uploaded in the wizard stay linked. */
     pendingSegmentRef?: string;
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-    /** Raw analyzed image data URLs (before upload to private storage). */
-    pageImages?: string[];
-    /** AI extraction metadata captured by the scanner. */
-    extraction?: {
-      provider: "openai" | "gemini";
-      confidence?: number | null;
-      detectedLanguage?: string | null;
-      translated?: boolean;
-      runAt?: string | null;
-    };
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
     pageImages?: string[];
     extraction?: TicketExtractionMetadata;
   } | null>(null);
@@ -325,13 +254,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     ticket: TransportTicket;
     matches: DuplicateTicketMatch[];
     reopenPendingScan?: typeof pendingScan;
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   } | null>(null);
 
   const persistFlightTicketWithDuplicateGuard = (ticket: TransportTicket, reopenPendingScan?: typeof pendingScan) => {
@@ -516,35 +438,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       extraction: source === "ocr" && pendingScan?.extraction ? pendingScan.extraction : null,
       sourceImagePaths,
       createdAt: new Date().toISOString(),
-      extraction: pendingScan?.source === "manual" ? null : pendingScan?.extraction ?? null,
-      sourceImagePaths: [],
       updatedAt: new Date().toISOString(),
     };
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-    // Duplicate detection — confirm with user before saving when there's
-    // an overlap with an existing flight ticket.
-    const dupes = findDuplicateTickets(ticket, flightTickets);
-    if (dupes.length > 0) {
-      setPendingDuplicate({ ticket, matches: dupes, out, ret });
-      return;
-    }
-    await commitTicket(ticket, out, ret);
-  };
-
-  const commitTicket = async (
-    ticket: TransportTicket,
-    out: FlightInfo | null,
-    ret: FlightInfo | null,
-  ) => {
-    void addFlightTicket(ticket);
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
     const duplicateMatches = findDuplicateTickets(ticket, flightTickets);
     if (duplicateMatches.length > 0) {
       setDuplicateTicketDecision({ ticket, matches: duplicateMatches, reopenPendingScan: pendingScan });
@@ -567,17 +463,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       }
       await addFlightTicket(ticket);
     })();
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
     setActiveSubTab("tickets");
 
-    const outboundSegs = ticket.outboundSegments;
-    const returnSegs = ticket.returnSegments;
     const first = outboundSegs[0] || returnSegs[0];
     toast.success(
       ticket.source === "manual"
@@ -952,27 +839,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         {activeSubTab === "tickets" && (
           <>
             <FlightTripSummary segments={transportSegments} />
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-            <TicketsTab
-              segments={transportSegments}
-              onAdd={() => setShowAddTransport(true)}
-              onScan={() => onOpenScanner?.("flight")}
-              onReplicate={handleReplicateSegment}
-              onRescan={rescanFlightTicket}
-              onEditFlight={(seg) => { setIsNewSegment(false); setEditingSegment(seg); }}
-              onDeleteFlight={(ticketId) => setPendingDeleteTicketId(ticketId)}
-            />
-=======
             <TicketsTab segments={transportSegments} tickets={flightTickets} onRescanTicket={handleRescanFlightTicket} onEditSegment={(seg) => { setIsNewSegment(false); setEditingSegment(seg); }} onDeleteSegment={handleDeleteTransportSegment} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />
->>>>>>> theirs
-=======
-            <TicketsTab segments={transportSegments} tickets={flightTickets} onRescanTicket={handleRescanFlightTicket} onEditSegment={(seg) => { setIsNewSegment(false); setEditingSegment(seg); }} onDeleteSegment={handleDeleteTransportSegment} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />
->>>>>>> theirs
-=======
-            <TicketsTab segments={transportSegments} tickets={flightTickets} onRescanTicket={handleRescanFlightTicket} onEditSegment={(seg) => { setIsNewSegment(false); setEditingSegment(seg); }} onDeleteSegment={handleDeleteTransportSegment} onAdd={() => setShowAddTransport(true)} onScan={() => onOpenScanner?.("flight")} onReplicate={handleReplicateSegment} />
->>>>>>> theirs
           </>
         )}
         {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
@@ -1131,43 +998,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         segment={editingSegment}
         onCancel={() => { setEditingSegment(null); setIsNewSegment(false); }}
         onSave={(seg) => {
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-          // Flight edits — route back into the persisted ticket store via
-          // updateFlightTicket so changes survive reload/sign-out.
-          if (seg.type === "flight" && seg.groupId) {
-            void updateFlightTicket(seg.groupId, (t) => {
-              const mutate = (segs: FlightSegment[]): FlightSegment[] =>
-                segs.map((fs) => fs.id !== seg.id ? fs : {
-                  ...fs,
-                  airline: seg.airline || fs.airline,
-                  flightNumber: seg.flightNumber || fs.flightNumber,
-                  fromAirport: { ...fs.fromAirport, code: seg.fromCode || fs.fromAirport.code, city: seg.fromCity || fs.fromAirport.city, name: seg.fromFull || fs.fromAirport.name },
-                  toAirport: { ...fs.toAirport, code: seg.toCode || fs.toAirport.code, city: seg.toCity || fs.toAirport.city, name: seg.toFull || fs.toAirport.name },
-                  departureDate: (seg.departureDateTime || "").split("T")[0] || fs.departureDate,
-                  departureTime: ((seg.departureDateTime || "").split("T")[1] || "").slice(0, 5) || fs.departureTime,
-                  arrivalDate: (seg.arrivalDateTime || "").split("T")[0] || fs.arrivalDate,
-                  arrivalTime: ((seg.arrivalDateTime || "").split("T")[1] || "").slice(0, 5) || fs.arrivalTime,
-                  cabinClass: seg.seatClass || fs.cabinClass,
-                  pnr: seg.bookingRef || fs.pnr,
-                });
-              return { ...t, outboundSegments: mutate(t.outboundSegments), returnSegments: mutate(t.returnSegments) };
-            }).then(() => toast.success("Flight updated · تم التحديث"))
-              .catch((e) => toast.error(e?.message || "Could not update flight"));
-            setEditingSegment(null);
-            setIsNewSegment(false);
-            return;
-          }
-          setNonFlightSegments(prev => {
-            const exists = prev.some(p => p.id === seg.id);
-            return exists ? prev.map(p => p.id === seg.id ? seg : p) : [...prev, seg];
-          });
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
           if (seg.type === "flight" && seg.groupId) {
             void updateFlightTicket(seg.groupId, (ticket) => applySegmentEditsToTicket(ticket, seg));
           } else {
@@ -1176,13 +1006,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
               return exists ? prev.map(p => p.id === seg.id ? seg : p) : [...prev, seg];
             });
           }
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
           setActiveSubTab("tickets");
           toast.success(isNewSegment ? "Transport added · تم الإضافة" : "Transport updated · تم التحديث");
           setEditingSegment(null);
@@ -1305,19 +1128,7 @@ const AddButton = ({ labelEn, labelAr, onClick }: { labelEn: string; labelAr: st
 );
 
 /* ─── TICKETS TAB ─── */
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-const TicketsTab = ({ segments, onAdd, onScan, onReplicate, onRescan, onEditFlight, onDeleteFlight }: { segments: TransportSegment[]; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void; onRescan?: (ticketId: string) => Promise<import("@/lib/transportTickets").TransportTicket>; onEditFlight?: (seg: TransportSegment) => void; onDeleteFlight?: (ticketId: string) => void }) => {
-=======
 const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDeleteSegment, onAdd, onScan, onReplicate }: { segments: TransportSegment[]; tickets: TransportTicket[]; onRescanTicket: (ticketId: string) => Promise<TransportTicket>; onEditSegment: (seg: TransportSegment) => void; onDeleteSegment: (seg: TransportSegment) => void; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void }) => {
->>>>>>> theirs
-=======
-const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDeleteSegment, onAdd, onScan, onReplicate }: { segments: TransportSegment[]; tickets: TransportTicket[]; onRescanTicket: (ticketId: string) => Promise<TransportTicket>; onEditSegment: (seg: TransportSegment) => void; onDeleteSegment: (seg: TransportSegment) => void; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void }) => {
->>>>>>> theirs
-=======
-const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDeleteSegment, onAdd, onScan, onReplicate }: { segments: TransportSegment[]; tickets: TransportTicket[]; onRescanTicket: (ticketId: string) => Promise<TransportTicket>; onEditSegment: (seg: TransportSegment) => void; onDeleteSegment: (seg: TransportSegment) => void; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void }) => {
->>>>>>> theirs
   const [selectedSeg, setSelectedSeg] = useState<TransportSegment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TransportSegment | null>(null);
   const [ticketNotes, setTicketNotes] = useState<Record<string, string>>({});
@@ -1327,21 +1138,11 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
   const [ticketMutedAlerts, setTicketMutedAlerts] = useState<Record<string, boolean>>({});
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
 
-<<<<<<< ours
   // Filtered segments produced by TicketsFilterBar.
-  const [filteredSegments, setFilteredSegments] = useState<TransportSegment[]>(segments);
   // Track helicopter-jump highlight so the targeted card flashes briefly.
   const [highlightId, setHighlightId] = useState<string | null>(null);
-=======
   // Filter UI state
   const [filters, setFilters] = useState<TicketsFilterState>(() => loadTicketsFilterState());
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 
   const handleToggleAlarm = (segId: string, minutes: number) => {
     setTicketAlarms((prev) => {
@@ -1350,24 +1151,6 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
     });
   };
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-  const handleHelicopterJump = (seg: TransportSegment) => {
-    const el = document.querySelector(`[data-ticket-id="${seg.id}"]`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      setHighlightId(seg.id);
-      window.setTimeout(() => setHighlightId((cur) => (cur === seg.id ? null : cur)), 1600);
-    } else {
-      setSelectedSeg(seg);
-    }
-  };
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   const quickGroup = (segment: TransportSegment): TicketQuickFilter => {
     const now = Date.now();
     const dep = new Date(segment.departureDateTime).getTime();
@@ -1396,13 +1179,6 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
     }
     return true;
   });
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 
   return (
     <div className="pt-2">
@@ -1416,26 +1192,6 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
         </div>
 
       </div>
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-
-      {/* Refined search + filter bar (debounced, persisted, advanced filters) */}
-      <TicketsFilterBar
-        segments={segments}
-        onChange={(filtered) => setFilteredSegments(filtered)}
-      />
-
-      {/* Helicopter view — iconic single-rail overview of all transport */}
-      <JourneyHelicopterTimeline
-        segments={filteredSegments}
-        onNodeClick={handleHelicopterJump}
-      />
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
       <JourneyHelicopterTimeline segments={segments} onSelect={(seg) => {
         setSelectedSeg(seg);
         setLiveAnnouncement(`Selected ${seg.fromCode || seg.fromCity} to ${seg.toCode || seg.toCity}`);
@@ -1454,13 +1210,6 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
           <button onClick={() => setFilters(defaultTicketsFilterState)} className="mt-3 rounded-full px-4 py-2 text-[12px] font-bold btn-press" style={{ background: "var(--teal-deep)", color: "white" }}>Clear filters · <span className="font-arabic">مسح الفلاتر</span></button>
         </div>
       )}
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
       {(() => {
         const now = Date.now();
         const annotated = filteredSegments.map((s) => {
@@ -1581,54 +1330,10 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
           onUpdateSystemReminders={(reminders) => setTicketSystemReminders((prev) => ({ ...prev, [selectedSeg.id]: reminders }))}
           systemAlertsMuted={ticketMutedAlerts[selectedSeg.id] || false}
           onToggleSystemAlertsMuted={() => setTicketMutedAlerts((prev) => ({ ...prev, [selectedSeg.id]: !prev[selectedSeg.id] }))}
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-          onEdit={selectedSeg.type === "flight" && onEditFlight ? () => { onEditFlight(selectedSeg); setSelectedSeg(null); } : undefined}
-          onDelete={selectedSeg.type === "flight" && selectedSeg.groupId && onDeleteFlight ? () => { onDeleteFlight(selectedSeg.groupId!); setSelectedSeg(null); } : undefined}
-          onRescan={onRescan && selectedSeg.groupId ? async () => {
-            try {
-              const updated = await onRescan(selectedSeg.groupId!);
-              const conf = updated.extraction?.confidence;
-              const lang = updated.extraction?.detectedLanguage || "—";
-              const provider = updated.extraction?.provider === "openai" ? "OpenAI" : "Gemini";
-              const pct = typeof conf === "number" ? `${Math.round(conf * 100)}%` : "—";
-              toast.success(`Ticket re-scanned · ${provider} · ${pct} · ${lang.toUpperCase()}`, {
-                description: "تمت إعادة المسح بنجاح",
-                duration: 4000,
-              });
-              setSelectedSeg(null);
-            } catch (e: any) {
-              console.error("[journey] rescan failed", e);
-              const code: string = e?.code || "unknown";
-              const messages: Record<string, { en: string; ar: string }> = {
-                manual:     { en: "Manual tickets cannot be re-scanned",    ar: "التذاكر اليدوية لا يمكن إعادة مسحها" },
-                "no-images":{ en: "Original scan images are missing",       ar: "صور المسح الأصلية غير متوفرة" },
-                storage:    { en: "Could not load stored scan images",      ar: "تعذر تحميل صور المسح المخزّنة" },
-                extraction: { en: "AI could not extract this ticket",       ar: "تعذر على الذكاء الاصطناعي استخراج البيانات" },
-                save:       { en: "Re-scan succeeded but saving failed",    ar: "تمت إعادة المسح لكن الحفظ فشل" },
-                unknown:    { en: "Re-scan failed · please try again",      ar: "فشلت إعادة المسح · حاول مرة أخرى" },
-              };
-              const msg = messages[code] || messages.unknown;
-              toast.error(msg.en, { description: msg.ar, duration: 4000 });
-            }
-          } : undefined}
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
           ticket={tickets.find((t) => t.id === selectedSeg.groupId)}
           onRescanTicket={onRescanTicket}
           onEdit={() => { onEditSegment(selectedSeg); setSelectedSeg(null); }}
           onDelete={() => { setDeleteTarget(selectedSeg); setSelectedSeg(null); }}
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
         />
       )}
     </div>
@@ -2096,94 +1801,6 @@ const StepsTab = ({
   </div>
 );
 
-<<<<<<< ours
-<<<<<<< ours
-/* ─── JOURNEY TIMELINE MOUNT — unified flights + appointments ─── */
-const JourneyTimelineMount = ({ activeTrip }: { activeTrip: TripData | null }) => {
-  const isGuest = useGuestMode();
-  const { items: dbRows } = useAppointments();
-  const { appointments: providerRows } = useProviderAppointments();
-  if (isGuest) return null;
-  const inputs = [
-    ...dbRows.filter((r) => !r.deleted_at).map((r) => ({
-      id: r.id,
-      kind: ((r.appointment_type as any) || "appointment") as "physician" | "lab" | "radiology" | "appointment",
-      whenIso: r.start_at,
-      title: r.doctor_name || r.title || "Appointment",
-      subtitle: r.facility_name || r.location || undefined,
-      source: "self" as const,
-    })),
-    ...providerRows.map((r) => ({
-      id: r.id,
-      kind: ((r.appointment_type as any) || "appointment") as "physician" | "lab" | "radiology" | "appointment",
-      whenIso: r.scheduled_at,
-      title: r.title,
-      subtitle: r.location || undefined,
-      source: "provider" as const,
-    })),
-  ];
-  return <UnifiedTimeline activeTrip={activeTrip} appointments={inputs} />;
-};
-
-
-type AppointmentCardModel = Appointment & { source?: "self" | "provider" };
-
-const fmtCardDate = (d: Date) =>
-  d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-const fmtCardTime = (d: Date) =>
-  d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-
-const visitTypeToCardType = (v?: string | null): Appointment["type"] =>
-  v === "telemedicine" ? "telemedicine" : v === "clinic" ? "clinic" : "in-person";
-
-const dbAppointmentToCard = (row: AppointmentRow): AppointmentCardModel => {
-  const startIso = row.start_at;
-  const d = startIso ? new Date(startIso) : null;
-  const valid = d && !isNaN(d.getTime());
-  const status: Appointment["status"] = valid && d!.getTime() < Date.now() ? "completed" : "upcoming";
-  return {
-    id: row.id,
-    doctorName: row.doctor_name || row.title || "Appointment",
-    doctorNameAr: row.doctor_name || row.title || "موعد",
-    specialty: row.specialty || row.appointment_type || "Appointment",
-    specialtyAr: row.specialty || row.appointment_type || "موعد",
-    location: row.location || row.facility_name || "TBD",
-    locationAr: row.location || row.facility_name || "لم يحدد",
-    type: visitTypeToCardType((row as any).visit_type),
-    date: valid ? fmtCardDate(d!) : "TBD",
-    time: valid ? fmtCardTime(d!) : "TBD",
-    status,
-    hospital: row.facility_name || undefined,
-    notes: row.notes || undefined,
-    source: "self",
-  };
-};
-
-const providerRowToCard = (row: ProviderAppointmentRow): AppointmentCardModel => {
-  const d = new Date(row.scheduled_at);
-  const valid = !isNaN(d.getTime());
-  const status: Appointment["status"] = valid && d.getTime() < Date.now() ? "completed" : "upcoming";
-  return {
-    id: row.id,
-    doctorName: row.title || "Appointment",
-    doctorNameAr: row.title || "موعد",
-    specialty: row.appointment_type || "Appointment",
-    specialtyAr: row.appointment_type || "موعد",
-    location: row.location || "TBD",
-    locationAr: row.location || "لم يحدد",
-    type: visitTypeToCardType(row.visit_type),
-    date: valid ? fmtCardDate(d) : "TBD",
-    time: valid ? fmtCardTime(d) : "TBD",
-    status,
-    notes: row.notes || undefined,
-    source: "provider",
-  };
-};
-
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 /* ─── APPOINTMENTS TAB ─── */
 const AppointmentsTab = ({
   onOpenScanner,
@@ -2199,32 +1816,6 @@ const AppointmentsTab = ({
   isGuest: boolean;
 }) => {
   const [showAddAppt, setShowAddAppt] = useState(false);
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-
-  // Signed-in users: persist via the appointments domain hook.
-  const { items: dbRows, save: saveAppointment } = useAppointments();
-  // Provider-pushed appointments are read-through via RLS on x-device-id.
-  const { appointments: providerRows } = useProviderAppointments();
-  // Guest demo seed (kept local; never written to DB).
-  const [guestAppts, setGuestAppts] = useState<AppointmentCardModel[]>(
-    isGuest && guestCats.appointments ? appointments.map((a) => ({ ...a, source: "self" as const })) : [],
-  );
-
-  const selfAppts: AppointmentCardModel[] = isGuest
-    ? guestAppts
-    : dbRows.filter((r) => !r.deleted_at).map(dbAppointmentToCard);
-  const providerAppts: AppointmentCardModel[] = isGuest ? [] : providerRows.map(providerRowToCard);
-  const localAppts: AppointmentCardModel[] = [...selfAppts, ...providerAppts];
-
-  const upcomingAppts = localAppts.filter(a => a.status === "upcoming");
-  const pastAppts = localAppts.filter(a => a.status === "completed" || a.status === "cancelled");
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   const [guestAppts, setGuestAppts] = useState<Appointment[]>(appointmentItems);
   const displayedAppts = isGuest ? guestAppts : appointmentItems;
   const upcomingAppts = displayedAppts.filter(a => a.status === "upcoming");
@@ -2237,13 +1828,6 @@ const AppointmentsTab = ({
   useEffect(() => {
     if (isGuest) setGuestAppts(appointmentItems);
   }, [appointmentItems, isGuest]);
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 
   const typeIcon = (type: Appointment["type"]) => {
     if (type === "telemedicine") return <Video size={14} style={{ color: "var(--teal-deep)" }} />;
@@ -2265,45 +1849,15 @@ const AppointmentsTab = ({
 
   const handleAddAppointment = async (data: AppointmentFormData) => {
     if (isGuest) {
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-      const newAppt: AppointmentCardModel = {
-        id: `apt-${Date.now()}`,
-        doctorName: data.doctorName || "TBD",
-=======
       const newAppt: Appointment = {
         id: `apt-${Date.now()}`,
         doctorName: data.doctorName || data.hospital || "Appointment",
->>>>>>> theirs
-=======
-      const newAppt: Appointment = {
-        id: `apt-${Date.now()}`,
-        doctorName: data.doctorName || data.hospital || "Appointment",
->>>>>>> theirs
-=======
-      const newAppt: Appointment = {
-        id: `apt-${Date.now()}`,
-        doctorName: data.doctorName || data.hospital || "Appointment",
->>>>>>> theirs
         doctorNameAr: data.doctorNameAr || "لم يحدد",
         specialty: data.specialty || data.appointmentType,
         specialtyAr: data.specialty || data.appointmentType,
         location: data.location || data.hospital || "TBD",
         locationAr: data.locationAr || data.hospitalAr || "لم يحدد",
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-        type: visitTypeToCardType(data.visitType),
-=======
         type: data.visitType === "telemedicine" ? "telemedicine" : data.visitType === "clinic" ? "clinic" : "in-person",
->>>>>>> theirs
-=======
-        type: data.visitType === "telemedicine" ? "telemedicine" : data.visitType === "clinic" ? "clinic" : "in-person",
->>>>>>> theirs
-=======
-        type: data.visitType === "telemedicine" ? "telemedicine" : data.visitType === "clinic" ? "clinic" : "in-person",
->>>>>>> theirs
         date: data.date ? new Date(data.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "TBD",
         time: data.time || "TBD",
         status: "upcoming",
@@ -2311,57 +1865,12 @@ const AppointmentsTab = ({
         hospitalAr: data.hospitalAr,
         notes: data.notes,
         notesAr: data.notesAr,
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-        source: "self",
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
       };
       setGuestAppts(prev => [...prev, newAppt]);
       toast.success("Appointment added · تم إضافة الموعد", { duration: 3000 });
       return;
     }
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-    // Signed-in: persist to public.appointments.
-    if (!data.date || !data.time) {
-      toast.error("Date and time are required");
-      return;
-    }
-    const startAt = new Date(`${data.date}T${data.time}`);
-    if (isNaN(startAt.getTime())) {
-      toast.error("Invalid date/time");
-      return;
-    }
-    try {
-      await saveAppointment({
-        title: data.doctorName || data.specialty || data.appointmentType || "Appointment",
-        appointment_type: data.appointmentType,
-        // visit_type lives in DB but isn't on the manual TS type yet — cast.
-        ...({ visit_type: data.visitType } as any),
-        facility_name: data.hospital || null,
-        doctor_name: data.doctorName || null,
-        specialty: data.specialty || data.appointmentType || null,
-        location: data.location || data.hospital || null,
-        start_at: startAt.toISOString(),
-        notes: data.notes || null,
-        source: "manual",
-      } as Partial<AppointmentRow>);
-      toast.success("Appointment saved · تم حفظ الموعد", { duration: 3000 });
-    } catch (e: any) {
-      toast.error(`Could not save appointment: ${e?.message || "unknown error"}`);
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
     try {
       await onSaveAppointment(appointmentFormToRowInput(data));
       toast.success("Appointment saved · تم حفظ الموعد", { duration: 3000 });
@@ -2369,13 +1878,6 @@ const AppointmentsTab = ({
       console.error("[appointments] save failed", error);
       toast.error("Could not save appointment · تعذر حفظ الموعد");
       throw error;
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
     }
   };
 
@@ -2392,19 +1894,8 @@ const AppointmentsTab = ({
               <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{apt.doctorName}</p>
               <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0 ml-2" style={{ background: sb.bg, color: sb.color }}>{sb.label}</span>
             </div>
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-            <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{apt.doctorNameAr}</p>
-            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
             {apt.doctorNameAr && <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{apt.doctorNameAr}</p>}
             <div className="flex items-center gap-1.5 mt-1">
->>>>>>> theirs
               <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>{apt.specialty}</span>
               <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}>{typeLabel(apt.type)}</span>
               {apt.source === "provider" && (

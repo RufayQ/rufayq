@@ -1,216 +1,109 @@
-I **do not approve Lovable’s latest claim**.
+# Appointment Persistence & Timeline Hardening
 
-Lovable says the requested code is “already present,” but the current repo state I inspected still shows the opposite.
+## Root cause
 
----
+Signed-in appointments disappear after refresh because `AppointmentsTab` keeps them in local component state instead of persisting through `useAppointments().save`. Mapping between DB rows and cards is also fragmented, and `visit_type` (delivery mode) is conflated with `appointment_type` (kind).
 
-## **What is actually in HomeScreen.tsx**
+## 1. Schema migration
 
-### **Demo medications are still not guest-gated**
+File: `supabase/migrations/20260513120000_appointment_visit_type.sql`
 
-Current code:
+- `ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS visit_type text NULL;`
+- `ALTER TABLE public.provider_appointments ADD COLUMN IF NOT EXISTS appointment_type text NULL;` (already exists from earlier migration — guard with IF NOT EXISTS)
+- `ALTER TABLE public.provider_appointments ADD COLUMN IF NOT EXISTS visit_type text NULL;` (idem)
+- No CHECK constraints (use validation in app layer per project rules).
 
-`const todayMeds = medications.filter((_, i) => i < 3);`  
+## 2. API + schema
 
+- `src/lib/api/appointmentApi.ts`: add `visit_type: string | null` to `AppointmentRow`.
+- `src/lib/api/schemas.ts`: add optional `visit_type` to `appointmentSchema`.
 
-This still pulls demo medications for all users, including signed-in/default users. 【F:src/screens/HomeScreen.tsx†L51-L63】
+## 3. Shared mapper — `src/lib/appointmentRows.ts`
 
-Expected:
+Replace current file with:
 
-`const todayMeds = isGuest ? medications.filter((_, i) => i < 3) : [];`  
+- Types: `AppointmentKind`, `VisitType`, `ProviderAppointmentRow`.
+- `formatWhen(iso)` → `{ date, time, valid, dateObj }`; "TBD"/"TBD" on missing/invalid; `Intl.DateTimeFormat("en-US", …)` with `timeZone: undefined`.
+- `appointmentTypeLabel(kind)` → `{ en, ar, icon }` (physician/lab/radiology/appointment).
+- `visitTypeLabel(visit)` → `{ en, ar, icon }` (in-person/telemedicine/clinic).
+- `appointmentFormToRowInput(form)`: persists `appointment_type=kind`, `visit_type=mode`, `start_at` ISO from `date+time`, plus title/doctor/facility/specialty/location/notes.
+- `dbAppointmentToCard(row, now=new Date())`: uses `formatWhen(row.start_at)`; `appointmentType=row.appointment_type ?? "appointment"`; `visitType=row.visit_type ?? "in-person"`; status=`upcoming` when invalid date else `completed` if past; carries `whenIso=row.start_at`, `source:"self"`.
+- `providerRowToCard(row, now)`: same date/status logic on `scheduled_at`; `source:"provider"`.
+- Re-export `appointmentRowToAppointment = dbAppointmentToCard` for back-compat.
+- Card type extended with `appointmentType`, `visitType`, `whenIso`, `source`.
 
+## 4. Hooks
 
----
+- `src/hooks/useDomainData.ts`: already accepts `enabled` flag — verify it skips `listCached`/`refresh` when false (current code does — keep).
+- `src/hooks/useAppointments.ts`: pass `!isGuest` (already does — keep).
+- `src/hooks/useProviderAppointments.ts`: add a `skip` param (or read `useGuestMode()`); when guest → return empty list, no fetch. Restrict select to `id,title,location,scheduled_at,notes,status,appointment_type,visit_type,patient_device_id,organization_id,author_id,created_at`.
 
-### **Demo appointments are still not guest-gated**
+## 5. JourneyScreen — `src/screens/JourneyScreen.tsx`
 
-Current code:
+- Use `useAppointments()` for self rows + `useProviderAppointments()` for provider rows; map both via shared helpers.
+- Guest branch: keep local-only demo list, skip both hooks' data.
+- Merge + sort by `whenIso` UTC ms with stable `id` tiebreaker.
+- `AppointmentsTab` submit handler:
+  - Signed-in: `await save(appointmentFormToRowInput(form))`; close on success; on failure keep sheet open + toast.
+  - Guest: append to local list only.
+- Cards render: status badge, `FROM PROVIDER` badge for provider source, chips for visit type + appointment kind, TBD fallbacks.
+- Export `AppointmentsTab` for tests.
 
-`const upcomingAppointments = appointments.filter((_, i) => i < 2);`  
+## 6. AppointmentFormSheet — `src/components/AppointmentFormSheet.tsx`
 
+- Expand specialty list, add search input, allow custom value when no match.
+- `onSubmit` becomes async-aware: local `submitting` state, await parent, only close on resolved success; on throw keep open.
 
-This still pulls demo appointments for all users, including signed-in/default users. 【F:src/screens/HomeScreen.tsx†L51-L63】
+## 7. HomeScreen — `src/screens/HomeScreen.tsx`
 
-Expected:
+- Signed-in: derive upcoming appointments from `useAppointments().items` mapped via `dbAppointmentToCard` (filter `status==="upcoming"`, sort by whenIso, slice 3). No demo data for signed-in users.
+- Add "+ Add" and "View all" in `UpcomingAppointmentsList` header; add "Add Appointment" tile to quick actions; both navigate to Journey appointments tab with intent to open form (e.g. via `setActiveTab("journey")` + a query/state flag the JourneyScreen reads to auto-open `AppointmentFormSheet`).
 
-`const upcomingAppointments = isGuest ? appointments.filter((_, i) => i < 2) : [];`  
+## 8. UnifiedTimeline — `src/components/journey/UnifiedTimeline.tsx`
 
+- Update `buildTimelineItems` to:
+  - Drop items with missing/invalid `whenIso` (already does).
+  - Dev-only `console.warn` once per render when items are dropped.
+  - Sort by `when.getTime()`, then by kind priority `flight < physician < lab < radiology < appointment`, then by `id`.
 
----
+## 9. Tests
 
-### **medicationSummary still does not exist**
+- `src/lib/__tests__/appointmentRows.test.ts`: form→row payload; row→card chips/status/date/time; provider row→card; invalid date → TBD/TBD/upcoming.
+- `src/components/journey/__tests__/UnifiedTimeline.test.tsx`: extend with mixed-zone monotonic sort, equal-timestamp tiebreaker (flight<physician<lab), invalid drop.
+- `src/screens/__tests__/JourneyScreen.appointments.e2e.test.tsx` (new):
+  - signed-in self-add → `save` called once with `appointment_type:"physician"`, `visit_type:"in-person"`, ISO `start_at`.
+  - provider lab/clinic row → renders `FROM PROVIDER` + Lab + Clinic chips + local date/time.
+  - guest submit → `save` not called; provider rows absent.
+  - missing start_at/visit_type → TBD/TBD/In-person/upcoming.
+- Mock `useAppointments`, `useProviderAppointments`, `useGuestMode`, `getDeviceId`.
 
-The Copy Summary action still directly maps todayMeds:
+## 10. Verification
 
-`navigator.clipboard.writeTextRufayQ – Trip Summary\n${summary}\nMedications: ${todayMeds.map(m => ${m.name} (${m.status}).join(", ")});`  
+Run only the targeted tests + typecheck (skip full `npm test`/`build`/`lint` per project guidance — harness handles those):
 
+- `npx vitest run src/lib/__tests__/appointmentRows.test.ts src/components/journey/__tests__/UnifiedTimeline.test.tsx src/screens/__tests__/JourneyScreen.appointments.e2e.test.tsx`
+- `npx tsc --noEmit`  
+Review the current implementation of Appointment Persistence & Timeline Hardening. Do not rewrite unless necessary. Verify that:
+  1. signed-in appointment submit persists via useAppointments().save,
+  2. guest appointments remain local only,
+  3. provider appointments merge only for signed-in users,
+  4. appointment_type and visit_type are stored separately,
+  5. date/time/status mapping uses the shared appointmentRows helpers,
+  6. Home and Journey use persisted appointment rows,
+  7. UnifiedTimeline sorts by UTC ms with stable tiebreakers,
+  8. tests cover self-add, provider merge, guest isolation, fallback mapping, timezone ordering, and tiebreakers.
+  If anything is missing, make the smallest patch only.
+  Run:
+  - npx vitest run src/lib/__tests__/appointmentRows.test.ts src/components/journey/__tests__/UnifiedTimeline.test.tsx src/screens/__tests__/JourneyScreen.appointments.e2e.test.tsx
+  - npx tsc --noEmit
 
-【F:src/screens/HomeScreen.tsx†L98-L108】
+## Files touched
 
-Expected:
+- New: migration sql, `JourneyScreen.appointments.e2e.test.tsx`
+- Edit: `appointmentApi.ts`, `schemas.ts`, `appointmentRows.ts`, `useProviderAppointments.ts`, `JourneyScreen.tsx`, `AppointmentFormSheet.tsx`, `HomeScreen.tsx`, `UnifiedTimeline.tsx`, `appointmentRows.test.ts`, `UnifiedTimeline.test.tsx`
 
-`const medicationSummary = todayMeds.length`  
-  `? todayMeds.map((m) => ${m.name} (${m.status})).join(", ")`  
-  `: "No medications scheduled today";`  
+## Out of scope
 
-
-And then the copy call should use medicationSummary.
-
----
-
-### **Appointment empty state is still missing**
-
-The appointments section still directly maps upcomingAppointments:
-
-`{upcomingAppointments.map((apt) => (...))}`  
-
-
-【F:src/screens/HomeScreen.tsx†L255-L274】
-
-There is no No upcoming appointments / لا توجد مواعيد قادمة empty state in the current code.
-
----
-
-### **Medication empty state is still missing**
-
-The medications section still directly maps todayMeds:
-
-`{todayMeds.map((med, i) => (...))}`  
-
-
-【F:src/screens/HomeScreen.tsx†L276-L296】
-
-There is no No medications scheduled today / لا توجد أدوية مجدولة اليوم empty state in the current code.
-
----
-
-## **What is actually in HomeScreen.test.tsx**
-
-HomeScreen.test.tsx still only has the two journey-related tests:
-
-1. no journeys → first-trip CTA;
-2. active journey summary and CTAs. 【F:src/screens/**tests**/HomeScreen.test.tsx†L53-L85】
-
-It does **not** include tests for:
-
-- no Enoxaparin;
-- no Amoxicillin;
-- no Klaus Mueller;
-- no Charité;
-- No medications scheduled today;
-- No upcoming appointments;
-- guest users still seeing demo data.
-
-So Lovable’s claim about tests at lines 123–137 is not true in this branch.
-
----
-
-# **Recommendation**
-
-Do **not** approve Lovable’s “already present” claim.
-
-The fix is still missing and should be implemented as actual code changes in exactly:
-
-- src/screens/HomeScreen.tsx
-- src/screens/__tests__/HomeScreen.test.tsx
-
----
-
-## **Correct message to send Lovable**
-
-`This is still not implemented in the current branch.`  
-  
-`Your claim that the behavior is already present is false. Current HomeScreen.tsx still contains:`  
-`- const todayMeds = medications.filter((_, i) => i < 3);`  
-`- const upcomingAppointments = appointments.filter((_, i) => i < 2);`  
-  
-`Current HomeScreen.test.tsx still only has journey tests.`  
-  
-`Please make the actual code changes now in exactly:`  
-`- src/screens/HomeScreen.tsx`  
-`- src/screens/__tests__/HomeScreen.test.tsx`  
-  
-`Do not modify any other files.`  
-  
-`Required:`  
-`1. Gate demo meds/appointments by isGuest.`  
-`2. Add medicationSummary.`  
-`3. Add inline empty states for appointments and medications.`  
-`4. Add tests for signed-in users not seeing demo data.`  
-`5. Add tests for guest users still seeing demo data.`  
-`6. Run:`  
-   `- npx tsc --noEmit -p tsconfig.app.json`  
-   `- npx vitest run src/screens/__tests__/HomeScreen.test.tsx`  
-`7. Provide:`  
-   `- git diff -- src/screens/HomeScreen.tsx src/screens/__tests__/HomeScreen.test.tsx`  
-  
-`Do not report success unless the diff actually shows these changes.`  
-
-
----
-
-## **Final decision**
-
-- ❌ **Do not approve.**
-- ❌ **Do not accept “already present” as accurate.**
-- ✅ The desired fix remains correct and small.
-- ✅ Require an actual diff before accepting.
-
-No code changes were made in this turn.
-
----
-
-## **Commands used**
-
-- ✅ git status --short && git log -1 --oneline
-- ✅ rg -n "todayMeds|upcomingAppointments|medicationSummary|No upcoming appointments|No medications scheduled|Enoxaparin|Amoxicillin|Klaus Mueller|Charité|isGuest \\? medications|isGuest \\? appointments" src/screens/HomeScreen.tsx src/screens/__tests__/HomeScreen.test.tsx 2>/dev/null || true
-- ✅ nl -ba src/screens/HomeScreen.tsx | sed -n '51,115p;250,305p'
-- ✅ nl -ba src/screens/__tests__/HomeScreen.test.tsx | sed -n '1,180p'
-
-21 files changed+2073-221
-
-UndoReview
-
-docs/data-model.md
-
-src/components/DuplicateTicketDialog.tsx
-
-src/components/JourneyHelicopterTimeline.tsx
-
-src/components/TicketDetailSheet.tsx
-
-src/components/TicketsFilterBar.tsx
-
-src/components/TransportCard.tsx
-
-src/hooks/useTransportTimeline.ts
-
-src/lib/__tests__/transportDuplicates.test.ts
-
-src/lib/__tests__/transportRescan.test.ts
-
-src/lib/__tests__/transportStore.crud.test.ts
-
-src/lib/transportRescan.ts
-
-src/lib/transportScanStorage.ts
-
-src/lib/transportStore.ts
-
-src/lib/transportTickets.ts
-
-src/pages/Index.tsx
-
-src/screens/HomeScreen.tsx
-
-src/screens/JourneyScreen.tsx
-
-src/screens/ScannerWizard.tsx
-
-src/screens/__tests__/HomeScreen.test.tsx
-
-src/screens/__tests__/ScannerWizard.e2e.test.tsx
-
-supabase/migrations/20260512120000_transport_scan_metadata.sql
-
-  
+- Provider dashboard changes (already handled in prior task).
+- Flight/transport timeline edits beyond ordering.
+- Auth/role changes.

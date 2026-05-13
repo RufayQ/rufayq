@@ -1,42 +1,7 @@
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-/**
- * Re-run AI vision extraction on a previously-scanned ticket using the
- * source images stored in the `transport-scans` bucket.
- *
- * Preserves identity fields (id, deviceId, userId, createdAt, save flags,
- * traveler, pendingSegmentRef, sourceImagePaths) so the same DB row is
- * upserted; replaces parsed segments + passenger fields + extraction
- * metadata with fresh values.
- */
-import { saveTicket, type TicketScope } from "@/lib/transportStore";
-import {
-  parsedLegToSegment,
-  type TransportTicket,
-  type FlightSegment,
-} from "@/lib/transportTickets";
-import { extractFlightTicket } from "@/lib/flightExtraction";
-import {
-  fetchScanImagesAsDataUrls,
-  ScanStorageError,
-} from "@/lib/transportScanStorage";
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 import { extractFlightTicket } from "@/lib/flightExtraction";
 import { parsedLegToSegment, type FlightSegment, type TransportTicket } from "@/lib/transportTickets";
 import { saveTicket, type TicketScope } from "@/lib/transportStore";
 import { fetchScanImagesAsDataUrls, ScanStorageError } from "@/lib/transportScanStorage";
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 
 export type RescanErrorCode =
   | "manual"
@@ -64,18 +29,7 @@ export async function rescanTicket(
   if (ticket.source === "manual") {
     throw new RescanError("Cannot re-scan a manually entered ticket", "manual");
   }
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-=======
 
->>>>>>> theirs
-=======
-
->>>>>>> theirs
-=======
-
->>>>>>> theirs
   const paths = ticket.sourceImagePaths || [];
   if (paths.length === 0) {
     throw new RescanError("No source images stored for this ticket", "no-images");
@@ -84,37 +38,6 @@ export async function rescanTicket(
   let files: string[];
   try {
     files = await fetchScanImagesAsDataUrls(paths);
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-  } catch (e) {
-    if (e instanceof ScanStorageError) {
-      throw new RescanError(e.message, "storage", e);
-    }
-    throw new RescanError("Failed to load source images", "storage", e);
-  }
-
-  let extracted;
-  try {
-    extracted = await extractFlightTicket({ files });
-  } catch (e) {
-    throw new RescanError(
-      e instanceof Error ? e.message : "Extraction failed",
-      "extraction",
-      e,
-    );
-  }
-
-  const outboundSegments: FlightSegment[] = extracted.rawOutbound.map(
-    (raw, i) => parsedLegToSegment(raw, "outbound", i),
-  );
-  const returnSegments: FlightSegment[] = extracted.rawReturn.map(
-    (raw, i) => parsedLegToSegment(raw, "return", i),
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   } catch (error) {
     if (error instanceof ScanStorageError) {
       throw new RescanError(error.message, "storage", error);
@@ -138,37 +61,12 @@ export async function rescanTicket(
   );
   const returnSegments: FlightSegment[] = extracted.rawReturn.map((raw, i) =>
     parsedLegToSegment(raw, "return", i),
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   );
 
   if (outboundSegments.length === 0 && returnSegments.length === 0) {
     throw new RescanError("Extraction returned no segments", "extraction");
   }
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-  const passengerName =
-    [extracted.passengerFirstName, extracted.passengerLastName]
-      .filter(Boolean)
-      .join(" ")
-      .trim() || ticket.passengerName;
-
-  const updated: TransportTicket = {
-    ...ticket,
-    deviceId: ticket.deviceId || scope.deviceId,
-    userId: ticket.userId ?? scope.userId ?? null,
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   const now = new Date().toISOString();
   const passengerName = [extracted.passengerFirstName, extracted.passengerLastName]
     .filter(Boolean)
@@ -189,60 +87,16 @@ export async function rescanTicket(
     traveler: ticket.traveler,
     source: ticket.source ?? "ocr",
     sourceImagePaths: paths,
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
     outboundSegments,
     returnSegments,
     passengerName: passengerName || undefined,
     passengerPassport: extracted.passportNumber || ticket.passengerPassport,
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-    bookingReference:
-      outboundSegments[0]?.pnr || returnSegments[0]?.pnr || ticket.bookingReference,
-=======
     bookingReference: outboundSegments[0]?.pnr || returnSegments[0]?.pnr || ticket.bookingReference,
->>>>>>> theirs
-=======
-    bookingReference: outboundSegments[0]?.pnr || returnSegments[0]?.pnr || ticket.bookingReference,
->>>>>>> theirs
-=======
-    bookingReference: outboundSegments[0]?.pnr || returnSegments[0]?.pnr || ticket.bookingReference,
->>>>>>> theirs
     extraction: {
       provider: extracted.provider,
       confidence: extracted.confidence ?? null,
       detectedLanguage: extracted.detectedLanguage ?? null,
       translated: !!extracted.translated,
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-      runAt: new Date().toISOString(),
-    },
-    updatedAt: new Date().toISOString(),
-  };
-
-  try {
-    await saveTicket(updated);
-  } catch (e) {
-    throw new RescanError(
-      e instanceof Error ? e.message : "Save failed",
-      "save",
-      e,
-    );
-  }
-
-  return updated;
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
       runAt: now,
     },
     updatedAt: now,
@@ -257,11 +111,4 @@ export async function rescanTicket(
       error,
     );
   }
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 }
