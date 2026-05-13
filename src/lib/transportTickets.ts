@@ -15,6 +15,16 @@ import { normalizeTerminal } from "@/lib/terminal";
 export type TripType = "one-way" | "round-trip" | "multi-city";
 export type Direction = "outbound" | "return";
 export type TravelerKind = "patient" | "companion" | "family";
+export type ExtractionProvider = "openai" | "gemini";
+
+export interface TicketExtractionMetadata {
+  provider: ExtractionProvider;
+  confidence?: number | null;
+  detectedLanguage?: string | null;
+  translated?: boolean;
+  runAt?: string | null;
+}
+<<<<<<< ours
 
 export type ExtractionProvider = "openai" | "gemini";
 
@@ -30,6 +40,8 @@ export interface TicketExtractionMetadata {
   translated?: boolean;
   runAt?: string | null;
 }
+=======
+>>>>>>> theirs
 
 export interface FlightSegment {
   id: string;
@@ -71,9 +83,17 @@ export interface TransportTicket {
   pendingSegmentRef?: string | null;
   traveler?: TravelerKind;
   source?: "ocr" | "manual";
+<<<<<<< ours
+<<<<<<< ours
   /** AI extraction metadata (only present when source === "ocr"). */
   extraction?: TicketExtractionMetadata | null;
   /** Storage object paths in the `transport-scans` bucket for the analyzed pages. */
+=======
+  extraction?: TicketExtractionMetadata | null;
+>>>>>>> theirs
+=======
+  extraction?: TicketExtractionMetadata | null;
+>>>>>>> theirs
   sourceImagePaths?: string[];
   createdAt: string;
   updatedAt: string;
@@ -136,6 +156,124 @@ export const validateTicket = (t: TransportTicket): string[] => {
   );
   return errors;
 };
+
+
+export type DuplicateMatchReason =
+  | "flight-number-and-date"
+  | "shared-pnr"
+  | "same-route-and-time";
+
+export interface DuplicateMatch {
+  ticketId: string;
+  reason: DuplicateMatchReason;
+  label: string;
+  labelAr: string;
+}
+
+/** @deprecated use DuplicateMatch */
+export type DuplicateTicketMatch = DuplicateMatch;
+
+const normalizeFlightNumber = (value?: string | null) =>
+  (value || "").replace(/\s+/g, "").toUpperCase();
+
+const normalizePnr = (value?: string | null) =>
+  (value || "").trim().toUpperCase();
+
+const normalizeAirportCode = (value?: string | null) =>
+  (value || "").trim().toUpperCase();
+
+const allTicketSegments = (ticket: TransportTicket) => [
+  ...ticket.outboundSegments,
+  ...ticket.returnSegments,
+];
+
+const describeDuplicateTicket = (ticket: TransportTicket): Pick<DuplicateMatch, "label" | "labelAr"> => {
+  const first = allTicketSegments(ticket)[0];
+  if (!first) {
+    return { label: ticket.bookingReference ? `Flight ticket · ${ticket.bookingReference}` : "Flight ticket", labelAr: "تذكرة طيران" };
+  }
+  const carrier = `${first.airline || "Flight"} ${first.flightNumber || ""}`.trim();
+  const route = `${first.fromAirport.code || first.fromAirport.city || "—"} → ${first.toAirport.code || first.toAirport.city || "—"}`;
+  const when = [first.departureDate, first.departureTime].filter(Boolean).join(" ");
+  return {
+    label: [carrier, route, when].filter(Boolean).join(" · "),
+    labelAr: [route, when].filter(Boolean).join(" · "),
+  };
+};
+
+const duplicateMatch = (ticket: TransportTicket, reason: DuplicateMatchReason): DuplicateMatch => ({
+  ticketId: ticket.id,
+  reason,
+  ...describeDuplicateTicket(ticket),
+});
+
+/**
+ * Detect likely duplicate airline tickets before persisting a new scan/manual entry.
+ *
+ * A candidate matches an existing ticket when any segment shares either:
+ * - flight number (case/space-insensitive) + departure date,
+ * - non-empty PNR/booking reference, or
+ * - route + departure date + departure time.
+ */
+export function findDuplicateTickets(
+  candidate: TransportTicket,
+  existing: TransportTicket[],
+): DuplicateMatch[] {
+  const candidateSegments = allTicketSegments(candidate);
+  const matches = new Map<string, DuplicateMatch>();
+
+  for (const ticket of existing) {
+    if (ticket.id === candidate.id) continue;
+    const existingSegments = allTicketSegments(ticket);
+
+    for (const candidateSegment of candidateSegments) {
+      const candidateFlightNumber = normalizeFlightNumber(candidateSegment.flightNumber);
+      const candidatePnr = normalizePnr(candidateSegment.pnr || candidate.bookingReference);
+      const candidateFrom = normalizeAirportCode(candidateSegment.fromAirport.code);
+      const candidateTo = normalizeAirportCode(candidateSegment.toAirport.code);
+
+      for (const existingSegment of existingSegments) {
+        const existingPnr = normalizePnr(existingSegment.pnr || ticket.bookingReference);
+
+        if (
+          candidatePnr &&
+          existingPnr &&
+          candidatePnr === existingPnr
+        ) {
+          matches.set(ticket.id, duplicateMatch(ticket, "shared-pnr"));
+          break;
+        }
+
+        if (
+          candidateFlightNumber &&
+          candidateFlightNumber === normalizeFlightNumber(existingSegment.flightNumber) &&
+          candidateSegment.departureDate &&
+          candidateSegment.departureDate === existingSegment.departureDate
+        ) {
+          matches.set(ticket.id, duplicateMatch(ticket, "flight-number-and-date"));
+          break;
+        }
+
+        if (
+          candidateFrom &&
+          candidateTo &&
+          candidateFrom === normalizeAirportCode(existingSegment.fromAirport.code) &&
+          candidateTo === normalizeAirportCode(existingSegment.toAirport.code) &&
+          candidateSegment.departureDate &&
+          candidateSegment.departureDate === existingSegment.departureDate &&
+          candidateSegment.departureTime &&
+          candidateSegment.departureTime === existingSegment.departureTime
+        ) {
+          matches.set(ticket.id, duplicateMatch(ticket, "same-route-and-time"));
+          break;
+        }
+      }
+      if (matches.has(ticket.id)) break;
+    }
+  }
+
+  return Array.from(matches.values());
+}
 
 /* ─────────────────────────  adapters  ───────────────────────── */
 
@@ -306,7 +444,15 @@ export function ticketToTransportSegments(t: TransportTicket): TransportSegment[
       direction: s.direction,
       layoverAfter,
       documentSource: t.source === "manual" ? "Manual Entry" : "OCR Scanned",
+<<<<<<< ours
+<<<<<<< ours
       extraction: t.source === "manual" ? null : (t.extraction ?? null),
+=======
+      extraction: t.extraction ?? undefined,
+>>>>>>> theirs
+=======
+      extraction: t.extraction ?? undefined,
+>>>>>>> theirs
     };
   });
 }

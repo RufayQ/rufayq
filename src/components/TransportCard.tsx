@@ -73,6 +73,7 @@ export interface TransportSegment {
   groupId?: string;
   segmentOrder?: number;
   direction?: "outbound" | "return";
+  extraction?: import("@/lib/transportTickets").TicketExtractionMetadata;
 }
 
 const statusColors: Record<string, string> = {
@@ -260,6 +261,15 @@ const CountdownBanner = ({ timeLeft }: { timeLeft: string }) => (
   </div>
 );
 
+const confidenceColor = (confidence?: number | null) => {
+  if (typeof confidence !== "number") return "rgba(255,255,255,0.18)";
+  if (confidence >= 0.85) return "rgba(61,170,110,0.28)";
+  if (confidence < 0.6) return "rgba(217,79,79,0.28)";
+  return "rgba(197,150,90,0.28)";
+};
+
+const providerLabel = (provider?: string) => provider === "openai" ? "OpenAI" : provider === "gemini" ? "Gemini" : provider;
+
 const TransportCard = ({ seg, onTap }: { seg: TransportSegment; onTap?: () => void }) => {
   const cfg = typeConfig[seg.type];
   const stripColor = statusColors[seg.status];
@@ -300,6 +310,25 @@ const TransportCard = ({ seg, onTap }: { seg: TransportSegment; onTap?: () => vo
             <StatusBadge status={seg.status} />
           </div>
         </div>
+
+        {seg.extraction?.provider && (
+          <div className="px-5 py-1.5 flex items-center gap-1.5 flex-wrap" style={{ background: "rgba(255,255,255,0.08)" }}>
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.16)", color: "white" }}>
+              AI · {providerLabel(seg.extraction.provider)}
+            </span>
+            {typeof seg.extraction.confidence === "number" && (
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: confidenceColor(seg.extraction.confidence), color: "white" }}>
+                {Math.round(seg.extraction.confidence * 100)}% confidence
+              </span>
+            )}
+            {seg.extraction.detectedLanguage && (
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(0,0,0,0.18)", color: "white" }}>
+                {seg.extraction.detectedLanguage.toUpperCase()}
+              </span>
+            )}
+            <span className="font-arabic text-[9px]" dir="rtl" style={{ color: "rgba(255,255,255,0.72)" }}>معلومات المسح</span>
+          </div>
+        )}
 
         {/* Medical banner */}
         {seg.type === "medical" && seg.hospital && (

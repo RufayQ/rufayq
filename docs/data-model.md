@@ -87,3 +87,9 @@ using (public.has_role(auth.uid(), 'admin'));
 
 Never use `auth.users` as a foreign key target from the client schema — always
 reference `profiles.user_id` or store the uid directly.
+
+## Transport ticket scan metadata
+
+`transport_tickets` stores AI extraction metadata for scanned flight tickets: `extraction_provider`, `extraction_confidence`, `detected_language`, `extraction_translated`, `extraction_run_at`, and `source_image_paths`. Manual-entry tickets leave these fields empty and do not expose re-scan actions.
+
+Original analyzed ticket pages are uploaded to the private `transport-scans` storage bucket under `<auth.uid() | device:x-device-id>/<ticket_id>/page-n.png`. Storage RLS only allows a matching authenticated user folder or current `x-device-id` folder to read/write scan files, so re-scan works after sign-out/sign-in without exposing other users' images.

@@ -3,6 +3,7 @@ import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Download, Share2, E
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import type { TransportSegment } from "./TransportCard";
+import type { TransportTicket } from "@/lib/transportTickets";
 
 function fmtDate(dt: string) {
   if (!dt) return "";
@@ -146,6 +147,8 @@ interface TicketDetailSheetProps {
   onUpdateSystemReminders: (reminders: SmartReminder[]) => void;
   systemAlertsMuted: boolean;
   onToggleSystemAlertsMuted: () => void;
+<<<<<<< ours
+<<<<<<< ours
   /** When provided, renders a "Re-scan ticket" button in the Scan info
    *  section. Should re-run AI extraction on stored source images. */
   onRescan?: () => Promise<void> | void;
@@ -154,13 +157,31 @@ interface TicketDetailSheetProps {
   /** Optional delete handler — surfaces a "Delete" action that calls
    *  this with the ticket/group id. The dialog confirmation is handled
    *  by the parent. */
+=======
+  ticket?: TransportTicket;
+  onRescanTicket?: (ticketId: string) => Promise<TransportTicket>;
+  onEdit?: () => void;
+>>>>>>> theirs
+=======
+  ticket?: TransportTicket;
+  onRescanTicket?: (ticketId: string) => Promise<TransportTicket>;
+  onEdit?: () => void;
+>>>>>>> theirs
   onDelete?: () => void;
 }
 
 const TicketDetailSheet = ({
   seg, onClose, notes, onSaveNotes, alarms, onToggleAlarm,
   overrides, onSaveOverrides, systemReminders, onUpdateSystemReminders,
+<<<<<<< ours
+<<<<<<< ours
   systemAlertsMuted, onToggleSystemAlertsMuted, onRescan, onEdit, onDelete,
+=======
+  systemAlertsMuted, onToggleSystemAlertsMuted, ticket, onRescanTicket, onEdit, onDelete,
+>>>>>>> theirs
+=======
+  systemAlertsMuted, onToggleSystemAlertsMuted, ticket, onRescanTicket, onEdit, onDelete,
+>>>>>>> theirs
 }: TicketDetailSheetProps) => {
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "overrides" | "alarms">("details");
   const [draftNotes, setDraftNotes] = useState(notes);
@@ -301,6 +322,21 @@ const TicketDetailSheet = ({
           ? `Reminder enabled: ${reminder.label} · تم تفعيل التنبيه`
           : `Reminder disabled: ${reminder.label} · تم تعطيل التنبيه`
       );
+    }
+  };
+
+  const scanInfo = ticket?.source !== "manual" ? ticket?.extraction : undefined;
+  const scanRunAt = scanInfo?.runAt ? new Date(scanInfo.runAt) : null;
+  const scanRunLabel = scanRunAt && !Number.isNaN(scanRunAt.getTime()) ? scanRunAt.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+  const handleRescan = async () => {
+    if (!ticket || !onRescanTicket) return;
+    setIsRescanning(true);
+    try {
+      await onRescanTicket(ticket.id);
+    } catch {
+      // Parent screen owns re-scan toast copy; keep this sheet focused on spinner lifecycle.
+    } finally {
+      setIsRescanning(false);
     }
   };
 
@@ -634,6 +670,52 @@ const TicketDetailSheet = ({
                   )}
                 </div>
               </div>
+
+              {scanInfo?.provider && (
+                <div className="rounded-2xl p-4" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>SCAN INFO</p>
+                      <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>معلومات التحقق من المسح</p>
+                    </div>
+                    {scanInfo.translated && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--gold-pale)", color: "var(--gold)" }}>Translated</span>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <DetailItem label="PROVIDER" value={scanInfo.provider === "openai" ? "OpenAI" : "Gemini"} />
+                    <DetailItem label="CONFIDENCE" value={typeof scanInfo.confidence === "number" ? `${Math.round(scanInfo.confidence * 100)}%` : "—"} gold />
+                    <DetailItem label="LANGUAGE" value={scanInfo.detectedLanguage || "—"} />
+                    <DetailItem label="RUN AT" value={scanRunLabel} />
+                  </div>
+                  <button
+                    onClick={handleRescan}
+                    disabled={isRescanning || !onRescanTicket || !(ticket?.sourceImagePaths?.length)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold text-white btn-press"
+                    style={{ background: isRescanning ? "var(--gray)" : "var(--teal-deep)", opacity: !ticket?.sourceImagePaths?.length ? 0.55 : 1 }}
+                  >
+                    {isRescanning && <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "white", borderTopColor: "transparent" }} />}
+                    {isRescanning ? "Re-scanning…" : "Re-scan ticket"} · <span className="font-arabic">إعادة المسح</span>
+                  </button>
+                </div>
+              )}
+
+              {seg.type === "flight" && (onEdit || onDelete) && (
+                <div className="rounded-2xl p-4" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+                  <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--teal-deep)" }}>TICKET ACTIONS</p>
+                  <p className="font-arabic text-[10px] mb-3" dir="rtl" style={{ color: "var(--gray)" }}>إجراءات التذكرة</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {onEdit && (
+                      <button onClick={onEdit} className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold btn-press" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
+                        <Edit3 size={14} /> Edit · <span className="font-arabic">تعديل</span>
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button onClick={onDelete} className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold btn-press" style={{ background: "rgba(217,79,79,0.1)", color: "var(--error)" }}>
+                        <Trash2 size={14} /> Delete · <span className="font-arabic">حذف</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Seat highlight */}
               {(seg.type === "flight" || seg.type === "train") && seg.seatNumber && (

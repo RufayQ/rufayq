@@ -25,14 +25,22 @@ export interface DomainHookResult<Row extends { id: string }> {
 
 export function useDomainData<Row extends { id: string }>(
   api: DomainApiShape<Row>,
+  enabled = true,
 ): DomainHookResult<Row> {
-  const [items, setItems] = useState<Row[]>(() => api.listCached());
-  const [isLoading, setIsLoading] = useState(true);
+  const [items, setItems] = useState<Row[]>(() => (enabled ? api.listCached() : []));
+  const [isLoading, setIsLoading] = useState(enabled);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(api.lastSyncedAt());
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(enabled ? api.lastSyncedAt() : null);
 
   const refresh = useCallback(async () => {
+    if (!enabled) {
+      setItems([]);
+      setLastSyncedAt(null);
+      setIsLoading(false);
+      setIsSyncing(false);
+      return;
+    }
     setIsSyncing(true);
     try {
       const fresh = await api.list();
@@ -46,7 +54,7 @@ export function useDomainData<Row extends { id: string }>(
       setIsSyncing(false);
       setIsLoading(false);
     }
-  }, [api]);
+  }, [api, enabled]);
 
   useEffect(() => {
     void refresh();

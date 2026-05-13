@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Camera, ChevronRight } from "lucide-react";
+import { X, Camera, ChevronRight, Search } from "lucide-react";
 import RufayQLogo from "./RufayQLogo";
 import { toast } from "sonner";
 
@@ -23,27 +23,41 @@ const specialties = [
   { en: "Orthopedics", ar: "جراحة العظام", emoji: "🦴" },
   { en: "Cardiology", ar: "أمراض القلب", emoji: "❤️" },
   { en: "Neurology", ar: "الأعصاب", emoji: "🧠" },
+  { en: "Neurosurgery", ar: "جراحة المخ والأعصاب", emoji: "🧠" },
   { en: "Physiotherapy", ar: "العلاج الطبيعي", emoji: "🏋️" },
   { en: "Oncology", ar: "الأورام", emoji: "🔬" },
+  { en: "Hematology", ar: "أمراض الدم", emoji: "🩸" },
   { en: "Dermatology", ar: "الجلدية", emoji: "🧴" },
   { en: "Ophthalmology", ar: "العيون", emoji: "👁️" },
   { en: "General Surgery", ar: "الجراحة العامة", emoji: "🔪" },
   { en: "Internal Medicine", ar: "الباطنية", emoji: "🩺" },
+  { en: "Family Medicine", ar: "طب الأسرة", emoji: "👨‍👩‍👧" },
+  { en: "Endocrinology", ar: "الغدد الصماء", emoji: "🧬" },
+  { en: "Gastroenterology", ar: "الجهاز الهضمي", emoji: "🫃" },
+  { en: "Pulmonology", ar: "الأمراض الصدرية", emoji: "🫁" },
+  { en: "Nephrology", ar: "الكلى", emoji: "🫘" },
   { en: "Urology", ar: "المسالك البولية", emoji: "💧" },
   { en: "ENT", ar: "الأنف والأذن والحنجرة", emoji: "👂" },
   { en: "Dental", ar: "الأسنان", emoji: "🦷" },
+  { en: "Obstetrics & Gynecology", ar: "النساء والولادة", emoji: "🤰" },
+  { en: "Pediatrics", ar: "الأطفال", emoji: "🧸" },
+  { en: "Psychiatry", ar: "الطب النفسي", emoji: "🧘" },
+  { en: "Pain Management", ar: "علاج الألم", emoji: "💊" },
+  { en: "Radiology", ar: "الأشعة", emoji: "🩻" },
+  { en: "Laboratory", ar: "المختبر", emoji: "🧪" },
 ];
 
 const AppointmentFormSheet = ({ open, onClose, onSubmit, onScan }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: AppointmentFormData) => void;
+  onSubmit: (data: AppointmentFormData) => void | Promise<void>;
   onScan?: () => void;
 }) => {
   const [step, setStep] = useState(1);
   const [appointmentType, setAppointmentType] = useState<"physician" | "lab" | "radiology" | "">("");
   const [visitType, setVisitType] = useState<"in-person" | "telemedicine" | "clinic">("in-person");
   const [specialty, setSpecialty] = useState("");
+  const [specialtyQuery, setSpecialtyQuery] = useState("");
   const [doctorName, setDoctorName] = useState("");
   const [doctorNameAr, setDoctorNameAr] = useState("");
   const [hospital, setHospital] = useState("");
@@ -55,8 +69,16 @@ const AppointmentFormSheet = ({ open, onClose, onSubmit, onScan }: {
   const [notes, setNotes] = useState("");
   const [notesAr, setNotesAr] = useState("");
   const [aiExtracting, setAiExtracting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   if (!open) return null;
+
+  const filteredSpecialties = specialties.filter((item) => {
+    const q = specialtyQuery.trim().toLowerCase();
+    if (!q) return true;
+    return item.en.toLowerCase().includes(q) || item.ar.includes(specialtyQuery.trim());
+  });
+  const canUseCustomSpecialty = specialtyQuery.trim().length > 1 && !specialties.some((item) => item.en.toLowerCase() === specialtyQuery.trim().toLowerCase());
 
   const handleAiScan = () => {
     setAiExtracting(true);
@@ -81,27 +103,35 @@ const AppointmentFormSheet = ({ open, onClose, onSubmit, onScan }: {
     }, 2000);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!appointmentType || !date || !time) {
       toast.error("Please fill required fields · يرجى ملء الحقول المطلوبة");
       return;
     }
-    onSubmit({
-      appointmentType: appointmentType as any,
-      visitType,
-      specialty,
-      doctorName,
-      doctorNameAr,
-      hospital,
-      hospitalAr,
-      location,
-      locationAr,
-      date,
-      time,
-      notes,
-      notesAr,
-    });
-    onClose();
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        appointmentType,
+        visitType,
+        specialty,
+        doctorName,
+        doctorNameAr,
+        hospital,
+        hospitalAr,
+        location,
+        locationAr,
+        date,
+        time,
+        notes,
+        notesAr,
+      });
+      onClose();
+    } catch {
+      // The parent owns user-facing error handling; keep the sheet open so the
+      // user can retry or edit details instead of losing the form.
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const stepTitle = [
@@ -170,7 +200,7 @@ const AppointmentFormSheet = ({ open, onClose, onSubmit, onScan }: {
                   { value: "lab", emoji: "🔬", en: "Laboratory", ar: "مختبر" },
                   { value: "radiology", emoji: "🩻", en: "Radiology", ar: "أشعة" },
                 ].map(t => (
-                  <button key={t.value} onClick={() => { setAppointmentType(t.value as any); setStep(2); }}
+                  <button key={t.value} onClick={() => { setAppointmentType(t.value); setStep(2); }}
                     className="rounded-xl py-4 flex flex-col items-center gap-1.5 card-press"
                     style={{ background: appointmentType === t.value ? "var(--teal-light)" : "var(--off-white)", border: appointmentType === t.value ? "2px solid var(--teal-deep)" : "1px solid var(--gray-light)" }}>
                     <span className="text-[28px]">{t.emoji}</span>
@@ -187,7 +217,7 @@ const AppointmentFormSheet = ({ open, onClose, onSubmit, onScan }: {
                   { value: "clinic", emoji: "🏢", en: "Clinic", ar: "عيادة" },
                   { value: "telemedicine", emoji: "💻", en: "Telemedicine", ar: "عن بُعد" },
                 ].map(t => (
-                  <button key={t.value} onClick={() => setVisitType(t.value as any)}
+                  <button key={t.value} onClick={() => setVisitType(t.value)}
                     className="rounded-xl py-3 flex flex-col items-center gap-1 card-press"
                     style={{ background: visitType === t.value ? "var(--teal-light)" : "var(--off-white)", border: visitType === t.value ? "2px solid var(--teal-deep)" : "1px solid var(--gray-light)" }}>
                     <span className="text-xl">{t.emoji}</span>
@@ -205,8 +235,18 @@ const AppointmentFormSheet = ({ open, onClose, onSubmit, onScan }: {
               {appointmentType === "physician" && (
                 <div>
                   <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>SPECIALTY · التخصص</p>
-                  <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                    {specialties.map(s => (
+                  <div className="relative mb-2">
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--gray)" }} />
+                    <input
+                      value={specialtyQuery}
+                      onChange={(e) => setSpecialtyQuery(e.target.value)}
+                      placeholder="Search or type specialty..."
+                      className="w-full text-[12px] pl-8 pr-3 py-2.5 rounded-xl outline-none"
+                      style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 max-h-56 overflow-y-auto">
+                    {filteredSpecialties.map(s => (
                       <button key={s.en} onClick={() => setSpecialty(s.en)}
                         className="rounded-lg py-2 flex flex-col items-center gap-0.5 card-press"
                         style={{ background: specialty === s.en ? "var(--teal-light)" : "var(--off-white)", border: specialty === s.en ? "2px solid var(--teal-deep)" : "1px solid var(--gray-light)" }}>
@@ -215,6 +255,17 @@ const AppointmentFormSheet = ({ open, onClose, onSubmit, onScan }: {
                         <span className="font-arabic text-[8px]" style={{ color: "var(--gray)" }}>{s.ar}</span>
                       </button>
                     ))}
+                    {canUseCustomSpecialty && (
+                      <button
+                        onClick={() => setSpecialty(specialtyQuery.trim())}
+                        className="rounded-lg py-2 flex flex-col items-center gap-0.5 card-press"
+                        style={{ background: specialty === specialtyQuery.trim() ? "var(--teal-light)" : "var(--off-white)", border: specialty === specialtyQuery.trim() ? "2px solid var(--teal-deep)" : "1px solid var(--gray-light)" }}
+                      >
+                        <span className="text-lg">➕</span>
+                        <span className="text-[9px] font-bold" style={{ color: "var(--navy)" }}>{specialtyQuery.trim()}</span>
+                        <span className="font-arabic text-[8px]" style={{ color: "var(--gray)" }}>تخصص مخصص</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -308,10 +359,10 @@ const AppointmentFormSheet = ({ open, onClose, onSubmit, onScan }: {
                 Next · التالي
               </button>
             ) : step === 4 ? (
-              <button onClick={handleSubmit} className="flex-1 py-3 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 btn-press"
+              <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-3 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 btn-press"
                 style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
                 <RufayQLogo size={14} variant="light" />
-                Confirm · تأكيد
+                {submitting ? "Saving... · جاري الحفظ" : "Confirm · تأكيد"}
               </button>
             ) : null}
           </div>

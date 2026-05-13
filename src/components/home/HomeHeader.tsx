@@ -1,4 +1,6 @@
 import RufayQWordmark from "@/components/RufayQWordmark";
+<<<<<<< ours
+<<<<<<< ours
 import HeaderMenu from "@/components/HeaderMenu";
 import NotificationBell from "@/components/NotificationBell";
 import type { ReactNode } from "react";
@@ -11,12 +13,27 @@ export interface HomeHeaderMenuItem {
 }
 
 interface Props {
+=======
+=======
+>>>>>>> theirs
+import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
+import NotificationBell from "@/components/NotificationBell";
+
+export type HomeHeaderMenuItem = HeaderMenuItem;
+
+interface HomeHeaderProps {
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
   patientName: string;
   patientNameAr: string;
   onProfile: () => void;
   menuItems: HomeHeaderMenuItem[];
 }
 
+<<<<<<< ours
+<<<<<<< ours
 const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: Props) => {
   const dateStr = new Date()
     .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
@@ -24,6 +41,31 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: Props)
   const hour = new Date().getHours();
   const greetEn = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const greetAr = hour < 12 ? "صباح الخير" : hour < 18 ? "مساء الخير" : "مساء الخير";
+=======
+=======
+>>>>>>> theirs
+function greetingForHour(hour: number) {
+  return {
+    en: hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening",
+    ar: hour < 12 ? "صباح الخير" : hour < 18 ? "مساء الخير" : "مساء الخير",
+  };
+}
+
+const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: HomeHeaderProps) => {
+  const dateStr = new Date()
+    .toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
+    .toUpperCase();
+  const greeting = greetingForHour(new Date().getHours());
+  const profileInitial = patientNameAr?.[0] || patientName?.[0] || "م";
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
 
   return (
     <div
@@ -44,16 +86,37 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems }: Props)
               className="w-9 h-9 rounded-full flex items-center justify-center font-arabic text-sm font-bold btn-press"
               style={{ background: "var(--gold)", color: "#fff" }}
             >
+<<<<<<< ours
+<<<<<<< ours
               م
+=======
+              {profileInitial}
+>>>>>>> theirs
+=======
+              {profileInitial}
+>>>>>>> theirs
             </button>
           </div>
         </div>
         <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>{dateStr}</p>
         <p className="font-display text-xl italic text-white" style={{ fontWeight: 300 }}>
+<<<<<<< ours
+<<<<<<< ours
           {patientName ? `${greetEn}, ${patientName}` : `${greetEn} 👋`}
         </p>
         <p className="font-arabic text-sm mt-0.5" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>
           {patientNameAr || patientName ? `${greetAr}، ${patientNameAr || patientName}` : `${greetAr} 👋`}
+=======
+=======
+>>>>>>> theirs
+          {patientName ? `${greeting.en}, ${patientName}` : `${greeting.en} 👋`}
+        </p>
+        <p className="font-arabic text-sm mt-0.5" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>
+          {patientNameAr || patientName ? `${greeting.ar}، ${patientNameAr || patientName}` : `${greeting.ar} 👋`}
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
         </p>
       </div>
     </div>

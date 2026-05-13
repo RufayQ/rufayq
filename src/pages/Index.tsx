@@ -24,7 +24,13 @@ import { validateLoginRole } from "@/lib/roleValidation";
 import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
 import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
+<<<<<<< ours
+<<<<<<< ours
 
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
 import TourGuide from "@/components/TourGuide";
 import TourRunner from "@/components/TourRunner";
 import { useFreshStart } from "@/hooks/useFreshStart";
@@ -97,7 +103,15 @@ const Index = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
+<<<<<<< ours
+<<<<<<< ours
   const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | null>(null);
+=======
+  const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | null>(null);
+>>>>>>> theirs
+=======
+  const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | null>(null);
+>>>>>>> theirs
   const [badges, setBadges] = useState<Partial<Record<Tab, boolean>>>({
     carehub: true,
   });
@@ -256,8 +270,29 @@ const Index = () => {
       setChatContext(context);
       setActiveTab("chat");
       setAppView("main");
+<<<<<<< ours
+<<<<<<< ours
     } else if (tab === "journey" && (context === "new-trip" || context === "view")) {
       setJourneyIntent(context);
+=======
+=======
+>>>>>>> theirs
+    } else if (tab === "journey") {
+      setJourneyIntent(
+        context === "new-trip"
+          ? "new-trip"
+          : context === "view"
+            ? "view"
+            : context === "appointments"
+              ? "appointments"
+              : context === "new-appointment"
+                ? "new-appointment"
+                : null,
+      );
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
       setActiveTab("journey");
       setAppView("main");
     } else {
@@ -297,6 +332,8 @@ const Index = () => {
         switch (activeTab) {
           case "home":
             return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} isGuest={isGuest} />;
+<<<<<<< ours
+<<<<<<< ours
           case "journey":
             return (
               <JourneyScreen
@@ -306,6 +343,21 @@ const Index = () => {
                 onIntentHandled={() => setJourneyIntent(null)}
               />
             );
+=======
+=======
+>>>>>>> theirs
+          case "journey": return (
+            <JourneyScreen
+              onOpenScanner={openScanner}
+              onNavigate={handleNavigate}
+              initialIntent={journeyIntent}
+              onIntentHandled={() => setJourneyIntent(null)}
+            />
+          );
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
           case "carehub": return <CareHubScreen />;
           case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} onUpgrade={() => setAppView("pricing")} />;

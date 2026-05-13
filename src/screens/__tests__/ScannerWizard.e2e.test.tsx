@@ -85,6 +85,7 @@ const okOcrResponse = {
       passportNumber: "K482916",
       detectedLanguage: "english",
       translated: false,
+      confidence: 0.88,
     },
   },
   error: null,
@@ -166,6 +167,11 @@ describe("ScannerWizard E2E — flight flow", () => {
     }, { timeout: 4000 });
     expect(screen.getAllByText(/JED/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/LHR/).length).toBeGreaterThan(0);
+
+    fireEvent.click((await screen.findAllByText(/Done/i)).at(-1)!.closest("button")!);
+    expect(onSave).toHaveBeenCalledWith("flight", expect.objectContaining({
+      extraction: expect.objectContaining({ provider: "openai", confidence: 0.88 }),
+    }));
   });
 
   it("OCR failure → manual entry → onSave receives source=manual + valid leg", async () => {

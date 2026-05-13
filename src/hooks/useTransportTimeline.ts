@@ -21,6 +21,7 @@ import {
   type TransportTicket,
   ticketToTransportSegments,
 } from "@/lib/transportTickets";
+import { rescanTicket as rescanTransportTicket } from "@/lib/transportRescan";
 import type { TransportSegment } from "@/components/TransportCard";
 
 export function useTransportTimeline() {
@@ -119,6 +120,32 @@ export function useTransportTimeline() {
     [deviceId, userId],
   );
 
+  const updateTicket = useCallback(
+    async (ticketId: string, mutator: (ticket: TransportTicket) => TransportTicket) => {
+      const current = tickets.find((t) => t.id === ticketId);
+      if (!current) throw new Error("Ticket not found");
+      const updated: TransportTicket = {
+        ...mutator(current),
+        id: current.id,
+        deviceId: current.deviceId || deviceId,
+        userId: current.userId ?? userId ?? null,
+        createdAt: current.createdAt,
+        updatedAt: new Date().toISOString(),
+      };
+
+      setTickets((prev) => [...prev.filter((t) => t.id !== updated.id), updated].sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
+      try {
+        await saveTicket(updated);
+      } catch (e) {
+        console.error("[useTransportTimeline] updateTicket failed", e);
+        setError(e as Error);
+        throw e;
+      }
+      return updated;
+    },
+    [deviceId, tickets, userId],
+  );
+
   const removeTicket = useCallback(
     async (ticketId: string) => {
       setTickets((prev) => prev.filter((t) => t.id !== ticketId));
@@ -127,11 +154,14 @@ export function useTransportTimeline() {
       } catch (e) {
         console.error("[useTransportTimeline] removeTicket failed", e);
         setError(e as Error);
+        throw e;
       }
     },
     [scope],
   );
 
+<<<<<<< ours
+<<<<<<< ours
   const updateTicket = useCallback(
     async (ticketId: string, mutator: (t: TransportTicket) => TransportTicket) => {
       const current = tickets.find((t) => t.id === ticketId);
@@ -173,6 +203,19 @@ export function useTransportTimeline() {
           a.createdAt.localeCompare(b.createdAt),
         );
       });
+=======
+=======
+>>>>>>> theirs
+  const rescan = useCallback(
+    async (ticketId: string) => {
+      const ticket = tickets.find((t) => t.id === ticketId);
+      if (!ticket) throw new Error("Ticket not found");
+      const updated = await rescanTransportTicket(ticket, scope);
+      setTickets((prev) => [...prev.filter((t) => t.id !== updated.id), updated].sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
       return updated;
     },
     [tickets, scope],
@@ -193,6 +236,7 @@ export function useTransportTimeline() {
     removeTicket,
     rescan,
     refresh,
+    rescan,
     deviceId,
     userId,
     setTickets,

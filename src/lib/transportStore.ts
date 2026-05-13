@@ -167,6 +167,8 @@ const ticketToRow = (t: TransportTicket) => ({
   save_to_medical_records: t.saveToMedicalRecords,
   send_to_doctor: t.sendToDoctor,
   pending_segment_ref: t.pendingSegmentRef || null,
+<<<<<<< ours
+<<<<<<< ours
   extraction_provider: t.extraction?.provider ?? null,
   extraction_confidence:
     typeof t.extraction?.confidence === "number" ? t.extraction.confidence : null,
@@ -174,6 +176,19 @@ const ticketToRow = (t: TransportTicket) => ({
   extraction_translated: !!t.extraction?.translated,
   extraction_run_at: t.extraction?.runAt ?? null,
   source_image_paths: Array.isArray(t.sourceImagePaths) ? t.sourceImagePaths : [],
+=======
+=======
+>>>>>>> theirs
+  extraction_provider: t.extraction?.provider || null,
+  extraction_confidence: typeof t.extraction?.confidence === "number" ? t.extraction.confidence : null,
+  detected_language: t.extraction?.detectedLanguage || null,
+  extraction_translated: !!t.extraction?.translated,
+  extraction_run_at: t.extraction?.runAt || null,
+  source_image_paths: t.sourceImagePaths || [],
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
 });
 
 const rowToTicket = (r: any, segments: FlightSegment[]): TransportTicket => {
@@ -209,7 +224,23 @@ const rowToTicket = (r: any, segments: FlightSegment[]): TransportTicket => {
     saveToMedicalRecords: !!r.save_to_medical_records,
     sendToDoctor: !!r.send_to_doctor,
     pendingSegmentRef: r.pending_segment_ref || null,
+<<<<<<< ours
+<<<<<<< ours
     extraction,
+=======
+=======
+>>>>>>> theirs
+    extraction: r.extraction_provider ? {
+      provider: r.extraction_provider,
+      confidence: typeof r.extraction_confidence === "number" ? r.extraction_confidence : r.extraction_confidence == null ? null : Number(r.extraction_confidence),
+      detectedLanguage: r.detected_language || null,
+      translated: !!r.extraction_translated,
+      runAt: r.extraction_run_at || null,
+    } : null,
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
     sourceImagePaths: Array.isArray(r.source_image_paths) ? r.source_image_paths : [],
     createdAt: r.created_at,
     updatedAt: r.updated_at,
