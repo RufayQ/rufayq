@@ -120,7 +120,7 @@ export function useJourneyOverview(opts: { isGuest?: boolean } = {}): JourneyOve
     const otherTrips = journeys.filter((j) => j.id !== activeTrip?.id).slice(0, 3);
     const progress = computeProgress(activeTrip?.departureDate, activeTrip?.returnDate);
 
-    const persistedAppointments: Appointment[] = sortAppointmentRowsByStart(appointmentRows).map(appointmentRowToAppointment);
+    const persistedAppointments: Appointment[] = sortAppointmentRowsByStart(appointmentRows).map((row) => appointmentRowToAppointment(row));
     const upcomingAppointments = isGuest
       ? demoAppointments.filter((a) => a.status === "upcoming").slice(0, 3)
       : persistedAppointments.filter((a) => a.status === "upcoming").slice(0, 3);
