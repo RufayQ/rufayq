@@ -1,0 +1,189 @@
+import { useMemo } from "react";
+import { useJourneys } from "@/hooks/useJourneys";
+import { useAppointments } from "@/hooks/useAppointments";
+import { medications as demoMedications, appointments as demoAppointments, type Medication, type Appointment } from "@/constants/data";
+import type { TripData } from "@/components/AddTripSheet";
+import { appointmentRowToAppointment, sortAppointmentRowsByStart } from "@/lib/appointmentRows";
+import { computeProgress, formatDate } from "@/lib/journeyOverview";
+
+// Single Berlin demo trip used when isGuest === true. Kept here so HomeScreen
+// and JourneyScreen always see the same guest seed.
+const guestTrip: TripData = {
+  id: "guest-trip-1",
+  destination: "Berlin, DE",
+  hospital: "Charité Hospital",
+  specialty: "Orthopedic Surgery",
+  specialtyEmoji: "🦴",
+  departureDate: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10),
+  returnDate: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+  treatingDoctor: "Dr. Müller",
+  companion: false,
+  companionName: "",
+  insuranceRef: "",
+  status: "active",
+  outboundFlight: null,
+  returnFlight: null,
+};
+
+export interface DashboardMedication {
+  id: string;
+  name: string;
+  nameAr: string;
+  status: Medication["status"];
+  time: string;
+  frequency: string;
+}
+
+export interface JourneyMilestone {
+  id: string;
+  kind: "departure" | "appointment" | "treatment" | "return" | "followup";
+  title: string;
+  titleAr: string;
+  date?: string | null;
+  state: "done" | "current" | "upcoming";
+}
+
+export interface DashboardAlert {
+  id: string;
+  emoji: string;
+  en: string;
+  ar: string;
+  date?: string;
+  color: string;
+}
+
+export interface JourneyOverview {
+  activeTrip: TripData | null;
+  otherTrips: TripData[];
+  journeyCount: number;
+  totalDays: number | null;
+  dayN: number | null;
+  daysLeft: number | null;
+  progressPct: number;
+  formattedDepartureDate: string;
+  formattedReturnDate: string;
+  nextAppointment: Appointment | null;
+  nextMedication: DashboardMedication | null;
+  todayMedications: DashboardMedication[];
+  upcomingAppointments: Appointment[];
+  milestones: JourneyMilestone[];
+  alerts: DashboardAlert[];
+}
+
+function normalizeMed(m: Medication, idx: number): DashboardMedication {
+  return { id: `${m.name}-${idx}`, name: m.name, nameAr: m.nameAr, status: m.status, time: m.time, frequency: m.frequency };
+}
+
+function buildMilestones(trip: TripData | null, appts: Appointment[]): JourneyMilestone[] {
+  if (!trip) return [];
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const dep = trip.departureDate;
+  const ret = trip.returnDate;
+  const stateFor = (date?: string | null): JourneyMilestone["state"] => {
+    if (!date) return "upcoming";
+    if (date < todayIso) return "done";
+    if (date === todayIso) return "current";
+    return "upcoming";
+  };
+  const items: JourneyMilestone[] = [
+    { id: "m-departure", kind: "departure", title: "Departure", titleAr: "السفر", date: dep, state: stateFor(dep) },
+  ];
+  appts.slice(0, 3).forEach((apt, i) => {
+    items.push({
+      id: `m-appt-${apt.id}`,
+      kind: i === 0 && apt.specialty?.toLowerCase().includes("surg") ? "treatment" : "appointment",
+      title: apt.specialty || apt.doctorName || "Appointment",
+      titleAr: apt.specialtyAr || apt.doctorNameAr || "موعد",
+      date: apt.date,
+      state: apt.status === "completed" ? "done" : apt.status === "upcoming" ? "upcoming" : "upcoming",
+    });
+  });
+  items.push({ id: "m-return", kind: "return", title: "Return Home", titleAr: "العودة", date: ret, state: stateFor(ret) });
+  // Mark the first non-done as current if nothing is current yet.
+  if (!items.some((m) => m.state === "current")) {
+    const next = items.find((m) => m.state === "upcoming");
+    if (next) next.state = "current";
+  }
+  return items;
+}
+
+export function useJourneyOverview(opts: { isGuest?: boolean } = {}): JourneyOverview {
+  const isGuest = !!opts.isGuest;
+  const { journeys } = useJourneys(isGuest ? [guestTrip] : []);
+  const { items: appointmentRows } = useAppointments();
+
+  return useMemo(() => {
+    const activeTrip =
+      journeys.find((j) => j.status === "active") ??
+      journeys.find((j) => j.status === "upcoming") ??
+      null;
+    const otherTrips = journeys.filter((j) => j.id !== activeTrip?.id).slice(0, 3);
+    const progress = computeProgress(activeTrip?.departureDate, activeTrip?.returnDate);
+
+    const persistedAppointments: Appointment[] = sortAppointmentRowsByStart(appointmentRows).map((row) => appointmentRowToAppointment(row));
+    const upcomingAppointments = isGuest
+      ? demoAppointments.filter((a) => a.status === "upcoming").slice(0, 3)
+      : persistedAppointments.filter((a) => a.status === "upcoming").slice(0, 3);
+    const nextAppointment = upcomingAppointments[0] ?? null;
+
+    const sourceMeds = isGuest ? demoMedications.slice(0, 3) : [];
+    const todayMedications = sourceMeds.map(normalizeMed);
+    const nextMedication =
+      todayMedications.find((m) => m.status === "due") ??
+      todayMedications.find((m) => m.status === "upcoming") ??
+      null;
+
+    const allAppts = isGuest ? demoAppointments : persistedAppointments;
+    const milestones = buildMilestones(activeTrip, allAppts);
+
+    const alerts: DashboardAlert[] = [];
+    if (activeTrip && progress.daysLeft != null && progress.daysLeft <= 3) {
+      alerts.push({
+        id: "alert-return-soon",
+        emoji: "✈️",
+        en: `Return in ${progress.daysLeft} day${progress.daysLeft === 1 ? "" : "s"}`,
+        ar: `العودة خلال ${progress.daysLeft} يوم`,
+        date: formatDate(activeTrip.returnDate),
+        color: "var(--teal-deep)",
+      });
+    }
+    if (nextAppointment) {
+      alerts.push({
+        id: `alert-appt-${nextAppointment.id}`,
+        emoji: "🩺",
+        en: `${nextAppointment.specialty} · ${nextAppointment.doctorName}`,
+        ar: `${nextAppointment.specialtyAr || ""} · ${nextAppointment.doctorNameAr || ""}`.trim(),
+        date: `${nextAppointment.date} · ${nextAppointment.time}`,
+        color: "var(--gold)",
+      });
+    }
+    if (nextMedication) {
+      alerts.push({
+        id: `alert-med-${nextMedication.id}`,
+        emoji: "💊",
+        en: `${nextMedication.name} due`,
+        ar: `${nextMedication.nameAr} — الجرعة القادمة`,
+        date: nextMedication.time,
+        color: "var(--warning)",
+      });
+    }
+
+    return {
+      activeTrip,
+      otherTrips,
+      journeyCount: journeys.length,
+      totalDays: progress.totalDays,
+      dayN: progress.dayN,
+      daysLeft: progress.daysLeft,
+      progressPct: progress.progressPct,
+      formattedDepartureDate: formatDate(activeTrip?.departureDate),
+      formattedReturnDate: formatDate(activeTrip?.returnDate),
+      nextAppointment,
+      nextMedication,
+      todayMedications,
+      upcomingAppointments,
+      milestones,
+      alerts,
+    };
+  }, [journeys, appointmentRows, isGuest]);
+}

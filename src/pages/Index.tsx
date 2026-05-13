@@ -96,7 +96,7 @@ const Index = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
-  const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | null>(null);
+  const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | null>(null);
   const [badges, setBadges] = useState<Partial<Record<Tab, boolean>>>({
     carehub: true,
   });
@@ -256,16 +256,21 @@ const Index = () => {
       setActiveTab("chat");
       setAppView("main");
     } else if (tab === "journey") {
+      const milestoneIntent =
+        typeof context === "string" && context.startsWith("milestone:")
+          ? (context as `milestone:${string}`)
+          : null;
       setJourneyIntent(
-        context === "new-trip"
-          ? "new-trip"
-          : context === "view"
-            ? "view"
-            : context === "appointments"
-              ? "appointments"
-              : context === "new-appointment"
-                ? "new-appointment"
-                : null,
+        milestoneIntent ??
+          (context === "new-trip"
+            ? "new-trip"
+            : context === "view"
+              ? "view"
+              : context === "appointments"
+                ? "appointments"
+                : context === "new-appointment"
+                  ? "new-appointment"
+                  : null),
       );
       setActiveTab("journey");
       setAppView("main");

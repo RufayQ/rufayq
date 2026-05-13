@@ -1,582 +1,585 @@
-## Goal
+## **Key final tweaks I recommend**
 
-Wire up the `CRON_SECRET` that the `expire-pending-payments` edge function already requires, and update the scheduled `pg_cron` job to send it via the `x-cron-secret` header so the nightly sweep stops returning 401.
+### **1. Replace “default sub-tab becomes overview only when active trip exists”**
 
-## Steps
+This sentence may create unnecessary conditional complexity:
 
-1. **Request the `CRON_SECRET` runtime secret** via the secrets tool. You'll be prompted to enter a value in a secure form (any high-entropy random string, e.g. 32+ chars). The edge function reads it from `Deno.env.get("CRON_SECRET")`.
-2. **Update the `pg_cron` job** that calls `expire-pending-payments`. Because the SQL contains the project-specific function URL and the anon key, this is run via the insert tool (not a migration), so it isn't replayed on remixes:
-  - Unschedule any existing `expire-pending-payments-*` job (idempotent).
-  - Re-schedule it (suggested daily at 03:00 UTC) using `net.http_post` with headers `Content-Type: application/json`, `apikey: <anon>`, `Authorization: Bearer <anon>`, and `x-cron-secret: <CRON_SECRET value>`.
-3. **Verify** the job is scheduled and the next invocation returns 200 (no longer 401), by checking `cron.job` and the function logs.
+> *Default sub-tab becomes overview only when there is an active trip; otherwise keep current default.*
 
-## Fix the scheduled `expire-pending-payments` cron job so it authenticates successfully with the Edge Function.
+I’d simplify to:
 
-## Background
+> *Default sub-tab becomes overview/Map. If no active trip exists, the Map tab renders EmptyJourneyCard.*
 
-The `expire-pending-payments` Supabase Edge Function already requires a runtime secret via:
+Why?
 
-Deno.env.get("CRON_SECRET")
+The current default is hardcoded to "tickets" in JourneyScreen. 【F:src/screens/JourneyScreen.tsx†L148-L148】  
+Adding conditional default logic increases edge cases. A stable default Map tab is clearer:
 
-The scheduled pg_cron job is currently calling the function without the required `x-cron-secret` header, so nightly executions return 401 Unauthorized.
+`const [activeSubTab, setActiveSubTab] = useState("overview");`  
 
-## Goal
 
-Wire up `CRON_SECRET` and reschedule the pg_cron job so every scheduled invocation sends the required `x-cron-secret` header. The job should stop returning 401 and should return 200 on successful runs.
+Then the Overview/Map tab handles both states:
 
-## Requirements
+- active trip → JourneyHero + HelicopterCanvas
+- no trip → EmptyJourneyCard
 
-1. Do not change application UI code.
+---
 
-2. Do not commit the secret to the repository.
+**2. Clarify that HelicopterCanvas should be data-driven, not hard-coded**
 
-3. Store `CRON_SECRET` only as a Supabase Edge Function runtime secret.
+Lovable may port the attached HTML as static milestones. Add this requirement:
 
-4. Use a high-entropy random secret value, at least 32 characters.
+> *HelicopterCanvas receives milestones as props from useJourneyOverview / JourneyScreen; do not hard-code Berlin-only labels except in guest demo data.*
 
-5. Update the scheduled pg_cron job server-side, not via a reusable migration that would be replayed in remixes or other projects containing project-specific URLs/keys.
+That keeps the UI useful for real journeys.
 
-6. Keep the job idempotent by unscheduling existing `expire-pending-payments` jobs before creating the replacement.
+---
 
-7. Schedule the job daily at 03:00 UTC unless I specify a different schedule.
+### **3. Change “QuickActionsGrid trim to 4–6” into “configure to 4–6”**
 
-8. Verify the scheduled invocation returns 200 instead of 401.
+If QuickActionsGrid is used elsewhere, “trim” could accidentally remove actions globally. Better:
 
-## Implementation Plan
+> *QuickActionsGrid should accept a variant="home" or items prop so Home displays 4–6 high-priority actions without deleting reusable actions.*
 
-### Step 1 — Create or update the Edge Function secret
+---
 
-Request/set a Supabase secret named:
+### **4. Add “do not move HomeHeader visual responsibility into Journey”**
 
-CRON_SECRET
+The plan says keep HomeHeader, but I’d explicitly say Journey should get its own hero/header and not reuse the Home greeting header. This maintains clear separation.
 
-Use a high-entropy value, for example a random 32+ character string.
+---
 
-The secret must be available to the `expire-pending-payments` Edge Function as:
+### **5. Add line about import paths/tests after moving components**
 
-Deno.env.get("CRON_SECRET")
+You already say “update all imports — no shims,” which is good. I’d add:
 
-Do not print the secret in chat, logs, commits, or PR text.
+> *Ensure there are no remaining imports from @/components/home/ActiveTripCard, EmptyJourneyCard, or OtherJourneysList.*
 
-### Step 2 — Recreate the pg_cron job with the secret header
+This is easy for Lovable to validate.
 
-Run this as a project-specific SQL operation using the insert/admin SQL tool, not as a normal migration.
+---
 
-The SQL should:
+## **Final Lovable-ready prompt**
 
-1. Unschedule any existing cron jobs whose name matches the old pending-payment expiration job.
+Here is the polished version I’d share:
 
-2. Schedule a replacement job named something stable like:
+`## Goal`  
+  
+`Stop Home from acting like a second Journey screen.`  
+  
+`Keep bottom-nav labels exactly as today:`  
+`Home, Journey, Care, Records, Chat.`  
+  
+`Do not rename tabs or change the core activeTab === "home" | "journey" | ... routing model.`  
+  
+`Move trip-management surfaces into Journey, and rebuild Home as a lightweight mobile command center inspired by mobile_helicopter_journey_timeline.html.`  
+  
+`## Current code context`  
+  
+`- HomeScreen currently imports and renders journey-management components:`  
+  `- ActiveTripCard`  
+  `- EmptyJourneyCard`  
+  `- OtherJourneysList`  
+`- HomeScreen currently owns active-trip selection, other-trip selection, date/progress math, upcoming appointment preview, and medication reminder logic.`  
+`- JourneyScreen already owns tickets, stay, appointments, steps, transport, scanner integration, add/edit trip, and journey intents.`  
+`- Index.tsx already routes:`  
+  `- activeTab === "home" to HomeScreen`  
+  `- activeTab === "journey" to JourneyScreen`  
+  
+`Keep the bottom navigation labels and core routing model unchanged.`  
+  
+`## Outcome at a glance`  
+  
+````text`  
+`┌──────────────────────────┐    ┌──────────────────────────┐`  
+`│  HOME (dashboard)        │    │  JOURNEY (workspace)     │`  
+`├──────────────────────────┤    ├──────────────────────────┤`  
+`│ Greeting + bell + menu   │    │ JourneyHero              │`  
+`│ TodayCard                │    │ HelicopterCanvas         │`  
+`│   Day N · next action    │    │ MilestoneSheet           │`  
+`│ MiniHelicopterStrip ────▶│    │ Sub-tabs:                │`  
+`│ QuickActions (4–6)       │    │   Map · Tickets · Stay · │`  
+`│ AlertsStack              │    │   Appts · Steps          │`  
+`│ "Open Journey →" CTA     │    │ OtherJourneysList        │`  
+`│ Empty: small inline CTA  │    │ EmptyJourneyCard         │`  
+`└──────────────────────────┘    └──────────────────────────┘`  
+
+
+## **Scope**
+
+### **1. Shared hook — single source of truth**
+
+Create:
+
+src/hooks/useJourneyOverview.ts
+
+Internally wrap:
+
+- useJourneys
+- useAppointments
+- useMedications
+- existing guest/demo seeds
+
+Return:
+
+`{`  
+  `activeTrip,`  
+  `otherTrips,`  
+  `journeyCount,`  
+  `totalDays,`  
+  `dayN,`  
+  `daysLeft,`  
+  `progressPct,`  
+  `formattedDepartureDate,`  
+  `formattedReturnDate,`  
+  `nextAppointment,`  
+  `nextMedication,`  
+  `todayMedications,`  
+  `alerts,`  
+  `milestones`  
+`}`  
+
+
+Requirements:
+
+- Move daysBetween, formatDate, and trip progress math out of HomeScreen.
+- These calculations should live in useJourneyOverview or a small helper such as src/lib/journeyOverview.ts consumed by the hook.
+- HomeScreen and JourneyScreen must consume useJourneyOverview; do not duplicate day/progress/next-action math.
+- Normalize raw MedicationRow and AppointmentRow into dashboard-friendly shapes:
+  - meds: { id, name, nameAr, status, time }
+  - appointments: use the existing app Appointment card shape where possible
+- Preserve guest-mode Berlin demo trip, demo meds, and demo appointments.
+- milestones should be data-driven from trip/appointments/tickets/steps where possible.
+- Do not hard-code Berlin-only milestone labels except inside guest/demo data.
+
+### **2. Component reorganization**
 
-expire-pending-payments-daily
+Move these files and update all imports in the same change — no re-export shims:
 
-3. Run daily at 03:00 UTC.
+- src/components/home/ActiveTripCard.tsx  
+→ src/components/journey/ActiveTripCard.tsx
+- src/components/home/EmptyJourneyCard.tsx  
+→ src/components/journey/EmptyJourneyCard.tsx
+- src/components/home/OtherJourneysList.tsx  
+→ src/components/journey/OtherJourneysList.tsx
 
-4. Call the Edge Function URL:
+After the move, there must be no remaining imports from:
 
-https://<PROJECT_REF>.supabase.co/functions/v1/expire-pending-payments
+- @/components/home/ActiveTripCard
+- @/components/home/EmptyJourneyCard
+- @/components/home/OtherJourneysList
 
-5. Use `net.http_post`.
+Keep these in src/components/home/:
 
-6. Include these headers:
+- HomeHeader.tsx
+- QuickActionsGrid.tsx
+- DischargeAlertBanner.tsx
 
-   - `Content-Type: application/json`
+Update QuickActionsGrid so Home can show 4–6 high-priority actions without deleting reusable actions globally. Prefer an items prop or variant="home".
 
-   - `apikey: <SUPABASE_ANON_KEY>`
+New Home components:
 
-   - `Authorization: Bearer <SUPABASE_ANON_KEY>`
+- TodayCard.tsx
+  - “Day N of M”
+  - next action: next appointment, next medication, or next journey step
+  - “Open Journey” CTA
+- MiniHelicopterStrip.tsx
+  - compact 4–6 milestone preview
+  - current-state pulse
+  - tap routes to Journey, optionally with milestone deep link
+- AlertsStack.tsx
+  - composes discharge, payment, missing-doc, next-appointment, and medication alerts
 
-   - `x-cron-secret: <CRON_SECRET>`
+New Journey components:
 
-Use the current project’s actual function URL and anon key.
+- JourneyHero.tsx
+  - destination
+  - hospital
+  - specialty
+  - dates
+  - days-left
+  - progress ribbon
+  - visually inspired by the attached HTML hero
+- HelicopterCanvas.tsx
+  - full SVG path
+  - station pucks
+  - phase tags
+  - “Today” flag
+  - ported from attached HTML to React + Tailwind + CSS variables
+  - no iframe
+  - data-driven via props; no hard-coded real-user journey
+- MilestoneSheet.tsx
+  - read-only bottom sheet
+  - lists milestone artifacts: appointment, ticket, medication, document, step
+  - “Open milestone” CTA routes into the correct existing Journey sub-tab
 
-Example SQL shape, replacing placeholders server-side only:
+Do not reuse HomeHeader as the Journey hero. Journey should have its own JourneyHero.
 
-```sql
+### **3. HomeScreen rewrite**
 
-do $$
+src/screens/HomeScreen.tsx should render only:
 
-declare
+1. HomeHeader
+2. TodayCard
+3. MiniHelicopterStrip only when activeTrip exists
+4. QuickActionsGrid
+5. AlertsStack
 
-  job record;
+Home empty state:
 
-begin
+- small inline CTA:
+  - “Plan your first journey →”
+  - calls onNavigate("journey", "new-trip")
 
-  for job in
+Remove from Home:
 
-    select jobid, jobname
+- full ActiveTripCard
+- full OtherJourneysList
+- big EmptyJourneyCard
+- full appointment list
+- full medication list
 
-    from cron.job
+Home may still show compact next appointment / next medication summaries inside TodayCard or AlertsStack.
 
-    where jobname like 'expire-pending-payments%'
+### **4. JourneyScreen additions**
 
-  loop
+Add a top Map/Overview area in src/screens/JourneyScreen.tsx.
 
-    perform cron.unschedule(job.jobid);
+Add a new first sub-tab:
 
-  end loop;
+- internal id: overview
+- user-facing label: Map
+- Arabic label: خريطة
 
-end
+Final sub-tab order:
 
-$$;
+`Map · Tickets · Stay · Appts · Steps`  
 
-select cron.schedule(
 
-  'expire-pending-payments-daily',
+Default sub-tab should become overview.
 
-  '0 3 * * *',
+The Map tab renders:
 
-  $$
+- if active trip exists:
+  - JourneyHero
+  - HelicopterCanvas
+  - MilestoneSheet
+  - OtherJourneysList
+- if no active trip exists:
+  - moved EmptyJourneyCard
 
-  select net.http_post(
+Preserve all existing behavior in:
 
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/expire-pending-payments',
+- Tickets
+- Stay
+- Appts
+- Steps
+- scanner integration
+- add/edit trip
+- add appointment intent
+- transport ticket flows
 
-    headers := jsonb_build_object(
+Do not replace existing Tickets / Stay / Appts / Steps implementations.
 
-      'Content-Type', 'application/json',
+### **5. Navigation contract**
 
-      'apikey', '<SUPABASE_ANON_KEY>',
+Bottom-nav labels and main Home/Journey tab routing remain unchanged.
 
-      'Authorization', 'Bearer <SUPABASE_ANON_KEY>',
+Existing Home navigation calls continue to work:
 
-      'x-cron-secret', '<CRON_SECRET>'
+`onNavigate("journey", "view")`  
+`onNavigate("journey", "new-trip")`  
+`onNavigate("journey", "appointments")`  
+`onNavigate("journey", "new-appointment")`  
 
-    ),
 
-    body := '{}'::jsonb
+Type widening is allowed for one new optional intent:
 
-  );
+`onNavigate("journey", milestone:${id})`  
 
-  $$
 
-);
+If milestone deep-linking is implemented:
 
-If this project uses a different pg_net function signature, adapt the call to the signature already used elsewhere in the database.
+- Extend the Journey intent union in src/pages/Index.tsx.
+- Extend the context mapper in Index.tsx.
+- Extend initialIntent handling in src/screens/JourneyScreen.tsx.
+- milestone:<id> should switch to Map tab and pre-select the milestone in MilestoneSheet.
 
-Step 3 — Verify the job exists
+Acceptance criterion:
 
-Check cron.job:
+- bottom-nav labels are unchanged
+- main activeTab routing is unchanged
+- only Journey intent typing/mapping is widened
 
-sql
+### **6. Visual language porting**
 
-select jobid, jobname, schedule, command, active
+Use the attached mobile_helicopter_journey_timeline.html as the visual reference.
 
-from cron.job
+Convert the design into React components. Do not iframe the HTML.
 
-where jobname like 'expire-pending-payments%';
+Use app tokens instead of raw hex literals in components:
 
-Expected:
 
-Exactly one active job for expire-pending-payments.
+| **Reference role**                  | **App token**                         |
+| ----------------------------------- | ------------------------------------- |
+| Done segment / check #1D9E75        | var(--success)                        |
+| Current / primary CTA #0C447C       | var(--teal-deep)                      |
+| Current ring pulse #378ADD          | var(--teal-bright) or var(--teal-mid) |
+| Flight puck #854F0B                 | var(--gold) / var(--gold-pale)        |
+| Surgery puck #993556                | add --accent-surgery in index.css     |
+| Canvas background                   | var(--off-white)                      |
+| Soft borders / phase tag background | var(--gray-light)                     |
 
-Schedule is 0 3 * * * unless another schedule was requested.
 
-Command calls the correct Edge Function.
+All visible milestone labels, sheet titles, phase tags, and CTAs must be bilingual EN + AR.
 
-Command includes the x-cron-secret header server-side.
+### **7. RTL and 390px shell**
 
-Step 4 — Verify the function no longer returns 401
+- Must fit the existing 390px mobile shell.
+- Use percentage-based SVG positioning.
+- Do not use fixed desktop widths from the HTML reference.
+- Avoid horizontal overflow.
+- RTL support:
+  - mirror the SVG/path layer when dir="rtl" if needed
+  - do not mirror text labels
+  - station labels must remain readable
 
-Trigger or wait for one run, then check cron/job run details and Edge Function logs.
+### **8. Guest mode**
 
-Use whichever tables/views are available in this project, for example:
+Preserve guest mode:
 
-sql
+- Guest still sees the Berlin demo trip in Journey.
+- Guest still sees demo meds inside TodayCard.
+- Guest still sees demo appointments inside AlertsStack.
+- Guest data flows through useJourneyOverview’s guest branch.
 
-select *
+### **9. Tests**
 
-from cron.job_run_details
+Update/add tests.
 
-where jobid = <jobid>
+#### **Home tests**
 
-order by start_time desc
-
-limit 5;
-
-Also check the Edge Function logs for expire-pending-payments.
-
-Expected:
-
-The scheduled request reaches the function.
-
-It returns 200 or the function’s normal success status.
-
-It no longer returns 401 Unauthorized.
-
-If the function returns a non-401 business error, report the new error separately; the cron-secret wiring is still fixed.
-
-Acceptance Criteria
-
-CRON_SECRET exists as a Supabase Edge Function runtime secret.
-
-The pg_cron job sends x-cron-secret.
-
-No secret value is committed to the repo.
-
-No UI/application changes are made.
-
-Old duplicate expire-pending-payments-* jobs are removed.
-
-One active daily job remains.
-
-Latest test invocation returns 200 or, at minimum, no longer returns 401.
-
-Provide a short summary of:
-
-the job name,
-
-schedule,
-
-verification query result,
-
-latest function invocation status,
-
-and confirmation that no repo files contain the secret.
-
-A shorter version if Lovable needs a concise prompt:
-
-```text
-
-Fix the `expire-pending-payments` Supabase scheduled job returning 401.
-
-The Edge Function already checks `Deno.env.get("CRON_SECRET")` and expects the caller to send it in the `x-cron-secret` header.
-
-Tasks:
-
-1. Set/request a Supabase Edge Function secret named `CRON_SECRET` using a random 32+ character value. Do not commit or print the value.
-
-2. Using the admin/insert SQL tool, not a replayable migration, unschedule all existing `cron.job` rows with jobname like `expire-pending-payments%`.
-
-3. Recreate one job named `expire-pending-payments-daily`, scheduled daily at `0 3 * * *`.
-
-4. The job must call:
-
-   `https://<PROJECT_REF>.supabase.co/functions/v1/expire-pending-payments`
-
-   via `net.http_post`.
-
-5. Include headers:
-
-   - `Content-Type: application/json`
-
-   - `apikey: <SUPABASE_ANON_KEY>`
-
-   - `Authorization: Bearer <SUPABASE_ANON_KEY>`
-
-   - `x-cron-secret: <CRON_SECRET>`
-
-6. Verify with `cron.job`, `cron.job_run_details`, and Edge Function logs that the latest run no longer returns 401 and ideally returns 200.
-
-7. Do not modify UI/application code and do not put the secret in the repo.
-
-49 files changed
-
-+3736
-
--430
-
-Undo
-
-Review
-
-docs/[data-model.md](http://data-model.md)
-
-+6
-
--0
-
-package-lock.json
-
-+13
-
--13
-
-package.json
-
-+1
-
--1
-
-src/components/AppointmentFormSheet.tsx
-
-+76
-
--25
-
-src/components/DuplicateTicketDialog.tsx
-
-+106
-
--0
-
-src/components/JourneyHelicopterTimeline.tsx
-
-+114
-
--0
-
-src/components/TicketDetailSheet.tsx
-
-+68
-
--1
-
-src/components/TicketsFilterBar.tsx
-
-+192
-
--0
-
-src/components/TransportCard.tsx
-
-+29
-
--0
-
-src/components/home/ActiveTripCard.tsx
-
-+83
-
--0
-
-src/components/home/DischargeAlertBanner.tsx
-
-+19
-
--0
-
-src/components/home/EmptyJourneyCard.tsx
-
-+37
-
--0
-
-src/components/home/HomeHeader.tsx
-
-+68
-
--0
-
-src/components/home/OtherJourneysList.tsx
-
-+54
-
--0
-
-src/components/home/QuickActionsGrid.tsx
-
-+35
-
--0
-
-src/components/journey/UnifiedTimeline.tsx
-
-+68
-
--0
-
-src/components/journey/__tests__/UnifiedTimeline.test.tsx
-
-+35
-
--0
-
-src/constants/data.ts
-
-+4
-
--0
-
-src/hooks/useAppointments.ts
-
-+6
-
--1
-
-src/hooks/useDomainData.ts
-
-+12
-
--4
-
-src/hooks/usePatientName.ts
-
-+46
-
--0
-
-src/hooks/useProviderAppointments.ts
-
-+42
-
--0
-
-src/hooks/useTransportTimeline.ts
-
-+41
-
--0
-
-src/lib/__tests__/appointmentRows.test.ts
-
-+100
-
--0
-
-src/lib/__tests__/transportDuplicates.test.ts
-
-+125
-
--0
-
-src/lib/__tests__/transportRescan.test.ts
-
-+254
-
--0
-
-src/lib/__tests__/transportStore.crud.test.ts
-
-+121
-
--0
-
-src/lib/api/appointmentApi.ts
-
-+1
-
--0
-
-src/lib/api/schemas.ts
-
-+1
-
--0
-
-src/lib/appointmentRows.ts
-
-+153
-
--0
-
-src/lib/transportRescan.ts
-
-+114
-
--0
-
-src/lib/transportScanStorage.ts
-
-+138
-
--0
-
-src/lib/transportStore.ts
-
-+14
-
--0
-
-src/lib/transportTickets.ts
-
-+130
-
--0
-
-src/pages/Index.tsx
-
-+24
-
--5
-
-src/screens/HomeScreen.tsx
-
-+269
-
--253
-
-src/screens/JourneyScreen.tsx
-
-+414
-
--117
-
-src/screens/ScannerWizard.tsx
-
-+8
-
--0
+Update:
 
 src/screens/__tests__/HomeScreen.test.tsx
 
-+115
+Assert:
 
--0
+- TodayCard renders.
+- MiniHelicopterStrip renders when an active trip exists.
+- QuickActionsGrid renders.
+- Home does NOT render full ActiveTripCard.
+- Home does NOT render OtherJourneysList.
+- Home does NOT render a full appointment list.
+- Home does NOT render a full medication list.
+- CTAs call:
+  - onNavigate("journey", "view")
+  - onNavigate("journey", "new-trip")
+  - onNavigate("journey", "appointments")
+  - onNavigate("journey", "new-appointment")
+
+#### **Journey tests**
+
+Add:
+
+src/screens/__tests__/JourneyScreen.test.tsx
+
+Assert:
+
+- Journey renders the Map tab.
+- Journey renders JourneyHero when an active trip exists.
+- Journey renders HelicopterCanvas.
+- Journey renders moved OtherJourneysList.
+- Journey renders moved EmptyJourneyCard when no trip exists.
+- Tickets / Stay / Appts / Steps still render.
+
+#### **Hook tests**
+
+Add:
+
+src/hooks/__tests__/useJourneyOverview.test.ts
+
+Assert:
+
+- active trip selection prefers active over upcoming
+- other trips exclude active trip
+- day/progress math is correct
+- invalid dates have safe fallback
+- next appointment selection works
+- next medication selection works
+- guest branch returns expected demo trip/medication/appointment preview
+
+#### **Helicopter tests**
+
+Add:
+
+src/components/journey/__tests__/HelicopterCanvas.test.tsx
+
+Assert:
+
+- milestones render
+- completed/current/future states render
+- current node has pulse state
+- milestone selection dispatches callback
+- RTL mode does not flip text labels incorrectly
+
+## **Out of scope**
+
+- Renaming any tab or screen
+- Touching Care, Records, or Chat tabs
+- Backend / migration changes
+- Editing milestones inside MilestoneSheet
+- New Docs sub-tab
+- Replacing existing ticket / appointment / scanner logic
+- Replacing existing transport persistence logic
+
+## **Risks and mitigations**
+
+- Index.tsx intent union widening:
+  - keep it scoped to milestone:<id>
+  - existing intents and tab routing stay unchanged
+- Sub-tab regression:
+  - preserve Tickets, Stay, Appts, and Steps
+  - only add Map in front
+- 390px layout port:
+  - canvas uses percentage positioning, not fixed HTML pixel math
+- Demo vs DB shape drift:
+  - useJourneyOverview normalizes both branches
+- Old Home tests fail:
+  - expected; update tests in the same change to reflect the new architecture
+
+## **Acceptance criteria**
+
+- Bottom-nav labels unchanged.
+- Main Home/Journey tab routing unchanged.
+- Home renders no full trip card, no other-journeys list, no full appointment list, no full medication list.
+- Journey owns active-trip hero, full helicopter timeline, milestone sheet, other-journeys list, and empty-state card.
+- Existing Tickets / Stay / Appts / Steps tabs still work.
+- useJourneyOverview is the only place day/progress/next-action math lives.
+- Existing scanner, appointment, ticket, and transport tests stay green.
+- New Home / Journey / hook / canvas tests pass.
+- tsc --noEmit is clean.
+- npm run lint has no new errors.
+- npm run build succeeds.
+
+`---`  
+  
+`## Final verdict`  
+  
+`Yes — **this is a good plan to share with Lovable** after the small adjustments above.`  
+  
+`Your latest version is already much better than the earlier one because it:`  
+  
+`* preserves current tab names,`  
+`* respects the existing Tickets / Stay / Appts / Steps structure,`  
+`* explicitly allows only scoped intent type widening,`  
+`* preserves guest mode,`  
+`* keeps backend changes out of scope,`  
+`* and defines tests clearly.`  
+  
+`The main thing I’d change is making Map/Overview the stable default tab, instead of conditional defaulting, because that is simpler and less error-prone.`  
+
+
+49 files changed+3736-430
+
+UndoReview
+
+docs/[data-model.md](http://data-model.md)
+
+package-lock.json
+
+package.json
+
+src/components/AppointmentFormSheet.tsx
+
+src/components/DuplicateTicketDialog.tsx
+
+src/components/JourneyHelicopterTimeline.tsx
+
+src/components/TicketDetailSheet.tsx
+
+src/components/TicketsFilterBar.tsx
+
+src/components/TransportCard.tsx
+
+src/components/home/ActiveTripCard.tsx
+
+src/components/home/DischargeAlertBanner.tsx
+
+src/components/home/EmptyJourneyCard.tsx
+
+src/components/home/HomeHeader.tsx
+
+src/components/home/OtherJourneysList.tsx
+
+src/components/home/QuickActionsGrid.tsx
+
+src/components/journey/UnifiedTimeline.tsx
+
+src/components/journey/__tests__/UnifiedTimeline.test.tsx
+
+src/constants/data.ts
+
+src/hooks/useAppointments.ts
+
+src/hooks/useDomainData.ts
+
+src/hooks/usePatientName.ts
+
+src/hooks/useProviderAppointments.ts
+
+src/hooks/useTransportTimeline.ts
+
+src/lib/__tests__/appointmentRows.test.ts
+
+src/lib/__tests__/transportDuplicates.test.ts
+
+src/lib/__tests__/transportRescan.test.ts
+
+src/lib/__tests__/transportStore.crud.test.ts
+
+src/lib/api/appointmentApi.ts
+
+src/lib/api/schemas.ts
+
+src/lib/appointmentRows.ts
+
+src/lib/transportRescan.ts
+
+src/lib/transportScanStorage.ts
+
+src/lib/transportStore.ts
+
+src/lib/transportTickets.ts
+
+src/pages/Index.tsx
+
+src/screens/HomeScreen.tsx
+
+src/screens/JourneyScreen.tsx
+
+src/screens/ScannerWizard.tsx
+
+src/screens/__tests__/HomeScreen.test.tsx
 
 src/screens/__tests__/JourneyScreen.appointments.e2e.test.tsx
 
-+168
-
--0
-
 src/screens/__tests__/ScannerWizard.e2e.test.tsx
-
-+6
-
--0
 
 supabase/migrations/20260419125316_34a6fe38-fe95-4fc5-bf1c-3a7afe74819c.sql
 
-+1
-
--1
-
 supabase/migrations/20260426220752_198d334a-5a4d-46f7-98b8-f13e86de907b.sql
-
-+1
-
--1
 
 supabase/migrations/20260429151942_5297c53b-3f9f-499e-a14d-18412545283d.sql
 
-+5
-
--2
-
 supabase/migrations/20260510012801_bf32208d-2864-4e3c-b9ca-3ce92a1a8187.sql
-
-+21
-
--7
 
 supabase/migrations/20260512120000_transport_scan_metadata.sql
 
-+67
-
--0
-
 supabase/migrations/20260513120000_appointment_visit_type.sql
-
-+9
-
--0
 
 supabase/migrations/20260513143000_lock_down_attachment_and_subscription_policies.sql
 
-+61
-
--0
-
 supabase/migrations/20260513160000_security_advisor_e2e_hardening.sql
 
-+261
-
--0
-
   
-Notes
-
-- No application/UI code changes — backend wiring only.
-- The secret never appears in the repo; it lives in Edge Function env + the pg_cron command (server-side only).
-- If you'd prefer a different schedule than daily 03:00 UTC, tell me when approving the plan.

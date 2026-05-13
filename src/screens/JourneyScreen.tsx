@@ -27,6 +27,12 @@ import { useAppointments } from "@/hooks/useAppointments";
 import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/useProviderAppointments";
 import UnifiedTimeline from "@/components/journey/UnifiedTimeline";
+import JourneyHero from "@/components/journey/JourneyHero";
+import HelicopterCanvas from "@/components/journey/HelicopterCanvas";
+import MilestoneSheet from "@/components/journey/MilestoneSheet";
+import OtherJourneysList from "@/components/journey/OtherJourneysList";
+import EmptyJourneyCard from "@/components/journey/EmptyJourneyCard";
+import { useJourneyOverview } from "@/hooks/useJourneyOverview";
 import EditStepSheet from "@/components/EditStepSheet";
 import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard";
 import { PlaneTakeoff, PlaneLanding, Hotel, Stethoscope, ChevronRight, X as XIcon } from "lucide-react";
@@ -82,10 +88,11 @@ const phases = [
 ];
 
 const subTabs = [
+  { key: "overview", icon: "🗺️", label: "Map" },
   { key: "tickets", icon: "✈️", label: "Tickets" },
   { key: "stay", icon: "🏨", label: "Stay" },
   { key: "appointments", icon: "🩺", label: "Appts" },
-  { key: "steps", icon: "🗺️", label: "Steps" },
+  { key: "steps", icon: "📋", label: "Steps" },
 ];
 
 const defaultTrip: TripData = {
@@ -125,7 +132,7 @@ const stayTypeOptions = [
   { icon: "🏥", en: "Hospital Stay", ar: "إقامة مستشفى" },
 ];
 
-type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | null;
+type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | null;
 
 const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
   const isGuest = useGuestMode();
@@ -143,16 +150,14 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   }, [dbTrips]);
   const [showAddTrip, setShowAddTrip] = useState(false);
 
-  // Consume Home → Journey intent: auto-open Add Trip when requested.
-  useEffect(() => {
-    if (!initialIntent) return;
-    if (initialIntent === "new-trip") setShowAddTrip(true);
-    onIntentHandled?.();
-  }, [initialIntent, onIntentHandled]);
+  // Intent handling lives in a single effect below.
   const [showEditTrip, setShowEditTrip] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<TripData | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState("tickets");
+  const [activeSubTab, setActiveSubTab] = useState("overview");
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
+  const overview = useJourneyOverview({ isGuest });
+  const selectedMilestone = overview.milestones.find((m) => m.id === selectedMilestoneId) ?? null;
   // Flight tickets are persisted (per-device) via Supabase + local cache so
   // they survive navigation, reload, and offline. Non-flight transport
   // segments stay in local state for now (separate persistence epic).
@@ -207,19 +212,21 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const [appointmentFormIntent, setAppointmentFormIntent] = useState(0);
 
   useEffect(() => {
+    if (!initialIntent) return;
     if (initialIntent === "new-trip") {
       setShowAddTrip(true);
-      onIntentHandled?.();
     } else if (initialIntent === "new-appointment") {
       setActiveSubTab("appointments");
       setAppointmentFormIntent((value) => value + 1);
-      onIntentHandled?.();
     } else if (initialIntent === "appointments") {
       setActiveSubTab("appointments");
-      onIntentHandled?.();
-    } else if (initialIntent) {
-      onIntentHandled?.();
+    } else if (initialIntent === "view") {
+      setActiveSubTab("overview");
+    } else if (typeof initialIntent === "string" && initialIntent.startsWith("milestone:")) {
+      setActiveSubTab("overview");
+      setSelectedMilestoneId(initialIntent.slice("milestone:".length));
     }
+    onIntentHandled?.();
   }, [initialIntent, onIntentHandled]);
 
   // Staged scan payload — populated when a flight scan arrives. Shows the
@@ -832,10 +839,37 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       </div>
 
       {/* Tab content — scrollable */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-        <div className="px-4 pt-3">
-          <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} />
-        </div>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6 relative" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
+        {activeSubTab === "overview" && (
+          <>
+            {activeTrip ? (
+              <>
+                <JourneyHero
+                  trip={activeTrip}
+                  daysLeft={overview.daysLeft}
+                  progressPct={overview.progressPct}
+                  formattedDepartureDate={overview.formattedDepartureDate}
+                  formattedReturnDate={overview.formattedReturnDate}
+                />
+                <HelicopterCanvas
+                  milestones={overview.milestones}
+                  selectedId={selectedMilestoneId}
+                  onSelect={(id) => setSelectedMilestoneId(id)}
+                />
+                <div className="px-4 pt-3">
+                  <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} />
+                </div>
+                <div className="px-4 pt-3">
+                  <OtherJourneysList trips={overview.otherTrips} onSelect={() => setActiveSubTab("steps")} />
+                </div>
+              </>
+            ) : (
+              <div className="px-4 pt-4">
+                <EmptyJourneyCard onAddTrip={() => setShowAddTrip(true)} />
+              </div>
+            )}
+          </>
+        )}
         {activeSubTab === "tickets" && (
           <>
             <FlightTripSummary segments={transportSegments} />
@@ -870,6 +904,12 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
             nextAppointment={nextAppointment}
           />
         )}
+
+        <MilestoneSheet
+          milestone={selectedMilestone}
+          onClose={() => setSelectedMilestoneId(null)}
+          onOpenSubTab={(key) => setActiveSubTab(key)}
+        />
       </div>
 
       <PaywallModal

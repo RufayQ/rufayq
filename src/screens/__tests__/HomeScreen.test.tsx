@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import HomeScreen from "@/screens/HomeScreen";
 
 const useJourneysMock = vi.fn();
@@ -44,8 +44,8 @@ const activeJourney = {
   hospital: "University Hospital Frankfurt",
   specialty: "Cardiology",
   specialtyEmoji: "❤️",
-  departureDate: "2026-06-01",
-  returnDate: "2026-06-15",
+  departureDate: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
+  returnDate: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
   treatingDoctor: "Dr. Heart",
   companion: false,
   companionName: "",
@@ -55,61 +55,49 @@ const activeJourney = {
   returnFlight: null,
 };
 
-describe("HomeScreen journey dashboard", () => {
+describe("HomeScreen dashboard", () => {
   beforeEach(() => {
     useJourneysMock.mockReset();
     useAppointmentsMock.mockReset();
     useAppointmentsMock.mockReturnValue({ items: [], isLoading: false, isSyncing: false, error: null, lastSyncedAt: null, refresh: vi.fn(), save: vi.fn(), remove: vi.fn() });
   });
 
-  it("shows the first-trip CTA only when no journeys exist", async () => {
+  it("shows the inline plan-first-trip CTA when no active trip exists", () => {
     const onNavigate = vi.fn();
     useJourneysMock.mockReturnValue({ journeys: [], loading: false, error: null });
 
     render(<HomeScreen onNavigate={onNavigate} onProfile={vi.fn()} />);
 
-    expect(await screen.findByText(/No journeys yet/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Add your first trip/i }));
+    fireEvent.click(screen.getByText(/Plan your first journey/i));
     expect(onNavigate).toHaveBeenCalledWith("journey", "new-trip");
   });
 
-  it("renders an active journey summary instead of the empty state", async () => {
+  it("renders the TodayCard summary for an active trip and routes Open Journey", () => {
     const onNavigate = vi.fn();
     useJourneysMock.mockReturnValue({ journeys: [activeJourney], loading: false, error: null });
 
     render(<HomeScreen onNavigate={onNavigate} onProfile={vi.fn()} />);
 
-    expect(await screen.findByText(/Frankfurt, Germany/i)).toBeInTheDocument();
-    expect(screen.getByText(/Cardiology/i)).toBeInTheDocument();
-    expect(screen.queryByText(/No journeys yet/i)).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByText(/New Trip/i));
-    expect(onNavigate).toHaveBeenCalledWith("journey", "new-trip");
-
-    fireEvent.click(screen.getByText(/View full journey/i));
-    await waitFor(() => expect(onNavigate).toHaveBeenCalledWith("journey", "view"));
+    expect(screen.getByText(/Frankfurt, Germany/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Open Journey/i }));
+    expect(onNavigate).toHaveBeenCalledWith("journey", "view");
   });
 
-  it("does not render demo medications or appointments for signed-in users", async () => {
-    useJourneysMock.mockReturnValue({ journeys: [], loading: false, error: null });
+  it("does not render full active-trip card, other-journeys list, or full appointment/medication lists", () => {
+    useJourneysMock.mockReturnValue({ journeys: [activeJourney], loading: false, error: null });
 
     render(<HomeScreen onNavigate={vi.fn()} onProfile={vi.fn()} />);
 
-    expect(await screen.findByText(/No medications scheduled today/i)).toBeInTheDocument();
-    expect(screen.getByText(/No upcoming appointments/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Enoxaparin/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Amoxicillin/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Klaus Mueller/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Charité/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ACTIVE TRIP — FRANKFURT/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/OTHER JOURNEYS/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/UPCOMING APPOINTMENTS/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/TODAY'S MEDICATIONS/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/View all medications/i)).not.toBeInTheDocument();
   });
 
-  it("renders demo medications and appointments for guest users", async () => {
+  it("renders QuickActionsGrid", () => {
     useJourneysMock.mockReturnValue({ journeys: [], loading: false, error: null });
-
-    render(<HomeScreen isGuest onNavigate={vi.fn()} onProfile={vi.fn()} />);
-
-    expect(await screen.findByText(/Enoxaparin 40mg/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Dr\. Klaus Mueller/i).length).toBeGreaterThan(0);
+    render(<HomeScreen onNavigate={vi.fn()} onProfile={vi.fn()} />);
+    expect(screen.getByText(/QUICK ACTIONS/i)).toBeInTheDocument();
   });
-
 });
