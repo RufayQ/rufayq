@@ -57,7 +57,7 @@ describe("findDuplicateTickets", () => {
     expect(matches).toHaveLength(1);
     expect(matches[0].ticketId).toBe("t-existing");
     expect(matches[0].reason).toBe("flight-number-and-date");
-    expect(matches[0].label).toBeTruthy();
+    expect(matches[0].label).toContain("SV123");
     expect(matches[0].labelAr).toBeTruthy();
   });
 
