@@ -114,6 +114,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: (cat?: s
     tickets: flightTickets,
     segments: persistedFlightSegments,
     addTicket: addFlightTicket,
+    updateTicket: updateFlightTicket,
     removeTicket: removeFlightTicket,
     rescan: rescanFlightTicket,
   } = useTransportTimeline();
