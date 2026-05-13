@@ -1,19 +1,4 @@
 import { useMemo } from "react";
-
-function daysBetween(a?: string | null, b?: string | null): number | null {
-  if (!a || !b) return null;
-  const d1 = new Date(a);
-  const d2 = new Date(b);
-  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null;
-  return Math.max(0, Math.round((d2.getTime() - d1.getTime()) / 86400000));
-}
-
-function formatDate(iso?: string | null): string {
-  if (!iso) return "TBD";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 import { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
 import { CreditCard, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -31,6 +16,21 @@ import DischargeAlertBanner from "@/components/home/DischargeAlertBanner";
 import UpcomingAppointmentsList from "@/components/home/UpcomingAppointmentsList";
 import TodayMedicationsList from "@/components/home/TodayMedicationsList";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
+
+function daysBetween(a?: string | null, b?: string | null): number | null {
+  if (!a || !b) return null;
+  const d1 = new Date(a);
+  const d2 = new Date(b);
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null;
+  return Math.max(0, Math.round((d2.getTime() - d1.getTime()) / 86400000));
+}
+
+function formatDate(iso?: string | null): string {
+  if (!iso) return "TBD";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 interface HomeScreenProps {
   onNavigate: (tab: string, context?: string) => void;
