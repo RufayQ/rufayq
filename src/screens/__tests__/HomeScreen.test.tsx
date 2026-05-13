@@ -1,6 +1,3 @@
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import HomeScreen from "@/screens/HomeScreen";
@@ -147,11 +144,6 @@ describe("HomeScreen", () => {
     // Guest demo currently seeds taken-status meds, so the reminders strip
     // may legitimately be hidden — what matters is consistency with the card.
   });
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -266,11 +258,4 @@ describe("HomeScreen journey dashboard", () => {
     expect(screen.getAllByText(/Dr\. Klaus Mueller/i).length).toBeGreaterThan(0);
   });
 
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 });

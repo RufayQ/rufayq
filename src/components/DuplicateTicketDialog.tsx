@@ -1,19 +1,7 @@
 /**
  * DuplicateTicketDialog — confirms intent when a saved ticket conflicts
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
  * with one or more existing flight tickets (matched on flight#+date,
  * shared PNR, or same route+date+time).
-=======
- * with one or more existing flight tickets.
->>>>>>> theirs
-=======
- * with one or more existing flight tickets.
->>>>>>> theirs
-=======
- * with one or more existing flight tickets.
->>>>>>> theirs
  */
 import type { DuplicateMatch, DuplicateMatchReason } from "@/lib/transportTickets";
 
@@ -34,9 +22,6 @@ const reasonLabel: Record<DuplicateMatchReason, { en: string; ar: string }> = {
 const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel }: Props) => {
   if (!open || matches.length === 0) return null;
   const single = matches[0];
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
   return (
     <div className="absolute inset-0 z-[80] flex items-end justify-center" style={{ background: "rgba(0,0,0,0.45)" }} onClick={onCancel}>
       <div
@@ -48,11 +33,6 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
           <span className="text-2xl">⚠️</span>
           <div>
             <p className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 
   return (
     <div
@@ -71,13 +51,6 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
           <span className="text-2xl" aria-hidden="true">⚠️</span>
           <div>
             <p id="duplicate-ticket-title" className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
               Possible duplicate ticket
             </p>
             <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>
@@ -86,19 +59,7 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
           </div>
         </div>
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
         <p className="text-[12px] mb-3" style={{ color: "var(--gray)" }}>
-=======
-        <p className="text-[12px] mb-1" style={{ color: "var(--gray)" }}>
->>>>>>> theirs
-=======
-        <p className="text-[12px] mb-1" style={{ color: "var(--gray)" }}>
->>>>>>> theirs
-=======
-        <p className="text-[12px] mb-1" style={{ color: "var(--gray)" }}>
->>>>>>> theirs
           We found {matches.length === 1 ? "an existing ticket" : `${matches.length} existing tickets`} that look similar to the one you're adding.
         </p>
         <p className="font-arabic text-[11px] mb-3" dir="rtl" style={{ color: "var(--gray)" }}>
@@ -106,9 +67,6 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
         </p>
 
         <div className="space-y-2 mb-4">
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
           {matches.map((m) => (
             <div key={m.ticketId} className="rounded-xl p-3" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
               <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "var(--gold)" }}>
@@ -122,11 +80,6 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
               </p>
             </div>
           ))}
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
           {matches.map((match) => {
             const copy = reasonLabel[match.reason];
             return (
@@ -143,13 +96,6 @@ const DuplicateTicketDialog = ({ open, matches, onAddAnyway, onReplace, onCancel
               </div>
             );
           })}
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
         </div>
 
         <div className="flex flex-col gap-2">

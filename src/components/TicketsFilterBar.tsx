@@ -1,6 +1,3 @@
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 /**
  * TicketsFilterBar — refined search + filter UX for the Journey Tickets tab.
  *
@@ -194,11 +191,6 @@ const TicketsFilterBar = ({ segments, onChange }: Props) => {
             style={{ background: "var(--gray-light)" }}
           >
             <X size={12} color="var(--gray)" />
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 import { useEffect, useMemo, useState } from "react";
 import { Search, X, SlidersHorizontal } from "lucide-react";
 import type { TransportSegment } from "@/components/TransportCard";
@@ -329,20 +321,10 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
         {draftSearch && (
           <button onClick={() => setDraftSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1" aria-label="Clear search">
             <X size={14} color="var(--gray)" />
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
           </button>
         )}
       </div>
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
       {/* Quick chips */}
       <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
         {quickChips.map((c) => {
@@ -362,11 +344,6 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
               {c.count > 0 && (
                 <span className="ml-1 font-mono text-[9px] opacity-80">· {c.count}</span>
               )}
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
       <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollSnapType: "x proximity" }}>
         {quickFilters.map((filter) => {
           const active = value.quick === filter.key;
@@ -379,21 +356,11 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
             >
               {filter.en} <span className="font-arabic">{filter.ar}</span>
               <span className="ml-1 rounded-full px-1.5 py-0.5" style={{ background: active ? "rgba(255,255,255,0.18)" : "var(--off-white)" }}>{counts.get(filter.key) || 0}</span>
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
             </button>
           );
         })}
       </div>
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
       {/* Advanced toggle + active summary */}
       <div className="flex items-center gap-2 mt-2">
         <button
@@ -468,11 +435,6 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
               })}
             </div>
           </div>
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
       <div className="flex items-center gap-2">
         <button onClick={() => setAdvancedOpen((v) => !v)} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold btn-press" style={{ background: "var(--white)", color: "var(--teal-deep)", border: "1px solid var(--gray-light)" }}>
           <SlidersHorizontal size={12} /> Advanced filters · <span className="font-arabic">فلاتر متقدمة</span>
@@ -507,13 +469,6 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
           <button onClick={onClear} className="w-full rounded-xl py-2 text-[11px] font-bold btn-press" style={{ color: "var(--teal-deep)", background: "var(--teal-light)" }}>
             Clear filters · <span className="font-arabic">مسح الفلاتر</span>
           </button>
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
         </div>
       )}
     </div>
