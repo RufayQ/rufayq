@@ -143,8 +143,8 @@ const QuickSignup = () => {
     const now = new Date().toISOString();
     const { error: pErr } = await supabase.from("profiles").upsert({
       device_id: newDeviceId,
-      full_name_en: name.trim(),
-      full_name_ar: nameAr.trim() || null,
+      full_name_en: fullNameEn,
+      full_name_ar: fullNameAr,
       phone: e164,
       email: email.trim() || null,
       nationality,
