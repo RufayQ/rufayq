@@ -328,65 +328,65 @@ const JourneyConstellation = ({
                 width: 96,
               }}
             >
-              {/* Concentric rings (selected only) */}
-              {isSelected && (
-                <>
-                  <span
-                    className="absolute rounded-full pointer-events-none"
-                    style={{
-                      inset: "-14px",
-                      border: "1px dashed rgba(197,150,90,0.55)",
-                    }}
-                  />
-                  <span
-                    className="absolute rounded-full pointer-events-none"
-                    style={{
-                      inset: "-22px",
-                      border: "1px dashed rgba(197,150,90,0.3)",
-                    }}
-                  />
-                </>
-              )}
-
-              {/* Card */}
+              {/* Frameless medallion + label */}
               <div
-                className={`relative flex flex-col items-center px-2 pt-3 pb-2 transition-transform duration-200 ${isCurrent ? "scale-[1.04]" : "group-active:scale-95"}`}
-                style={{
-                  borderRadius: 16,
-                  background: isCurrent ? "var(--white)" : isDone ? "var(--white)" : "rgba(255,255,255,0.85)",
-                  border: isCurrent
-                    ? `1.5px solid ${s.ring}`
-                    : isDone
-                    ? "1px solid var(--gray-light)"
-                    : "1px dashed var(--gray-light)",
-                  boxShadow: isCurrent
-                    ? `0 8px 22px -10px ${s.ring}55, 0 1px 0 rgba(255,255,255,0.8) inset`
-                    : isDone
-                    ? "0 4px 12px -6px rgba(0,77,91,0.18)"
-                    : "0 2px 8px -4px rgba(13,27,42,0.08)",
-                  opacity: isDone || isCurrent || isSelected ? 1 : 0.86,
-                }}
+                className={`relative flex flex-col items-center transition-transform duration-200 ${isCurrent ? "scale-[1.04]" : "group-active:scale-95"}`}
               >
-                {/* Icon disc */}
-                <div className="relative">
+                {/* Icon medallion */}
+                <div
+                  className="relative flex items-center justify-center"
+                  style={{ width: 40, height: 40 }}
+                >
+                  {/* Halo for current */}
+                  {isCurrent && (
+                    <span
+                      className="absolute rounded-full pointer-events-none"
+                      style={{
+                        inset: -10,
+                        background: `radial-gradient(circle, ${s.ring}33 0%, transparent 70%)`,
+                        filter: "blur(2px)",
+                      }}
+                    />
+                  )}
+                  {/* Concentric rings (selected only) — anchored to disc */}
+                  {isSelected && (
+                    <>
+                      <span
+                        className="absolute rounded-full pointer-events-none"
+                        style={{ inset: -8, border: "1px dashed rgba(197,150,90,0.6)" }}
+                      />
+                      <span
+                        className="absolute rounded-full pointer-events-none"
+                        style={{ inset: -14, border: "1px dashed rgba(197,150,90,0.32)" }}
+                      />
+                    </>
+                  )}
                   <div
-                    className="flex items-center justify-center rounded-full"
+                    className="relative flex items-center justify-center rounded-full"
                     style={{
-                      width: 38,
-                      height: 38,
+                      width: 40,
+                      height: 40,
                       background: s.tint,
-                      border: `1.5px solid ${s.ring}`,
+                      border: isSelected || isCurrent
+                        ? `1.25px solid ${s.ring}`
+                        : `1px solid ${s.ring}59`,
                       color: s.ink,
+                      boxShadow: isCurrent
+                        ? `0 10px 22px -10px ${s.ring}88`
+                        : `0 6px 14px -8px ${s.ring}55`,
+                      opacity: isDone || isCurrent || isSelected ? 1 : 0.7,
                     }}
                   >
-                    <Icon size={18} strokeWidth={1.8} />
+                    <Icon size={19} strokeWidth={1.8} />
                   </div>
                   {isDone && (
                     <span
-                      className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center rounded-full"
+                      className="absolute flex items-center justify-center rounded-full"
                       style={{
                         width: 14,
                         height: 14,
+                        right: -2,
+                        bottom: -2,
                         background: "var(--success)",
                         border: "1.5px solid var(--white)",
                       }}
@@ -398,8 +398,16 @@ const JourneyConstellation = ({
 
                 {/* Title */}
                 <p
-                  className="mt-1.5 text-[10.5px] font-semibold leading-tight text-center w-full truncate"
-                  style={{ color: "var(--navy)" }}
+                  className="mt-2 text-[11px] font-semibold leading-[1.15] text-center"
+                  style={{
+                    color: isDone || isCurrent || isSelected ? "var(--navy)" : "var(--gray)",
+                    maxWidth: 88,
+                    textShadow: "0 1px 0 rgba(255,255,255,0.65)",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
                   title={n.m.title}
                 >
                   {n.m.title}
@@ -408,23 +416,20 @@ const JourneyConstellation = ({
                 {/* Date / today */}
                 {isCurrent ? (
                   <span
-                    className="mt-0.5 px-2 py-[1px] rounded-full font-mono text-[8.5px] tracking-[0.14em]"
+                    className="mt-1 px-2 py-[1px] rounded-full font-mono text-[8.5px] tracking-[0.14em]"
                     style={{ background: s.ring, color: "#fff" }}
                   >
                     TODAY
                   </span>
                 ) : n.m.date ? (
                   <span
-                    className="mt-0.5 font-mono text-[9px] tracking-[0.1em]"
+                    className="mt-1 font-mono text-[9px] tracking-[0.1em]"
                     style={{ color: "var(--gray)" }}
                   >
                     {formatChipDate(n.m.date)}
                   </span>
                 ) : null}
               </div>
-
-              {/* color the icon via inheritance */}
-              <span className="hidden" style={{ color: s.ink }} />
             </button>
           );
         })}
