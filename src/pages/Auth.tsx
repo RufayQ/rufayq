@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, User, Building2, Stethoscope, Shield, Package, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
+import { setStoredRole } from "@/screens/RoleSelectorScreen";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Seo } from "@/seo/Seo";
@@ -16,13 +18,48 @@ const TEAL = "#0FB5C9";
 
 type Side = null | "patient" | "provider";
 
+/** Allow only same-origin patient app paths to be forwarded as returnTo. */
+function safePatientReturnTo(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith("/")) return null;
+  if (raw.startsWith("//")) return null;
+  if (!(raw.startsWith("/app") || raw.startsWith("/ar/app"))) return null;
+  return raw;
+}
+
 const Auth = () => {
   const { mode } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isAr = mode === "ar";
   const [side, setSide] = useState<Side>(null);
 
   const t = (en: string, ar: string) => (isAr ? ar : en);
+
+  const returnTo = safePatientReturnTo(searchParams.get("returnTo"));
+
+  const handleTravelerClick = async () => {
+    setStoredRole("patient");
+    // If a stale staff/provider session is still active, sign it out so the
+    // staff auto-redirect on /app doesn't hijack the traveler sign-in flow.
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id);
+        const isStaff = (data || []).some(
+          (r: any) => r.role === "admin" || r.role === "moderator" || r.role === "doctor",
+        );
+        if (isStaff) await supabase.auth.signOut();
+      }
+    } catch { /* noop */ }
+    const qs = new URLSearchParams({ signin: "1" });
+    if (returnTo) qs.set("returnTo", returnTo);
+    navigate(`/app?${qs.toString()}`);
+  };
+
 
   const providerTypes = [
     { id: "hospital", icon: Building2, en: "Hospital", ar: "مستشفى", desc_en: "Multi-specialty centers", desc_ar: "مراكز متعددة التخصصات" },
