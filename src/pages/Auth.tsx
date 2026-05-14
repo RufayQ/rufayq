@@ -41,7 +41,7 @@ const Auth = () => {
   const handleTravelerClick = async () => {
     setStoredRole("patient");
     // If a stale staff/provider session is still active, sign it out so the
-    // staff auto-redirect on /app doesn't hijack the traveler sign-in flow.
+    // staff auto-redirect on /app doesn't hijack the traveler sign-up flow.
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -55,9 +55,12 @@ const Auth = () => {
         if (isStaff) await supabase.auth.signOut();
       }
     } catch { /* noop */ }
-    const qs = new URLSearchParams({ signin: "1" });
-    if (returnTo) qs.set("returnTo", returnTo);
-    navigate(`/app?${qs.toString()}`);
+    navigate(isAr ? "/ar/quick-signup" : "/quick-signup");
+  };
+
+  const handleProviderTypeClick = (typeId: string) => {
+    setStoredRole("doctor");
+    navigate(`/provider/login?type=${typeId}`);
   };
 
 
@@ -174,7 +177,7 @@ const Auth = () => {
                 return (
                   <button
                     key={p.id}
-                    onClick={() => navigate(`/provider/login?type=${p.id}`)}
+                    onClick={() => handleProviderTypeClick(p.id)}
                     className="group flex items-start gap-4 text-start rounded-xl p-5 transition-all duration-200 hover:scale-[1.01]"
                     style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}
                   >

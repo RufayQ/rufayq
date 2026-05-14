@@ -26,6 +26,7 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin.tsx"));
 const AdminApiDocs = lazy(() => import("./pages/AdminApiDocs.tsx"));
 const AdminSwagger = lazy(() => import("./pages/AdminSwagger.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
+const QuickSignup = lazy(() => import("./pages/QuickSignup.tsx"));
 const SubscriptionDashboard = lazy(() => import("./pages/SubscriptionDashboard.tsx"));
 const WalletLedger = lazy(() => import("./pages/WalletLedger.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -106,6 +107,8 @@ const App = () => (
             <Route path="/admin/swagger" element={<Shelled><AdminSwagger /></Shelled>} />
             <Route path="/auth" element={<Shelled><Auth /></Shelled>} />
             <Route path="/ar/auth" element={<Shelled><Auth /></Shelled>} />
+            <Route path="/quick-signup" element={<Shelled><QuickSignup /></Shelled>} />
+            <Route path="/ar/quick-signup" element={<Shelled><QuickSignup /></Shelled>} />
             <Route path="/app/dashboard/subscription" element={<AppAuthGuard><Shelled><SubscriptionDashboard /></Shelled></AppAuthGuard>} />
             <Route path="/app/wallet" element={<AppAuthGuard><Shelled><WalletLedger /></Shelled></AppAuthGuard>} />
             <Route path="/ar/app/dashboard/subscription" element={<AppAuthGuard><Shelled><SubscriptionDashboard /></Shelled></AppAuthGuard>} />
