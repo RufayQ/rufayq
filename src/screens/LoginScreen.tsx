@@ -30,14 +30,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [bioEnrolled, setBioEnrolled] = useState(false);
   const [showEnrollPrompt, setShowEnrollPrompt] = useState<{ userId: string; label: string } | null>(null);
 
-  // Sign-up state
-  const [reg, setReg] = useState({
-    name: "", nameAr: "", id: "", dob: "", gender: "male",
-    email: "", phone: "", nationality: "Saudi Arabia",
-    password: "", confirmPassword: "",
-    channel: "whatsapp" as OtpChannel,
-    acceptTerms: false, acceptPrivacy: false,
-  });
+  // Sign-up state retired — see /quick-signup.
 
   // OTP state
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
