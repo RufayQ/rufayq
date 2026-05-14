@@ -489,7 +489,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           {submitting ? "Signing in…" : "Sign in · تسجيل الدخول"}
         </button>
 
-        {bioAvailable && bioRemembered && (
+        {bioAvailable && bioEnrolled && (
           <button onClick={handleBiometric}
             className="w-full mt-3 py-3 rounded-xl font-semibold btn-press flex items-center justify-center gap-2"
             style={{ background: "var(--white)", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}>
