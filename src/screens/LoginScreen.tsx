@@ -519,6 +519,33 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
           </button>
         </p>
+
+        {showEnrollPrompt && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.45)" }}>
+            <div className="w-full max-w-[420px] rounded-t-2xl p-5" style={{ background: "var(--white)" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Fingerprint size={20} style={{ color: "var(--teal-deep)" }} />
+                <p className="font-semibold text-sm" style={{ color: "var(--navy)" }}>
+                  Enable biometric sign-in?
+                </p>
+              </div>
+              <p className="font-arabic text-[13px] mb-1" dir="rtl" style={{ color: "var(--gray)" }}>
+                هل تريد تفعيل تسجيل الدخول بالبصمة على هذا الجهاز؟
+              </p>
+              <p className="text-[12px] mb-4" style={{ color: "var(--gray)" }}>
+                Use Face ID, Touch ID or fingerprint to unlock RufayQ on this device next time.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={declineEnrollment} className="flex-1 py-2.5 rounded-xl text-sm" style={{ background: "var(--off-white)", color: "var(--gray)" }}>
+                  Not now · ليس الآن
+                </button>
+                <button onClick={acceptEnrollment} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "var(--teal-deep)" }}>
+                  Enable · تفعيل
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
