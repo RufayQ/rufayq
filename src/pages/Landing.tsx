@@ -88,7 +88,10 @@ const Landing = () => {
 
   // Localize internal route links so visitors on /ar/* stay on /ar/*.
   const lp = (en: string) => (routeIsAr ? `/ar${en}` : en);
-  const goToApp = () => navigate(lp("/app"));
+  // Public CTA on landing — unauthenticated visitors should land on the
+  // /auth chooser, not be dumped onto raw /app. The AppAuthGuard would
+  // bounce them anyway; routing through /auth keeps the UX consistent.
+  const goToApp = () => navigate(lp("/auth"));
   // The prominent gold CTA in the nav routes to the dedicated News & Articles
   // page (admin-managed via the Site Pages → landing-news slug). The hero
   // "Start free" button still routes to the app.
