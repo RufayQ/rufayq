@@ -206,7 +206,13 @@ const Index = () => {
   }, [routeDeepLink]);
 
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const { biometric } = await import("@/lib/native/biometric");
+      await biometric.clear();
+    } catch { /* noop */ }
+    try { await supabase.auth.signOut(); } catch { /* noop */ }
+    try { localStorage.removeItem("rufayq_guest_ok"); } catch { /* noop */ }
     resetFresh();
     localStorage.removeItem("rufayq_onboarded");
     setAppView("onboarding");
