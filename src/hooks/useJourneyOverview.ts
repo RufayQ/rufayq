@@ -133,23 +133,25 @@ function buildMilestones(trip: TripData | null, appts: Appointment[]): JourneyMi
   };
 
   const items: JourneyMilestone[] = [
-    { id: "m-departure", refId: "departure", kind: "departure", title: "Departure", titleAr: "السفر", date: dep, state: stateFor(dep), phase: "travel" },
+    { id: "m-departure", refId: "departure", kind: "departure", subKind: "flight", title: "Departure", titleAr: "السفر", date: dep, state: stateFor(dep), phase: "travel" },
   ];
   appts.slice(0, 3).forEach((apt, i) => {
     const kind: JourneyMilestone["kind"] =
       i === 0 && apt.specialty?.toLowerCase().includes("surg") ? "treatment" : "appointment";
+    const title = apt.specialty || apt.doctorName || "Appointment";
     items.push({
       id: `m-appt-${apt.id}`,
       refId: apt.id,
       kind,
-      title: apt.specialty || apt.doctorName || "Appointment",
+      subKind: inferSubKind(kind, title),
+      title,
       titleAr: apt.specialtyAr || apt.doctorNameAr || "موعد",
       date: apt.date,
       state: apt.status === "completed" ? "done" : "upcoming",
       phase: phaseFor(apt.date, kind),
     });
   });
-  items.push({ id: "m-return", refId: "return", kind: "return", title: "Return Home", titleAr: "العودة", date: ret, state: stateFor(ret), phase: "after" });
+  items.push({ id: "m-return", refId: "return", kind: "return", subKind: "flight", title: "Return Home", titleAr: "العودة", date: ret, state: stateFor(ret), phase: "after" });
 
   // Sort by date so the canvas renders chronologically (departure can be after consults).
   items.sort((a, b) => {
