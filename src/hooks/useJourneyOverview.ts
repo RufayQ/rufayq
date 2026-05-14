@@ -34,17 +34,41 @@ export interface DashboardMedication {
   frequency: string;
 }
 
+export type MilestoneSubKind =
+  | "consult"
+  | "lab"
+  | "rad"
+  | "flight"
+  | "surgery"
+  | "recovery"
+  | "followup";
+
 export interface JourneyMilestone {
   id: string;
   /** Stable reference back to the source record (appointment id, "departure", "return"). */
   refId: string;
   kind: "departure" | "appointment" | "treatment" | "return" | "followup";
+  /** Refined visual taxonomy used by the helicopter canvas. */
+  subKind: MilestoneSubKind;
   title: string;
   titleAr: string;
   date?: string | null;
   /** Bucket used for phase-chip placement on the home canvas. */
   phase: "before" | "travel" | "care" | "after";
   state: "done" | "current" | "upcoming";
+}
+
+function inferSubKind(kind: JourneyMilestone["kind"], title: string): MilestoneSubKind {
+  if (kind === "departure" || kind === "return") return "flight";
+  if (kind === "treatment") return "surgery";
+  if (kind === "followup") return "followup";
+  const t = (title || "").toLowerCase();
+  if (/(surger|operation|valve|repair|implant|graft)/.test(t)) return "surgery";
+  if (/(icu|ward|recover|rehab|physio)/.test(t)) return "recovery";
+  if (/(follow.?up|f\/u)/.test(t)) return "followup";
+  if (/(lab|blood|panel|cbc|chem)/.test(t)) return "lab";
+  if (/(echo|scan|mri|ct|x.?ray|ultrasound|imaging|radio)/.test(t)) return "rad";
+  return "consult";
 }
 
 export interface DashboardAlert {
@@ -109,23 +133,25 @@ function buildMilestones(trip: TripData | null, appts: Appointment[]): JourneyMi
   };
 
   const items: JourneyMilestone[] = [
-    { id: "m-departure", refId: "departure", kind: "departure", title: "Departure", titleAr: "السفر", date: dep, state: stateFor(dep), phase: "travel" },
+    { id: "m-departure", refId: "departure", kind: "departure", subKind: "flight", title: "Departure", titleAr: "السفر", date: dep, state: stateFor(dep), phase: "travel" },
   ];
   appts.slice(0, 3).forEach((apt, i) => {
     const kind: JourneyMilestone["kind"] =
       i === 0 && apt.specialty?.toLowerCase().includes("surg") ? "treatment" : "appointment";
+    const title = apt.specialty || apt.doctorName || "Appointment";
     items.push({
       id: `m-appt-${apt.id}`,
       refId: apt.id,
       kind,
-      title: apt.specialty || apt.doctorName || "Appointment",
+      subKind: inferSubKind(kind, title),
+      title,
       titleAr: apt.specialtyAr || apt.doctorNameAr || "موعد",
       date: apt.date,
       state: apt.status === "completed" ? "done" : "upcoming",
       phase: phaseFor(apt.date, kind),
     });
   });
-  items.push({ id: "m-return", refId: "return", kind: "return", title: "Return Home", titleAr: "العودة", date: ret, state: stateFor(ret), phase: "after" });
+  items.push({ id: "m-return", refId: "return", kind: "return", subKind: "flight", title: "Return Home", titleAr: "العودة", date: ret, state: stateFor(ret), phase: "after" });
 
   // Sort by date so the canvas renders chronologically (departure can be after consults).
   items.sort((a, b) => {

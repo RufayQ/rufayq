@@ -1,69 +1,216 @@
-import { X } from "lucide-react";
+import { ArrowUpRight, CalendarClock, FlaskConical, Home, MoreHorizontal, Pill, PlaneTakeoff, Stethoscope, Activity } from "lucide-react";
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
+import { formatChipDate } from "@/lib/journeyOverview";
+
+export type SheetItemKind = "lab" | "rad" | "med" | "visit" | "flight";
+export type SheetItemTone = "now" | "active" | "soon" | "done" | "muted";
+
+export interface SheetItem {
+  id: string;
+  kind: SheetItemKind;
+  title: string;
+  subtitle?: string;
+  state?: string;        // e.g. "Now", "14:00", "Pending"
+  tone?: SheetItemTone;
+  cancelled?: boolean;
+}
 
 interface MilestoneSheetProps {
   milestone: JourneyMilestone | null;
-  onClose: () => void;
-  onOpenSubTab: (key: string) => void;
+  items?: SheetItem[];
+  /** Optional location label rendered in the sub-meta row. */
+  location?: string;
+  onReschedule?: () => void;
+  onOpenMilestone?: () => void;
+  onShowAll?: () => void;
 }
 
-const subTabFor = (kind: JourneyMilestone["kind"]): { key: string; en: string; ar: string } => {
-  switch (kind) {
-    case "departure":
-    case "return":
-      return { key: "tickets", en: "Open Tickets", ar: "افتح التذاكر" };
-    case "treatment":
-    case "appointment":
-      return { key: "appointments", en: "Open Appointments", ar: "افتح المواعيد" };
-    default:
-      return { key: "steps", en: "Open Steps", ar: "افتح الخطوات" };
-  }
+const KIND_BG: Record<SheetItemKind, { bg: string; fg: string; Icon: any }> = {
+  lab:    { bg: "var(--kind-lab-bg)",      fg: "var(--kind-lab-fg)",      Icon: FlaskConical },
+  rad:    { bg: "var(--kind-rad-bg)",      fg: "var(--kind-rad-fg)",      Icon: Activity },
+  med:    { bg: "var(--gold-pale)",        fg: "var(--gold)",             Icon: Pill },
+  visit:  { bg: "var(--kind-consult-bg)",  fg: "var(--kind-consult-fg)",  Icon: Stethoscope },
+  flight: { bg: "var(--kind-flight-bg)",   fg: "var(--kind-flight-fg)",   Icon: PlaneTakeoff },
 };
 
-const MilestoneSheet = ({ milestone, onClose, onOpenSubTab }: MilestoneSheetProps) => {
+const TONE_BG: Record<SheetItemTone, { bg: string; fg: string; border?: string }> = {
+  now:    { bg: "var(--kind-rad-bg)",     fg: "var(--kind-rad-fg)" },
+  active: { bg: "var(--kind-rad-bg)",     fg: "var(--kind-rad-fg)" },
+  soon:   { bg: "var(--white)",           fg: "var(--gray)", border: "1px solid var(--gray-light)" },
+  done:   { bg: "var(--kind-consult-bg)", fg: "var(--kind-consult-fg)" },
+  muted:  { bg: "var(--off-white)",       fg: "var(--gray)" },
+};
+
+const headerPill = (state: JourneyMilestone["state"]) => {
+  if (state === "current") return { label: "Today", bg: "var(--kind-rad-bg)", fg: "var(--kind-rad-fg)" };
+  if (state === "done")    return { label: "Past",  bg: "var(--kind-consult-bg)", fg: "var(--kind-consult-fg)" };
+  return                       { label: "Upcoming", bg: "var(--off-white)", fg: "var(--gray)", border: "1px solid var(--gray-light)" };
+};
+
+const MilestoneSheet = ({
+  milestone,
+  items = [],
+  location,
+  onReschedule,
+  onOpenMilestone,
+  onShowAll,
+}: MilestoneSheetProps) => {
   if (!milestone) return null;
-  const cta = subTabFor(milestone.kind);
+  const visible = items.slice(0, 4);
+  const overflow = Math.max(0, items.length - visible.length);
+  const pill = headerPill(milestone.state);
+  const dateLabel =
+    milestone.state === "current"
+      ? `Today · ${milestone.date ? formatChipDate(milestone.date) : ""}`.trim()
+      : milestone.date
+      ? formatChipDate(milestone.date)
+      : "TBD";
+
   return (
-    <div
-      className="absolute inset-0 z-30 flex items-end"
-      style={{ background: "rgba(10,20,40,0.45)" }}
-      onClick={onClose}
+    <section
+      className="mx-4 mt-3 stagger-2"
+      data-testid="milestone-sheet"
+      aria-label={`${milestone.title} details`}
+      style={{
+        background: "var(--white)",
+        borderRadius: 18,
+        border: "1px solid var(--gray-light)",
+        boxShadow: "0 12px 28px -16px rgba(0,77,91,0.18)",
+        padding: "12px 18px 18px",
+      }}
     >
+      {/* Drag handle */}
       <div
-        className="w-full rounded-t-2xl p-5 animate-slide-in-bottom"
-        style={{ background: "var(--white)" }}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-label={`${milestone.title} · ${milestone.titleAr}`}
-      >
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>
-              MILESTONE · محطة
-            </p>
-            <p className="font-display text-lg" style={{ color: "var(--navy)" }}>{milestone.title}</p>
-            <p className="font-arabic text-xs" dir="rtl" style={{ color: "var(--gray)" }}>{milestone.titleAr}</p>
-          </div>
-          <button onClick={onClose} aria-label="Close" className="btn-press p-1">
-            <X size={18} color="var(--gray)" />
-          </button>
-        </div>
+        aria-hidden
+        style={{ width: 34, height: 4, borderRadius: 999, background: "var(--gray-light)", margin: "0 auto 10px" }}
+      />
 
-        {milestone.date && (
-          <p className="text-[12px] mt-1" style={{ color: "var(--gray)" }}>
-            {milestone.date}
+      {/* Header */}
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3
+            className="text-[15px] font-semibold leading-tight tracking-[-0.01em] truncate"
+            style={{ color: "var(--navy)", fontFamily: "var(--font-display)" }}
+          >
+            {milestone.title}
+          </h3>
+          <p
+            className="font-arabic text-[11px] mt-0.5 truncate"
+            dir="rtl"
+            style={{ color: "var(--gray)" }}
+          >
+            {milestone.titleAr}
           </p>
-        )}
-
-        <button
-          onClick={() => { onOpenSubTab(cta.key); onClose(); }}
-          className="mt-4 w-full py-2.5 rounded-full text-[13px] font-semibold text-white btn-press"
-          style={{ background: "var(--teal-deep)" }}
+          <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1.5 text-[11px]" style={{ color: "var(--gray)" }}>
+            <span>{dateLabel}</span>
+            <span className="inline-block w-[2px] h-[2px] rounded-full" style={{ background: "var(--gray-light)" }} />
+            <span>{items.length} {items.length === 1 ? "artifact" : "artifacts"}</span>
+            {location && (
+              <>
+                <span className="inline-block w-[2px] h-[2px] rounded-full" style={{ background: "var(--gray-light)" }} />
+                <span className="truncate max-w-[120px]">{location}</span>
+              </>
+            )}
+          </div>
+        </div>
+        <span
+          data-testid="milestone-sheet-pill"
+          className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+          style={{ background: pill.bg, color: pill.fg, border: pill.border, letterSpacing: "0.04em" }}
         >
-          {cta.en} · {cta.ar}
+          {pill.label}
+        </span>
+      </header>
+
+      {/* Artifacts */}
+      {visible.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-1.5" data-testid="milestone-sheet-items">
+          {visible.map((it) => {
+            const k = KIND_BG[it.kind];
+            const tone = TONE_BG[it.tone ?? "soon"];
+            const Icon = k.Icon;
+            return (
+              <li
+                key={it.id}
+                className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg"
+                style={{
+                  background: "var(--off-white)",
+                  opacity: it.cancelled ? 0.5 : 1,
+                }}
+              >
+                <span
+                  className="flex items-center justify-center flex-shrink-0"
+                  style={{ width: 24, height: 24, borderRadius: 6, background: k.bg, color: k.fg }}
+                  aria-hidden
+                >
+                  <Icon size={12} strokeWidth={2.2} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-[11px] font-medium leading-tight truncate"
+                    style={{ color: "var(--navy)", textDecoration: it.cancelled ? "line-through" : undefined }}
+                  >
+                    {it.title}
+                  </p>
+                  {it.subtitle && (
+                    <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>
+                      {it.subtitle}
+                    </p>
+                  )}
+                </div>
+                {it.state && (
+                  <span
+                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                    style={{
+                      background: tone.bg,
+                      color: tone.fg,
+                      border: tone.border,
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    {it.state}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {overflow > 0 && (
+        <button
+          onClick={onShowAll}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 text-[11px] font-medium py-1.5 rounded-md btn-press"
+          style={{ color: "var(--teal-deep)", background: "var(--off-white)" }}
+        >
+          <MoreHorizontal size={12} /> +{overflow} more
+        </button>
+      )}
+
+      {/* CTAs */}
+      <div className="flex gap-1.5 mt-3">
+        <button
+          onClick={onReschedule}
+          disabled={!onReschedule}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold btn-press"
+          style={{
+            background: "transparent",
+            border: "1px solid var(--gray-light)",
+            color: onReschedule ? "var(--navy)" : "var(--gray)",
+            opacity: onReschedule ? 1 : 0.6,
+          }}
+        >
+          <CalendarClock size={12} /> Reschedule
+        </button>
+        <button
+          onClick={onOpenMilestone}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold btn-press"
+          style={{ background: "var(--kind-rad-fg)", color: "#fff", border: "1px solid var(--kind-rad-fg)" }}
+        >
+          <ArrowUpRight size={12} /> Open milestone
         </button>
       </div>
-    </div>
+    </section>
   );
 };
 

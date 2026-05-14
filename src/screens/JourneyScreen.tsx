@@ -29,7 +29,8 @@ import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/us
 import UnifiedTimeline from "@/components/journey/UnifiedTimeline";
 import JourneyHero from "@/components/journey/JourneyHero";
 import HelicopterCanvas from "@/components/journey/HelicopterCanvas";
-import MilestoneSheet from "@/components/journey/MilestoneSheet";
+import PhaseRibbon5 from "@/components/journey/PhaseRibbon5";
+import MilestoneSheet, { type SheetItem } from "@/components/journey/MilestoneSheet";
 import OtherJourneysList from "@/components/journey/OtherJourneysList";
 import EmptyJourneyCard from "@/components/journey/EmptyJourneyCard";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
@@ -158,6 +159,17 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
   const overview = useJourneyOverview({ isGuest });
   const selectedMilestone = overview.milestones.find((m) => m.id === selectedMilestoneId) ?? null;
+
+  // Default the helicopter selection to the most relevant milestone whenever the trip changes.
+  useEffect(() => {
+    if (selectedMilestoneId) return;
+    if (overview.milestones.length === 0) return;
+    const next =
+      overview.milestones.find((m) => m.state === "current")
+      ?? overview.milestones.find((m) => m.state === "upcoming")
+      ?? overview.milestones[0];
+    if (next) setSelectedMilestoneId(next.id);
+  }, [overview.milestones, selectedMilestoneId]);
   // Flight tickets are persisted (per-device) via Supabase + local cache so
   // they survive navigation, reload, and offline. Non-flight transport
   // segments stay in local state for now (separate persistence epic).
@@ -851,11 +863,73 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                   formattedDepartureDate={overview.formattedDepartureDate}
                   formattedReturnDate={overview.formattedReturnDate}
                 />
+                <PhaseRibbon5 dayN={overview.dayN} totalDays={overview.totalDays} />
                 <HelicopterCanvas
                   milestones={overview.milestones}
                   selectedId={selectedMilestoneId}
                   onSelect={(id) => setSelectedMilestoneId(id)}
                 />
+                {selectedMilestone && (() => {
+                  const m = selectedMilestone;
+                  const items: SheetItem[] = [];
+                  let location: string | undefined;
+                  if (m.kind === "departure" || m.kind === "return") {
+                    const flight = m.kind === "departure" ? activeTrip.outboundFlight : activeTrip.returnFlight;
+                    if (flight) {
+                      items.push({
+                        id: `${m.id}-flight`,
+                        kind: "flight",
+                        title: `${flight.airline || "Flight"} ${flight.flightNumber || ""}`.trim(),
+                        subtitle: `${flight.fromAirport || ""} → ${flight.toAirport || ""}${flight.seatNumber ? ` · seat ${flight.seatNumber}` : ""}`,
+                        state: m.state === "done" ? "Done" : m.state === "current" ? "Now" : "Upcoming",
+                        tone: m.state === "done" ? "done" : m.state === "current" ? "now" : "soon",
+                      });
+                      location = `${flight.fromCity || flight.fromAirport || ""} → ${flight.toCity || flight.toAirport || ""}`.trim();
+                    }
+                  } else {
+                    const apt = visibleAppointments.find((a) => a.id === m.refId);
+                    if (apt) {
+                      items.push({
+                        id: `${m.id}-visit`,
+                        kind: m.subKind === "surgery" ? "rad" : "visit",
+                        title: apt.specialty || apt.doctorName || "Appointment",
+                        subtitle: [apt.doctorName, apt.time, apt.location].filter(Boolean).join(" · "),
+                        state: m.state === "done" ? "Done" : m.state === "current" ? "Now" : apt.time,
+                        tone: m.state === "done" ? "done" : m.state === "current" ? "now" : "soon",
+                      });
+                      location = apt.location;
+                      // Sibling appointments on the same day → extra artifacts.
+                      visibleAppointments
+                        .filter((a) => a.id !== apt.id && a.date === apt.date)
+                        .slice(0, 3)
+                        .forEach((a) => items.push({
+                          id: `${m.id}-sib-${a.id}`,
+                          kind: "visit",
+                          title: a.specialty || a.doctorName || "Appointment",
+                          subtitle: [a.doctorName, a.time, a.location].filter(Boolean).join(" · "),
+                          state: a.time,
+                          tone: "soon",
+                        }));
+                    }
+                  }
+                  const apptForReschedule = m.kind !== "departure" && m.kind !== "return"
+                    ? visibleAppointments.find((a) => a.id === m.refId)
+                    : null;
+                  return (
+                    <MilestoneSheet
+                      milestone={m}
+                      items={items}
+                      location={location || activeTrip.hospital}
+                      onReschedule={apptForReschedule ? () => { setActiveSubTab("appointments"); setAppointmentFormIntent((v) => v + 1); } : undefined}
+                      onOpenMilestone={() => {
+                        if (m.kind === "departure" || m.kind === "return") setActiveSubTab("tickets");
+                        else if (m.kind === "appointment" || m.kind === "treatment") setActiveSubTab("appointments");
+                        else setActiveSubTab("steps");
+                      }}
+                      onShowAll={() => setActiveSubTab("appointments")}
+                    />
+                  );
+                })()}
                 <div className="px-4 pt-3">
                   <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} />
                 </div>
@@ -905,11 +979,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
           />
         )}
 
-        <MilestoneSheet
-          milestone={selectedMilestone}
-          onClose={() => setSelectedMilestoneId(null)}
-          onOpenSubTab={(key) => setActiveSubTab(key)}
-        />
+        {/* MilestoneSheet is rendered inline beneath the helicopter canvas in the overview tab. */}
       </div>
 
       <PaywallModal

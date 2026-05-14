@@ -48,6 +48,17 @@
     --pending: #C0C8D0;
     --accent-surgery: #993556;
 
+    /* Helicopter canvas atmosphere + per-kind palette (bg / border / fg) */
+    --canvas-sky-top: #F4F1E8;
+    --canvas-sky-bottom: #ECE6D7;
+    --kind-consult-bg: #E1F5EE;   --kind-consult-border: #0F6E56;   --kind-consult-fg: #085041;
+    --kind-recovery-bg: #E1F5EE;  --kind-recovery-border: #0F6E56;  --kind-recovery-fg: #085041;
+    --kind-lab-bg: #EEEDFE;       --kind-lab-border: #534AB7;       --kind-lab-fg: #3C3489;
+    --kind-rad-bg: #E6F1FB;       --kind-rad-border: #185FA5;       --kind-rad-fg: #0C447C;
+    --kind-followup-bg: #E6F1FB;  --kind-followup-border: #185FA5;  --kind-followup-fg: #0C447C;
+    --kind-flight-bg: #FAEEDA;    --kind-flight-border: #854F0B;    --kind-flight-fg: #633806;
+    --kind-surgery-bg: #FBEAF0;   --kind-surgery-border: #993556;   --kind-surgery-fg: #72243E;
+
     /* Header gradients */
     --header-teal-from: #004D5B;
     --header-teal-to: #006D7C;
@@ -98,6 +109,17 @@
     --error: #E86060;
     --pending: #3A4550;
     --accent-surgery: #B85574;
+
+    /* Helicopter canvas atmosphere + per-kind palette — dark mode */
+    --canvas-sky-top: #0F1820;
+    --canvas-sky-bottom: #0A1218;
+    --kind-consult-bg: #0F2A22;   --kind-consult-border: #2EA47C;   --kind-consult-fg: #7CD7B5;
+    --kind-recovery-bg: #0F2A22;  --kind-recovery-border: #2EA47C;  --kind-recovery-fg: #7CD7B5;
+    --kind-lab-bg: #1A1A2E;       --kind-lab-border: #7B72E0;       --kind-lab-fg: #B7B0FF;
+    --kind-rad-bg: #0F1F2E;       --kind-rad-border: #4A8DD0;       --kind-rad-fg: #9CC6F0;
+    --kind-followup-bg: #0F1F2E;  --kind-followup-border: #4A8DD0;  --kind-followup-fg: #9CC6F0;
+    --kind-flight-bg: #2A1F0F;    --kind-flight-border: #C5872A;    --kind-flight-fg: #F0C880;
+    --kind-surgery-bg: #2A1620;   --kind-surgery-border: #C56684;   --kind-surgery-fg: #F0A8C0;
 
     /* Header gradients — dark mode */
     --header-teal-from: #003845;
@@ -324,3 +346,15 @@ html.admin-light .admin-shell [class*="text-slate-500"] { color: #64748b !import
 html.admin-light .admin-shell input,
 html.admin-light .admin-shell select,
 html.admin-light .admin-shell textarea { background-color: #ffffff !important; color: #0f172a !important; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Helicopter canvas — pulse ring around the current milestone
+   ────────────────────────────────────────────────────────────────────────── */
+@keyframes ringpulse {
+  0%   { transform: scale(0.85); opacity: 0.5; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+.helicopter-pulse { animation: ringpulse 2s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .helicopter-pulse { animation: none; opacity: 0.35; }
+}
