@@ -67,7 +67,7 @@ const STR = {
   title:    { en: "Welcome to Rufayq",                                    ar: "أهلاً بك في رفايق" },
   subtitle: { en: "Choose how you'll sign in. We'll verify your account matches.",
               ar: "اختر طريقة دخولك وسنتحقق من تطابق حسابك." },
-  patient:  { en: "I'm a Patient",                                        ar: "أنا مريض" },
+  patient:  { en: "I'm a Traveller",                                      ar: "أنا مسافر" },
   patientS: { en: "Track journey, records, meds and care plan",           ar: "تتبّع الرحلة والسجلات والأدوية والخطة العلاجية" },
   doctor:   { en: "I'm a Doctor",                                         ar: "أنا طبيب" },
   doctorS:  { en: "Manage patients, claims and approvals",                ar: "إدارة المرضى والمطالبات والموافقات" },
