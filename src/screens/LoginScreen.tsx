@@ -36,7 +36,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [showPass, setShowPass] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
-  const [bioRemembered, setBioRemembered] = useState<string | null>(null);
+  const [bioEnrolled, setBioEnrolled] = useState(false);
+  const [showEnrollPrompt, setShowEnrollPrompt] = useState<{ userId: string; label: string } | null>(null);
 
   // Sign-up state
   const [reg, setReg] = useState({
