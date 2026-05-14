@@ -9,14 +9,13 @@ import {
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { biometric } from "@/lib/native/biometric";
 
 
 type AuthView = "welcome" | "login" | "register" | "medical" | "otp" | "recover" | "newpass";
 type OtpChannel = "whatsapp" | "sms" | "email";
 
 interface LoginScreenProps { onLogin: () => void }
-
-const BIOMETRIC_KEY = "rufayq_bio_email";
 
 // ---------- helpers ----------
 const phoneToE164 = (raw: string, defaultCountry = "+966") => {
@@ -37,7 +36,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [showPass, setShowPass] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
-  const [bioRemembered, setBioRemembered] = useState<string | null>(null);
+  const [bioEnrolled, setBioEnrolled] = useState(false);
+  const [showEnrollPrompt, setShowEnrollPrompt] = useState<{ userId: string; label: string } | null>(null);
 
   // Sign-up state
   const [reg, setReg] = useState({
@@ -111,10 +111,13 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const removeFamily = (i: number) => setFamilyHistory(familyHistory.filter((_, idx) => idx !== i));
 
   // ---------- biometric availability ----------
+  const refreshBio = async () => {
+    const [avail, enrolled] = await Promise.all([biometric.isAvailable(), biometric.isEnrolled()]);
+    setBioAvailable(avail);
+    setBioEnrolled(enrolled);
+  };
   useEffect(() => {
-    const supported = typeof window !== "undefined" && !!(window as any).PublicKeyCredential;
-    setBioAvailable(supported);
-    setBioRemembered(localStorage.getItem(BIOMETRIC_KEY));
+    refreshBio();
   }, []);
 
   const startCountdown = () => {
@@ -133,46 +136,56 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     if (!password) { toast.error("Enter your password"); return; }
     setSubmitting(true);
     const signInEmail = phoneToEmail(e164);
-    const { error } = await supabase.auth.signInWithPassword({ email: signInEmail, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: signInEmail, password });
     setSubmitting(false);
     if (error) {
       toast.error("Sign-in failed", { description: "Check your number & password, or use 'Forgot password'." });
       return;
     }
-    // Remember for next-time biometrics
-    localStorage.setItem(BIOMETRIC_KEY, signInEmail);
-    setBioRemembered(signInEmail);
     toast.success("Welcome back · مرحباً بعودتك");
-    setTimeout(onLogin, 300);
+
+    // Offer biometric enrollment if supported and not yet enrolled.
+    const userId = data.user?.id;
+    const avail = await biometric.isAvailable();
+    const enrolled = await biometric.isEnrolled();
+    if (userId && avail && !enrolled) {
+      setShowEnrollPrompt({ userId, label: e164 });
+    } else {
+      setTimeout(onLogin, 300);
+    }
+  };
+
+  const acceptEnrollment = async () => {
+    if (!showEnrollPrompt) return;
+    const ok = await biometric.enroll(showEnrollPrompt.userId, showEnrollPrompt.label);
+    setShowEnrollPrompt(null);
+    if (ok) {
+      toast.success("Biometric sign-in enabled · تم تفعيل البصمة");
+      await refreshBio();
+    } else {
+      toast.info("Biometric setup skipped · تم التخطي");
+    }
+    setTimeout(onLogin, 200);
+  };
+
+  const declineEnrollment = () => {
+    setShowEnrollPrompt(null);
+    setTimeout(onLogin, 100);
   };
 
   const handleBiometric = async () => {
-    if (!bioRemembered) {
-      toast.info("Sign in once with your password — biometrics activates after that.");
+    if (!bioAvailable || !bioEnrolled) return;
+    const ok = await biometric.verify();
+    if (!ok) {
+      // Silent on user cancel — no scary toast.
       return;
     }
-    if (!bioAvailable) { toast.error("Biometric authentication not supported on this device."); return; }
-    try {
-      // NOTE: this is a UX-level biometric prompt. True passwordless WebAuthn requires server-side
-      // credential registration; for now we use it as a local "unlock" gate that re-runs the last sign-in.
-      const cred = await (navigator.credentials as any).get({
-        publicKey: {
-          challenge: crypto.getRandomValues(new Uint8Array(32)),
-          timeout: 60000,
-          userVerification: "required",
-        },
-      }).catch(() => null);
-      if (!cred) {
-        toast.error("Biometric prompt cancelled");
-        return;
-      }
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
       toast.success("Unlocked · تم الفتح");
-      // The app still needs a valid Supabase session — if cookies are stale, fall through to manual.
-      const { data } = await supabase.auth.getSession();
-      if (data.session) onLogin();
-      else toast.info("Session expired — please sign in once with your password.");
-    } catch {
-      toast.error("Biometric unlock failed");
+      onLogin();
+    } else {
+      toast.info("Session expired — please sign in once with your password.");
     }
   };
 
@@ -262,7 +275,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       if (reg.password) {
         await supabase.auth.updateUser({ password: reg.password });
       }
-      localStorage.setItem(BIOMETRIC_KEY, data.signInEmail);
+      // Biometric enrollment after sign-up is offered separately on first sign-in.
 
       const now = new Date().toISOString();
       const { error: pErr } = await supabase.from("profiles").upsert({
@@ -476,7 +489,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           {submitting ? "Signing in…" : "Sign in · تسجيل الدخول"}
         </button>
 
-        {bioAvailable && bioRemembered && (
+        {bioAvailable && bioEnrolled && (
           <button onClick={handleBiometric}
             className="w-full mt-3 py-3 rounded-xl font-semibold btn-press flex items-center justify-center gap-2"
             style={{ background: "var(--white)", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}>
@@ -506,6 +519,33 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
           </button>
         </p>
+
+        {showEnrollPrompt && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.45)" }}>
+            <div className="w-full max-w-[420px] rounded-t-2xl p-5" style={{ background: "var(--white)" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Fingerprint size={20} style={{ color: "var(--teal-deep)" }} />
+                <p className="font-semibold text-sm" style={{ color: "var(--navy)" }}>
+                  Enable biometric sign-in?
+                </p>
+              </div>
+              <p className="font-arabic text-[13px] mb-1" dir="rtl" style={{ color: "var(--gray)" }}>
+                هل تريد تفعيل تسجيل الدخول بالبصمة على هذا الجهاز؟
+              </p>
+              <p className="text-[12px] mb-4" style={{ color: "var(--gray)" }}>
+                Use Face ID, Touch ID or fingerprint to unlock RufayQ on this device next time.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={declineEnrollment} className="flex-1 py-2.5 rounded-xl text-sm" style={{ background: "var(--off-white)", color: "var(--gray)" }}>
+                  Not now · ليس الآن
+                </button>
+                <button onClick={acceptEnrollment} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "var(--teal-deep)" }}>
+                  Enable · تفعيل
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

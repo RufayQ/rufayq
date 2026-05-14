@@ -3,6 +3,7 @@ import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, 
 import { toast } from "sonner";
 import { useLanguage, type LangMode } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { biometric } from "@/lib/native/biometric";
 import { TOURS, clearTourDone } from "@/lib/tours";
 import TourRunner from "@/components/TourRunner";
 import { useGuestMode } from "@/hooks/useGuestMode";
@@ -85,7 +86,8 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const [appointmentAlert, setAppointmentAlert] = useState(stored.appointmentAlert ?? true);
   const [soundEnabled, setSoundEnabled] = useState(stored.soundEnabled ?? true);
   const [quietHours, setQuietHours] = useState(stored.quietHours ?? false);
-  const [biometric, setBiometric] = useState(stored.biometric ?? true);
+  const [biometricOn, setBiometricOn] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [autoBackup, setAutoBackup] = useState(stored.autoBackup ?? true);
   const [replayTourId, setReplayTourId] = useState<string | null>(null);
   const [currentUid, setCurrentUid] = useState<string | null>(null);
@@ -94,7 +96,37 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUid(session?.user?.id || null);
     });
+    (async () => {
+      const [avail, enrolled] = await Promise.all([biometric.isAvailable(), biometric.isEnrolled()]);
+      setBiometricAvailable(avail);
+      setBiometricOn(enrolled);
+    })();
   }, []);
+
+  const toggleBiometric = async (next: boolean) => {
+    if (!biometricAvailable) {
+      toast.error("Biometric not available on this device · غير متاح على هذا الجهاز");
+      return;
+    }
+    if (next) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast.error("Sign in first to enable biometrics · سجّل دخولك أولاً");
+        return;
+      }
+      const ok = await biometric.enroll(session.user.id, session.user.email || "RufayQ");
+      if (ok) {
+        setBiometricOn(true);
+        toast.success("Biometric enabled · تم التفعيل");
+      } else {
+        toast.info("Biometric setup cancelled · تم الإلغاء");
+      }
+    } else {
+      await biometric.clear();
+      setBiometricOn(false);
+      toast.success("Biometric disabled · تم التعطيل");
+    }
+  };
 
   const replayableTours = TOURS.filter((t) => t.steps.length > 0);
   const activeReplayTour = replayTourId ? TOURS.find((t) => t.id === replayTourId) : null;
@@ -238,9 +270,10 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           </div>
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
             <ToggleRow
-              icon={<Smartphone size={15} style={{ color: "var(--teal-deep)" }} />}
-              label="Biometric Login" labelAr="تسجيل الدخول البيومتري"
-              on={biometric} onChange={update("biometric", setBiometric)}
+              icon={<Smartphone size={15} style={{ color: biometricAvailable ? "var(--teal-deep)" : "var(--gray)" }} />}
+              label={biometricAvailable ? "Biometric Login" : "Biometric Login (unavailable)"}
+              labelAr="تسجيل الدخول البيومتري"
+              on={biometricOn} onChange={toggleBiometric}
             />
             <ToggleRow
               icon={<Shield size={15} style={{ color: "var(--success)" }} />}
