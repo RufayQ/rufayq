@@ -287,17 +287,6 @@ const QuickSignup = () => {
             {showOptional && (
               <div className="space-y-4 pt-2">
                 <div>
-                  <label className="text-[12px]" style={labelStyle}>{t("Arabic name (optional)", "الاسم بالعربية (اختياري)")}</label>
-                  <input
-                    type="text"
-                    value={nameAr}
-                    onChange={(e) => setNameAr(e.target.value)}
-                    className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
-                    style={inputStyle}
-                    dir="rtl"
-                  />
-                </div>
-                <div>
                   <label className="text-[12px]" style={labelStyle}>{t("Email (optional)", "البريد الإلكتروني (اختياري)")}</label>
                   <input
                     type="email"
