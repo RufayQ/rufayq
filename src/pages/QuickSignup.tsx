@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { setStoredRole } from "@/screens/RoleSelectorScreen";
-import { phoneToE164, phoneToEmail, isValidEmail } from "@/lib/auth/phoneEmail";
+import { phoneToE164, phoneToEmail, isValidEmail, isValidE164 } from "@/lib/auth/phoneEmail";
+import PasswordStrength, { evaluatePassword, allRequiredPass } from "@/components/auth/PasswordStrength";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Seo } from "@/seo/Seo";
@@ -24,16 +25,34 @@ const QuickSignup = () => {
   const isAr = mode === "ar";
   const t = (en: string, ar: string) => (isAr ? ar : en);
 
-  const [name, setName] = useState("");
-  const [nameAr, setNameAr] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [firstNameAr, setFirstNameAr] = useState("");
+  const [lastNameAr, setLastNameAr] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [pwFocused, setPwFocused] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [nationality, setNationality] = useState("Saudi Arabia");
   const [terms, setTerms] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [serverPwError, setServerPwError] = useState<string | null>(null);
+
+  const fullNameEn = `${firstName.trim()} ${lastName.trim()}`.trim();
+  const fullNameAr = [firstNameAr.trim(), lastNameAr.trim()].filter(Boolean).join(" ").trim() || null;
+  const e164 = phoneToE164(phone);
+  const pwChecks = evaluatePassword(password, { firstName, lastName, phone });
+  const pwOk = allRequiredPass(pwChecks);
+  const canSubmit =
+    !!firstName.trim() &&
+    !!lastName.trim() &&
+    isValidE164(e164) &&
+    pwOk &&
+    terms &&
+    (!email.trim() || isValidEmail(email)) &&
+    !submitting;
 
   // Persist Traveller role + sign out any stale staff/provider session.
   useEffect(() => {
@@ -54,11 +73,13 @@ const QuickSignup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) { toast.error(t("Full name is required", "الاسم الكامل مطلوب")); return; }
-    const e164 = phoneToE164(phone);
-    if (!e164 || e164.length < 8) { toast.error(t("Enter a valid mobile number", "أدخل رقم جوال صحيح")); return; }
-    if (!password || password.length < 8) {
-      toast.error(t("Password must be at least 8 characters", "كلمة السر 8 أحرف على الأقل")); return;
+    setServerPwError(null);
+    if (!firstName.trim() || !lastName.trim()) {
+      toast.error(t("First and last name are required", "الاسم الأول والاسم الأخير مطلوبان")); return;
+    }
+    if (!isValidE164(e164)) { toast.error(t("Enter a valid mobile number", "أدخل رقم جوال صحيح")); return; }
+    if (!pwOk) {
+      toast.error(t("Password doesn't meet the requirements below", "كلمة السر لا تحقق المتطلبات أدناه")); return;
     }
     if (email && !isValidEmail(email)) { toast.error(t("Email is invalid", "البريد غير صالح")); return; }
     if (!terms) { toast.error(t("Please accept Terms & Privacy", "يرجى قبول الشروط والخصوصية")); return; }
@@ -90,7 +111,11 @@ const QuickSignup = () => {
         userId = signInData.user?.id;
       } else {
         setSubmitting(false);
-        toast.error(t("Sign-up failed", "فشل إنشاء الحساب"), { description: msg });
+        if (/weak|password|pwned|leaked|easy to guess/i.test(msg)) {
+          setServerPwError(t("Password rejected by server. Try a longer or more unique password.", "تم رفض كلمة السر من الخادم. جرّب كلمة سر أطول أو أكثر تفرداً.") + " — " + msg);
+        } else {
+          toast.error(t("Sign-up failed", "فشل إنشاء الحساب"), { description: msg });
+        }
         return;
       }
     } else {
@@ -122,8 +147,8 @@ const QuickSignup = () => {
     const now = new Date().toISOString();
     const { error: pErr } = await supabase.from("profiles").upsert({
       device_id: newDeviceId,
-      full_name_en: name.trim(),
-      full_name_ar: nameAr.trim() || null,
+      full_name_en: fullNameEn,
+      full_name_ar: fullNameAr,
       phone: e164,
       email: email.trim() || null,
       nationality,
@@ -207,31 +232,60 @@ const QuickSignup = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-[12px]" style={labelStyle}>{t("Full name", "الاسم الكامل")}</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t("e.g. Mohammed Al-Saud", "مثال: محمد آل سعود")}
-                className="w-full mt-1 px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[--ring]"
-                style={inputStyle}
-                autoComplete="name"
-                required
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[12px]" style={labelStyle}>{t("First name", "الاسم الأول")}</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder={t("e.g. Mohammed", "مثال: محمد")}
+                  className="w-full mt-1 px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[--ring]"
+                  style={inputStyle}
+                  autoComplete="given-name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[12px]" style={labelStyle}>{t("Last name", "اسم العائلة")}</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder={t("e.g. Al-Saud", "مثال: آل سعود")}
+                  className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
+                  style={inputStyle}
+                  autoComplete="family-name"
+                  required
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="text-[12px]" style={labelStyle}>{t("Arabic name (optional)", "الاسم بالعربية (اختياري)")}</label>
-              <input
-                type="text"
-                value={nameAr}
-                onChange={(e) => setNameAr(e.target.value)}
-                placeholder={t("الاسم بالعربية", "الاسم بالعربية")}
-                className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
-                style={inputStyle}
-                dir="rtl"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[12px]" style={labelStyle}>{t("First name (Arabic)", "الاسم الأول (عربي)")}</label>
+                <input
+                  type="text"
+                  value={firstNameAr}
+                  onChange={(e) => setFirstNameAr(e.target.value)}
+                  placeholder="محمد"
+                  className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
+                  style={inputStyle}
+                  dir="rtl"
+                />
+              </div>
+              <div>
+                <label className="text-[12px]" style={labelStyle}>{t("Last name (Arabic)", "اسم العائلة (عربي)")}</label>
+                <input
+                  type="text"
+                  value={lastNameAr}
+                  onChange={(e) => setLastNameAr(e.target.value)}
+                  placeholder="آل سعود"
+                  className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
+                  style={inputStyle}
+                  dir="rtl"
+                />
+              </div>
             </div>
 
             <div>
@@ -255,7 +309,8 @@ const QuickSignup = () => {
                 <input
                   type={showPass ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); if (serverPwError) setServerPwError(null); }}
+                  onFocus={() => setPwFocused(true)}
                   placeholder={t("At least 8 characters", "8 أحرف على الأقل")}
                   className="w-full px-4 py-3 pe-12 rounded-xl outline-none"
                   style={inputStyle}
@@ -273,6 +328,22 @@ const QuickSignup = () => {
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {serverPwError && (
+                <p
+                  className="mt-2 text-[12px] rounded-md px-3 py-2"
+                  style={{ color: "#E5484D", background: "rgba(229,72,77,0.08)", border: "1px solid rgba(229,72,77,0.25)" }}
+                  data-testid="server-pw-error"
+                >
+                  {serverPwError}
+                </p>
+              )}
+              <PasswordStrength
+                password={password}
+                firstName={firstName}
+                lastName={lastName}
+                phone={phone}
+                visible={pwFocused || password.length > 0}
+              />
             </div>
 
             <button
@@ -332,8 +403,8 @@ const QuickSignup = () => {
 
             <button
               type="submit"
-              disabled={submitting}
-              className="w-full py-3 rounded-xl font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
+              disabled={!canSubmit}
+              className="w-full py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-opacity"
               style={{ background: GOLD, color: "#06101A" }}
             >
               {submitting && <Loader2 size={16} className="animate-spin" />}
