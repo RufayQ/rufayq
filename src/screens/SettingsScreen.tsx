@@ -3,6 +3,7 @@ import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, 
 import { toast } from "sonner";
 import { useLanguage, type LangMode } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { biometric } from "@/lib/native/biometric";
 import { TOURS, clearTourDone } from "@/lib/tours";
 import TourRunner from "@/components/TourRunner";
 import { useGuestMode } from "@/hooks/useGuestMode";
