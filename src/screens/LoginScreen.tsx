@@ -10,22 +10,13 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biometric } from "@/lib/native/biometric";
+import { phoneToE164, phoneToEmail, isValidEmail } from "@/lib/auth/phoneEmail";
 
 
 type AuthView = "welcome" | "login" | "register" | "medical" | "otp" | "recover" | "newpass";
 type OtpChannel = "whatsapp" | "sms" | "email";
 
 interface LoginScreenProps { onLogin: () => void }
-
-// ---------- helpers ----------
-const phoneToE164 = (raw: string, defaultCountry = "+966") => {
-  const trimmed = (raw || "").trim().replace(/\s+/g, "");
-  if (!trimmed) return "";
-  if (trimmed.startsWith("+")) return trimmed;
-  return `${defaultCountry}${trimmed.replace(/^0+/, "")}`;
-};
-const phoneToEmail = (e164: string) => `${e164.replace(/[^\d]/g, "")}@phone.rufayq.local`;
-const isValidEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
 const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [view, setView] = useState<AuthView>("welcome");

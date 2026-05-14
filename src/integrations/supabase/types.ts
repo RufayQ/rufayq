@@ -2574,6 +2574,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          contact_verification_status: string
+          contact_verified: boolean
           created_at: string
           date_of_birth: string | null
           deleted_at: string | null
@@ -2597,6 +2599,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          contact_verification_status?: string
+          contact_verified?: boolean
           created_at?: string
           date_of_birth?: string | null
           deleted_at?: string | null
@@ -2620,6 +2624,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          contact_verification_status?: string
+          contact_verified?: boolean
           created_at?: string
           date_of_birth?: string | null
           deleted_at?: string | null
