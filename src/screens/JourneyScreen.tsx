@@ -159,6 +159,20 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
   const overview = useJourneyOverview({ isGuest });
   const selectedMilestone = overview.milestones.find((m) => m.id === selectedMilestoneId) ?? null;
+  const milestoneSheetRef = useRef<HTMLDivElement>(null);
+  const userSelectedRef = useRef(false);
+  const handleMilestoneSelect = (id: string) => {
+    userSelectedRef.current = true;
+    setSelectedMilestoneId(id);
+  };
+  useEffect(() => {
+    if (!selectedMilestoneId || !userSelectedRef.current) return;
+    const node = milestoneSheetRef.current;
+    if (!node) return;
+    requestAnimationFrame(() => {
+      node.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [selectedMilestoneId]);
 
   // Default the helicopter selection to the most relevant milestone whenever the trip changes.
   useEffect(() => {
