@@ -48,6 +48,17 @@
     --pending: #C0C8D0;
     --accent-surgery: #993556;
 
+    /* Helicopter canvas atmosphere + per-kind palette (bg / border / fg) */
+    --canvas-sky-top: #F4F1E8;
+    --canvas-sky-bottom: #ECE6D7;
+    --kind-consult-bg: #E1F5EE;   --kind-consult-border: #0F6E56;   --kind-consult-fg: #085041;
+    --kind-recovery-bg: #E1F5EE;  --kind-recovery-border: #0F6E56;  --kind-recovery-fg: #085041;
+    --kind-lab-bg: #EEEDFE;       --kind-lab-border: #534AB7;       --kind-lab-fg: #3C3489;
+    --kind-rad-bg: #E6F1FB;       --kind-rad-border: #185FA5;       --kind-rad-fg: #0C447C;
+    --kind-followup-bg: #E6F1FB;  --kind-followup-border: #185FA5;  --kind-followup-fg: #0C447C;
+    --kind-flight-bg: #FAEEDA;    --kind-flight-border: #854F0B;    --kind-flight-fg: #633806;
+    --kind-surgery-bg: #FBEAF0;   --kind-surgery-border: #993556;   --kind-surgery-fg: #72243E;
+
     /* Header gradients */
     --header-teal-from: #004D5B;
     --header-teal-to: #006D7C;
