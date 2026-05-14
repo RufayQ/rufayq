@@ -346,3 +346,15 @@ html.admin-light .admin-shell [class*="text-slate-500"] { color: #64748b !import
 html.admin-light .admin-shell input,
 html.admin-light .admin-shell select,
 html.admin-light .admin-shell textarea { background-color: #ffffff !important; color: #0f172a !important; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Helicopter canvas — pulse ring around the current milestone
+   ────────────────────────────────────────────────────────────────────────── */
+@keyframes ringpulse {
+  0%   { transform: scale(0.85); opacity: 0.5; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+.helicopter-pulse { animation: ringpulse 2s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .helicopter-pulse { animation: none; opacity: 0.35; }
+}
