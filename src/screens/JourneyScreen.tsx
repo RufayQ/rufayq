@@ -930,18 +930,20 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                     ? visibleAppointments.find((a) => a.id === m.refId)
                     : null;
                   return (
-                    <MilestoneSheet
-                      milestone={m}
-                      items={items}
-                      location={location || activeTrip.hospital}
-                      onReschedule={apptForReschedule ? () => { setActiveSubTab("appointments"); setAppointmentFormIntent((v) => v + 1); } : undefined}
-                      onOpenMilestone={() => {
-                        if (m.kind === "departure" || m.kind === "return") setActiveSubTab("tickets");
-                        else if (m.kind === "appointment" || m.kind === "treatment") setActiveSubTab("appointments");
-                        else setActiveSubTab("steps");
-                      }}
-                      onShowAll={() => setActiveSubTab("appointments")}
-                    />
+                    <div ref={milestoneSheetRef} data-testid="milestone-sheet-anchor">
+                      <MilestoneSheet
+                        milestone={m}
+                        items={items}
+                        location={location || activeTrip.hospital}
+                        onReschedule={apptForReschedule ? () => { setActiveSubTab("appointments"); setAppointmentFormIntent((v) => v + 1); } : undefined}
+                        onOpenMilestone={() => {
+                          if (m.kind === "departure" || m.kind === "return") setActiveSubTab("tickets");
+                          else if (m.kind === "appointment" || m.kind === "treatment") setActiveSubTab("appointments");
+                          else setActiveSubTab("steps");
+                        }}
+                        onShowAll={() => setActiveSubTab("appointments")}
+                      />
+                    </div>
                   );
                 })()}
                 <div className="px-4 pt-3">
