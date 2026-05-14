@@ -25,16 +25,34 @@ const QuickSignup = () => {
   const isAr = mode === "ar";
   const t = (en: string, ar: string) => (isAr ? ar : en);
 
-  const [name, setName] = useState("");
-  const [nameAr, setNameAr] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [firstNameAr, setFirstNameAr] = useState("");
+  const [lastNameAr, setLastNameAr] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [pwFocused, setPwFocused] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [nationality, setNationality] = useState("Saudi Arabia");
   const [terms, setTerms] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [serverPwError, setServerPwError] = useState<string | null>(null);
+
+  const fullNameEn = `${firstName.trim()} ${lastName.trim()}`.trim();
+  const fullNameAr = [firstNameAr.trim(), lastNameAr.trim()].filter(Boolean).join(" ").trim() || null;
+  const e164 = phoneToE164(phone);
+  const pwChecks = evaluatePassword(password, { firstName, lastName, phone });
+  const pwOk = allRequiredPass(pwChecks);
+  const canSubmit =
+    !!firstName.trim() &&
+    !!lastName.trim() &&
+    isValidE164(e164) &&
+    pwOk &&
+    terms &&
+    (!email.trim() || isValidEmail(email)) &&
+    !submitting;
 
   // Persist Traveller role + sign out any stale staff/provider session.
   useEffect(() => {
