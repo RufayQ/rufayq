@@ -228,31 +228,60 @@ const QuickSignup = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-[12px]" style={labelStyle}>{t("Full name", "الاسم الكامل")}</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t("e.g. Mohammed Al-Saud", "مثال: محمد آل سعود")}
-                className="w-full mt-1 px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[--ring]"
-                style={inputStyle}
-                autoComplete="name"
-                required
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[12px]" style={labelStyle}>{t("First name", "الاسم الأول")}</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder={t("e.g. Mohammed", "مثال: محمد")}
+                  className="w-full mt-1 px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[--ring]"
+                  style={inputStyle}
+                  autoComplete="given-name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[12px]" style={labelStyle}>{t("Last name", "اسم العائلة")}</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder={t("e.g. Al-Saud", "مثال: آل سعود")}
+                  className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
+                  style={inputStyle}
+                  autoComplete="family-name"
+                  required
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="text-[12px]" style={labelStyle}>{t("Arabic name (optional)", "الاسم بالعربية (اختياري)")}</label>
-              <input
-                type="text"
-                value={nameAr}
-                onChange={(e) => setNameAr(e.target.value)}
-                placeholder={t("الاسم بالعربية", "الاسم بالعربية")}
-                className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
-                style={inputStyle}
-                dir="rtl"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[12px]" style={labelStyle}>{t("First name (Arabic)", "الاسم الأول (عربي)")}</label>
+                <input
+                  type="text"
+                  value={firstNameAr}
+                  onChange={(e) => setFirstNameAr(e.target.value)}
+                  placeholder="محمد"
+                  className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
+                  style={inputStyle}
+                  dir="rtl"
+                />
+              </div>
+              <div>
+                <label className="text-[12px]" style={labelStyle}>{t("Last name (Arabic)", "اسم العائلة (عربي)")}</label>
+                <input
+                  type="text"
+                  value={lastNameAr}
+                  onChange={(e) => setLastNameAr(e.target.value)}
+                  placeholder="آل سعود"
+                  className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
+                  style={inputStyle}
+                  dir="rtl"
+                />
+              </div>
             </div>
 
             <div>
@@ -276,7 +305,8 @@ const QuickSignup = () => {
                 <input
                   type={showPass ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); if (serverPwError) setServerPwError(null); }}
+                  onFocus={() => setPwFocused(true)}
                   placeholder={t("At least 8 characters", "8 أحرف على الأقل")}
                   className="w-full px-4 py-3 pe-12 rounded-xl outline-none"
                   style={inputStyle}
@@ -294,6 +324,22 @@ const QuickSignup = () => {
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {serverPwError && (
+                <p
+                  className="mt-2 text-[12px] rounded-md px-3 py-2"
+                  style={{ color: "#E5484D", background: "rgba(229,72,77,0.08)", border: "1px solid rgba(229,72,77,0.25)" }}
+                  data-testid="server-pw-error"
+                >
+                  {serverPwError}
+                </p>
+              )}
+              <PasswordStrength
+                password={password}
+                firstName={firstName}
+                lastName={lastName}
+                phone={phone}
+                visible={pwFocused || password.length > 0}
+              />
             </div>
 
             <button
