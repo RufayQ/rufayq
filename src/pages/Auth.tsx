@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, User, Building2, Stethoscope, Shield, Package, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
+import { setStoredRole } from "@/screens/RoleSelectorScreen";
 import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Seo } from "@/seo/Seo";
@@ -16,13 +18,48 @@ const TEAL = "#0FB5C9";
 
 type Side = null | "patient" | "provider";
 
+/** Allow only same-origin patient app paths to be forwarded as returnTo. */
+function safePatientReturnTo(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith("/")) return null;
+  if (raw.startsWith("//")) return null;
+  if (!(raw.startsWith("/app") || raw.startsWith("/ar/app"))) return null;
+  return raw;
+}
+
 const Auth = () => {
   const { mode } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isAr = mode === "ar";
   const [side, setSide] = useState<Side>(null);
 
   const t = (en: string, ar: string) => (isAr ? ar : en);
+
+  const returnTo = safePatientReturnTo(searchParams.get("returnTo"));
+
+  const handleTravelerClick = async () => {
+    setStoredRole("patient");
+    // If a stale staff/provider session is still active, sign it out so the
+    // staff auto-redirect on /app doesn't hijack the traveler sign-in flow.
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id);
+        const isStaff = (data || []).some(
+          (r: any) => r.role === "admin" || r.role === "moderator" || r.role === "doctor",
+        );
+        if (isStaff) await supabase.auth.signOut();
+      }
+    } catch { /* noop */ }
+    const qs = new URLSearchParams({ signin: "1" });
+    if (returnTo) qs.set("returnTo", returnTo);
+    navigate(`/app?${qs.toString()}`);
+  };
+
 
   const providerTypes = [
     { id: "hospital", icon: Building2, en: "Hospital", ar: "مستشفى", desc_en: "Multi-specialty centers", desc_ar: "مراكز متعددة التخصصات" },
@@ -69,25 +106,25 @@ const Auth = () => {
                 {t("Choose your account type", "اختر نوع الحساب")}
               </h1>
               <p className="text-sm mt-3" style={{ color: TEXT_MUTED }}>
-                {t("Select Patient if you're seeking care, or Provider if you deliver healthcare services.", "اختر «مريض» إذا كنت تطلب الرعاية، أو «مزوّد» إذا كنت تقدّم خدمات الرعاية الصحية.")}
+                {t("Select Traveler if you're seeking care, or Provider if you deliver healthcare services.", "اختر «مسافر علاجي» إذا كنت تطلب الرعاية، أو «مزوّد» إذا كنت تقدّم خدمات الرعاية الصحية.")}
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
               <button
-                onClick={() => navigate("/app?signin=1")}
+                onClick={handleTravelerClick}
                 className="group text-start rounded-2xl p-8 transition-all duration-300 hover:scale-[1.02]"
                 style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}
               >
                 <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-5" style={{ background: `${TEAL}22`, color: TEAL }}>
                   <User size={26} />
                 </div>
-                <h2 className="font-display text-2xl mb-2">{t("Patient", "مريض")}</h2>
+                <h2 className="font-display text-2xl mb-2">{t("Traveler", "مسافر علاجي")}</h2>
                 <p className="text-[13px] mb-5" style={{ color: TEXT_MUTED }}>
-                  {t("Track your medical journey, records, medications, appointments and chat with RufayQ AI.", "تابع رحلتك الطبية وسجلاتك وأدويتك ومواعيدك وتحدث مع رُفَيِّق الذكي.")}
+                  {t("Track your medical travel journey, records, medications, appointments and chat with RufayQ AI.", "تابع رحلة سفرك العلاجي وسجلاتك وأدويتك ومواعيدك وتحدث مع رُفَيِّق الذكي.")}
                 </p>
                 <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: GOLD }}>
-                  {t("Open patient app", "افتح تطبيق المريض")} <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+                  {t("Open traveler app", "افتح تطبيق المسافر")} <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
                 </div>
               </button>
 
