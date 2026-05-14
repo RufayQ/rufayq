@@ -9,7 +9,6 @@ import { useJourneyOverview } from "@/hooks/useJourneyOverview";
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
 import TodayCard from "@/components/home/TodayCard";
 import JourneyConstellation from "@/components/home/JourneyConstellation";
-import MilestoneDetailSheet from "@/components/home/MilestoneDetailSheet";
 import AlertsStack from "@/components/home/AlertsStack";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
 import { derivePhase } from "@/components/home/journeyPhase";
