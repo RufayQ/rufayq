@@ -110,6 +110,17 @@
     --pending: #3A4550;
     --accent-surgery: #B85574;
 
+    /* Helicopter canvas atmosphere + per-kind palette — dark mode */
+    --canvas-sky-top: #0F1820;
+    --canvas-sky-bottom: #0A1218;
+    --kind-consult-bg: #0F2A22;   --kind-consult-border: #2EA47C;   --kind-consult-fg: #7CD7B5;
+    --kind-recovery-bg: #0F2A22;  --kind-recovery-border: #2EA47C;  --kind-recovery-fg: #7CD7B5;
+    --kind-lab-bg: #1A1A2E;       --kind-lab-border: #7B72E0;       --kind-lab-fg: #B7B0FF;
+    --kind-rad-bg: #0F1F2E;       --kind-rad-border: #4A8DD0;       --kind-rad-fg: #9CC6F0;
+    --kind-followup-bg: #0F1F2E;  --kind-followup-border: #4A8DD0;  --kind-followup-fg: #9CC6F0;
+    --kind-flight-bg: #2A1F0F;    --kind-flight-border: #C5872A;    --kind-flight-fg: #F0C880;
+    --kind-surgery-bg: #2A1620;   --kind-surgery-border: #C56684;   --kind-surgery-fg: #F0A8C0;
+
     /* Header gradients — dark mode */
     --header-teal-from: #003845;
     --header-teal-to: #004D5B;
