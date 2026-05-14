@@ -505,10 +505,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         <p className="text-center text-xs mt-5" style={{ color: "var(--gray)" }}>
           Don't have an account?{" "}
-          <button onClick={() => setView("register")} className="font-semibold" style={{ color: "var(--teal-deep)" }}>
+          <Link to={typeof window !== "undefined" && window.location.pathname.startsWith("/ar") ? "/ar/quick-signup" : "/quick-signup"}
+            className="font-semibold" style={{ color: "var(--teal-deep)" }}>
             Register<span className="font-arabic" dir="rtl"> · سجّل الآن</span>
-
-          </button>
+          </Link>
         </p>
 
         {showEnrollPrompt && (
