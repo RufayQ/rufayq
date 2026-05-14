@@ -111,7 +111,11 @@ const QuickSignup = () => {
         userId = signInData.user?.id;
       } else {
         setSubmitting(false);
-        toast.error(t("Sign-up failed", "فشل إنشاء الحساب"), { description: msg });
+        if (/weak|password|pwned|leaked|easy to guess/i.test(msg)) {
+          setServerPwError(t("Password rejected by server. Try a longer or more unique password.", "تم رفض كلمة السر من الخادم. جرّب كلمة سر أطول أو أكثر تفرداً.") + " — " + msg);
+        } else {
+          toast.error(t("Sign-up failed", "فشل إنشاء الحساب"), { description: msg });
+        }
         return;
       }
     } else {
