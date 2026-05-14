@@ -111,10 +111,13 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const removeFamily = (i: number) => setFamilyHistory(familyHistory.filter((_, idx) => idx !== i));
 
   // ---------- biometric availability ----------
+  const refreshBio = async () => {
+    const [avail, enrolled] = await Promise.all([biometric.isAvailable(), biometric.isEnrolled()]);
+    setBioAvailable(avail);
+    setBioEnrolled(enrolled);
+  };
   useEffect(() => {
-    const supported = typeof window !== "undefined" && !!(window as any).PublicKeyCredential;
-    setBioAvailable(supported);
-    setBioRemembered(localStorage.getItem(BIOMETRIC_KEY));
+    refreshBio();
   }, []);
 
   const startCountdown = () => {
@@ -133,46 +136,56 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     if (!password) { toast.error("Enter your password"); return; }
     setSubmitting(true);
     const signInEmail = phoneToEmail(e164);
-    const { error } = await supabase.auth.signInWithPassword({ email: signInEmail, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: signInEmail, password });
     setSubmitting(false);
     if (error) {
       toast.error("Sign-in failed", { description: "Check your number & password, or use 'Forgot password'." });
       return;
     }
-    // Remember for next-time biometrics
-    localStorage.setItem(BIOMETRIC_KEY, signInEmail);
-    setBioRemembered(signInEmail);
     toast.success("Welcome back · مرحباً بعودتك");
-    setTimeout(onLogin, 300);
+
+    // Offer biometric enrollment if supported and not yet enrolled.
+    const userId = data.user?.id;
+    const avail = await biometric.isAvailable();
+    const enrolled = await biometric.isEnrolled();
+    if (userId && avail && !enrolled) {
+      setShowEnrollPrompt({ userId, label: e164 });
+    } else {
+      setTimeout(onLogin, 300);
+    }
+  };
+
+  const acceptEnrollment = async () => {
+    if (!showEnrollPrompt) return;
+    const ok = await biometric.enroll(showEnrollPrompt.userId, showEnrollPrompt.label);
+    setShowEnrollPrompt(null);
+    if (ok) {
+      toast.success("Biometric sign-in enabled · تم تفعيل البصمة");
+      await refreshBio();
+    } else {
+      toast.info("Biometric setup skipped · تم التخطي");
+    }
+    setTimeout(onLogin, 200);
+  };
+
+  const declineEnrollment = () => {
+    setShowEnrollPrompt(null);
+    setTimeout(onLogin, 100);
   };
 
   const handleBiometric = async () => {
-    if (!bioRemembered) {
-      toast.info("Sign in once with your password — biometrics activates after that.");
+    if (!bioAvailable || !bioEnrolled) return;
+    const ok = await biometric.verify();
+    if (!ok) {
+      // Silent on user cancel — no scary toast.
       return;
     }
-    if (!bioAvailable) { toast.error("Biometric authentication not supported on this device."); return; }
-    try {
-      // NOTE: this is a UX-level biometric prompt. True passwordless WebAuthn requires server-side
-      // credential registration; for now we use it as a local "unlock" gate that re-runs the last sign-in.
-      const cred = await (navigator.credentials as any).get({
-        publicKey: {
-          challenge: crypto.getRandomValues(new Uint8Array(32)),
-          timeout: 60000,
-          userVerification: "required",
-        },
-      }).catch(() => null);
-      if (!cred) {
-        toast.error("Biometric prompt cancelled");
-        return;
-      }
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
       toast.success("Unlocked · تم الفتح");
-      // The app still needs a valid Supabase session — if cookies are stale, fall through to manual.
-      const { data } = await supabase.auth.getSession();
-      if (data.session) onLogin();
-      else toast.info("Session expired — please sign in once with your password.");
-    } catch {
-      toast.error("Biometric unlock failed");
+      onLogin();
+    } else {
+      toast.info("Session expired — please sign in once with your password.");
     }
   };
 
