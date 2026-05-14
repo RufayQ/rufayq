@@ -29,7 +29,8 @@ import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/us
 import UnifiedTimeline from "@/components/journey/UnifiedTimeline";
 import JourneyHero from "@/components/journey/JourneyHero";
 import HelicopterCanvas from "@/components/journey/HelicopterCanvas";
-import MilestoneSheet from "@/components/journey/MilestoneSheet";
+import PhaseRibbon5 from "@/components/journey/PhaseRibbon5";
+import MilestoneSheet, { type SheetItem } from "@/components/journey/MilestoneSheet";
 import OtherJourneysList from "@/components/journey/OtherJourneysList";
 import EmptyJourneyCard from "@/components/journey/EmptyJourneyCard";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
