@@ -9,14 +9,13 @@ import {
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { biometric } from "@/lib/native/biometric";
 
 
 type AuthView = "welcome" | "login" | "register" | "medical" | "otp" | "recover" | "newpass";
 type OtpChannel = "whatsapp" | "sms" | "email";
 
 interface LoginScreenProps { onLogin: () => void }
-
-const BIOMETRIC_KEY = "rufayq_bio_email";
 
 // ---------- helpers ----------
 const phoneToE164 = (raw: string, defaultCountry = "+966") => {
