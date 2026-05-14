@@ -3,14 +3,14 @@ import RufayQLogo from "@/components/RufayQLogo";
 import RufayQWordmark from "@/components/RufayQWordmark";
 import OtpInput from "@/components/OtpInput";
 import {
-  Eye, EyeOff, Check, ArrowLeft, Shield, MessageCircle, Mail,
+  Eye, EyeOff, ArrowLeft, Shield, MessageCircle, Mail,
   UserCircle2, Loader2, RefreshCw, Fingerprint, Phone, KeyRound,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biometric } from "@/lib/native/biometric";
-import { phoneToE164, phoneToEmail, isValidEmail } from "@/lib/auth/phoneEmail";
+import { phoneToE164, phoneToEmail } from "@/lib/auth/phoneEmail";
 
 
 type AuthView = "welcome" | "login" | "otp" | "recover" | "newpass";
