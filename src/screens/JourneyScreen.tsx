@@ -252,8 +252,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       setActiveSubTab("overview");
     } else if (typeof initialIntent === "string" && initialIntent.startsWith("milestone:")) {
       setActiveSubTab("overview");
-      userSelectedRef.current = true;
-      setSelectedMilestoneId(initialIntent.slice("milestone:".length));
+      pendingMilestoneIdRef.current = initialIntent.slice("milestone:".length);
+      setPendingMilestoneToken((v) => v + 1);
     }
     onIntentHandled?.();
   }, [initialIntent, onIntentHandled]);
