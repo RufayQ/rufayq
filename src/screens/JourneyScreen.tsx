@@ -176,6 +176,26 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     });
   }, [selectedMilestoneId]);
 
+  // Resolve a pending milestone deep-link once milestones are loaded.
+  // If the requested id no longer exists, surface a friendly toast and
+  // let the default-selection effect choose current → upcoming → first.
+  useEffect(() => {
+    const pendingId = pendingMilestoneIdRef.current;
+    if (!pendingId) return;
+    if (overview.milestones.length === 0) return;
+    const exists = overview.milestones.some((m) => m.id === pendingId);
+    if (exists) {
+      userSelectedRef.current = true;
+      setSelectedMilestoneId(pendingId);
+    } else {
+      toast("Milestone not found · لم يتم العثور على المحطة", {
+        description: "Showing your current step instead · يتم عرض خطوتك الحالية بدلاً من ذلك",
+      });
+      setSelectedMilestoneId(null);
+    }
+    pendingMilestoneIdRef.current = null;
+  }, [pendingMilestoneToken, overview.milestones]);
+
   // Default the helicopter selection to the most relevant milestone whenever the trip changes.
   useEffect(() => {
     if (selectedMilestoneId) return;
