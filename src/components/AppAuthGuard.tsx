@@ -1,16 +1,16 @@
 /**
  * AppAuthGuard
  * ────────────
- * Soft auth guard for /app and /ar/app.
+ * Soft auth guard for /app, /ar/app and their subroutes.
  *
- * Logic:
- *   1. URL has ?signin=1            → render children (inline traveler sign-in).
- *   2. localStorage rufayq_guest_ok → render children (guest mode).
- *   3. Active Supabase session      → render children.
- *   4. Otherwise                    → redirect to /auth?returnTo=<current path+search>.
+ * Allow when:
+ *   1. URL has ?signin=1                      → render children (inline traveler sign-in).
+ *   2. localStorage rufayq_guest_ok === "1"   → render children (guest mode).
+ *   3. Active Supabase session                → render children.
+ *   4. Otherwise                              → redirect to (ar)?/auth?returnTo=<safe path>.
  *
- * Reacts to auth state changes so sign-out triggers the redirect, and
- * sign-in (e.g. on /app?signin=1) clears the gate without a flash.
+ * Reacts to Supabase auth state changes so sign-out triggers the redirect and
+ * sign-in clears the gate without a flash.
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -22,6 +22,34 @@ interface Props {
   children: ReactNode;
 }
 
+const isSafeAppPath = (p: string) =>
+  p === "/app" ||
+  p.startsWith("/app/") ||
+  p === "/ar/app" ||
+  p.startsWith("/ar/app/");
+
+const safeReturnTo = (pathname: string, search: string) =>
+  isSafeAppPath(pathname)
+    ? `${pathname}${search}`
+    : pathname.startsWith("/ar/")
+      ? "/ar/app"
+      : "/app";
+
+const authPathFor = (pathname: string) =>
+  pathname.startsWith("/ar/") ? "/ar/auth" : "/auth";
+
+const hasGuestOk = () => {
+  try {
+    return localStorage.getItem("rufayq_guest_ok") === "1";
+  } catch {
+    return false;
+  }
+};
+
+const RouteFallback = () => (
+  <div style={{ minHeight: "100vh", background: "#06101A" }} />
+);
+
 const AppAuthGuard = ({ children }: Props) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,10 +60,6 @@ const AppAuthGuard = ({ children }: Props) => {
   useEffect(() => {
     let cancelled = false;
 
-    const hasGuestOk = () => {
-      try { return !!localStorage.getItem("rufayq_guest_ok"); } catch { return false; }
-    };
-
     const evaluate = (hasSession: boolean) => {
       if (cancelled) return;
       if (forceSignIn || hasGuestOk() || hasSession) {
@@ -43,11 +67,15 @@ const AppAuthGuard = ({ children }: Props) => {
         return;
       }
       setStatus("redirecting");
-      const dest = `${location.pathname}${location.search}`;
-      navigate(`/auth?returnTo=${encodeURIComponent(dest)}`, { replace: true });
+      const dest = safeReturnTo(location.pathname, location.search);
+      const authPath = authPathFor(location.pathname);
+      navigate(`${authPath}?returnTo=${encodeURIComponent(dest)}`, {
+        replace: true,
+      });
     };
 
-    supabase.auth.getSession()
+    supabase.auth
+      .getSession()
       .then(({ data: { session } }) => evaluate(!!session?.user))
       .catch(() => evaluate(false));
 
@@ -63,7 +91,7 @@ const AppAuthGuard = ({ children }: Props) => {
   }, [forceSignIn, location.pathname, location.search]);
 
   if (status === "allow") return <>{children}</>;
-  return null;
+  return <RouteFallback />;
 };
 
 export default AppAuthGuard;

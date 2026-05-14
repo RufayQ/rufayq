@@ -93,9 +93,11 @@ const App = () => (
             <Route path="/ar/pricing" element={<Shelled><Pricing /></Shelled>} />
             <Route path="/ar/enterprise" element={<Shelled><Enterprise /></Shelled>} />
 
-            {/* App + non-marketing surfaces — all need full shell */}
-            <Route path="/app" element={<Shelled><AppAuthGuard><Index /></AppAuthGuard></Shelled>} />
-            <Route path="/ar/app" element={<Shelled><AppAuthGuard><Index /></AppAuthGuard></Shelled>} />
+            {/* App + non-marketing surfaces — all need full shell.
+                Auth-gated routes wrap AppAuthGuard OUTSIDE Shelled so the
+                heavy app shell only loads after the guard allows access. */}
+            <Route path="/app" element={<AppAuthGuard><Shelled><Index /></Shelled></AppAuthGuard>} />
+            <Route path="/ar/app" element={<AppAuthGuard><Shelled><Index /></Shelled></AppAuthGuard>} />
             <Route path="/provider/login" element={<Shelled><ProviderLogin /></Shelled>} />
             <Route path="/provider" element={<Shelled><ProviderDashboard /></Shelled>} />
             <Route path="/admin" element={<Shelled><Admin /></Shelled>} />
@@ -103,10 +105,11 @@ const App = () => (
             <Route path="/admin/api-docs" element={<Shelled><AdminApiDocs /></Shelled>} />
             <Route path="/admin/swagger" element={<Shelled><AdminSwagger /></Shelled>} />
             <Route path="/auth" element={<Shelled><Auth /></Shelled>} />
-            <Route path="/app/dashboard/subscription" element={<Shelled><SubscriptionDashboard /></Shelled>} />
-            <Route path="/app/wallet" element={<Shelled><WalletLedger /></Shelled>} />
-            <Route path="/ar/app/dashboard/subscription" element={<Shelled><SubscriptionDashboard /></Shelled>} />
-            <Route path="/ar/app/wallet" element={<Shelled><WalletLedger /></Shelled>} />
+            <Route path="/ar/auth" element={<Shelled><Auth /></Shelled>} />
+            <Route path="/app/dashboard/subscription" element={<AppAuthGuard><Shelled><SubscriptionDashboard /></Shelled></AppAuthGuard>} />
+            <Route path="/app/wallet" element={<AppAuthGuard><Shelled><WalletLedger /></Shelled></AppAuthGuard>} />
+            <Route path="/ar/app/dashboard/subscription" element={<AppAuthGuard><Shelled><SubscriptionDashboard /></Shelled></AppAuthGuard>} />
+            <Route path="/ar/app/wallet" element={<AppAuthGuard><Shelled><WalletLedger /></Shelled></AppAuthGuard>} />
 
             {/* SEO QA tools (no /ar mirror — internal use only) */}
             <Route path="/sitemap-preview" element={<SitemapPreview />} />

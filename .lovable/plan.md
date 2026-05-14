@@ -1,597 +1,218 @@
-## Goal
+## Harden `AppAuthGuard` with safe returnTo + Arabic auth route
 
-1. Confirm every landing-page CTA and header button routes to the correct destination:
+Rewrite `src/components/AppAuthGuard.tsx` to combine the current auth-state reactivity with explicit safety helpers, and confirm route coverage in `src/App.tsx`.
 
-   - public signup/sign-in CTAs go to `/auth`
+### Changes to `src/components/AppAuthGuard.tsx`
 
-   - they must never route unauthenticated visitors to `/admin`
-
-   - they should not jump directly to raw `/app` unless the user is already authenticated or in guest mode
-
-2. Add a soft auth guard on `/app`:
-
-   - unauthenticated, non-guest visitors get redirected to `/auth?returnTo=/app...`
-
-   - `/app?signin=1` still renders the inline traveler sign-in flow
-
-   - guest mode still works
-
-3. Update `/auth` account chooser:
-
-   - rename **Patient** to **Traveler**
-
-   - clicking Traveler must start a clean traveler/patient sign-in flow
-
-   - clicking Traveler must not accidentally reuse stale doctor/provider/admin role state
-
-   - clicking Traveler must not force the user to `/admin`
-
-## Current code context
-
-- `/app` and `/ar/app` currently render `Index`.
-
-- `/auth` renders the account chooser.
-
-- `/auth` currently has a card labeled `Patient` that navigates to `/app?signin=1`.
-
-- `Index.tsx` has a staff auto-redirect that sends signed-in `admin` or `moderator` users from `/app` to `/admin`.
-
-- Role preference is stored in localStorage as `rufayq_role` with a role version key.
-
-- Existing role selector uses `"patient"` and `"doctor"` internally.
-
-- For product copy, the user-facing label should be **Traveler**, but the internal role value can remain `"patient"` to avoid a larger auth refactor.
-
-## Audit results
-
-| Location | Element | Current target / behavior | Verdict |
-
-|---|---|---|---|
-
-| `src/pages/Landing.tsx` | Header Sign In | `/auth` | OK |
-
-| `src/pages/Landing.tsx` | Mobile Sign In | `/auth` | OK |
-
-| `src/pages/Landing.tsx` | Hero Start Free | `/auth` | OK |
-
-| `src/pages/LandingBelow.tsx` | Bottom Open RufayQ | `/app` via `goToApp` | Change to `/auth` for unauthenticated public CTA |
-
-| `src/pages/Auth.tsx` | Patient card | `/app?signin=1` | Change label to Traveler and make click set patient/traveler role cleanly |
-
-| `src/pages/Index.tsx` | Staff auto redirect | signed-in admin/moderator on `/app` → `/admin` | Keep, but do not let Traveler sign-in path accidentally trigger it before sign-in |
-
-## Changes
-
-### 1. `src/pages/Auth.tsx` — rename Patient to Traveler
-
-Change the account chooser user-facing copy:
-
-- `Patient` → `Traveler`
-
-- Arabic suggestion:
-
-  - `مسافر علاجي`
-
-  - or shorter: `مسافر`
-
-- `Open patient app` → `Open traveler app`
-
-- Description should be traveler-oriented:
-
-  - “Track your medical travel journey, records, medications, appointments and chat with RufayQ AI.”
-
-Important:
-
-- Keep the internal role value as `"patient"` for now.
-
-- Do not rename the internal role to `"traveler"` unless doing a separate auth/schema migration.
-
-- This should be a copy/UI change only.
-
-### 2. `src/pages/Auth.tsx` — make Traveler click set a clean patient role
-
-Before navigating to `/app?signin=1`, explicitly store the patient/traveler role preference.
-
-The goal is to prevent stale localStorage like `rufayq_role=doctor` from being reused after the user clicks Traveler.
-
-Use the same storage contract as `RoleSelectorScreen`:
-
-- `rufayq_role = "patient"`
-
-- matching role version key
-
-Preferred implementation:
-
-- Export a helper from `RoleSelectorScreen`, for example:
+Add three pure helpers at module scope:
 
 ```ts
+const isSafeAppPath = (p: string) =>
+  p === "/app" || p.startsWith("/app/") ||
+  p === "/ar/app" || p.startsWith("/ar/app/");
 
-export function setStoredRole(role: AppRolePref) {
+const safeReturnTo = (pathname: string, search: string) =>
+  isSafeAppPath(pathname) ? `${pathname}${search}` : "/app";
 
-  localStorage.setItem(ROLE_PREF_KEY, role);
+const authPathFor = (pathname: string) =>
+  pathname.startsWith("/ar/") ? "/ar/auth" : "/auth";
 
-  localStorage.setItem(ROLE_VERSION_KEY, String(ROLE_PREF_VERSION));
-
-}
-
-Then in Auth.tsx:
-
-ts
-
-setStoredRole("patient");
-
-navigate`/app?signin=1${returnTo ?` &returnTo=${encodeURIComponent(returnTo) `: ""}`);
-
-If exporting a helper is too much, duplicate the exact keys carefully, but helper is preferred to avoid drift.
-
-3. src/pages/Auth.tsx — avoid existing staff session causing immediate /admin
-
-Before navigating from the Traveler card, check whether a session already exists.
-
-If there is an existing Supabase session and the user explicitly chooses Traveler from /auth, do one of these:
-
-Preferred simple behavior:
-
-Sign out the existing session before navigating to /app?signin=1.
-
-Reason:
-
-/app?signin=1 is intended as a traveler sign-in entry.
-
-If an admin/moderator session is still active, Index.tsx staff redirect can immediately push to /admin, which is the glitch the user saw.
-
-Suggested flow:
-
-ts
-
-const handleTravelerClick = async () => {
-
-  setStoredRole("patient");
-
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (session?.user) {
-
-    await supabase.auth.signOut();
-
-  }
-
-  navigate`/app?signin=1${returnToParam}`);
-
+const hasGuestOk = () => {
+  try { return localStorage.getItem("rufayq_guest_ok") === "1"; }
+  catch { return false; }
 };
+```
 
-If you want to avoid signing out real patient users, use a role check:
+Update `evaluate` to use them:
 
-if current session has admin/moderator/provider role, sign out before traveler flow
+```ts
+const dest = safeReturnTo(location.pathname, location.search);
+const authPath = authPathFor(location.pathname);
+navigate(`${authPath}?returnTo=${encodeURIComponent(dest)}`, { replace: true });
+```
 
-if current session is normal patient, navigate to /app
+Keep:
 
-But simple sign-out on explicit Traveler chooser click is acceptable because this is an auth chooser entry point.
+- `?signin=1` short-circuit (renders inline Traveler sign-in).
+- `supabase.auth.getSession()` initial check with `.catch(() => evaluate(false))`.
+- `onAuthStateChange` subscription so sign-out/in reacts live.
+- `cancelled` flag and unsubscribe cleanup.
+- Tighten guest check from `!!localStorage.getItem(...)` to strict `=== "1"` for consistency with `useGuestMode` and `LoginScreen`.
 
-4. src/pages/Auth.tsx — preserve and forward returnTo
+### Changes to `src/App.tsx`
 
-Read returnTo from useSearchParams.
+Wrap the remaining app subroutes with `<AppAuthGuard>` so the guard isn't bypassed via direct navigation:
 
-Traveler card should forward it:
+```tsx
+<Route path="/app/dashboard/subscription" element={<Shelled><AppAuthGuard><SubscriptionDashboard /></AppAuthGuard></Shelled>} />
+<Route path="/app/wallet"                 element={<Shelled><AppAuthGuard><WalletLedger /></AppAuthGuard></Shelled>} />
+<Route path="/ar/app/dashboard/subscription" element={<Shelled><AppAuthGuard><SubscriptionDashboard /></AppAuthGuard></Shelled>} />
+<Route path="/ar/app/wallet"                 element={<Shelled><AppAuthGuard><WalletLedger /></AppAuthGuard></Shelled>} />
+```
 
-text
+`/app` and `/ar/app` are already wrapped — no change there.
 
-/auth?returnTo=/app/journey
+Acceptance checks
 
-→ Traveler click
+- `/app` (no session) → `/auth?returnTo=%2Fapp`
+- `/ar/app` (no session) → `/ar/auth?returnTo=%2Far%2Fapp`
+- `/app/wallet?x=1` (no session) → `/auth?returnTo=%2Fapp%2Fwallet%3Fx%3D1`
+- `/ar/app/dashboard/subscription` (no session) → `/ar/auth?returnTo=%2Far%2Fapp%2Fdashboard%2Fsubscription`
+- `localStorage.rufayq_guest_ok === "1"` → renders app
+- `?signin=1` → renders inline Traveler sign-in
+- Sign-out while on `/app` → redirects to `/auth`
+- Unsafe pathnames cannot leak into `returnTo` (validator clamps to `/app`)
 
-→ /app?signin=1&returnTo=/app/journey
+### 1. If you create `src/components/AppAuthGuard.tsx`, remove the inline `AppAuthGuard` from `src/App.tsx` and import the new component there. Do not leave two guard implementations.
 
-Safety:
+2. Keep the guard outside `Shelled` for app routes unless there is a specific reason to load the shell before auth is checked. Prefer:
 
-only allow same-origin app paths
+<Route path="/app" element={<AppAuthGuard><Shelled><Index /></Shelled></AppAuthGuard>} />
 
-allow values that start with /app or /ar/app
+<Route path="/ar/app" element={<AppAuthGuard><Shelled><Index /></Shelled></AppAuthGuard>} />
 
-reject http..., //..., or external paths
+<Route path="/app/dashboard/subscription" element={<AppAuthGuard><Shelled><SubscriptionDashboard /></Shelled></AppAuthGuard>} />
 
-Provider buttons should not use the traveler returnTo unless there is an explicit provider return path.
+<Route path="/app/wallet" element={<AppAuthGuard><Shelled><WalletLedger /></Shelled></AppAuthGuard>} />
 
-5. src/pages/LandingBelow.tsx
+<Route path="/ar/app/dashboard/subscription" element={<AppAuthGuard><Shelled><SubscriptionDashboard /></Shelled></AppAuthGuard>} />
 
-Change the bottom CTA “Open RufayQ / افتح رُفَيِّق”:
+<Route path="/ar/app/wallet" element={<AppAuthGuard><Shelled><WalletLedger /></Shelled></AppAuthGuard>} />
 
-unauthenticated public visitors should go to /auth
+The current routes are already covered, so this should be a refactor/hardening, not a route coverage expansion.
 
-do not send them to raw /app
+Please implement the new component with:
 
-this should match the hero “Start Free” CTA behavior
+- `isSafeAppPath(pathname)`
 
-If the component has session-aware logic:
+- `safeReturnTo(pathname, search)`
 
-authenticated/guest → /app
+- `authPathFor(pathname)` returning `/ar/auth` for Arabic app routes
 
-unauthenticated → /auth
+- `hasGuestOk()` checking `localStorage.getItem("rufayq_guest_ok") === "1"`
 
-If no session-aware logic exists:
+- `?signin=1` short-circuit
 
-route this public CTA directly to /auth.
+- initial `supabase.auth.getSession()`
 
-If goToApp becomes unused after this, remove the prop from:
+- `supabase.auth.onAuthStateChange(...)` subscription
 
-LandingBelow.tsx
+- cleanup/unsubscribe on unmount
 
-parent call site in Landing.tsx
+- a non-blank fallback while checking if possible
 
-6. New src/components/AppAuthGuard.tsx
+Acceptance checks:
 
-Add a small client guard around /app and /ar/app.
+- `/app` unauthenticated redirects to `/auth?returnTo=%2Fapp`
 
-Logic:
+- `/ar/app` unauthenticated redirects to `/ar/auth?returnTo=%2Far%2Fapp`
 
-text
+- `/app/wallet?x=1` unauthenticated redirects to `/auth?returnTo=%2Fapp%2Fwallet%3Fx%3D1`
 
-1. If URL has ?signin=1:
+- `/ar/app/dashboard/subscription` unauthenticated redirects to `/ar/auth?returnTo=%2Far%2Fapp%2Fdashboard%2Fsubscription`
 
-   render children.
+- `localStorage.rufayq_guest_ok === "1"` allows app access
 
-   This preserves the inline traveler sign-in flow.
+- `?signin=1` allows inline Traveler sign-in
 
-2. If localStorage has rufayq_guest_ok:
+- sign-out while on an app route redirects to auth
 
-   render children.
+- unsafe paths cannot leak into returnTo
 
-   This preserves guest mode.
+- `npm run test`, `npx tsc --noEmit`, and `npm run build` pass
 
-3. Else get Supabase session:
+Why these corrections matter
 
-   - session exists:
+1. The current app routes are already guarded
 
-       render children.
+Lovable says “wrap the remaining app subroutes,” but in the current repo those routes are already guarded:
 
-   - no session:
+/app
 
-       navigate`/auth?returnTo=${encodeURIComponent(pathname + search)}`, { replace: true })
-
-4. While checking:
-
-   render null or a tiny loading shell to avoid flashing LoginScreen before redirect.
-
-Also subscribe to supabase.auth.onAuthStateChange so the guard reacts to sign-in/out changes.
-
-7. src/App.tsx
-
-Wrap only these routes:
-
-tsx
-
-<Route
-
-  path="/app"
-
-  element={
-
-    <Shelled>
-
-      <AppAuthGuard>
-
-        <Index />
-
-      </AppAuthGuard>
-
-    </Shelled>
-
-  }
-
-/>
-
-<Route
-
-  path="/ar/app"
-
-  element={
-
-    <Shelled>
-
-      <AppAuthGuard>
-
-        <Index />
-
-      </AppAuthGuard>
-
-    </Shelled>
-
-  }
-
-/>
-
-Do not wrap:
-
-/auth
-
-/provider/login
-
-/provider
-
-/admin
-
-/admin/login
-
-/app/wallet
+/ar/app
 
 /app/dashboard/subscription
 
-Unless explicitly required later.
+/app/wallet
 
-8. src/pages/Index.tsx — consume returnTo after traveler/patient login
+/ar/app/dashboard/subscription
 
-In handleLogin, after these branches enter the patient app:
+/ar/app/wallet
 
-guest_patient
+All are already wrapped with AppAuthGuard. 【F:src/App.tsx†L133-L146】
 
-patient_ok
+So this should be framed as a hardening/refactor, not as adding missing route coverage.
 
-check:
+2. Keep the guard outside Shelled
 
-ts
+Current pattern:
 
-const returnTo = searchParams.get("returnTo");
+tsx
 
-If valid and same-origin app path:
+<AppAuthGuard>
 
-ts
+  <Shelled>...</Shelled>
 
-navigate(returnTo, { replace: true });
+</AppAuthGuard>
 
-Safety:
+This is better for unauthenticated users because AppShell is only loaded/rendered after the guard allows access. Shelled loads the heavier app shell. 【F:src/App.tsx†L86-L90】
 
-allow only /app... and /ar/app...
+Lovable’s suggested pattern:
 
-reject //...
+tsx
 
-reject http://... / https://...
+<Shelled>
 
-reject /admin...
+  <AppAuthGuard>...</AppAuthGuard>
 
-reject /provider...
+</Shelled>
 
-Important:
+That still works functionally, but it may load app-shell providers before the auth decision. I would keep the current outer-guard pattern.
 
-Do not apply this to doctor_ok.
+3. Strict guest flag check is necessary
 
-Do not apply this to admin/staff redirect.
-
-Staff/provider branches remain untouched.
-
-9. src/pages/Index.tsx — staff auto-redirect should not steal /app?signin=1
-
-Currently staff auto-redirect sends signed-in admin/moderator users on /app to /admin.
-
-Keep this behavior for normal /app access.
-
-But avoid stealing the explicit traveler sign-in path:
-
-text
-
-/app?signin=1
-
-If forceSignIn is true, do not auto-redirect to /admin before the traveler sign-in screen can render.
-
-Suggested adjustment:
+Lovable is correct to tighten guest mode to:
 
 ts
 
-if (forceSignIn) return;
+localStorage.getItem("rufayq_guest_ok") === "1"
 
-inside the staff auto-redirect effect before role lookup.
+The current guard incorrectly checks for "true". 【F:src/App.tsx†L62-L66】
 
-This prevents:
+But the login screen writes "1" when the user continues as guest. 【F:src/screens/LoginScreen.tsx†L401-L401】【F:src/screens/LoginScreen.tsx†L495-L495】
 
-Auth chooser Traveler click
+The useGuestMode hook also checks for "1". 【F:src/hooks/useGuestMode.ts†L4-L12】
 
-/app?signin=1
+So Lovable’s strict "1" check is the right fix.
 
-immediate /admin redirect due to an existing staff session
+4. /ar/auth must be preserved
 
-Combined with the Auth chooser sign-out, this makes the bug much less likely.
+Current code correctly sends Arabic app routes to /ar/auth. 【F:src/App.tsx†L72-L75】
 
-10. Tests
+Lovable’s updated proposal includes authPathFor, which preserves that behavior. That part should be accepted.
 
-Add/update tests.
+5. Live auth-state reactivity is a good improvement
 
-Auth chooser tests
+The current inline guard checks the session once in an effect. 【F:src/App.tsx†L59-L69】
 
-/auth shows Traveler, not Patient.
+Lovable’s proposal adds supabase.auth.onAuthStateChange(...), which is better because:
 
-Traveler card sets stored role to "patient".
+sign-out on an app route redirects without refresh;
 
-Traveler card routes to /app?signin=1.
+sign-in clears the gate;
 
-Traveler card preserves valid returnTo.
+session changes are handled consistently.
 
-Traveler card rejects unsafe returnTo.
-
-Provider card flow still goes to provider path.
-
-Guard tests
-
-unauthenticated /app → /auth?returnTo=/app
-
-unauthenticated /app?signin=1 → renders children, no redirect
-
-guest with rufayq_guest_ok → renders children, no redirect
-
-authenticated session → renders children, no redirect
-
-Index tests
-
-forceSignIn path does not trigger staff auto-redirect before login.
-
-patient_ok with valid returnTo=/app... navigates there.
-
-invalid returnTo values are ignored.
-
-doctor_ok still routes to /provider.
-
-normal signed-in staff direct /app still redirects to /admin.
-
-Landing CTA tests
-
-Header Sign In → /auth
-
-Hero Start Free → /auth
-
-Bottom Open RufayQ → /auth
-
-No unauthenticated public CTA routes to /admin
-
-No unauthenticated public CTA routes directly to raw /app
-
-Out of scope
-
-Backend changes
-
-RLS changes
-
-Provider login redesign
-
-Admin login redesign
-
-Removing guest mode
-
-Removing inline traveler sign-in
-
-Renaming internal role value from "patient" to "traveler"
-
-Changing staff /admin redirect for normal signed-in staff access
-
-Verification
-
-Manual verification:
-
-Unauthenticated cold visit to /app
-
-expected: /auth?returnTo=/app
-
-Unauthenticated visit to /app?signin=1
-
-expected: inline traveler sign-in screen
-
-no redirect loop
-
-Landing Hero “Start Free”
-
-expected: /auth
-
-Landing bottom “Open RufayQ”
-
-expected: /auth
-
-/auth chooser
-
-expected: first card says Traveler / مسافر علاجي
-
-clicking it goes to /app?signin=1
-
-it does not go to /admin
-
-If an admin/staff session exists and user clicks Traveler on /auth
-
-expected: session is cleared or staff redirect is skipped for signin=1
-
-user sees traveler sign-in, not /admin
-
-Guest user with rufayq_guest_ok
-
-expected: /app loads directly
-
-Authenticated patient
-
-expected: /app loads directly
-
-Normal authenticated staff direct visit to /app
-
-expected: still redirects to /admin
-
-Provider choice
-
-expected: provider flow still goes to /provider/login
-
----
-
-## Key corrections to your original plan
-
-### Change “Patient” to “Traveler”
-
-Your original plan still says:
-
-> Patient card on `/auth` chooser
-
-But your product requirement is now:
-
-> Traveler / Traveller
-
-I recommend **Traveler** with one “l” if your UI is mostly US English, which it appears to be `Sign In`, `Start Free`, etc.). If your brand voice is UK/international English, use **Traveller**. For consistency with current app copy, I’d choose:
-
-> **Traveler**
-
-Arabic:
-
-> **مسافر علاجي**
-
-or shorter:
-
-> **مسافر**
-
----
-
-### Do not call the admin redirect “correct and out of scope” anymore
-
-Your original plan said:
-
-> The earlier `/admin` redirect came from `Index.tsx:62-70`, which auto-pushes signed-in staff to `/admin` after they hit `/app` — that's correct staff behaviour and out of scope here.
-
-That is only partially true.
-
-For normal signed-in staff visiting `/app`, yes, redirecting to `/admin` is correct. 【F:src/pages/Index.tsx†L61-L70】
-
-But for the explicit **Traveler sign-in** route:
-
-```text
-
-/app?signin=1
-
-the redirect should not steal the flow before the user can sign in as a traveler.
-
-So make this in scope:
-
-Staff redirect remains for normal /app, but must not hijack /app?signin=1.
-
-Make Auth chooser set the role explicitly
-
-This is a crucial fix.
-
-The current /auth Traveler/Patient card just does:
-
-ts
-
-navigate("/app?signin=1")
-
-【F:src/pages/Auth.tsx†L67-L70】
-
-It does not set rufayq_role.
-
-But Index.tsx and RoleSelectorScreen rely on stored role preference for post-login validation. RoleSelectorScreen reads/writes rufayq_role and validates only "patient" or "doctor". 【F:src/screens/RoleSelectorScreen.tsx†L39-L48】【F:src/screens/RoleSelectorScreen.tsx†L83-L98】
-
-So the /auth Traveler card should explicitly set:
-
-text
-
-rufayq_role = patient
-
-before navigating to /app?signin=1.
+That part should be accepted.
 
 Final recommendation
 
-Send the updated plan above to Lovable.
+Tell Lovable:
 
-The two most important additions are:
+“Proceed, but make it a clean refactor: move the guard into src/components/AppAuthGuard.tsx, import it in src/App.tsx, remove the inline guard, keep the guard outside Shelled, preserve all currently guarded routes, and use the strict safe-return/Arabic-auth/guest-flag helpers.”
 
-Rename user-facing Patient to Traveler, but keep internal role "patient" for now.
+That gives you the best version: safe, reactive, localized, and consistent with the existing app architecture.
 
-Prevent /app?signin=1 Traveler sign-in from being hijacked by stale role/session/admin redirect.
+Commands I used to verify the repo context
+
+✅ git status --short && nl -ba src/App.tsx | sed -n '1,160p' && find src -maxdepth 3 -name 'AppAuthGuard.tsx' -print
