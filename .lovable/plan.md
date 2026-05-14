@@ -1,218 +1,253 @@
-## Harden `AppAuthGuard` with safe returnTo + Arabic auth route
+# Real biometric unlock — remembered on desktop and mobile
 
-Rewrite `src/components/AppAuthGuard.tsx` to combine the current auth-state reactivity with explicit safety helpers, and confirm route coverage in `src/App.tsx`.
+## Goal
 
-### Changes to `src/components/AppAuthGuard.tsx`
+Replace the current fake `navigator.credentials.get()` prompt (which always returns "No passkey" → "cancelled") with a real biometric unlock that:
 
-Add three pure helpers at module scope:
+1. **Enrolls once** after a successful password sign-in (opt-in prompt).
+2. **Persists** across sessions on the same device — desktop browsers, installed PWA, and the Capacitor Android/iOS shell.
+3. **Unlocks the app** on subsequent visits with Face ID / Touch ID / Windows Hello / Android fingerprint, without re-typing the password.
+4. **Falls back gracefully** when biometrics is unavailable, was never enrolled, or is cancelled — and the `Use biometrics` button is hidden in those cases (no more misleading prompt).
+
+## How the unlock flow works
+
+```text
+First sign-in (password)                Returning visit
+─────────────────────────                ───────────────
+1. user enters phone+password    ┐       1. LoginScreen mounts
+2. Supabase sign-in OK           │       2. detect: native? webauthn?
+3. Supabase persists session     │          + has stored credential?
+4. Prompt: "Enable biometric     │       3. show "Use biometrics"
+   sign-in on this device?"      │       4. user taps → verify
+   ├ Yes → enroll credential     │       5. on success:
+   └ No  → skip                  │          - getSession()
+                                 ┘          - if valid → onLogin()
+                                            - if expired → ask for password
+```
+
+Supabase already persists the session (`persistSession: true, autoRefreshToken: true` in `client.ts`), so a successful biometric verify reuses the existing session — no extra token plumbing is needed for the common case.
+
+## Two implementations behind one API
+
+A single helper `src/lib/native/biometric.ts` exposes:
 
 ```ts
-const isSafeAppPath = (p: string) =>
-  p === "/app" || p.startsWith("/app/") ||
-  p === "/ar/app" || p.startsWith("/ar/app/");
-
-const safeReturnTo = (pathname: string, search: string) =>
-  isSafeAppPath(pathname) ? `${pathname}${search}` : "/app";
-
-const authPathFor = (pathname: string) =>
-  pathname.startsWith("/ar/") ? "/ar/auth" : "/auth";
-
-const hasGuestOk = () => {
-  try { return localStorage.getItem("rufayq_guest_ok") === "1"; }
-  catch { return false; }
-};
+biometric.isAvailable(): Promise<boolean>
+biometric.isEnrolled(): Promise<boolean>          // local — credential stored?
+biometric.enroll(userId, label): Promise<boolean> // after password sign-in
+biometric.verify(): Promise<boolean>              // unlock gate
+biometric.clear(): Promise<void>                  // on sign-out / settings toggle
 ```
 
-Update `evaluate` to use them:
+Internally it picks the best backend:
 
-```ts
-const dest = safeReturnTo(location.pathname, location.search);
-const authPath = authPathFor(location.pathname);
-navigate(`${authPath}?returnTo=${encodeURIComponent(dest)}`, { replace: true });
-```
 
-Keep:
+| Runtime                              | Backend                                                                                           | Storage                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Capacitor (Android/iOS)              | `@aparajita/capacitor-biometric-auth` (`checkBiometry`, `authenticate`)                           | `@capacitor/preferences`                      |
+| Web (desktop + mobile browser + PWA) | WebAuthn platform authenticator (`navigator.credentials.create` + `.get` with `allowCredentials`) | `localStorage` (credential `rawId` as base64) |
+| Neither                              | returns `false` everywhere → button hidden                                                        | —                                             |
 
-- `?signin=1` short-circuit (renders inline Traveler sign-in).
-- `supabase.auth.getSession()` initial check with `.catch(() => evaluate(false))`.
-- `onAuthStateChange` subscription so sign-out/in reacts live.
-- `cancelled` flag and unsubscribe cleanup.
-- Tighten guest check from `!!localStorage.getItem(...)` to strict `=== "1"` for consistency with `useGuestMode` and `LoginScreen`.
 
-### Changes to `src/App.tsx`
+Detection uses the existing `isNative` flag from `src/lib/native/index.ts`. Web path requires:
 
-Wrap the remaining app subroutes with `<AppAuthGuard>` so the guard isn't bypassed via direct navigation:
+- `window.PublicKeyCredential`
+- `PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable() === true`
 
-```tsx
-<Route path="/app/dashboard/subscription" element={<Shelled><AppAuthGuard><SubscriptionDashboard /></AppAuthGuard></Shelled>} />
-<Route path="/app/wallet"                 element={<Shelled><AppAuthGuard><WalletLedger /></AppAuthGuard></Shelled>} />
-<Route path="/ar/app/dashboard/subscription" element={<Shelled><AppAuthGuard><SubscriptionDashboard /></AppAuthGuard></Shelled>} />
-<Route path="/ar/app/wallet"                 element={<Shelled><AppAuthGuard><WalletLedger /></AppAuthGuard></Shelled>} />
-```
+Both must be true for the web button to render — this alone fixes the "No passkey" toast on devices that don't actually have a platform authenticator.
 
-`/app` and `/ar/app` are already wrapped — no change there.
+## Files
 
-Acceptance checks
+**New**
 
-- `/app` (no session) → `/auth?returnTo=%2Fapp`
-- `/ar/app` (no session) → `/ar/auth?returnTo=%2Far%2Fapp`
-- `/app/wallet?x=1` (no session) → `/auth?returnTo=%2Fapp%2Fwallet%3Fx%3D1`
-- `/ar/app/dashboard/subscription` (no session) → `/ar/auth?returnTo=%2Far%2Fapp%2Fdashboard%2Fsubscription`
-- `localStorage.rufayq_guest_ok === "1"` → renders app
-- `?signin=1` → renders inline Traveler sign-in
-- Sign-out while on `/app` → redirects to `/auth`
-- Unsafe pathnames cannot leak into `returnTo` (validator clamps to `/app`)
+- `src/lib/native/biometric.ts` — unified API + WebAuthn and Capacitor backends.
 
-### 1. If you create `src/components/AppAuthGuard.tsx`, remove the inline `AppAuthGuard` from `src/App.tsx` and import the new component there. Do not leave two guard implementations.
+**Edited**
 
-2. Keep the guard outside `Shelled` for app routes unless there is a specific reason to load the shell before auth is checked. Prefer:
+- `src/screens/LoginScreen.tsx`
+  - Replace `bioAvailable` / `handleBiometric` with `biometric.*`.
+  - After successful `signInWithPassword`, show an opt-in modal: "Enable biometric sign-in?" → on yes, call `biometric.enroll(userId, signInEmail)`.
+  - Only render the `Use biometrics` button when `await biometric.isAvailable() && await biometric.isEnrolled()`.
+  - On tap → `biometric.verify()` → on success check `getSession()`; if expired show "Session expired, please sign in" and keep the password form.
+- `src/screens/SettingsScreen.tsx` (small) — add a "Biometric sign-in" toggle that calls `biometric.enroll` / `biometric.clear`, so users can disable it later.
+- `package.json` — add `@aparajita/capacitor-biometric-auth`. (Web bundle is unaffected; the plugin is only invoked when `isNative === true`.)
 
-<Route path="/app" element={<AppAuthGuard><Shelled><Index /></Shelled></AppAuthGuard>} />
+**Untouched**
 
-<Route path="/ar/app" element={<AppAuthGuard><Shelled><Index /></Shelled></AppAuthGuard>} />
+- `AppAuthGuard`, `Auth.tsx`, Supabase config, edge functions, RLS, routing — none of this changes. Biometrics is a local "unlock the cached session" gate, not a new auth provider.
 
-<Route path="/app/dashboard/subscription" element={<AppAuthGuard><Shelled><SubscriptionDashboard /></Shelled></AppAuthGuard>} />
+## Edge cases handled
 
-<Route path="/app/wallet" element={<AppAuthGuard><Shelled><WalletLedger /></Shelled></AppAuthGuard>} />
+- **Credential lost / cleared cookies / new device** → `isEnrolled()` is `false`, button hidden, user signs in with password and re-enrolls.
+- **User cancels the prompt** → no toast spam; silent return, button stays.
+- **Supabase session truly expired** (rare with auto-refresh) → biometric verify still succeeds, but we detect `!session` and prompt for password without claiming "unlocked".
+- **Sign out** → `biometric.clear()` runs so the next user on the same device isn't auto-unlocked into the previous account.
+- **RTL / Arabic** → all new strings bilingual EN · AR, matching existing toasts.
 
-<Route path="/ar/app/dashboard/subscription" element={<AppAuthGuard><Shelled><SubscriptionDashboard /></Shelled></AppAuthGuard>} />
+## **Required amendments before implementation**
 
-<Route path="/ar/app/wallet" element={<AppAuthGuard><Shelled><WalletLedger /></Shelled></AppAuthGuard>} />
+### **A. Do not call this “passwordless login”**
 
-The current routes are already covered, so this should be a refactor/hardening, not a route coverage expansion.
+The plan’s framing should remain very explicit:
 
-Please implement the new component with:
+- ✅ “Biometric unlock of an existing cached Supabase session”
+- ❌ Not “true passwordless authentication”
+- ❌ Not “server-verified WebAuthn/passkey auth”
 
-- `isSafeAppPath(pathname)`
+Without server-side WebAuthn challenge storage and assertion verification, the web path is not a real authentication provider. It is acceptable as a **local unlock gate** only.
 
-- `safeReturnTo(pathname, search)`
+### **B. Web availability must be stricter than PublicKeyCredential**
 
-- `authPathFor(pathname)` returning `/ar/auth` for Arabic app routes
+For web/PWA, isAvailable() should require all of these:
 
-- `hasGuestOk()` checking `localStorage.getItem("rufayq_guest_ok") === "1"`
+1. window.isSecureContext
+2. window.PublicKeyCredential
+3. PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable() === true
+4. top-level browsing context where possible
 
-- `?signin=1` short-circuit
+MDN documents that isUserVerifyingPlatformAuthenticatorAvailable() is available only in secure contexts and resolves true when a user-verifying platform authenticator is present, such as Touch ID/Face ID, Windows Hello, or Android device unlock. Source: **[MDN PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable](https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredential/isUserVerifyingPlatformAuthenticatorAvailable_static)**
 
-- initial `supabase.auth.getSession()`
+This is the key change that prevents the current misleading button.
 
-- `supabase.auth.onAuthStateChange(...)` subscription
+### **C. Web enrollment must store a real credential ID**
 
-- cleanup/unsubscribe on unmount
+The web implementation should not just store an email. It should:
 
-- a non-blank fallback while checking if possible
+- call navigator.credentials.create({ publicKey: ... })
+- require authenticatorSelection.authenticatorAttachment = "platform"
+- require userVerification = "required"
+- store the returned credential rawId as base64url
+- store metadata like { userId, label, createdAt }
+- during verify(), call navigator.credentials.get() with allowCredentials containing that stored credential ID
 
-Acceptance checks:
+Even if the assertion is not sent to the server, using allowCredentials is important because it ensures the browser prompts for the enrolled local credential instead of producing the current “no passkey/cancelled” UX.
 
-- `/app` unauthenticated redirects to `/auth?returnTo=%2Fapp`
+### **D. The native plugin must be dynamically imported only on native**
 
-- `/ar/app` unauthenticated redirects to `/ar/auth?returnTo=%2Far%2Fapp`
+The plugin README says it simulates biometry on web. Source: **[plugin README — web support](https://github.com/aparajita/capacitor-biometric-auth)**
 
-- `/app/wallet?x=1` unauthenticated redirects to `/auth?returnTo=%2Fapp%2Fwallet%3Fx%3D1`
+Because this app wants **real web WebAuthn** on desktop/mobile browsers and native plugin prompts only in Capacitor, biometric.ts should avoid importing or using the plugin web simulation path in browsers.
 
-- `/ar/app/dashboard/subscription` unauthenticated redirects to `/ar/auth?returnTo=%2Far%2Fapp%2Fdashboard%2Fsubscription`
+Recommended pattern:
 
-- `localStorage.rufayq_guest_ok === "1"` allows app access
+`if (isNative) {`  
+  `const { BiometricAuth } = await import("@aparajita/capacitor-biometric-auth");`  
+  `...`  
+`}`  
 
-- `?signin=1` allows inline Traveler sign-in
 
-- sign-out while on an app route redirects to auth
+### **E. Add the iOS Face ID plist requirement to the plan**
 
-- unsafe paths cannot leak into returnTo
+The plugin README explicitly requires NSFaceIDUsageDescription in Info.plist for Face ID. Source: **[plugin README — iOS Face ID requirement](https://github.com/aparajita/capacitor-biometric-auth)**
 
-- `npm run test`, `npx tsc --noEmit`, and `npm run build` pass
+The repo currently does not appear to include native ios/ or android/ project folders, so this may be an app-shell build step rather than a frontend repo edit, but it should be called out as a required native packaging task.
 
-Why these corrections matter
+### **F. Fix sign-out clearing in the patient app**
 
-1. The current app routes are already guarded
+The plan says “Sign out → biometric.clear() runs,” but the patient logout currently does **not** call supabase.auth.signOut(); it only resets onboarding/local view state.
 
-Lovable says “wrap the remaining app subroutes,” but in the current repo those routes are already guarded:
+That must be fixed for the biometric plan to be safe. Otherwise, a “signed out” patient could leave a valid Supabase session and biometric marker behind.
 
-/app
+Minimum requirement:
 
-/ar/app
+- patient logout calls await supabase.auth.signOut()
+- patient logout calls await biometric.clear()
+- then clears local app/onboarding state
 
-/app/dashboard/subscription
+### **G. Settings toggle must become real, not cosmetic**
 
-/app/wallet
+Settings currently has a biometric boolean in local settings.  
+The visible “Biometric Login” toggle only updates local settings storage.
 
-/ar/app/dashboard/subscription
+The plan should change this toggle to:
 
-/ar/app/wallet
+- show current biometric.isEnrolled() state
+- enable → call biometric.enroll([currentUser.id](http://currentUser.id), label) after a session check
+- disable → call biometric.clear()
+- hide/disable with helper copy when biometric.isAvailable() is false
 
-All are already wrapped with AppAuthGuard. 【F:src/App.tsx†L133-L146】
+---
 
-So this should be framed as a hardening/refactor, not as adding missing route coverage.
+## **Implementation notes I would require**
 
-2. Keep the guard outside Shelled
+### **biometric.ts API**
 
-Current pattern:
+The proposed API is good:
 
-tsx
+`biometric.isAvailable(): Promise<boolean>`  
+`biometric.isEnrolled(): Promise<boolean>`  
+`biometric.enroll(userId, label): Promise<boolean>`  
+`biometric.verify(): Promise<boolean>`  
+`biometric.clear(): Promise<void>`  
 
-<AppAuthGuard>
 
-  <Shelled>...</Shelled>
+I would add:
 
-</AppAuthGuard>
+`biometric.getEnrollment(): Promise<BiometricEnrollment | null>`  
 
-This is better for unauthenticated users because AppShell is only loaded/rendered after the guard allows access. Shelled loads the heavier app shell. 【F:src/App.tsx†L86-L90】
 
-Lovable’s suggested pattern:
+Useful for Settings copy like “Enabled for +966••••1234”.
 
-tsx
+### **Enrollment prompt timing**
 
-<Shelled>
+After password sign-in, Login currently has only { error } from signInWithPassword.
 
-  <AppAuthGuard>...</AppAuthGuard>
+Implementation should destructure data too:
 
-</Shelled>
+`const { data, error } = await supabase.auth.signInWithPassword(...)`  
 
-That still works functionally, but it may load app-shell providers before the auth decision. I would keep the current outer-guard pattern.
 
-3. Strict guest flag check is necessary
+Then use:
 
-Lovable is correct to tighten guest mode to:
+`data.user?.id`  
 
-ts
 
-localStorage.getItem("rufayq_guest_ok") === "1"
+for enrollment.
 
-The current guard incorrectly checks for "true". 【F:src/App.tsx†L62-L66】
+### **Cancellation behavior**
 
-But the login screen writes "1" when the user continues as guest. 【F:src/screens/LoginScreen.tsx†L401-L401】【F:src/screens/LoginScreen.tsx†L495-L495】
+Approve the plan’s “silent cancel” behavior. A user cancelling Face ID / Touch ID / Windows Hello is not an error state and should not show a scary toast.
 
-The useGuestMode hook also checks for "1". 【F:src/hooks/useGuestMode.ts†L4-L12】
+Recommended UX:
 
-So Lovable’s strict "1" check is the right fix.
+- cancelled → no toast, keep login screen
+- verified but no session → info toast: “Session expired — please sign in once with your password.”
+- unsupported/not enrolled → button hidden
 
-4. /ar/auth must be preserved
+---
 
-Current code correctly sends Arabic app routes to /ar/auth. 【F:src/App.tsx†L72-L75】
+## **Final approval decision**
 
-Lovable’s updated proposal includes authPathFor, which preserves that behavior. That part should be accepted.
+**Approved with changes.**
 
-5. Live auth-state reactivity is a good improvement
+The plan is technically valid and is the right replacement for the current fake biometric flow, but I would not approve implementation unless it includes these mandatory adjustments:
 
-The current inline guard checks the session once in an effect. 【F:src/App.tsx†L59-L69】
+1. Treat biometrics as **local unlock of cached Supabase session**, not real passwordless auth.
+2. Use strict WebAuthn availability detection via isUserVerifyingPlatformAuthenticatorAvailable().
+3. Store/use a real WebAuthn credential ID with allowCredentials.
+4. Dynamically import the native biometric plugin only when isNative.
+5. Add/track the iOS NSFaceIDUsageDescription requirement.
+6. Fix patient logout to call both supabase.auth.signOut() and biometric.clear().
+7. Convert the Settings biometric toggle from cosmetic local preference into real enroll/clear behavior.
 
-Lovable’s proposal adds supabase.auth.onAuthStateChange(...), which is better because:
+---
 
-sign-out on an app route redirects without refresh;
+## **Commands used to validate**
 
-sign-in clears the gate;
+- ✅ git status --short && rg "biometric|credentials|get\\(|PublicKeyCredential|signInWithPassword|signOut|persistSession|isNative" -n src package.json | head -n 200
+- ✅ sed -n '1,120p' src/lib/native/index.ts && sed -n '1,260p' src/screens/LoginScreen.tsx && sed -n '400,505p' src/screens/LoginScreen.tsx && sed -n '1,285p' src/screens/SettingsScreen.tsx && sed -n '1,60p' src/integrations/supabase/client.ts && cat package.json | sed -n '1,90p'
+- ✅ rg "signOut\\(" -n src
+- ✅ find ios -maxdepth 4 -name Info.plist -print 2>/dev/null | sed -n '1,20p' && find android -maxdepth 4 -name AndroidManifest.xml -print 2>/dev/null | sed -n '1,20p'## Verdict: approve the plan, with required amendments  
+  
+**Out of scope**
 
-session changes are handled consistently.
+- No server-side WebAuthn registration/attestation (no `webauthn_credentials` table, no edge function). Credential is local-device only. If you later want true cross-device passkey sync (iCloud Keychain / Google Password Manager), we can layer that on without changing this UI.
+- No changes to OTP, recovery, or sign-up flows.
+- No new routes or guards.
 
-That part should be accepted.
+## Verification
 
-Final recommendation
-
-Tell Lovable:
-
-“Proceed, but make it a clean refactor: move the guard into src/components/AppAuthGuard.tsx, import it in src/App.tsx, remove the inline guard, keep the guard outside Shelled, preserve all currently guarded routes, and use the strict safe-return/Arabic-auth/guest-flag helpers.”
-
-That gives you the best version: safe, reactive, localized, and consistent with the existing app architecture.
-
-Commands I used to verify the repo context
-
-✅ git status --short && nl -ba src/App.tsx | sed -n '1,160p' && find src -maxdepth 3 -name 'AppAuthGuard.tsx' -print
+1. Web (desktop Chrome with Windows Hello / macOS Touch ID): sign in with password → accept enroll → reload → tap `Use biometrics` → real OS prompt → land on `/app`.
+2. Web (browser with no platform authenticator): button does not render.
+3. Capacitor Android: same flow uses the system fingerprint sheet via the plugin; no "No passkey" message possible.
+4. After `signOut()`: button disappears until the next password sign-in + enroll.
