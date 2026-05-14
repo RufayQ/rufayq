@@ -275,7 +275,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       if (reg.password) {
         await supabase.auth.updateUser({ password: reg.password });
       }
-      localStorage.setItem(BIOMETRIC_KEY, data.signInEmail);
+      // Biometric enrollment after sign-up is offered separately on first sign-in.
 
       const now = new Date().toISOString();
       const { error: pErr } = await supabase.from("profiles").upsert({
