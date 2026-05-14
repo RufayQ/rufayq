@@ -36,7 +36,7 @@ const Auth = () => {
 
   const t = (en: string, ar: string) => (isAr ? ar : en);
 
-  const returnTo = safePatientReturnTo(searchParams.get("returnTo"));
+  void safePatientReturnTo(searchParams.get("returnTo"));
 
   const handleTravelerClick = async () => {
     setStoredRole("patient");
@@ -122,12 +122,12 @@ const Auth = () => {
                 <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-5" style={{ background: `${TEAL}22`, color: TEAL }}>
                   <User size={26} />
                 </div>
-                <h2 className="font-display text-2xl mb-2">{t("Traveler", "مسافر علاجي")}</h2>
+                <h2 className="font-display text-2xl mb-2">{t("Traveller", "مسافر علاجي")}</h2>
                 <p className="text-[13px] mb-5" style={{ color: TEXT_MUTED }}>
                   {t("Track your medical travel journey, records, medications, appointments and chat with RufayQ AI.", "تابع رحلة سفرك العلاجي وسجلاتك وأدويتك ومواعيدك وتحدث مع رُفَيِّق الذكي.")}
                 </p>
                 <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: GOLD }}>
-                  {t("Open traveler app", "افتح تطبيق المسافر")} <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+                  {t("Continue as Traveller", "متابعة كمسافر")} <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
                 </div>
               </button>
 
