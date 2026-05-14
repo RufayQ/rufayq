@@ -64,3 +64,21 @@ DROP TYPE  IF EXISTS public.journey_artifact_type;
 ```
 
 No existing app code references the new tables/functions, so rollback is safe in Phase 1. Subsequent phases must include their own rollback notes.
+
+## Deep-linking to a milestone
+
+Any surface (Home constellation, future push notifications, URL params,
+cross-module links) that wants to focus a specific milestone in the Journey
+Map MUST use the single supported intent shape:
+
+```ts
+onNavigate("journey", `milestone:${id}`);
+```
+
+`JourneyScreen` is the only consumer. It defers selection until the timeline
+loads, then either focuses the requested milestone or — if the id is stale
+(trip changed, milestone deleted, etc.) — fires a bilingual sonner toast
+("Milestone not found · لم يتم العثور على المحطة") and falls back to the
+default selection (current → upcoming → first). Callers do not need to
+validate the id themselves; the fallback is centralized in
+`resolvePendingMilestone()`.
