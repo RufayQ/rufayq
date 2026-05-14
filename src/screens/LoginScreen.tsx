@@ -383,12 +383,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           </p>
         </div>
 
-        <button onClick={() => setView("register")}
+        <Link to={typeof window !== "undefined" && window.location.pathname.startsWith("/ar") ? "/ar/quick-signup" : "/quick-signup"}
           className="w-full py-4 rounded-2xl font-bold text-white btn-press flex flex-col items-center"
           style={{ background: "var(--gold)", boxShadow: "0 8px 24px rgba(197,150,90,0.3)" }}>
           <span className="text-[15px]">Create your account</span>
-          <span className="font-arabic text-[12px] mt-0.5" dir="rtl">أنشئ حسابك<span className="font-arabic" dir="rtl"> · مع تحقق برمز</span></span>
-        </button>
+          <span className="font-arabic text-[12px] mt-0.5" dir="rtl">أنشئ حسابك</span>
+        </Link>
 
         <button onClick={() => setView("login")}
           className="w-full mt-3 py-3.5 rounded-2xl font-semibold btn-press"
