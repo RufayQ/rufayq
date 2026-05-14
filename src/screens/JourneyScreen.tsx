@@ -159,6 +159,17 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
   const overview = useJourneyOverview({ isGuest });
   const selectedMilestone = overview.milestones.find((m) => m.id === selectedMilestoneId) ?? null;
+
+  // Default the helicopter selection to the most relevant milestone whenever the trip changes.
+  useEffect(() => {
+    if (selectedMilestoneId) return;
+    if (overview.milestones.length === 0) return;
+    const next =
+      overview.milestones.find((m) => m.state === "current")
+      ?? overview.milestones.find((m) => m.state === "upcoming")
+      ?? overview.milestones[0];
+    if (next) setSelectedMilestoneId(next.id);
+  }, [overview.milestones, selectedMilestoneId]);
   // Flight tickets are persisted (per-device) via Supabase + local cache so
   // they survive navigation, reload, and offline. Non-flight transport
   // segments stay in local state for now (separate persistence epic).
