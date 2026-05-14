@@ -1,29 +1,29 @@
-# Fix the routing after pressing start for free button as it direct to admin
+# Refactoring the flow and link router after pressing on (Start free) button in the landing website, as when it lands to select wither the user is patient (correct it to traveler) or Provider, then suddenly route to admin portal.
 
-# Friendly fallback for missing milestone deep-link
+&nbsp;
 
-When Home deep-links into Journey via `milestone:<id>` and that id isn't found in `overview.milestones`, show a bilingual toast and fall back to the default selection (current → upcoming → first), instead of silently leaving nothing selected.
+# Then go for Stale-milestone fallback already covers all callers
 
-## Why this is needed
+## What I checked
 
-Today, `JourneyScreen`'s `initialIntent` handler unconditionally calls `setSelectedMilestoneId(initialIntent.slice("milestone:".length))`. If that id no longer exists (stale milestone, deleted appointment, different trip became active between Home render and Journey mount), the inline sheet renders empty and the default-selection effect is blocked because `selectedMilestoneId` is already truthy.
+Searched the codebase for every emitter of the `milestone:<id>` intent and every entry point into `JourneyScreen`:
 
-## Changes (presentation only)
+- **Emitters of `milestone:<id>**`: only `src/screens/HomeScreen.tsx` (the constellation `onSelect`). No other screen, push notification handler, native deep-link, or URL search-param path constructs that intent.
+- **Native deep links** (`src/lib/native/deepLinks.ts`): supports `meds-next`, `appointment-next`, `journey-current`, `emergency` — none carry a milestone id; `journey-current` routes to Journey without selecting a specific milestone.
+- **Router / `Index.tsx**`: forwards any `context` starting with `milestone:` into `JourneyScreen`'s `initialIntent`. It is a pass-through, not an emitter.
+- `**JourneyScreen`'s `initialIntent` handler**: the fallback we just added (`pendingMilestoneIdRef` + validation effect + bilingual toast + reset to default selection) runs for **any** caller, because it lives at the single entry point where every `milestone:<id>` intent is consumed.
 
-`**src/screens/JourneyScreen.tsx**`
+## Conclusion
 
-1. Add a small `pendingMilestoneIdRef = useRef<string | null>(null)` plus a `pendingMilestoneToken` state (number) used purely to re-trigger validation when a new intent arrives.
-2. In the `initialIntent` effect (lines 251–254), instead of setting `selectedMilestoneId` directly:
-  - Stash the requested id in `pendingMilestoneIdRef.current`.
-  - Bump `pendingMilestoneToken`.
-  - Still switch `activeSubTab` to `"overview"` immediately.
-3. Add a new effect keyed on `[pendingMilestoneToken, overview.milestones]`:
-  - If no pending id, return.
-  - If `overview.milestones.length === 0`, wait (return without clearing — milestones may still be loading).
-  - If the id exists: set `userSelectedRef.current = true`, `setSelectedMilestoneId(id)`, clear pending ref.
-  - If the id is missing: fire `toast("Milestone not found · لم يتم العثور على المحطة", { description: "Showing your current step instead · يتم عرض خطوتك الحالية بدلاً من ذلك" })`, clear pending ref, and leave `selectedMilestoneId` as `null` so the existing default-selection effect (lines 178–186) picks current → upcoming → first.
-4. Keep `onIntentHandled?.()` firing once from the original intent effect (unchanged) — the deferred resolution only affects internal selection, not the parent's intent contract.
+The behavior is already centralized. Any current or future caller (Home today, future push-notification deep links, URL params, Care Hub cross-links, etc.) gets the toast + default-selection fallback for free as long as they go through the existing `onNavigate("journey", "milestone:<id>")` channel — which they must, since that's the only intent shape `JourneyScreen` recognizes.
+
+## Optional hardening (recommend doing)
+
+To prevent future regressions where someone bypasses `Index.tsx` and sets `selectedMilestoneId` directly, add a tiny safety net:
+
+1. `**src/screens/JourneyScreen.tsx**` — extract the validation logic into a small helper `resolvePendingMilestone(id)` used by both the `initialIntent` effect and any future internal callers (e.g., if a sub-component ever wants to programmatically focus a milestone). Pure refactor, no behavior change.
+2. `**docs/journey-timeline.md**` — add a one-paragraph "Deep-linking to a milestone" note documenting the `milestone:<id>` contract and the fallback guarantee, so contributors know the single supported entry point.
 
 ## Out of scope
 
-Home screen, hooks, API, schema, sheet visuals, and every other Journey sub-tab. No new dependencies. No test changes required (existing tests don't cover the missing-id branch); optionally a follow-up could add one in `JourneyScreen.test.tsx`.
+No new emitters, no new intents, no business-logic or data changes. If you'd like the fallback wired into a *new* surface (e.g., a notification that links to a specific appointment), tell me which surface and I'll add it.
