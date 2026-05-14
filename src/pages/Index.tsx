@@ -58,8 +58,10 @@ const Index = () => {
   // Side-effecting; UI continues painting from cache during bootstrap.
   usePatientBootstrap();
 
-  // Staff auto-redirect: if a signed-in staff member lands on the patient app, push them to /admin
+  // Staff auto-redirect: if a signed-in staff member lands on the patient app, push them to /admin.
+  // Skip when ?signin=1 is present so the explicit traveler sign-in flow from /auth isn't hijacked.
   useEffect(() => {
+    if (forceSignIn) return;
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
@@ -67,7 +69,7 @@ const Index = () => {
       const isStaff = (data || []).some((r: any) => r.role === "admin" || r.role === "moderator");
       if (isStaff) navigate("/admin", { replace: true });
     })();
-  }, [navigate]);
+  }, [navigate, forceSignIn]);
 
   const [appView, setAppView] = useState<AppView>(() => {
     const seen = localStorage.getItem("rufayq_onboarded");
