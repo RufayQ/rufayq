@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
 import { CreditCard, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -9,7 +9,6 @@ import { useJourneyOverview } from "@/hooks/useJourneyOverview";
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
 import TodayCard from "@/components/home/TodayCard";
 import JourneyConstellation from "@/components/home/JourneyConstellation";
-import MilestoneDetailSheet from "@/components/home/MilestoneDetailSheet";
 import AlertsStack from "@/components/home/AlertsStack";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
 import { derivePhase } from "@/components/home/journeyPhase";
@@ -25,7 +24,6 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const overview = useJourneyOverview({ isGuest });
   const {
     activeTrip, milestones, alerts, dayN, totalDays,
-    nextMedication, allAppointments,
   } = overview;
   const phase = activeTrip ? derivePhase(dayN, totalDays) : undefined;
 
@@ -38,69 +36,6 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
       null
     );
   }, [milestones]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const effectiveSelectedId = selectedId ?? defaultSelectedId;
-  const selectedMilestone = milestones.find((m) => m.id === effectiveSelectedId) ?? null;
-
-  // Build sub-items that genuinely match the selected milestone.
-  const sheetItems = useMemo(() => {
-    if (!selectedMilestone) return [];
-    const items: { id: string; label: string; sub?: string; tag?: string; tone?: "active" | "now" | "muted" }[] = [];
-
-    // Departure / Return → flight info from trip data when available.
-    if (selectedMilestone.kind === "departure" || selectedMilestone.kind === "return") {
-      const flight = selectedMilestone.kind === "departure"
-        ? activeTrip?.outboundFlight
-        : activeTrip?.returnFlight;
-      if (flight) {
-        const route = `${flight.fromAirport ?? flight.fromCity ?? ""} → ${flight.toAirport ?? flight.toCity ?? ""}`.trim();
-        items.push({
-          id: `flight-${selectedMilestone.id}`,
-          label: `${flight.airline ?? "Flight"}${flight.flightNumber ? ` · ${flight.flightNumber}` : ""}`,
-          sub: route,
-          tag: selectedMilestone.state === "current" ? "Today" : "Booked",
-          tone: selectedMilestone.state === "current" ? "now" : "muted",
-        });
-      } else {
-        items.push({
-          id: `trip-${selectedMilestone.id}`,
-          label: activeTrip?.destination ?? "Trip",
-          sub: activeTrip?.hospital,
-          tag: selectedMilestone.kind === "return" ? "Return" : "Outbound",
-          tone: "muted",
-        });
-      }
-      return items;
-    }
-
-    // Appointment / treatment / followup → look up the original record.
-    const apt = allAppointments.find((a) => a.id === selectedMilestone.refId);
-    if (apt) {
-      items.push({
-        id: `apt-${apt.id}`,
-        label: `${apt.specialty || "Appointment"}${apt.doctorName ? ` · ${apt.doctorName}` : ""}`,
-        sub: [apt.date, apt.time].filter(Boolean).join(" · ") || apt.location,
-        tag:
-          apt.status === "completed" ? "Done" :
-          selectedMilestone.state === "current" ? "Today" : "Upcoming",
-        tone:
-          apt.status === "completed" ? "muted" :
-          selectedMilestone.state === "current" ? "now" : "active",
-      });
-    }
-    // Only surface the next medication for the *current* milestone — meds
-    // aren't tied to historical or future appointments.
-    if (selectedMilestone.state === "current" && nextMedication) {
-      items.push({
-        id: `med-${nextMedication.id}`,
-        label: nextMedication.name,
-        sub: `${nextMedication.frequency} · ${nextMedication.time}`,
-        tag: "Active",
-        tone: "active",
-      });
-    }
-    return items;
-  }, [selectedMilestone, allAppointments, nextMedication, activeTrip]);
 
   const homeMenuItems: HomeHeaderMenuItem[] = [
     { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: () => { window.location.reload(); } },
@@ -145,22 +80,13 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
         />
 
         {activeTrip && (
-          <>
-            <JourneyConstellation
-              milestones={milestones}
-              selectedId={effectiveSelectedId}
-              onSelect={setSelectedId}
-              departureDate={activeTrip.departureDate}
-              returnDate={activeTrip.returnDate}
-            />
-            <MilestoneDetailSheet
-              milestone={selectedMilestone}
-              items={sheetItems}
-              onOpen={() =>
-                onNavigate("journey", selectedMilestone ? `milestone:${selectedMilestone.id}` : "view")
-              }
-            />
-          </>
+          <JourneyConstellation
+            milestones={milestones}
+            selectedId={defaultSelectedId}
+            onSelect={(id) => onNavigate("journey", `milestone:${id}`)}
+            departureDate={activeTrip.departureDate}
+            returnDate={activeTrip.returnDate}
+          />
         )}
 
         <QuickActionsGrid onNavigate={onNavigate} />
