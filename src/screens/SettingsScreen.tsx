@@ -270,9 +270,10 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           </div>
           <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
             <ToggleRow
-              icon={<Smartphone size={15} style={{ color: "var(--teal-deep)" }} />}
-              label="Biometric Login" labelAr="تسجيل الدخول البيومتري"
-              on={biometric} onChange={update("biometric", setBiometric)}
+              icon={<Smartphone size={15} style={{ color: biometricAvailable ? "var(--teal-deep)" : "var(--gray)" }} />}
+              label={biometricAvailable ? "Biometric Login" : "Biometric Login (unavailable)"}
+              labelAr="تسجيل الدخول البيومتري"
+              on={biometricOn} onChange={toggleBiometric}
             />
             <ToggleRow
               icon={<Shield size={15} style={{ color: "var(--success)" }} />}
