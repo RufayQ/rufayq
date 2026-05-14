@@ -32,13 +32,13 @@ const AppAuthGuard = ({ children }: Props) => {
   useEffect(() => {
     let cancelled = false;
 
-    const guestOk = (() => {
+    const hasGuestOk = () => {
       try { return !!localStorage.getItem("rufayq_guest_ok"); } catch { return false; }
-    })();
+    };
 
     const evaluate = (hasSession: boolean) => {
       if (cancelled) return;
-      if (forceSignIn || guestOk || hasSession) {
+      if (forceSignIn || hasGuestOk() || hasSession) {
         setStatus("allow");
         return;
       }
@@ -47,9 +47,9 @@ const AppAuthGuard = ({ children }: Props) => {
       navigate(`/auth?returnTo=${encodeURIComponent(dest)}`, { replace: true });
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      evaluate(!!session?.user);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => evaluate(!!session?.user))
+      .catch(() => evaluate(false));
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       evaluate(!!session?.user);
