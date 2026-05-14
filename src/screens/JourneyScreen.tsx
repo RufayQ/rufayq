@@ -161,6 +161,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const selectedMilestone = overview.milestones.find((m) => m.id === selectedMilestoneId) ?? null;
   const milestoneSheetRef = useRef<HTMLDivElement>(null);
   const userSelectedRef = useRef(false);
+  const pendingMilestoneIdRef = useRef<string | null>(null);
+  const [pendingMilestoneToken, setPendingMilestoneToken] = useState(0);
   const handleMilestoneSelect = (id: string) => {
     userSelectedRef.current = true;
     setSelectedMilestoneId(id);
