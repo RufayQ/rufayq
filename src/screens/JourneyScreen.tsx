@@ -878,10 +878,10 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                   formattedReturnDate={overview.formattedReturnDate}
                 />
                 <PhaseRibbon5 dayN={overview.dayN} totalDays={overview.totalDays} />
-                <HelicopterCanvas
+                 <HelicopterCanvas
                   milestones={overview.milestones}
                   selectedId={selectedMilestoneId}
-                  onSelect={(id) => setSelectedMilestoneId(id)}
+                  onSelect={handleMilestoneSelect}
                 />
                 {selectedMilestone && (() => {
                   const m = selectedMilestone;
