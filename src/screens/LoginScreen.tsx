@@ -56,7 +56,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       kind: assistKind,
       channel: otpChannel,
       recipient: otpRecipient,
-      full_name: reg.name?.trim() || null,
+      full_name: null,
       note: assistNote.trim() || null,
       device_id: localStorage.getItem("rufayq_device_id"),
     });
@@ -74,25 +74,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     setAssistNote("");
   };
 
-  // Medical step (unchanged structure)
-  const [med, setMed] = useState({
-    bloodType: "", allergies: "", chronic: "", currentMeds: "",
-    emName: "", emPhone: "", emRelation: "",
-    insurer: "", policy: "",
-  });
-  const [pastHistory, setPastHistory] = useState<{ condition: string; year: string; status: string; notes: string }[]>([]);
-  const [surgicalHistory, setSurgicalHistory] = useState<{ procedure: string; year: string; hospital: string; notes: string }[]>([]);
-  const [familyHistory, setFamilyHistory] = useState<{ relation: string; condition: string; age_of_onset: string; notes: string }[]>([]);
-
-  const addPast = () => setPastHistory([...pastHistory, { condition: "", year: "", status: "active", notes: "" }]);
-  const updatePast = (i: number, k: string, v: string) => { const n = [...pastHistory]; (n[i] as any)[k] = v; setPastHistory(n); };
-  const removePast = (i: number) => setPastHistory(pastHistory.filter((_, idx) => idx !== i));
-  const addSurgical = () => setSurgicalHistory([...surgicalHistory, { procedure: "", year: "", hospital: "", notes: "" }]);
-  const updateSurgical = (i: number, k: string, v: string) => { const n = [...surgicalHistory]; (n[i] as any)[k] = v; setSurgicalHistory(n); };
-  const removeSurgical = (i: number) => setSurgicalHistory(surgicalHistory.filter((_, idx) => idx !== i));
-  const addFamily = () => setFamilyHistory([...familyHistory, { relation: "Father", condition: "", age_of_onset: "", notes: "" }]);
-  const updateFamily = (i: number, k: string, v: string) => { const n = [...familyHistory]; (n[i] as any)[k] = v; setFamilyHistory(n); };
-  const removeFamily = (i: number) => setFamilyHistory(familyHistory.filter((_, idx) => idx !== i));
+  // Medical/history capture retired — done in /quick-signup + Profile.
 
   // ---------- biometric availability ----------
   const refreshBio = async () => {
@@ -174,17 +156,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   };
 
   // ============================================================
-  // SIGN-UP / OTP send + verify
+  // OTP send + verify — recover-only (signup uses /quick-signup)
   // ============================================================
-  const resolveSignupRecipient = (): { channel: OtpChannel; to: string } | null => {
-    if (reg.channel === "email") {
-      if (!isValidEmail(reg.email)) { toast.error("Enter a valid email"); return null; }
-      return { channel: "email", to: reg.email.trim().toLowerCase() };
-    }
-    const e164 = phoneToE164(reg.phone || phone);
-    if (!e164) { toast.error("Enter your mobile number"); return null; }
-    return { channel: reg.channel, to: e164 };
-  };
 
   const handleSendOtp = async (channel: OtpChannel, to: string, purpose: "signup" | "recover") => {
     setOtpChannel(channel);
@@ -235,120 +208,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
     const userId = data.userId as string | undefined;
 
-    if (otpPurpose === "recover") {
-      // Land on the set-new-password screen — user is signed in via temp pw,
-      // updateUser({ password }) will replace it permanently.
-      setSubmitting(false);
-      toast.success("Verified · set a new password");
-      setView("newpass");
-      return;
-    }
-
-    // SIGN-UP path: persist profile + medical now that we have a real auth user.
-    // Re-key local device id to `auth_${userId}` so header-based RLS allows the writes.
-    if (userId) {
-      const newDeviceId = `auth_${userId}`;
-      try { localStorage.setItem("rufayq_device_id", newDeviceId); } catch { /* ignore */ }
-      // Mark this account as a brand-new registration so the home screen
-      // shows the empty-state and the welcome tour fires once.
-      try {
-        const { markUserFresh } = await import("@/hooks/useFreshStart");
-        markUserFresh(userId);
-      } catch { /* noop */ }
-      // Override the user's password with the one they chose at sign-up
-      if (reg.password) {
-        await supabase.auth.updateUser({ password: reg.password });
-      }
-      // Biometric enrollment after sign-up is offered separately on first sign-in.
-
-      const now = new Date().toISOString();
-      const { error: pErr } = await supabase.from("profiles").upsert({
-        device_id: newDeviceId,
-        full_name_en: reg.name.trim(),
-        full_name_ar: reg.nameAr.trim() || null,
-        saudi_id: reg.id.trim().length === 10 ? reg.id.trim() : null,
-        passport_number: reg.id.trim().length !== 10 ? reg.id.trim() : null,
-        date_of_birth: reg.dob || null,
-        gender: reg.gender,
-        phone: phoneToE164(reg.phone) || null,
-        email: reg.email.trim() || null,
-        nationality: reg.nationality,
-        terms_accepted_at: now,
-        privacy_accepted_at: now,
-      }, { onConflict: "device_id" });
-
-      if (pErr) console.error("[signup] profile upsert error", pErr);
-
-      const cleanPast = pastHistory.filter((p) => p.condition.trim());
-      const cleanSurgical = surgicalHistory.filter((p) => p.procedure.trim());
-      const cleanFamily = familyHistory.filter((p) => p.condition.trim());
-
-      const { error: mErr } = await supabase.from("medical_profiles").upsert({
-        device_id: newDeviceId,
-        blood_type: med.bloodType || null,
-        allergies: med.allergies ? med.allergies.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        chronic_conditions: med.chronic ? med.chronic.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        current_medications: med.currentMeds ? med.currentMeds.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        emergency_contact_name: med.emName || null,
-        emergency_contact_phone: med.emPhone || null,
-        emergency_contact_relation: med.emRelation || null,
-        insurance_provider: med.insurer || null,
-        insurance_policy_number: med.policy || null,
-        past_medical_history: cleanPast as any,
-        surgical_history: cleanSurgical as any,
-        family_history: cleanFamily as any,
-      } as any, { onConflict: "device_id" });
-
-      if (mErr) console.error("[signup] medical upsert error", mErr);
-    }
-
     setSubmitting(false);
-    toast.success("Welcome to RufayQ · أهلاً بك");
-    setTimeout(onLogin, 400);
+    toast.success("Verified · set a new password");
+    setView("newpass");
   };
-
-  // ============================================================
-  // SIGN-UP submit (validation + profile insert + send OTP)
-  // ============================================================
-  const validateRegister = () => {
-    // Shortened sign-up: only Name, ID/Passport, Mobile, Password, T&C are required.
-    // DOB, Nationality, Arabic name, and the entire medical profile can be filled later
-    // from Profile → Edit (or Profile → Medical history).
-    if (!reg.name.trim()) { toast.error("Full name is required"); return false; }
-    if (!reg.id.trim()) { toast.error("ID or passport number is required"); return false; }
-    if (!reg.phone.trim()) { toast.error("Mobile number is required"); return false; }
-    if (reg.channel === "email" && !isValidEmail(reg.email)) {
-      toast.error("Email is required for Email OTP"); return false;
-    }
-    if (!reg.password || reg.password.length < 8) {
-      toast.error("Password must be at least 8 characters"); return false;
-    }
-    if (reg.password !== reg.confirmPassword) {
-      toast.error("Passwords don't match"); return false;
-    }
-    if (!reg.acceptTerms || !reg.acceptPrivacy) {
-      toast.error("You must accept the Terms and Privacy Policy"); return false;
-    }
-    return true;
-  };
-
-  // Shortened flow: skip the medical step entirely and go straight to OTP.
-  // Users can complete the medical profile later from Profile → Medical history.
-  const handleNextToMedical = () => {
-    if (!validateRegister()) return;
-    const r = resolveSignupRecipient();
-    if (!r) return;
-    handleSendOtp(r.channel, r.to, "signup");
-  };
-
-  // Profile + medical writes are deferred until AFTER OTP verification
-  // (so we have a real auth user and RLS-compatible device_id = `auth_${userId}`).
-  const handleCompleteSignup = async () => {
-    const r = resolveSignupRecipient();
-    if (!r) return;
-    handleSendOtp(r.channel, r.to, "signup");
-  };
-
   // ============================================================
   // RECOVER (forgot password) — sends OTP, verify-otp resets temp pw
   // ============================================================
