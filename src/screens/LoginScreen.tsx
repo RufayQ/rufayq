@@ -13,7 +13,7 @@ import { biometric } from "@/lib/native/biometric";
 import { phoneToE164, phoneToEmail, isValidEmail } from "@/lib/auth/phoneEmail";
 
 
-type AuthView = "welcome" | "login" | "register" | "medical" | "otp" | "recover" | "newpass";
+type AuthView = "welcome" | "login" | "otp" | "recover" | "newpass";
 type OtpChannel = "whatsapp" | "sms" | "email";
 
 interface LoginScreenProps { onLogin: () => void }
