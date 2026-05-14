@@ -112,19 +112,19 @@ const Auth = () => {
 
             <div className="grid md:grid-cols-2 gap-6">
               <button
-                onClick={() => navigate("/app?signin=1")}
+                onClick={handleTravelerClick}
                 className="group text-start rounded-2xl p-8 transition-all duration-300 hover:scale-[1.02]"
                 style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}
               >
                 <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-5" style={{ background: `${TEAL}22`, color: TEAL }}>
                   <User size={26} />
                 </div>
-                <h2 className="font-display text-2xl mb-2">{t("Patient", "مريض")}</h2>
+                <h2 className="font-display text-2xl mb-2">{t("Traveler", "مسافر علاجي")}</h2>
                 <p className="text-[13px] mb-5" style={{ color: TEXT_MUTED }}>
-                  {t("Track your medical journey, records, medications, appointments and chat with RufayQ AI.", "تابع رحلتك الطبية وسجلاتك وأدويتك ومواعيدك وتحدث مع رُفَيِّق الذكي.")}
+                  {t("Track your medical travel journey, records, medications, appointments and chat with RufayQ AI.", "تابع رحلة سفرك العلاجي وسجلاتك وأدويتك ومواعيدك وتحدث مع رُفَيِّق الذكي.")}
                 </p>
                 <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: GOLD }}>
-                  {t("Open patient app", "افتح تطبيق المريض")} <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+                  {t("Open traveler app", "افتح تطبيق المسافر")} <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
                 </div>
               </button>
 
