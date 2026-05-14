@@ -159,6 +159,20 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
   const overview = useJourneyOverview({ isGuest });
   const selectedMilestone = overview.milestones.find((m) => m.id === selectedMilestoneId) ?? null;
+  const milestoneSheetRef = useRef<HTMLDivElement>(null);
+  const userSelectedRef = useRef(false);
+  const handleMilestoneSelect = (id: string) => {
+    userSelectedRef.current = true;
+    setSelectedMilestoneId(id);
+  };
+  useEffect(() => {
+    if (!selectedMilestoneId || !userSelectedRef.current) return;
+    const node = milestoneSheetRef.current;
+    if (!node) return;
+    requestAnimationFrame(() => {
+      node.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [selectedMilestoneId]);
 
   // Default the helicopter selection to the most relevant milestone whenever the trip changes.
   useEffect(() => {
@@ -864,10 +878,10 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                   formattedReturnDate={overview.formattedReturnDate}
                 />
                 <PhaseRibbon5 dayN={overview.dayN} totalDays={overview.totalDays} />
-                <HelicopterCanvas
+                 <HelicopterCanvas
                   milestones={overview.milestones}
                   selectedId={selectedMilestoneId}
-                  onSelect={(id) => setSelectedMilestoneId(id)}
+                  onSelect={handleMilestoneSelect}
                 />
                 {selectedMilestone && (() => {
                   const m = selectedMilestone;
@@ -916,18 +930,20 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                     ? visibleAppointments.find((a) => a.id === m.refId)
                     : null;
                   return (
-                    <MilestoneSheet
-                      milestone={m}
-                      items={items}
-                      location={location || activeTrip.hospital}
-                      onReschedule={apptForReschedule ? () => { setActiveSubTab("appointments"); setAppointmentFormIntent((v) => v + 1); } : undefined}
-                      onOpenMilestone={() => {
-                        if (m.kind === "departure" || m.kind === "return") setActiveSubTab("tickets");
-                        else if (m.kind === "appointment" || m.kind === "treatment") setActiveSubTab("appointments");
-                        else setActiveSubTab("steps");
-                      }}
-                      onShowAll={() => setActiveSubTab("appointments")}
-                    />
+                    <div ref={milestoneSheetRef} data-testid="milestone-sheet-anchor">
+                      <MilestoneSheet
+                        milestone={m}
+                        items={items}
+                        location={location || activeTrip.hospital}
+                        onReschedule={apptForReschedule ? () => { setActiveSubTab("appointments"); setAppointmentFormIntent((v) => v + 1); } : undefined}
+                        onOpenMilestone={() => {
+                          if (m.kind === "departure" || m.kind === "return") setActiveSubTab("tickets");
+                          else if (m.kind === "appointment" || m.kind === "treatment") setActiveSubTab("appointments");
+                          else setActiveSubTab("steps");
+                        }}
+                        onShowAll={() => setActiveSubTab("appointments")}
+                      />
+                    </div>
                   );
                 })()}
                 <div className="px-4 pt-3">
