@@ -161,6 +161,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const selectedMilestone = overview.milestones.find((m) => m.id === selectedMilestoneId) ?? null;
   const milestoneSheetRef = useRef<HTMLDivElement>(null);
   const userSelectedRef = useRef(false);
+  const pendingMilestoneIdRef = useRef<string | null>(null);
+  const [pendingMilestoneToken, setPendingMilestoneToken] = useState(0);
   const handleMilestoneSelect = (id: string) => {
     userSelectedRef.current = true;
     setSelectedMilestoneId(id);
@@ -173,6 +175,26 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       node.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }, [selectedMilestoneId]);
+
+  // Resolve a pending milestone deep-link once milestones are loaded.
+  // If the requested id no longer exists, surface a friendly toast and
+  // let the default-selection effect choose current → upcoming → first.
+  useEffect(() => {
+    const pendingId = pendingMilestoneIdRef.current;
+    if (!pendingId) return;
+    if (overview.milestones.length === 0) return;
+    const exists = overview.milestones.some((m) => m.id === pendingId);
+    if (exists) {
+      userSelectedRef.current = true;
+      setSelectedMilestoneId(pendingId);
+    } else {
+      toast("Milestone not found · لم يتم العثور على المحطة", {
+        description: "Showing your current step instead · يتم عرض خطوتك الحالية بدلاً من ذلك",
+      });
+      setSelectedMilestoneId(null);
+    }
+    pendingMilestoneIdRef.current = null;
+  }, [pendingMilestoneToken, overview.milestones]);
 
   // Default the helicopter selection to the most relevant milestone whenever the trip changes.
   useEffect(() => {
@@ -250,8 +272,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       setActiveSubTab("overview");
     } else if (typeof initialIntent === "string" && initialIntent.startsWith("milestone:")) {
       setActiveSubTab("overview");
-      userSelectedRef.current = true;
-      setSelectedMilestoneId(initialIntent.slice("milestone:".length));
+      pendingMilestoneIdRef.current = initialIntent.slice("milestone:".length);
+      setPendingMilestoneToken((v) => v + 1);
     }
     onIntentHandled?.();
   }, [initialIntent, onIntentHandled]);
