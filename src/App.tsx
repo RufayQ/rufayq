@@ -4,6 +4,7 @@ import { lazy, Suspense } from "react";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { useSyncLanguageWithRoute } from "@/seo/useSyncLanguageWithRoute";
 import Landing from "./pages/Landing.tsx";
+import AppAuthGuard from "@/components/AppAuthGuard";
 
 /* ── Lazy: every non-landing route ───────────────────────────────────────── */
 const Index = lazy(() => import("./pages/Index.tsx"));
