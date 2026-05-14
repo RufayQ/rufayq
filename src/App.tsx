@@ -94,8 +94,8 @@ const App = () => (
             <Route path="/ar/enterprise" element={<Shelled><Enterprise /></Shelled>} />
 
             {/* App + non-marketing surfaces — all need full shell */}
-            <Route path="/app" element={<Shelled><Index /></Shelled>} />
-            <Route path="/ar/app" element={<Shelled><Index /></Shelled>} />
+            <Route path="/app" element={<Shelled><AppAuthGuard><Index /></AppAuthGuard></Shelled>} />
+            <Route path="/ar/app" element={<Shelled><AppAuthGuard><Index /></AppAuthGuard></Shelled>} />
             <Route path="/provider/login" element={<Shelled><ProviderLogin /></Shelled>} />
             <Route path="/provider" element={<Shelled><ProviderDashboard /></Shelled>} />
             <Route path="/admin" element={<Shelled><Admin /></Shelled>} />
