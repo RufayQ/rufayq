@@ -115,6 +115,20 @@ const Index = () => {
    * `user_roles` table. Mismatches sign the user out and bounce them back so
    * the wrong persona can never enter the wrong shell.
    */
+  /**
+   * Validate a `returnTo` query param so a malicious deep link can't bounce
+   * the user out of the patient app shell. Same-origin patient paths only.
+   */
+  const consumePatientReturnTo = (): boolean => {
+    const raw = searchParams.get("returnTo");
+    if (!raw) return false;
+    if (!raw.startsWith("/")) return false;
+    if (raw.startsWith("//")) return false;
+    if (!(raw.startsWith("/app") || raw.startsWith("/ar/app"))) return false;
+    navigate(raw, { replace: true });
+    return true;
+  };
+
   const handleLogin = async () => {
     const stored = getStoredRole();
     const outcome = await validateLoginRole(supabase, stored);
@@ -129,6 +143,7 @@ const Index = () => {
         return;
       case "guest_patient":
         setAppView("main");
+        consumePatientReturnTo();
         return;
       case "lookup_error":
         toast.error("Couldn't verify your account role", { description: outcome.message });
@@ -147,6 +162,7 @@ const Index = () => {
         return;
       case "patient_ok":
         setAppView("main");
+        consumePatientReturnTo();
         break;
     }
     registerPush({
