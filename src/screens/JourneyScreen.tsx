@@ -177,24 +177,36 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   }, [selectedMilestoneId]);
 
   // Resolve a pending milestone deep-link once milestones are loaded.
-  // If the requested id no longer exists, surface a friendly toast and
-  // let the default-selection effect choose current → upcoming → first.
+  // Centralized for ALL callers of the `milestone:<id>` intent (Home today,
+  // future push notifications, URL params, cross-module links, etc.). If the
+  // requested id no longer exists, surface a friendly toast and let the
+  // default-selection effect choose current → upcoming → first.
   useEffect(() => {
     const pendingId = pendingMilestoneIdRef.current;
     if (!pendingId) return;
     if (overview.milestones.length === 0) return;
-    const exists = overview.milestones.some((m) => m.id === pendingId);
-    if (exists) {
-      userSelectedRef.current = true;
-      setSelectedMilestoneId(pendingId);
-    } else {
-      toast("Milestone not found · لم يتم العثور على المحطة", {
-        description: "Showing your current step instead · يتم عرض خطوتك الحالية بدلاً من ذلك",
-      });
-      setSelectedMilestoneId(null);
-    }
+    resolvePendingMilestone(pendingId);
     pendingMilestoneIdRef.current = null;
   }, [pendingMilestoneToken, overview.milestones]);
+
+  /**
+   * Validate a milestone id against the loaded timeline and either select it
+   * or fall back with a bilingual toast. Exposed as a helper so any future
+   * internal caller (notification deep-link, cross-module link, etc.) gets
+   * the same UX guarantee without duplicating the branch.
+   */
+  function resolvePendingMilestone(id: string) {
+    const exists = overview.milestones.some((m) => m.id === id);
+    if (exists) {
+      userSelectedRef.current = true;
+      setSelectedMilestoneId(id);
+      return;
+    }
+    toast("Milestone not found · لم يتم العثور على المحطة", {
+      description: "Showing your current step instead · يتم عرض خطوتك الحالية بدلاً من ذلك",
+    });
+    setSelectedMilestoneId(null);
+  }
 
   // Default the helicopter selection to the most relevant milestone whenever the trip changes.
   useEffect(() => {
