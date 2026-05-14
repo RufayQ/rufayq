@@ -106,7 +106,7 @@ const Auth = () => {
                 {t("Choose your account type", "اختر نوع الحساب")}
               </h1>
               <p className="text-sm mt-3" style={{ color: TEXT_MUTED }}>
-                {t("Select Patient if you're seeking care, or Provider if you deliver healthcare services.", "اختر «مريض» إذا كنت تطلب الرعاية، أو «مزوّد» إذا كنت تقدّم خدمات الرعاية الصحية.")}
+                {t("Select Traveler if you're seeking care, or Provider if you deliver healthcare services.", "اختر «مسافر علاجي» إذا كنت تطلب الرعاية، أو «مزوّد» إذا كنت تقدّم خدمات الرعاية الصحية.")}
               </p>
             </div>
 
