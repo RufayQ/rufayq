@@ -241,7 +241,7 @@ const Landing = () => {
               )}
 
               <div className="flex mt-4">
-                <button onClick={goToApp} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02] w-full sm:w-auto" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
+                <button onClick={() => navigate(lp("/auth"))} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02] w-full sm:w-auto" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
                   {ctaPrimaryLabel} <ArrowRightIcon size={15} />
                 </button>
               </div>
