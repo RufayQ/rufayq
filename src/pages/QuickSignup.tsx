@@ -73,11 +73,13 @@ const QuickSignup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) { toast.error(t("Full name is required", "الاسم الكامل مطلوب")); return; }
-    const e164 = phoneToE164(phone);
-    if (!e164 || e164.length < 8) { toast.error(t("Enter a valid mobile number", "أدخل رقم جوال صحيح")); return; }
-    if (!password || password.length < 8) {
-      toast.error(t("Password must be at least 8 characters", "كلمة السر 8 أحرف على الأقل")); return;
+    setServerPwError(null);
+    if (!firstName.trim() || !lastName.trim()) {
+      toast.error(t("First and last name are required", "الاسم الأول والاسم الأخير مطلوبان")); return;
+    }
+    if (!isValidE164(e164)) { toast.error(t("Enter a valid mobile number", "أدخل رقم جوال صحيح")); return; }
+    if (!pwOk) {
+      toast.error(t("Password doesn't meet the requirements below", "كلمة السر لا تحقق المتطلبات أدناه")); return;
     }
     if (email && !isValidEmail(email)) { toast.error(t("Email is invalid", "البريد غير صالح")); return; }
     if (!terms) { toast.error(t("Please accept Terms & Privacy", "يرجى قبول الشروط والخصوصية")); return; }
