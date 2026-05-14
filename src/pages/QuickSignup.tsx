@@ -403,8 +403,8 @@ const QuickSignup = () => {
 
             <button
               type="submit"
-              disabled={submitting}
-              className="w-full py-3 rounded-xl font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
+              disabled={!canSubmit}
+              className="w-full py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-opacity"
               style={{ background: GOLD, color: "#06101A" }}
             >
               {submitting && <Loader2 size={16} className="animate-spin" />}
