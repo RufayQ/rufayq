@@ -205,6 +205,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     toast("Milestone not found · لم يتم العثور على المحطة", {
       description: "Showing your current step instead · يتم عرض خطوتك الحالية بدلاً من ذلك",
     });
+    // Mark as user-initiated so the default-selection effect's pick
+    // (current → upcoming → first) triggers scrollIntoView + sheet expansion.
+    userSelectedRef.current = true;
     setSelectedMilestoneId(null);
   }
 
