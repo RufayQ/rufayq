@@ -48,6 +48,14 @@ export function getStoredRole(): AppRolePref | null {
   }
 }
 
+/** Persist a role choice using the same contract as the role selector. */
+export function setStoredRole(role: AppRolePref) {
+  try {
+    localStorage.setItem(ROLE_PREF_KEY, role);
+    localStorage.setItem(ROLE_VERSION_KEY, String(ROLE_PREF_VERSION));
+  } catch { /* noop */ }
+}
+
 export function clearStoredRole() {
   try {
     localStorage.removeItem(ROLE_PREF_KEY);
