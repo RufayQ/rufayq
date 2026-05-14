@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
 import { CreditCard, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -24,7 +24,6 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const overview = useJourneyOverview({ isGuest });
   const {
     activeTrip, milestones, alerts, dayN, totalDays,
-    nextMedication, allAppointments,
   } = overview;
   const phase = activeTrip ? derivePhase(dayN, totalDays) : undefined;
 
