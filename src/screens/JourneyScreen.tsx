@@ -979,11 +979,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
           />
         )}
 
-        <MilestoneSheet
-          milestone={selectedMilestone}
-          onClose={() => setSelectedMilestoneId(null)}
-          onOpenSubTab={(key) => setActiveSubTab(key)}
-        />
+        {/* MilestoneSheet is rendered inline beneath the helicopter canvas in the overview tab. */}
       </div>
 
       <PaywallModal
