@@ -34,17 +34,41 @@ export interface DashboardMedication {
   frequency: string;
 }
 
+export type MilestoneSubKind =
+  | "consult"
+  | "lab"
+  | "rad"
+  | "flight"
+  | "surgery"
+  | "recovery"
+  | "followup";
+
 export interface JourneyMilestone {
   id: string;
   /** Stable reference back to the source record (appointment id, "departure", "return"). */
   refId: string;
   kind: "departure" | "appointment" | "treatment" | "return" | "followup";
+  /** Refined visual taxonomy used by the helicopter canvas. */
+  subKind: MilestoneSubKind;
   title: string;
   titleAr: string;
   date?: string | null;
   /** Bucket used for phase-chip placement on the home canvas. */
   phase: "before" | "travel" | "care" | "after";
   state: "done" | "current" | "upcoming";
+}
+
+function inferSubKind(kind: JourneyMilestone["kind"], title: string): MilestoneSubKind {
+  if (kind === "departure" || kind === "return") return "flight";
+  if (kind === "treatment") return "surgery";
+  if (kind === "followup") return "followup";
+  const t = (title || "").toLowerCase();
+  if (/(surger|operation|valve|repair|implant|graft)/.test(t)) return "surgery";
+  if (/(icu|ward|recover|rehab|physio)/.test(t)) return "recovery";
+  if (/(follow.?up|f\/u)/.test(t)) return "followup";
+  if (/(lab|blood|panel|cbc|chem)/.test(t)) return "lab";
+  if (/(echo|scan|mri|ct|x.?ray|ultrasound|imaging|radio)/.test(t)) return "rad";
+  return "consult";
 }
 
 export interface DashboardAlert {
