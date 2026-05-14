@@ -8,7 +8,7 @@ interface Props {
   onOpenProfile: () => void;
 }
 
-const DISMISS_KEY = "rufayq_profile_banner_dismissed_v1";
+const DISMISS_KEY_PREFIX = "rufayq_profile_banner_dismissed_v1";
 
 type ProfileRow = {
   full_name_en: string | null;
@@ -32,7 +32,7 @@ type MedicalRow = {
  *  • exposes a "Contact not verified" sub-row when the account has no
  *    verified phone/email yet (placeholder until OTP infra exists).
  * Hidden once score ≥ 90% AND contact_verified === true.
- * Dismissible per browser-tab session (sessionStorage).
+ * Dismissible per browser-tab session, scoped per device id.
  */
 const ProfileCompletionBanner = ({ onOpenProfile }: Props) => {
   const { mode } = useLanguage();
@@ -41,22 +41,38 @@ const ProfileCompletionBanner = ({ onOpenProfile }: Props) => {
 
   const [score, setScore] = useState<number | null>(null);
   const [contactVerified, setContactVerified] = useState<boolean>(true);
-  const [dismissed, setDismissed] = useState<boolean>(() => {
-    try { return sessionStorage.getItem(DISMISS_KEY) === "1"; } catch { return false; }
-  });
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState<boolean>(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const deviceId = localStorage.getItem("rufayq_device_id");
-      if (!deviceId) return;
-      const [{ data: p }, { data: m }] = await Promise.all([
-        supabase.from("profiles").select("full_name_en,full_name_ar,date_of_birth,gender,nationality,saudi_id,passport_number,contact_verified").eq("device_id", deviceId).maybeSingle() as any,
-        supabase.from("medical_profiles").select("blood_type,emergency_contact_name").eq("device_id", deviceId).maybeSingle() as any,
+      // Resolve device id with auth fallback so a fresh tab still scopes correctly.
+      let id: string | null = null;
+      try { id = localStorage.getItem("rufayq_device_id"); } catch { /* noop */ }
+      if (!id) {
+        try {
+          const { data } = await supabase.auth.getUser();
+          if (data.user?.id) id = `auth_${data.user.id}`;
+        } catch { /* noop */ }
+      }
+      if (!id || cancelled) return;
+      setDeviceId(id);
+
+      try {
+        const dismissedFlag = sessionStorage.getItem(`${DISMISS_KEY_PREFIX}:${id}`) === "1";
+        if (dismissedFlag) { setDismissed(true); return; }
+      } catch { /* noop */ }
+
+      const [pRes, mRes] = await Promise.all([
+        supabase.from("profiles").select("full_name_en,full_name_ar,date_of_birth,gender,nationality,saudi_id,passport_number,contact_verified").eq("device_id", id).maybeSingle() as any,
+        supabase.from("medical_profiles").select("blood_type,emergency_contact_name").eq("device_id", id).maybeSingle() as any,
       ]);
       if (cancelled) return;
-      const profile = (p as ProfileRow) || null;
-      const medical = (m as MedicalRow) || null;
+      if (pRes?.error) console.warn("[profile-banner] profiles", pRes.error);
+      if (mRes?.error) console.warn("[profile-banner] medical_profiles", mRes.error);
+      const profile = (pRes?.data as ProfileRow) || null;
+      const medical = (mRes?.data as MedicalRow) || null;
       const checks: boolean[] = [
         !!profile?.full_name_en,
         !!profile?.date_of_birth,
@@ -79,16 +95,21 @@ const ProfileCompletionBanner = ({ onOpenProfile }: Props) => {
   if (score >= 90 && contactVerified) return null;
 
   const dismiss = () => {
-    try { sessionStorage.setItem(DISMISS_KEY, "1"); } catch { /* noop */ }
+    if (deviceId) {
+      try { sessionStorage.setItem(`${DISMISS_KEY_PREFIX}:${deviceId}`, "1"); } catch { /* noop */ }
+    }
     setDismissed(true);
   };
 
   return (
     <div
       className="rounded-2xl p-3 mb-2"
+      dir={isAr ? "rtl" : "ltr"}
       style={{
-        background: "color-mix(in oklab, var(--gold) 12%, var(--white))",
-        border: "1px solid color-mix(in oklab, var(--gold) 35%, transparent)",
+        // Solid fallback first, then color-mix overlay for modern engines.
+        background: "rgba(197,150,90,0.12)",
+        backgroundImage: "linear-gradient(color-mix(in oklab, var(--gold) 12%, var(--white)), color-mix(in oklab, var(--gold) 12%, var(--white)))",
+        border: "1px solid rgba(197,150,90,0.35)",
       }}
     >
       <div className="flex items-center gap-3">

@@ -3,17 +3,17 @@ import RufayQLogo from "@/components/RufayQLogo";
 import RufayQWordmark from "@/components/RufayQWordmark";
 import OtpInput from "@/components/OtpInput";
 import {
-  Eye, EyeOff, Check, ArrowLeft, Shield, MessageCircle, Mail,
+  Eye, EyeOff, ArrowLeft, Shield, MessageCircle, Mail,
   UserCircle2, Loader2, RefreshCw, Fingerprint, Phone, KeyRound,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biometric } from "@/lib/native/biometric";
-import { phoneToE164, phoneToEmail, isValidEmail } from "@/lib/auth/phoneEmail";
+import { phoneToE164, phoneToEmail } from "@/lib/auth/phoneEmail";
 
 
-type AuthView = "welcome" | "login" | "register" | "medical" | "otp" | "recover" | "newpass";
+type AuthView = "welcome" | "login" | "otp" | "recover" | "newpass";
 type OtpChannel = "whatsapp" | "sms" | "email";
 
 interface LoginScreenProps { onLogin: () => void }
@@ -30,14 +30,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [bioEnrolled, setBioEnrolled] = useState(false);
   const [showEnrollPrompt, setShowEnrollPrompt] = useState<{ userId: string; label: string } | null>(null);
 
-  // Sign-up state
-  const [reg, setReg] = useState({
-    name: "", nameAr: "", id: "", dob: "", gender: "male",
-    email: "", phone: "", nationality: "Saudi Arabia",
-    password: "", confirmPassword: "",
-    channel: "whatsapp" as OtpChannel,
-    acceptTerms: false, acceptPrivacy: false,
-  });
+  // Sign-up state retired — see /quick-signup.
 
   // OTP state
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -63,7 +56,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       kind: assistKind,
       channel: otpChannel,
       recipient: otpRecipient,
-      full_name: reg.name?.trim() || null,
+      full_name: null,
       note: assistNote.trim() || null,
       device_id: localStorage.getItem("rufayq_device_id"),
     });
@@ -81,25 +74,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     setAssistNote("");
   };
 
-  // Medical step (unchanged structure)
-  const [med, setMed] = useState({
-    bloodType: "", allergies: "", chronic: "", currentMeds: "",
-    emName: "", emPhone: "", emRelation: "",
-    insurer: "", policy: "",
-  });
-  const [pastHistory, setPastHistory] = useState<{ condition: string; year: string; status: string; notes: string }[]>([]);
-  const [surgicalHistory, setSurgicalHistory] = useState<{ procedure: string; year: string; hospital: string; notes: string }[]>([]);
-  const [familyHistory, setFamilyHistory] = useState<{ relation: string; condition: string; age_of_onset: string; notes: string }[]>([]);
-
-  const addPast = () => setPastHistory([...pastHistory, { condition: "", year: "", status: "active", notes: "" }]);
-  const updatePast = (i: number, k: string, v: string) => { const n = [...pastHistory]; (n[i] as any)[k] = v; setPastHistory(n); };
-  const removePast = (i: number) => setPastHistory(pastHistory.filter((_, idx) => idx !== i));
-  const addSurgical = () => setSurgicalHistory([...surgicalHistory, { procedure: "", year: "", hospital: "", notes: "" }]);
-  const updateSurgical = (i: number, k: string, v: string) => { const n = [...surgicalHistory]; (n[i] as any)[k] = v; setSurgicalHistory(n); };
-  const removeSurgical = (i: number) => setSurgicalHistory(surgicalHistory.filter((_, idx) => idx !== i));
-  const addFamily = () => setFamilyHistory([...familyHistory, { relation: "Father", condition: "", age_of_onset: "", notes: "" }]);
-  const updateFamily = (i: number, k: string, v: string) => { const n = [...familyHistory]; (n[i] as any)[k] = v; setFamilyHistory(n); };
-  const removeFamily = (i: number) => setFamilyHistory(familyHistory.filter((_, idx) => idx !== i));
+  // Medical/history capture retired — done in /quick-signup + Profile.
 
   // ---------- biometric availability ----------
   const refreshBio = async () => {
@@ -181,17 +156,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   };
 
   // ============================================================
-  // SIGN-UP / OTP send + verify
+  // OTP send + verify — recover-only (signup uses /quick-signup)
   // ============================================================
-  const resolveSignupRecipient = (): { channel: OtpChannel; to: string } | null => {
-    if (reg.channel === "email") {
-      if (!isValidEmail(reg.email)) { toast.error("Enter a valid email"); return null; }
-      return { channel: "email", to: reg.email.trim().toLowerCase() };
-    }
-    const e164 = phoneToE164(reg.phone || phone);
-    if (!e164) { toast.error("Enter your mobile number"); return null; }
-    return { channel: reg.channel, to: e164 };
-  };
 
   const handleSendOtp = async (channel: OtpChannel, to: string, purpose: "signup" | "recover") => {
     setOtpChannel(channel);
@@ -242,120 +208,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
     const userId = data.userId as string | undefined;
 
-    if (otpPurpose === "recover") {
-      // Land on the set-new-password screen — user is signed in via temp pw,
-      // updateUser({ password }) will replace it permanently.
-      setSubmitting(false);
-      toast.success("Verified · set a new password");
-      setView("newpass");
-      return;
-    }
-
-    // SIGN-UP path: persist profile + medical now that we have a real auth user.
-    // Re-key local device id to `auth_${userId}` so header-based RLS allows the writes.
-    if (userId) {
-      const newDeviceId = `auth_${userId}`;
-      try { localStorage.setItem("rufayq_device_id", newDeviceId); } catch { /* ignore */ }
-      // Mark this account as a brand-new registration so the home screen
-      // shows the empty-state and the welcome tour fires once.
-      try {
-        const { markUserFresh } = await import("@/hooks/useFreshStart");
-        markUserFresh(userId);
-      } catch { /* noop */ }
-      // Override the user's password with the one they chose at sign-up
-      if (reg.password) {
-        await supabase.auth.updateUser({ password: reg.password });
-      }
-      // Biometric enrollment after sign-up is offered separately on first sign-in.
-
-      const now = new Date().toISOString();
-      const { error: pErr } = await supabase.from("profiles").upsert({
-        device_id: newDeviceId,
-        full_name_en: reg.name.trim(),
-        full_name_ar: reg.nameAr.trim() || null,
-        saudi_id: reg.id.trim().length === 10 ? reg.id.trim() : null,
-        passport_number: reg.id.trim().length !== 10 ? reg.id.trim() : null,
-        date_of_birth: reg.dob || null,
-        gender: reg.gender,
-        phone: phoneToE164(reg.phone) || null,
-        email: reg.email.trim() || null,
-        nationality: reg.nationality,
-        terms_accepted_at: now,
-        privacy_accepted_at: now,
-      }, { onConflict: "device_id" });
-
-      if (pErr) console.error("[signup] profile upsert error", pErr);
-
-      const cleanPast = pastHistory.filter((p) => p.condition.trim());
-      const cleanSurgical = surgicalHistory.filter((p) => p.procedure.trim());
-      const cleanFamily = familyHistory.filter((p) => p.condition.trim());
-
-      const { error: mErr } = await supabase.from("medical_profiles").upsert({
-        device_id: newDeviceId,
-        blood_type: med.bloodType || null,
-        allergies: med.allergies ? med.allergies.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        chronic_conditions: med.chronic ? med.chronic.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        current_medications: med.currentMeds ? med.currentMeds.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        emergency_contact_name: med.emName || null,
-        emergency_contact_phone: med.emPhone || null,
-        emergency_contact_relation: med.emRelation || null,
-        insurance_provider: med.insurer || null,
-        insurance_policy_number: med.policy || null,
-        past_medical_history: cleanPast as any,
-        surgical_history: cleanSurgical as any,
-        family_history: cleanFamily as any,
-      } as any, { onConflict: "device_id" });
-
-      if (mErr) console.error("[signup] medical upsert error", mErr);
-    }
-
     setSubmitting(false);
-    toast.success("Welcome to RufayQ · أهلاً بك");
-    setTimeout(onLogin, 400);
+    toast.success("Verified · set a new password");
+    setView("newpass");
   };
-
-  // ============================================================
-  // SIGN-UP submit (validation + profile insert + send OTP)
-  // ============================================================
-  const validateRegister = () => {
-    // Shortened sign-up: only Name, ID/Passport, Mobile, Password, T&C are required.
-    // DOB, Nationality, Arabic name, and the entire medical profile can be filled later
-    // from Profile → Edit (or Profile → Medical history).
-    if (!reg.name.trim()) { toast.error("Full name is required"); return false; }
-    if (!reg.id.trim()) { toast.error("ID or passport number is required"); return false; }
-    if (!reg.phone.trim()) { toast.error("Mobile number is required"); return false; }
-    if (reg.channel === "email" && !isValidEmail(reg.email)) {
-      toast.error("Email is required for Email OTP"); return false;
-    }
-    if (!reg.password || reg.password.length < 8) {
-      toast.error("Password must be at least 8 characters"); return false;
-    }
-    if (reg.password !== reg.confirmPassword) {
-      toast.error("Passwords don't match"); return false;
-    }
-    if (!reg.acceptTerms || !reg.acceptPrivacy) {
-      toast.error("You must accept the Terms and Privacy Policy"); return false;
-    }
-    return true;
-  };
-
-  // Shortened flow: skip the medical step entirely and go straight to OTP.
-  // Users can complete the medical profile later from Profile → Medical history.
-  const handleNextToMedical = () => {
-    if (!validateRegister()) return;
-    const r = resolveSignupRecipient();
-    if (!r) return;
-    handleSendOtp(r.channel, r.to, "signup");
-  };
-
-  // Profile + medical writes are deferred until AFTER OTP verification
-  // (so we have a real auth user and RLS-compatible device_id = `auth_${userId}`).
-  const handleCompleteSignup = async () => {
-    const r = resolveSignupRecipient();
-    if (!r) return;
-    handleSendOtp(r.channel, r.to, "signup");
-  };
-
   // ============================================================
   // RECOVER (forgot password) — sends OTP, verify-otp resets temp pw
   // ============================================================
@@ -383,12 +239,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           </p>
         </div>
 
-        <button onClick={() => setView("register")}
+        <Link to={typeof window !== "undefined" && window.location.pathname.startsWith("/ar") ? "/ar/quick-signup" : "/quick-signup"}
           className="w-full py-4 rounded-2xl font-bold text-white btn-press flex flex-col items-center"
           style={{ background: "var(--gold)", boxShadow: "0 8px 24px rgba(197,150,90,0.3)" }}>
           <span className="text-[15px]">Create your account</span>
-          <span className="font-arabic text-[12px] mt-0.5" dir="rtl">أنشئ حسابك<span className="font-arabic" dir="rtl"> · مع تحقق برمز</span></span>
-        </button>
+          <span className="font-arabic text-[12px] mt-0.5" dir="rtl">أنشئ حسابك</span>
+        </Link>
 
         <button onClick={() => setView("login")}
           className="w-full mt-3 py-3.5 rounded-2xl font-semibold btn-press"
@@ -505,10 +361,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         <p className="text-center text-xs mt-5" style={{ color: "var(--gray)" }}>
           Don't have an account?{" "}
-          <button onClick={() => setView("register")} className="font-semibold" style={{ color: "var(--teal-deep)" }}>
+          <Link to={typeof window !== "undefined" && window.location.pathname.startsWith("/ar") ? "/ar/quick-signup" : "/quick-signup"}
+            className="font-semibold" style={{ color: "var(--teal-deep)" }}>
             Register<span className="font-arabic" dir="rtl"> · سجّل الآن</span>
-
-          </button>
+          </Link>
         </p>
 
         {showEnrollPrompt && (
@@ -605,7 +461,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
     return (
       <div className="flex flex-col h-full overflow-y-auto px-6 pt-10 pb-8" style={{ background: "var(--off-white)" }}>
-        <button onClick={() => setView(otpPurpose === "signup" ? "register" : "login")}
+        <button onClick={() => setView("login")}
           className="flex items-center gap-1 text-xs mb-4 self-start" style={{ color: "var(--teal-deep)" }}>
           <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
 
@@ -740,304 +596,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     );
   }
 
-  // ----- MEDICAL (step 2 of signup) -----
-  if (view === "medical") {
-    return (
-      <div className="flex flex-col h-full overflow-y-auto px-6 pt-6 pb-6" style={{ background: "var(--off-white)" }}>
-        <button onClick={() => setView("register")} className="flex items-center gap-1 text-xs mb-3" style={{ color: "var(--teal-deep)" }}>
-          <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
+  // Medical step retired — captured later from Profile → Medical history.
 
-        </button>
-        <div className="text-center mb-5">
-          <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>STEP 2 OF 2</p>
-          <h2 className="font-display text-2xl mt-1" style={{ color: "var(--navy)" }}>Medical Profile</h2>
-          <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>الملف الطبي</p>
-          <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>Optional but helps RufayQ personalize your care<span className="font-arabic" dir="rtl"> · اختياري</span></p>
-        </div>
-
-        <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--white)" }}>
-          <div>
-            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Blood Type<span className="font-arabic" dir="rtl"> · فصيلة الدم</span></label>
-            <div className="grid grid-cols-4 gap-1.5 mt-1">
-              {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map((bt) => (
-                <button key={bt} onClick={() => setMed({ ...med, bloodType: bt })}
-                  className="py-2 rounded-lg text-xs font-semibold btn-press"
-                  style={{
-                    background: med.bloodType === bt ? "var(--teal-deep)" : "var(--off-white)",
-                    color: med.bloodType === bt ? "#fff" : "var(--navy)",
-                    border: `1px solid ${med.bloodType === bt ? "var(--teal-deep)" : "var(--gray-light)"}`,
-                  }}>{bt}</button>
-              ))}
-            </div>
-          </div>
-
-          {[
-            { k: "allergies", l: "Allergies", lAr: "الحساسية", p: "Penicillin, peanuts (comma-separated)" },
-            { k: "chronic", l: "Chronic Conditions", lAr: "الأمراض المزمنة", p: "Diabetes, hypertension..." },
-            { k: "currentMeds", l: "Current Medications", lAr: "الأدوية الحالية", p: "Metformin 500mg..." },
-          ].map((f) => (
-            <div key={f.k}>
-              <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
-                {f.l} <span className="font-arabic text-xs" style={{ color: "var(--gray)" }}>· {f.lAr}</span>
-              </label>
-              <textarea value={(med as any)[f.k]} onChange={(e) => setMed({ ...med, [f.k]: e.target.value })}
-                placeholder={f.p} rows={2}
-                className="w-full mt-1 px-3 py-2 rounded-xl text-sm outline-none resize-none"
-                style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-            </div>
-          ))}
-
-          {/* histories */}
-          {[
-            { title: "PAST MEDICAL HISTORY · التاريخ المرضي", list: pastHistory, add: addPast, remove: removePast, fields: (p: any, i: number) => (
-              <>
-                <input value={p.condition} onChange={(e) => updatePast(i, "condition", e.target.value)} placeholder="Condition (e.g. Hypertension)"
-                  className="w-full px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-                <div className="grid grid-cols-2 gap-1.5">
-                  <input value={p.year} onChange={(e) => updatePast(i, "year", e.target.value)} placeholder="Year"
-                    className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-                  <select value={p.status} onChange={(e) => updatePast(i, "status", e.target.value)}
-                    className="px-2.5 py-2 rounded-lg text-xs outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }}>
-                    <option value="active">Active<span className="font-arabic" dir="rtl"> · نشط</span></option>
-                    <option value="resolved">Resolved<span className="font-arabic" dir="rtl"> · شُفي</span></option>
-                    <option value="chronic">Chronic<span className="font-arabic" dir="rtl"> · مزمن</span></option>
-                  </select>
-                </div>
-              </>
-            ) },
-          ].map((sec) => (
-            <div key={sec.title} className="pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-              <div className="flex items-center justify-between mb-1.5 mt-2">
-                <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>{sec.title}</p>
-                <button onClick={sec.add} className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>+ Add</button>
-              </div>
-              {sec.list.length === 0 && <p className="text-[10px] italic" style={{ color: "var(--gray)" }}>None recorded<span className="font-arabic" dir="rtl"> · لا يوجد</span></p>}
-              {sec.list.map((p: any, i: number) => (
-                <div key={i} className="rounded-xl p-2.5 mb-2 space-y-1.5" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-                  <div className="flex justify-between items-center">
-                    <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>#{i + 1}</span>
-                    <button onClick={() => sec.remove(i)} className="text-[10px]" style={{ color: "var(--error)" }}>Remove</button>
-                  </div>
-                  {sec.fields(p, i)}
-                </div>
-              ))}
-            </div>
-          ))}
-
-          <div className="pt-1" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-            <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>EMERGENCY CONTACT<span className="font-arabic" dir="rtl"> · جهة الطوارئ</span></p>
-            <div className="grid grid-cols-2 gap-2">
-              <input value={med.emName} onChange={(e) => setMed({ ...med, emName: e.target.value })} placeholder="Name · الاسم"
-                className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-              <input value={med.emRelation} onChange={(e) => setMed({ ...med, emRelation: e.target.value })} placeholder="Relation"
-                className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-            </div>
-            <input value={med.emPhone} onChange={(e) => setMed({ ...med, emPhone: e.target.value })} placeholder="Phone · الهاتف"
-              className="w-full mt-2 px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-          </div>
-
-          <div className="pt-1" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-            <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>INSURANCE<span className="font-arabic" dir="rtl"> · التأمين</span></p>
-            <div className="grid grid-cols-2 gap-2">
-              <input value={med.insurer} onChange={(e) => setMed({ ...med, insurer: e.target.value })} placeholder="Provider"
-                className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-              <input value={med.policy} onChange={(e) => setMed({ ...med, policy: e.target.value })} placeholder="Policy #"
-                className="px-3 py-2.5 rounded-xl text-sm outline-none" style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 mt-3 px-1 text-[10px]" style={{ color: "var(--gray)" }}>
-          <Shield size={12} style={{ color: "var(--success)" }} />
-          <span>Encrypted · PDPL · DHA · HIPAA · GDPR compliant</span>
-        </div>
-
-        <div className="flex gap-2 mt-4">
-          <button onClick={handleCompleteSignup} disabled={submitting}
-            className="flex-1 py-3 rounded-xl text-sm btn-press"
-            style={{ border: "1px solid var(--gray-light)", color: "var(--gray)" }}>
-            Skip & verify
-          </button>
-          <button onClick={handleCompleteSignup} disabled={submitting}
-            className="flex-[2] py-3 rounded-xl font-semibold text-white btn-press"
-            style={{ background: "var(--gold)", opacity: submitting ? 0.6 : 1 }}>
-            {submitting ? "Saving…" : "Complete & verify · إكمال"}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ----- REGISTER (single step now — medical is optional & added later from Profile) -----
-  const canContinue = reg.name && reg.id && reg.phone && reg.password.length >= 8
-    && reg.password === reg.confirmPassword && reg.acceptTerms && reg.acceptPrivacy
-    && (reg.channel !== "email" || isValidEmail(reg.email));
-
-  return (
-    <div className="flex flex-col h-full overflow-y-auto px-6 pt-6 pb-6" style={{ background: "var(--off-white)" }}>
-      <button onClick={() => setView("welcome")} className="flex items-center gap-1 text-xs mb-2 self-start" style={{ color: "var(--teal-deep)" }}>
-        <ArrowLeft size={14} /> Back<span className="font-arabic" dir="rtl"> · رجوع</span>
-
-      </button>
-      <div className="text-center mb-4">
-        <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>QUICK SIGN-UP · تسجيل سريع</p>
-        <h2 className="font-display text-2xl mt-1" style={{ color: "var(--navy)" }}>Create your account</h2>
-        <p className="font-arabic text-base mt-1" dir="rtl" style={{ color: "var(--gray)" }}>أنشئ حسابك في خطوة واحدة</p>
-        <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
-          Only the basics now — add medical info later from Profile.
-        </p>
-      </div>
-
-      <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--white)" }}>
-        {/* Personal */}
-        {[
-          { label: "Full Name *", labelAr: "الاسم الكامل", placeholder: "Mohammed Al-Rashidi", key: "name" },
-          { label: "الاسم بالعربي (optional)", labelAr: "", placeholder: "محمد الراشدي", key: "nameAr", rtl: true },
-          { label: "ID / Passport *", labelAr: "الهوية / الجواز", placeholder: "1234567890", key: "id" },
-          { label: "Date of Birth (optional)", labelAr: "تاريخ الميلاد", placeholder: "1990-01-15", key: "dob", type: "date" },
-          { label: "Mobile Number *", labelAr: "رقم الجوال", placeholder: "+966 5X XXX XXXX", key: "phone", type: "tel" },
-          { label: "Nationality (optional)", labelAr: "الجنسية", placeholder: "Saudi Arabia / UAE / Qatar / …", key: "nationality" },
-        ].map((f) => (
-          <div key={f.key}>
-            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
-              {f.label} {f.labelAr && <span className="font-arabic text-xs" style={{ color: "var(--gray)" }}> · {f.labelAr}</span>}
-            </label>
-            <input type={(f as any).type || "text"} value={(reg as any)[f.key]}
-              onChange={(e) => setReg({ ...reg, [f.key]: e.target.value })}
-              placeholder={f.placeholder} dir={(f as any).rtl ? "rtl" : "ltr"}
-              className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none transition-all"
-              style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-          </div>
-        ))}
-
-        <div>
-          <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Gender<span className="font-arabic" dir="rtl"> · الجنس</span></label>
-          <div className="flex gap-2 mt-1">
-            {[["male", "Male · ذكر"], ["female", "Female · أنثى"]].map(([val, label]) => (
-              <button key={val} onClick={() => setReg({ ...reg, gender: val })}
-                className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all btn-press"
-                style={{
-                  background: reg.gender === val ? "var(--teal-deep)" : "var(--off-white)",
-                  color: reg.gender === val ? "var(--white)" : "var(--gray)",
-                  border: `1px solid ${reg.gender === val ? "var(--teal-deep)" : "var(--gray-light)"}`,
-                }}>{label}</button>
-            ))}
-          </div>
-        </div>
-
-        {/* Verification channel selector */}
-        <div className="pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-          <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>VERIFICATION<span className="font-arabic" dir="rtl"> · التحقق</span></p>
-          <p className="text-[11px] mb-2" style={{ color: "var(--gray)" }}>How should we send your one-time code?</p>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { v: "whatsapp" as OtpChannel, Icon: MessageCircle, label: "WhatsApp", color: "#25D366" },
-              { v: "sms" as OtpChannel, Icon: Phone, label: "SMS", color: "var(--teal-deep)" },
-              { v: "email" as OtpChannel, Icon: Mail, label: "Email", color: "var(--teal-deep)" },
-            ].map((c) => {
-              const active = reg.channel === c.v;
-              return (
-                <button key={c.v} type="button" onClick={() => setReg({ ...reg, channel: c.v })}
-                  className="py-2.5 rounded-xl text-[11px] font-semibold flex flex-col items-center gap-1 btn-press"
-                  style={{
-                    background: active ? "var(--teal-deep)" : "var(--off-white)",
-                    color: active ? "#fff" : "var(--navy)",
-                    border: `1px solid ${active ? "var(--teal-deep)" : "var(--gray-light)"}`,
-                  }}>
-                  <c.Icon size={16} color={active ? "#fff" : c.color} />
-                  {c.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Email field appears ONLY when Email is selected */}
-          {reg.channel === "email" && (
-            <div className="mt-3">
-              <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
-                Email * <span className="font-arabic text-xs" style={{ color: "var(--gray)" }}>· البريد الإلكتروني</span>
-              </label>
-              <input type="email" value={reg.email}
-                onChange={(e) => setReg({ ...reg, email: e.target.value })}
-                placeholder="email@example.com" autoComplete="email"
-                className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none"
-                style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-            </div>
-          )}
-          {reg.channel !== "email" && (
-            <p className="text-[10px] mt-2" style={{ color: "var(--gray)" }}>
-              Code will be sent to your mobile number above.
-            </p>
-          )}
-        </div>
-
-        {/* Password */}
-        <div className="pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-          <p className="font-mono text-[9px] tracking-widest mt-2 mb-1.5" style={{ color: "var(--gold)" }}>PASSWORD<span className="font-arabic" dir="rtl"> · كلمة المرور</span></p>
-          <div>
-            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Password * (min 8 chars)</label>
-            <input type="password" value={reg.password}
-              onChange={(e) => setReg({ ...reg, password: e.target.value })}
-              autoComplete="new-password" placeholder="••••••••"
-              className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none"
-              style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
-          </div>
-          <div className="mt-2">
-            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Confirm password *</label>
-            <input type="password" value={reg.confirmPassword}
-              onChange={(e) => setReg({ ...reg, confirmPassword: e.target.value })}
-              autoComplete="new-password" placeholder="••••••••"
-              className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none"
-              style={{
-                border: `1px solid ${reg.confirmPassword && reg.password !== reg.confirmPassword ? "var(--error)" : "var(--gray-light)"}`,
-                background: "var(--white)", color: "var(--navy)",
-              }} />
-          </div>
-        </div>
-
-        {/* T&C checkboxes */}
-        <div className="pt-2 space-y-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-          {[
-            { k: "acceptTerms", text: "I agree to the", linkText: "Terms of Service", linkHref: "/terms", textAr: "أوافق على شروط الاستخدام" },
-            { k: "acceptPrivacy", text: "I agree to the", linkText: "Privacy Policy (PDPL · DHA · HIPAA · GDPR)", linkHref: "/privacy", textAr: "أوافق على سياسة الخصوصية" },
-          ].map((c) => (
-            <label key={c.k} className="flex items-start gap-2.5 cursor-pointer">
-              <button type="button" onClick={() => setReg({ ...reg, [c.k]: !(reg as any)[c.k] })}
-                className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-all"
-                style={{
-                  background: (reg as any)[c.k] ? "var(--teal-deep)" : "var(--white)",
-                  border: `2px solid ${(reg as any)[c.k] ? "var(--teal-deep)" : "var(--gray-light)"}`,
-                }}>
-                {(reg as any)[c.k] && <Check size={13} color="#fff" strokeWidth={3} />}
-              </button>
-              <div className="flex-1">
-                <p className="text-[11px] leading-snug" style={{ color: "var(--navy)" }}>
-                  {c.text}{" "}
-                  <Link to={c.linkHref} target="_blank" className="font-semibold underline" style={{ color: "var(--teal-deep)" }}>
-                    {c.linkText}
-                  </Link>
-                </p>
-                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{c.textAr}</p>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <button onClick={handleNextToMedical} disabled={!canContinue}
-        className="w-full mt-4 py-3.5 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
-        style={{ background: "var(--gold)", opacity: canContinue ? 1 : 0.5, height: 52 }}>
-        Verify & create account<span className="font-arabic" dir="rtl"> · تحقق وأنشئ الحساب</span>
-
-      </button>
-      <p className="text-[10px] text-center mt-2" style={{ color: "var(--gray)" }}>
-        You can complete your medical profile later from <span className="font-semibold" style={{ color: "var(--teal-deep)" }}>Profile → Medical history</span>.
-      </p>
-      <button onClick={() => setView("login")} className="mt-3 text-center text-xs" style={{ color: "var(--gray)" }}>
-        Already have an account? <span style={{ color: "var(--teal-deep)" }} className="font-semibold">Sign In</span>
-      </button>
-    </div>
-  );
+  // Register view retired — Traveller account creation lives at /quick-signup.
+  return null;
 };
 
 export default LoginScreen;
