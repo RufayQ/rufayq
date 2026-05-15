@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { phoneToE164, phoneToEmail, isValidE164 } from "../phoneEmail";
+import { phoneToE164, phoneToEmail, isValidE164, composeE164, splitE164 } from "../phoneEmail";
 
 describe("phoneEmail helpers", () => {
   it("normalises bare Saudi numbers to +966", () => {
