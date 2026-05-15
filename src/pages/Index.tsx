@@ -184,7 +184,7 @@ const Index = () => {
         return;
       case "guest_patient":
         setAppView("main");
-        consumePatientReturnTo();
+        finishPatientEntryNavigation();
         return;
       case "lookup_error":
         toast.error("Couldn't verify your account role", { description: outcome.message });
@@ -203,7 +203,7 @@ const Index = () => {
         return;
       case "patient_ok":
         setAppView("main");
-        consumePatientReturnTo();
+        finishPatientEntryNavigation();
         break;
     }
     registerPush({
