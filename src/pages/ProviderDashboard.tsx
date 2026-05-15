@@ -422,6 +422,13 @@ const ProviderDashboard = () => {
         </div>
         )}
       </main>
+      <ProviderAccountPanel
+        open={accountOpen}
+        onClose={() => setAccountOpen(false)}
+        email={user?.email || ""}
+        organisation={orgs.find(o => o.id === activeOrg)?.name}
+        onSignOut={logout}
+      />
     </div>
   );
 };
