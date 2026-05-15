@@ -157,6 +157,17 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setSubmitting(true);
+    const { error } = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}${window.location.pathname.startsWith("/ar") ? "/ar/app" : "/app"}`,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error("Google sign-in failed · فشل تسجيل الدخول بجوجل", { description: (error as any)?.message });
+    }
+  };
+
   // ============================================================
   // OTP send + verify — recover-only (signup uses /quick-signup)
   // ============================================================
