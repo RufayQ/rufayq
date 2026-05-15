@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 /**
  * JourneyConstellation
