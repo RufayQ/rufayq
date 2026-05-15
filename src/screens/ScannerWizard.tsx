@@ -246,7 +246,30 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
             onContinue={() => setStep(4)}
           />
         )}
-        {step === 4 && (
+        {step === 4 && skipAiForFlight && (
+          <Step4ManualOnly
+            onSubmit={(payload) => {
+              const out = payload.outbound ? normalizeParsedLeg(payload.outbound) : null;
+              const ret = payload.return ? normalizeParsedLeg(payload.return) : null;
+              const legs = payload.legs?.map(normalizeParsedLeg);
+              setScannedPayload({
+                outbound: out,
+                return: ret,
+                legs,
+                outboundSegments: payload.outboundSegments,
+                returnSegments: payload.returnSegments,
+                rawOutbound: payload.outbound ?? null,
+                rawReturn: payload.return ?? null,
+                passenger: payload.passenger,
+                source: "manual",
+                traveler: payload.traveler,
+              });
+              setStep(5);
+            }}
+            onClose={onClose}
+          />
+        )}
+        {step === 4 && !skipAiForFlight && (
           <Step4AIReview
             category={selectedCategory}
             fileName={capturedFile?.name || "document"}
