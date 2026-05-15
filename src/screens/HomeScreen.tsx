@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
 import { CreditCard, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { usePatientName } from "@/hooks/usePatientName";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
 import TodayCard from "@/components/home/TodayCard";
