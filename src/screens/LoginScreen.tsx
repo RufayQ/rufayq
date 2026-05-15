@@ -329,12 +329,15 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
             <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
               Mobile Number <span className="font-arabic" style={{ color: "var(--gray)" }}>· رقم الجوال</span>
             </label>
-            <div className="flex items-center mt-1 rounded-xl overflow-hidden" style={{ border: "1px solid var(--gray-light)", height: 52 }}>
-              <span className="pl-3 pr-2 text-sm" style={{ color: "var(--gray)" }}>🇸🇦 +966</span>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="5X XXX XXXX"
-                inputMode="tel" autoComplete="tel"
-                className="flex-1 h-full px-2 text-sm outline-none" style={{ background: "transparent", color: "var(--navy)" }} />
-            </div>
+            <PhoneInput
+              country={dialCountry}
+              onCountryChange={(code, meta) => { setDialCountry(code); if (meta.manual) setDialManual(true); }}
+              national={phone}
+              onNationalChange={setPhone}
+              inputStyle={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+              chipStyle={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+              autoDetected={!dialManual}
+            />
           </div>
           <div>
             <div className="flex justify-between items-center">
