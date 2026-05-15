@@ -40,6 +40,7 @@ const QuickSignup = () => {
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [nationality, setNationality] = useState("");
+  const [gender, setGender] = useState<"" | "male" | "female" | "other">("");
   const [terms, setTerms] = useState(false);
   const [showOptional, setShowOptional] = useState(isAr);
   const [submitting, setSubmitting] = useState(false);
@@ -164,6 +165,7 @@ const QuickSignup = () => {
       phone: e164,
       email: email.trim() || null,
       nationality: nationality.trim() || null,
+      gender: gender || null,
       terms_accepted_at: now,
       privacy_accepted_at: now,
       contact_verified: false,
@@ -387,6 +389,35 @@ const QuickSignup = () => {
                     className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
                     style={inputStyle}
                   />
+                </div>
+                <div>
+                  <label className="text-[12px]" style={labelStyle}>{t("Gender (optional)", "الجنس (اختياري)")}</label>
+                  <div role="radiogroup" aria-label={t("Gender", "الجنس")} className="mt-1 grid grid-cols-3 gap-2">
+                    {([
+                      { v: "male", en: "Male", ar: "ذكر" },
+                      { v: "female", en: "Female", ar: "أنثى" },
+                      { v: "other", en: "Other", ar: "آخر" },
+                    ] as const).map((opt) => {
+                      const active = gender === opt.v;
+                      return (
+                        <button
+                          key={opt.v}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          onClick={() => setGender(active ? "" : opt.v)}
+                          className="px-3 py-2.5 rounded-xl text-[13px] transition-colors"
+                          style={{
+                            background: BG_DARK_2,
+                            border: `1px solid ${active ? GOLD : BORDER}`,
+                            color: active ? GOLD : TEXT_MUTED,
+                          }}
+                        >
+                          {t(opt.en, opt.ar)}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}

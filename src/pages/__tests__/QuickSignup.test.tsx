@@ -1,9 +1,11 @@
 import React from "react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 const upsertCalls: any[] = [];
+
+beforeEach(() => { upsertCalls.length = 0; });
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -96,5 +98,69 @@ describe("QuickSignup", () => {
     const termsCheckbox = document.querySelector('input[type="checkbox"]') as HTMLInputElement;
     fireEvent.click(termsCheckbox);
     expect(submit.disabled).toBe(false);
+  });
+
+  it("hides Gender by default; reveals it inside 'Add optional details'", () => {
+    renderPage();
+    expect(screen.queryByRole("radiogroup", { name: /Gender/i })).toBeNull();
+    fireEvent.click(screen.getByText(/Add optional details/i));
+    expect(screen.getByRole("radiogroup", { name: /Gender/i })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /^Male$/ })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /^Female$/ })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /^Other$/ })).toBeTruthy();
+  });
+
+  it("does not require gender for submit gating", () => {
+    renderPage();
+    const submit = screen.getByRole("button", { name: /Create account & continue/i }) as HTMLButtonElement;
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. Mohammed$/), { target: { value: "Mohammed" } });
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. Al-Saud/), { target: { value: "Al-Saud" } });
+    fireEvent.change(screen.getByPlaceholderText(/5X XXX XXXX/), { target: { value: "569590418" } });
+    fireEvent.change(screen.getByPlaceholderText(/At least 8 characters/), { target: { value: "abcdefgh" } });
+    fireEvent.click(document.querySelector('input[type="checkbox"]') as HTMLInputElement);
+    expect(submit.disabled).toBe(false);
+  });
+
+  const fillRequired = () => {
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. Mohammed$/), { target: { value: "Mohammed" } });
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. Al-Saud/), { target: { value: "Al-Saud" } });
+    fireEvent.change(screen.getByPlaceholderText(/5X XXX XXXX/), { target: { value: "569590418" } });
+    fireEvent.change(screen.getByPlaceholderText(/At least 8 characters/), { target: { value: "abcdefgh" } });
+    fireEvent.click(document.querySelector('input[type="checkbox"]') as HTMLInputElement);
+  };
+
+  it("submitting with only required fields persists nationality: null and gender: null (no silent defaults)", async () => {
+    renderPage();
+    fillRequired();
+    fireEvent.click(screen.getByRole("button", { name: /Create account & continue/i }));
+    await new Promise((r) => setTimeout(r, 30));
+    const profileUpsert = upsertCalls.find((c) => c.table === "profiles");
+    expect(profileUpsert).toBeTruthy();
+    expect(profileUpsert.row.nationality).toBeNull();
+    expect(profileUpsert.row.gender).toBeNull();
+    expect(profileUpsert.row.nationality).not.toBe("Saudi Arabia");
+    expect(profileUpsert.row.gender).not.toBe("male");
+  });
+
+  it("persists selected gender when chosen in optional details", async () => {
+    renderPage();
+    fillRequired();
+    fireEvent.click(screen.getByText(/Add optional details/i));
+    fireEvent.click(screen.getByRole("radio", { name: /^Female$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Create account & continue/i }));
+    await new Promise((r) => setTimeout(r, 30));
+    const profileUpsert = upsertCalls.find((c) => c.table === "profiles");
+    expect(profileUpsert.row.gender).toBe("female");
+  });
+
+  it("persists 'other' gender when selected", async () => {
+    renderPage();
+    fillRequired();
+    fireEvent.click(screen.getByText(/Add optional details/i));
+    fireEvent.click(screen.getByRole("radio", { name: /^Other$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Create account & continue/i }));
+    await new Promise((r) => setTimeout(r, 30));
+    const profileUpsert = upsertCalls.find((c) => c.table === "profiles");
+    expect(profileUpsert.row.gender).toBe("other");
   });
 });

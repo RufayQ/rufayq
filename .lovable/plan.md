@@ -1,315 +1,167 @@
-# Signup optional-details correctness pass + NationalityCombobox localization + tests  
+## Scope
+
+Branch: `edit/edt-bc3726f8-449b-4dbb-a6e0-ec4b4268ebec` @ `3b93138`. The live signup is `src/pages/QuickSignup.tsx`. `LoginScreen.tsx` no longer hosts signup (guarded by `LoginScreen.register-removed.test.tsx`) and will not be touched. The canonical combobox is `src/components/NationalityCombobox.tsx`; no `auth/` duplicate will be created.
+
+## Implementation
+
+### 1. `src/pages/QuickSignup.tsx`
+
+- Add state: `const [gender, setGender] = useState<"" | "male" | "female" | "other">("")`.
+- Inside the existing `{showOptional && ...}` block (after the Nationality field), add a Gender selector:
+  - Three-segment pill (Male / Female / Other) bilingual: `t("Male","ذكر")`, `t("Female","أنثى")`, `t("Other","آخر")`.
+  - Selected segment uses gold border/text on `BG_DARK_2`; unselected uses `TEXT_MUTED`. No new design tokens; reuses existing `inputStyle` palette.
+  - Buttons are `type="button"` and never affect `canSubmit`.
+- Update `profiles` upsert to include `gender: gender || null` alongside the existing `nationality: nationality.trim() || null`.
+- Do NOT add `gender` to `canSubmit`. Required gating stays: firstName, lastName, valid e164, password, terms, optional valid email.
+
+### 2. `src/pages/__tests__/QuickSignup.test.tsx`
+
+Add/update tests that read straight from the rendered DOM and a mocked `supabase.from('profiles').upsert` spy:
+
+- `optional details are hidden by default in English` — assert "First name (Arabic)", "Nationality" label, and Gender pill are NOT in the document on initial render.
+- `clicking Add optional details reveals Arabic name, nationality, and gender` — click the toggle, assert all three groups present.
+- `submitting with only required fields persists nationality: null and gender: null` — fill required fields only, submit, assert the upsert payload has `nationality: null, gender: null` and never `"Saudi Arabia"` or `"male"`.
+- `selecting a gender in optional details persists that value` — open optional details, click Female pill, submit, assert upsert payload `gender: "female"`.
+
+Test infrastructure:
+
+- Mock `@/integrations/supabase/client` so `supabase.auth.signUp` resolves with a fake user, `supabase.auth.getSession` resolves with a session, and `supabase.from('profiles').upsert` is a `vi.fn()` we can assert on.
+- Mock `@/hooks/useFreshStart` to no-op.
+- Wrap render in `MemoryRouter`.
+
+### 3. `src/components/__tests__/NationalityCombobox.test.tsx`
+
+Already covers: EN-stored→EN display, EN-stored→AR display (relocalize), AR-stored→EN display (relocalize), placeholder fallback, localized emit on selection. **No changes needed.** Will re-run to confirm green.
+
+## Out of scope
+
+- LoginScreen.tsx (no signup code — explicitly removed; do not recreate).
+- `src/components/auth/NationalityCombobox.tsx` (does not exist on this branch — do not create duplicate).
+- Password rules, design tokens, layout.
+
+In this checkout:
+
+- current HEAD is 512e148, branch work;
+- there is **no** src/pages/QuickSignup.tsx;
+- there is **no** src/components/NationalityCombobox.tsx;
+- the combobox is at src/components/auth/NationalityCombobox.tsx;
+- signup/gender/nationality code still exists in src/screens/LoginScreen.tsx.
+
+So the implementation plan is likely correct **for Lovable’s branch**, but it is **not applicable to this checkout**.
+
+---
+
+## **If Lovable is definitely working on branch 3b93138**
+
+If they really are on branch:
+
+`edit/edt-bc3726f8-449b-4dbb-a6e0-ec4b4268ebec @ 3b93138`  
+
+
+and if that branch really has:
+
+- src/pages/QuickSignup.tsx,
+- src/components/NationalityCombobox.tsx,
+- LoginScreen.register-removed.test.tsx,
+- signup routed through QuickSignup,
+
+then their plan is **good** and I would approve it with two small additions.
+
+### **Add these two requirements**
+
+1. **Assert gender is not required for submit**
+
+Add/keep a test that proves selecting gender is optional and does not affect canSubmit.
+
+2. **Assert “Other” persists correctly**
+
+Since they add "other" as a third option, add a test for it or at least include it in the selector test coverage.
+
+Suggested addition:
+
+`Also add:`  
+`- Test that canSubmit does not require gender.`  
+`- Test that selecting Other persists gender: "other".`  
+
+
+Other than that, their plan is well-scoped for their branch:
+
+- gender defaults to "";
+- gender is inside optional details;
+- gender persists as gender || null;
+- nationality persists as nationality.trim() || null;
+- tests assert no silent "Saudi Arabia" or "male";
+- no duplicate combobox;
+- no old LoginScreen restoration.
+
+---
+
+## **If this PR is supposed to target the branch I can inspect here**
+
+Then **do not accept Lovable’s plan**, because it targets the wrong files.
+
+Current branch evidence:
+
+- src/screens/LoginScreen.tsx imports NationalityCombobox from @/components/auth/NationalityCombobox. 【F:src/screens/LoginScreen.tsx†L1-L7】
+- Registration state still has gender: "male" and nationality: "Saudi Arabia". 【F:src/screens/LoginScreen.tsx†L56-L60】
+- These values are still persisted directly as gender: reg.gender and nationality: reg.nationality. 【F:src/screens/LoginScreen.tsx†L281-L292】
+- NationalityCombobox is only present at src/components/auth/NationalityCombobox.tsx, not src/components/NationalityCombobox.tsx. 【F:src/components/auth/NationalityCombobox.tsx†L22-L23】
+
+For this branch, the correct fix remains:
+
+`Patch src/screens/LoginScreen.tsx and src/components/auth/NationalityCombobox.tsx, not QuickSignup.`  
+
+
+---
+
+## **What I would tell Lovable now**
+
+Send this:
+
+`Your plan is approved only for branch edit/edt-bc3726f8-449b-4dbb-a6e0-ec4b4268ebec @ 3b93138 if raw output proves QuickSignup is the live signup.`  
   
-Signup optional-details correctness pass — branch-accurate version
-
-Do not redesign. Do not change password rules. Do not add dependencies. Do not touch Google connected accounts in this patch.
-
-Important branch reality:
-
-In the branch under review, the signup implementation is in:
-
-- src/screens/LoginScreen.tsx
-
-The nationality combobox is:
-
-- src/components/auth/NationalityCombobox.tsx
-
-Do not reference src/pages/QuickSignup.tsx or src/components/NationalityCombobox.tsx unless your raw command output proves those files exist in the branch being reviewed.
-
-Before editing, paste raw output for:
-
-pwd
-
-git rev-parse --short HEAD
-
-git status --short
-
-rg --files src | rg 'QuickSignup|LoginScreen|NationalityCombobox|googleLink'
-
-rg -n "nationality|gender|NationalityCombobox|QuickSignup|googleLink" src/pages src/screens src/components src/lib -g '*.{ts,tsx}'
-
-Fixes required in this branch:
-
-1. Nationality must not silently default to Saudi Arabia.
-
-   In src/screens/LoginScreen.tsx:
-
-   - Change registration state from nationality: "Saudi Arabia" to nationality: "".
-
-   - Keep the existing placeholder text in the combobox.
-
-   - Persist nationality as reg.nationality || null.
-
-2. Gender is optional in this branch and must not silently default to male.
-
-   In src/screens/LoginScreen.tsx:
-
-   - Change gender initial state from "male" to "".
-
-   - Move the gender selector into the “Add optional details” disclosure with Arabic name, DOB, and nationality.
-
-   - Persist gender as reg.gender || null.
-
-   - Do not add gender to canContinue unless product explicitly wants gender required.
-
-3. NationalityCombobox localization.
-
-   In src/components/auth/NationalityCombobox.tsx:
-
-   - Replace selectedLabel = value || placeholder logic with a country lookup:
-
-     const selectedCountry = COUNTRIES.find(
-
-       (country) =>
-
-         value === [country.name](http://country.name) ||
-
-         value === country.nameAr ||
-
-         value === country.code,
-
-     );
-
-     const selectedLabel = selectedCountry
-
-       ? isAr ? selectedCountry.nameAr : [selectedCountry.name](http://selectedCountry.name)
-
-       : value || placeholder || (isAr ? "اختر الجنسية" : "Select nationality");
-
-   - Keep onChange behavior compatible with the current payload.
-
-   - Stored values in either English or Arabic should display in the current UI language.
-
-4. Tests.
-
-   Add/update tests for the actual files in this branch:
-
-   - English signup: optional fields hidden by default.
-
-   - Clicking “Add optional details” reveals Arabic name, DOB, nationality, and gender.
-
-   - Submitting with only required fields does not save nationality as "Saudi Arabia" or gender as "male"; both should be null/empty in the profile upsert payload.
-
-   - NationalityCombobox displays current-language label for both English and Arabic stored values.
-
-   - NationalityCombobox onChange emits the localized name for the active language.
-
-Suggested test locations:
-
-- If there is no LoginScreen signup test, add one under src/screens/__tests__/LoginScreen.test.tsx or similar existing test convention.
-
-- Add NationalityCombobox tests under src/components/auth/__tests__/NationalityCombobox.test.tsx or keep next to the component if this repo uses flat component tests. Match existing repo convention.
-
-Verification:
-
-npx tsc -p [tsconfig.app](http://tsconfig.app).json --noEmit
-
-bunx vitest run <new/updated LoginScreen signup test> <NationalityCombobox test>
-
-bunx vitest run
-
-bun run build
-
-Report:
-
-- exact files changed
-
-- exact commands and exit codes
-
-- line references proving nationality/gender no longer silently default
-
-- do not mention QuickSignup.tsx unless it exists in the raw command output
-
-Why this corrected prompt is needed
-
-The branch I can inspect shows the actual issue in LoginScreen.tsx:
-
-nationality: "Saudi Arabia" and gender: "male" are still default registration state. 【F:src/screens/LoginScreen.tsx†L56-L60】
-
-Both fields are persisted directly to the profiles row. 【F:src/screens/LoginScreen.tsx†L281-L292】
-
-Gender is still visible in the primary signup form. 【F:src/screens/LoginScreen.tsx†L935-L948】
-
-NationalityCombobox still displays value directly, so it does not relocalize after language changes. 【F:src/components/auth/NationalityCombobox.tsx†L58-L74】
-
-Commands I used to validate this
-
-bash
-
-pwd
-
-bash
-
-git rev-parse --short HEAD
-
-bash
-
-git status --short
-
-bash
-
-rg --files src | rg 'QuickSignup|NationalityCombobox|LoginScreen|PasswordStrength|googleLink|ConnectedAccounts|useLinkedProviders'
-
-bash
-
-rg -n "nationality|gender|NationalityCombobox|QuickSignup|googleLink" src/pages src/screens src/components src/lib -g '*.{ts,tsx}' | head -240
-
-Bottom line
-
-Lovable’s fix intent is good, but their file targeting is wrong for this branch.
-
-The missed fixes are:
-
-LoginScreen.tsx: nationality default should be "", not "Saudi Arabia".
-
-LoginScreen.tsx: gender default should be "", not "male".
-
-LoginScreen.tsx: gender should move into optional details or become explicitly required.
-
-LoginScreen.tsx: save nationality || null and gender || null.
-
-NationalityCombobox.tsx: display selected country in the current language.
-
-Tests should be added against the actual branch files, not QuickSignup.tsx. accept because /work.
-
-**, but the file paths and branch facts are wrong for this checkout.
-
-What Lovable’s plan gets right conceptually
-
-These are valid fixes and should happen:
-
-Nationality should not silently default to Saudi Arabia when hidden in optional details.
-
-**Nationality should persist as null if untouched. NationalityComb should display selected the UI, even the stored value was selected in language.
-
-4.Tests hidden and silent.Those are all.
-
-in Lov’s plan ❌ Quick.ts presentable/pages/Signup.tsxBut not that file. The relevant signup code here is in src/screens/LoginScreen.tsx.
-
-The current visible files include src/screens/LoginScreen.tsx and src/components/auth/NationalityCombobox.tsx, but no src/pages/QuickSignup.tsx.
-
-❌ 2. The live nationality combobox path is different
-
-Lovable says:
-
-srcationalobox fileBut this,/Nity.ts imports it ❌Lov inQuick this this,LoginScreen.ts:
-
-ts
-
-gender: "male"
-
-in registration state. 【F:src/screens/LoginScreen.tsx†L56-L60】
-
-It persists gender: reg.gender. 【F:src/screens/LoginScreen.tsx†L281-L292】
-
-It renders a visible gender selector in the signup form the branch fixed### ❌4 The current branch still has
-
-ity is currently initialized Arabia`. 【F:src/screens/LoginScreen.tsx†L56-L60】
-
-It is then to the Since field is hidden optional details, the silent-default.
-
-❌ 5. Google-linkage file claim is not true in this checkout
-
-Lovable says:
-
-googleLink.ts already exists in this branch
-
-In this checkout, I do not see googleLink.ts. Keep Google connected accounts as a separate workstream, but Lovable stop exist unless raw command output##ed fix prompt for Lov
-
-this instead```text
-
-Signup pass — branch
-
-Do not redesign. not rules not Do not touch Google connected in.
-
-branch reality the review the:
-
-Screenx comb srcobox.ts not reference/QuickSignup.tsx orationality.tsx your raw those exist being reviewed.
-
-, paste output:
-
-revshort HEAD
-
-git status --rg --files src rg 'SignupLoginScreenNationalityrg - "ity|NationalityCombobox src/pages/screens src src/libts,tsx}Fixes this1. Nationality must silently to Saudi Arabia src/screens.tsx:
-
--:Saudi to nationality.
-
-placeholder theobox - Persist nationalityational ||. is this and must not silently default to male.
-
-In src/screens/LoginScreen.tsx:
-
-Change gender initial state from "male" to "".
-
-Move the gender selector into the “Add optional details” disclosure with Arabic name, DOB, and nationality.
-
-Persist gender as reg.gender || null.
-
-Do gender to can product explicitly wants.ityCombobox localization.
-
-In/components/authationalobox:
-
-Replace selectedLabel = value || logic with a:
-
-const selected = COUNTRIES.find(
-
-country) === const = ?[Country.name](http://Country.name) [selectedCountry.name](http://selectedCountry.name) : placeholder ? "تر الجنسية" : "Select");
-
-Keep on compatible with the current payload - Stored values in either English or should display the current UI language4.
-
-/update tests the files in this:
-
-English signup: optional hidden by default.
-
-Clicking “Add optional details” reveals Arabic name, DOB nationality and.
-
-Submitting with required fields not save nationality as Arabia" asmale"; both null/empty in the upsert payload NationalityCombobox displays current-language for both and.
-
-ityobox onChange emits name active test- there is signup add src/tests/LoginScreen.test.tsx or similar existing convention.
-
-Add Nationality tests under src/components/auth/tests/NationalityComb.test or keep to the component if this repo uses tests. Match existing repo convention.
-
-Verificationn -p.json --Emit
-
-bunx vitest run <new/updated LoginScreen signup test> <NationalityCombobox test>
-
-bunx vitest run
-
-bun run build
-
-Report:
-
-exact files changed
-
-exact commands and exit codes
-
-line references proving nationality/gender no longer silently default
-
-do not mentionSignup.tsx it exists in the raw command output```
-
-this corrected is needed
-
-The I inspect shows the issue inScreen.tsx`:
-
-*nationalSaudi"andgender: "male"` are still default registration state. 【F:src/screens/LoginScreen.tsx†L56-L60】
-
-Both fields are the profiles row 【F:src/screens/LoginScreen.tsx†L281-L292】
-
-still visible in the signup form. not relocalize after language changes. 【F:src/components/auth/NationalityCombobox.tsx†L58-L74】
-
-Commands I used to validate this
-
-gitparse --shortfiles srcQuickSignupLogingoogleLink|ConnectedAccounts|useLinkedProviders'
-
-```bash
-
-rg -n "nationality|gender|NationalityCombobox|QuickSignup|googleLink" src/pages src/screens src/components src/lib -g '*.{ts,tsx}' | head -240
-
-Bottom line
-
-Lovable intent** but targeting branch**.
-
-:
-
-.Screen: not"Loginx gender default should be"", not ": gender shouldnational || . NationalityCombx`: display selected country in.
-
-6 filesx
+`Please add two test requirements:`  
+`1. Gender is optional and does not affect submit gating.`  
+`2. Selecting "Other" persists gender: "other".`  
+  
+`Otherwise proceed as planned:`  
+`- edit src/pages/QuickSignup.tsx`  
+`- edit src/pages/__tests__/QuickSignup.test.tsx`  
+`- do not touch LoginScreen`  
+`- do not create auth/NationalityCombobox duplicate`  
+`- verify typecheck, targeted tests, full suite, and build.`  
+  
+`But if the PR target is branch work @ 512e148, your plan is targeting the wrong files. In that branch, patch:`  
+`- src/screens/LoginScreen.tsx`  
+`- src/components/auth/NationalityCombobox.tsx`  
+`and fix gender/nationality defaults there.`  
+
+
+---
+
+## **Commands I used to validate current checkout**
+
+`pwd`  
+`git rev-parse --short HEAD`  
+`git branch --show-current`  
+`git status --short`  
+`rg --files src | rg 'QuickSignup|NationalityCombobox|LoginScreen|register-removed'`  
+`rg -n "QuickSignup|quick-signup|NationalityCombobox|gender:|nationality:" src/App.tsx src/pages src/screens src/components -g '*.{ts,tsx}' | head -260`  
+
+
+  
+  
+Verification
+
+1. `npx tsc -p tsconfig.app.json --noEmit` → 0 errors.
+2. `bunx vitest run src/pages/__tests__/QuickSignup.test.tsx src/components/__tests__/NationalityCombobox.test.tsx` → all green.
+3. `bunx vitest run` → full suite green (no regressions).
+4. `bun run build` → success.
+
+Final report will paste exit codes, changed-file list, and cite line numbers showing `gender` default `""`, `nationality` default `""`, `gender: gender || null`, `nationality: nationality.trim() || null`, plus the new test names.
+
+## Files
+
+- Edit: `src/pages/QuickSignup.tsx`
+- Edit: `src/pages/__tests__/QuickSignup.test.tsx`
+- (No new files.)
