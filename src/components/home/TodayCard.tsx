@@ -54,6 +54,7 @@ const ProgressRing = ({ pct, dayN, totalDays }: { pct: number; dayN: number | nu
 };
 
 const TodayCard = ({ overview, onOpenJourney, onPlanFirstTrip }: TodayCardProps) => {
+  const { showEn, showAr } = useLanguage();
   const { activeTrip, dayN, totalDays, progressPct, nextAppointment, nextMedication, formattedReturnDate } = overview;
 
   // ---- Empty state: refined, single inline CTA. ----
