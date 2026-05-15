@@ -14,6 +14,7 @@ import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import { type FlightSegment, segmentToFlightInfo } from "@/lib/transportTickets";
 import Time24Input from "@/components/Time24Input";
+import { FLIGHT_AI_ENABLED } from "@/lib/flightAiFlag";
 
 export type TravelerKind = "patient" | "companion" | "family";
 
@@ -160,7 +161,11 @@ const sectionLabels: Record<string, string> = {
 };
 
 const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
-  const [step, setStep] = useState(1);
+  // When the AI extraction path is disabled (currently the case for flights),
+  // and the wizard is opened with a preselected flight category, skip the
+  // upload/review/category steps and jump straight to manual entry (Step 4).
+  const skipAiForFlight = preselectedCategory === "flight" && !FLIGHT_AI_ENABLED;
+  const [step, setStep] = useState(skipAiForFlight ? 4 : 1);
   const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(null);
   const [realFile, setRealFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(preselectedCategory || null);
