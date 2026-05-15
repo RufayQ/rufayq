@@ -10,10 +10,28 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+interface VerifyOtpProfile {
+  full_name_en?: string | null;
+  full_name_ar?: string | null;
+  national_id_or_passport?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  nationality?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  terms_accepted?: boolean;
+  privacy_accepted?: boolean;
+}
+
 interface VerifyOtpBody {
   to: string;
   code: string;
   channel?: "whatsapp" | "sms" | "email";
+  /** Optional profile payload — used during signup to atomically create the
+   * `public.profiles` row server-side so contact info can never be lost to a
+   * browser race. For non-signup flows (recover) callers may omit this; we
+   * still derive the verified phone/email from the OTP recipient. */
+  profile?: VerifyOtpProfile;
 }
 
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
@@ -174,6 +192,46 @@ Deno.serve(async (req) => {
     }
     await admin.auth.admin.updateUserById(userId, updatePayload);
 
+    // 6. Atomic profile upsert — guarantees Admin sees real phone/email.
+    // Verified channel always wins over any client-supplied value.
+    const profile = body.profile ?? {};
+    const deviceId = `auth_${userId}`;
+    const verifiedPhone = !usingEmail ? identity : (profile.phone?.trim() || null);
+    const verifiedEmail = usingEmail ? identity : (profile.email?.trim()?.toLowerCase() || null);
+    const idOrPassport = profile.national_id_or_passport?.trim() || "";
+    const isSaudiId = /^\d{10}$/.test(idOrPassport);
+
+    const profileRow: Record<string, unknown> = {
+      device_id: deviceId,
+      phone: verifiedPhone,
+      email: verifiedEmail,
+    };
+    if (profile.full_name_en?.trim()) profileRow.full_name_en = profile.full_name_en.trim();
+    if (profile.full_name_ar?.trim()) profileRow.full_name_ar = profile.full_name_ar.trim();
+    if (idOrPassport) {
+      profileRow.saudi_id = isSaudiId ? idOrPassport : null;
+      profileRow.passport_number = isSaudiId ? null : idOrPassport;
+    }
+    if (profile.date_of_birth) profileRow.date_of_birth = profile.date_of_birth;
+    if (profile.gender) profileRow.gender = profile.gender;
+    if (profile.nationality?.trim()) profileRow.nationality = profile.nationality.trim();
+    if (profile.terms_accepted) profileRow.terms_accepted_at = new Date().toISOString();
+    if (profile.privacy_accepted) profileRow.privacy_accepted_at = new Date().toISOString();
+
+    const { error: profileErr } = await admin
+      .from("profiles")
+      .upsert(profileRow, { onConflict: "device_id" });
+    if (profileErr) {
+      console.error("[verify-otp] profile upsert failed", profileErr.message, { userId, deviceId });
+      // Surface so the client can retry instead of silently succeeding.
+      return new Response(JSON.stringify({
+        approved: true,
+        userId,
+        profilePersisted: false,
+        error: "Verified, but contact details could not be saved. Please retry.",
+      }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     return new Response(JSON.stringify({
       approved: true,
       userId,
@@ -182,6 +240,7 @@ Deno.serve(async (req) => {
       usingEmail,
       signInEmail: usingEmail ? identity : `${identity.replace(/[^\d]/g, "")}@phone.rufayq.local`,
       password: tempPassword,
+      profilePersisted: true,
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err) {
