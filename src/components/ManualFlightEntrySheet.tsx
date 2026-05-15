@@ -606,6 +606,40 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], draftId = "curre
         )}
 
         <div className="px-5 py-4 overflow-y-auto flex-1 space-y-4">
+          {pendingDraft && (
+            <div
+              className="rounded-xl p-3 space-y-2"
+              style={{ background: "var(--gold-pale, rgba(197,150,90,0.12))", border: "1px solid var(--gold)" }}
+              data-testid="resume-draft-banner"
+            >
+              <p className="text-[12px] font-bold" style={{ color: "var(--navy)" }}>
+                Resume your saved flight? · <span className="font-arabic text-[11px]">هل تريد المتابعة من المسودة؟</span>
+              </p>
+              <p className="text-[10px]" style={{ color: "var(--gray)" }}>
+                Saved {new Date(pendingDraft.updatedAt).toLocaleString()}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => hydrateFromDraft(pendingDraft)}
+                  data-testid="resume-draft"
+                  className="flex-1 rounded-lg py-2 text-[12px] font-bold text-white btn-press"
+                  style={{ background: "var(--teal-deep)" }}
+                >
+                  Resume · <span className="font-arabic text-[10px]">متابعة</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={startFresh}
+                  data-testid="start-fresh"
+                  className="flex-1 rounded-lg py-2 text-[12px] font-bold btn-press"
+                  style={{ background: "transparent", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}
+                >
+                  Start fresh · <span className="font-arabic text-[10px]">ابدأ من جديد</span>
+                </button>
+              </div>
+            </div>
+          )}
           <div className="rounded-xl p-3 space-y-2.5" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }} data-testid="traveler-selector">
             <div className="flex items-center justify-between">
               <p className="text-[12px] font-bold" style={{ color: "var(--navy)" }}>
@@ -693,7 +727,7 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], draftId = "curre
           )}
         </div>
 
-        <div className="px-5 py-4 shrink-0" style={{ borderTop: "1px solid var(--gray-light)", background: "var(--white)" }}>
+        <div className="px-5 py-3 shrink-0 space-y-2" style={{ borderTop: "1px solid var(--gray-light)", background: "var(--white)" }}>
           <button
             type="button"
             onClick={submit}
@@ -703,6 +737,22 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], draftId = "curre
           >
             Save flight · <span className="font-arabic text-[12px]">حفظ الرحلة</span>
           </button>
+          <div className="flex items-center justify-between text-[10px]" data-testid="draft-footer">
+            <span style={{ color: "var(--gray)" }}>
+              {formattedLastSaved
+                ? <>Saved as draft · <span className="font-arabic">يُحفظ تلقائيًا</span> — {formattedLastSaved}</>
+                : <>Auto-saved as you type · <span className="font-arabic">يُحفظ تلقائيًا</span></>}
+            </span>
+            <button
+              type="button"
+              onClick={handleClearDraft}
+              data-testid="clear-draft"
+              className="font-bold btn-press"
+              style={{ color: "var(--error)" }}
+            >
+              Clear draft · <span className="font-arabic">مسح المسودة</span>
+            </button>
+          </div>
         </div>
       </div>
 
