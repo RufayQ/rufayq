@@ -7,8 +7,12 @@
  * via React Query.
  */
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import type { CmsSection, SectionType } from "@/components/admin/cms/cmsTypes";
+
+// NOTE: Supabase client is dynamically imported below so the 50 KB Supabase
+// chunk does NOT enter the Landing route's critical bundle. CMS data is
+// below the fold and overrides hardcoded defaults only when present, so
+// shipping it after first paint is a pure win for FCP/LCP/TBT.
 
 export interface CmsPageBundle {
   slug: string;
@@ -25,6 +29,9 @@ export const useCmsPage = (slug: string) => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Defer Supabase client import until after Landing has painted.
+      const { supabase } = await import("@/integrations/supabase/client");
+      if (cancelled) return;
       const { data: page } = await supabase
         .from("cms_pages")
         .select("id, slug, title_en, title_ar")
