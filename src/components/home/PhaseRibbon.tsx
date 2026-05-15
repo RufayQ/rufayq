@@ -1,4 +1,5 @@
 import { PHASES, type Phase } from "./journeyPhase";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PhaseRibbonProps {
   current: Phase;
@@ -11,6 +12,7 @@ interface PhaseRibbonProps {
  * reference. Visual only — no interactions.
  */
 const PhaseRibbon = ({ current, variant = "light" }: PhaseRibbonProps) => {
+  const { showEn, showAr } = useLanguage();
   const onDark = variant === "ondark";
   const idx = PHASES.findIndex((p) => p.id === current);
   return (
