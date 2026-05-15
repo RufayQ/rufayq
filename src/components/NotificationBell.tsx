@@ -1,15 +1,26 @@
 import { useState } from "react";
 import { Bell, X } from "lucide-react";
 import { usePatientNotifications } from "@/hooks/usePatientNotifications";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Props {
   color?: string;
   onNavigate?: (link: string) => void;
+  /** Optional controlled-open API. When omitted, the bell manages its own open state. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const NotificationBell = ({ color = "#fff", onNavigate }: Props) => {
-  const [open, setOpen] = useState(false);
+const NotificationBell = ({ color = "#fff", onNavigate, open: openProp, onOpenChange }: Props) => {
+  const [openInternal, setOpenInternal] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? !!openProp : openInternal;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setOpenInternal(next);
+    onOpenChange?.(next);
+  };
   const { items, unreadCount, markRead, markAllRead } = usePatientNotifications();
+  const { showEn, showAr } = useLanguage();
 
   return (
     <>
@@ -29,13 +40,13 @@ const NotificationBell = ({ color = "#fff", onNavigate }: Props) => {
         <div className="absolute inset-0 z-[100] flex flex-col" style={{ background: "var(--off-white)" }}>
           <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
             <div>
-              <p className="font-display text-lg" style={{ color: "var(--navy)" }}>Notifications</p>
-              <p className="text-[11px]" dir="rtl" style={{ color: "var(--gold)" }}>التنبيهات</p>
+              {showEn && <p className="font-display text-lg" style={{ color: "var(--navy)" }}>Notifications</p>}
+              {showAr && <p className="text-[11px]" dir="rtl" style={{ color: "var(--gold)" }}>التنبيهات</p>}
             </div>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <button onClick={markAllRead} className="text-[11px] px-2 py-1 rounded-full" style={{ background: "var(--teal)", color: "#fff" }}>
-                  Mark all read
+                  {showEn ? "Mark all read" : "تعليم الكل"}
                 </button>
               )}
               <button onClick={() => setOpen(false)}><X size={20} /></button>
@@ -46,8 +57,8 @@ const NotificationBell = ({ color = "#fff", onNavigate }: Props) => {
             {items.length === 0 && (
               <div className="text-center py-12">
                 <Bell size={32} className="mx-auto opacity-30 mb-3" />
-                <p className="text-sm opacity-60">No notifications yet</p>
-                <p className="text-xs opacity-40" dir="rtl">لا توجد تنبيهات</p>
+                {showEn && <p className="text-sm opacity-60">No notifications yet</p>}
+                {showAr && <p className="text-xs opacity-40" dir="rtl">لا توجد تنبيهات</p>}
               </div>
             )}
             {items.map(n => (
@@ -63,8 +74,8 @@ const NotificationBell = ({ color = "#fff", onNavigate }: Props) => {
                 <div className="flex items-start gap-2">
                   {!n.is_read && <span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0" style={{ background: "var(--teal)" }} />}
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm" style={{ color: "var(--navy)" }}>{n.title}</p>
-                    {n.title_ar && <p className="text-xs mt-0.5" dir="rtl" style={{ color: "var(--gold)" }}>{n.title_ar}</p>}
+                    {showEn && <p className="font-semibold text-sm" style={{ color: "var(--navy)" }}>{n.title}</p>}
+                    {showAr && n.title_ar && <p className="text-xs mt-0.5" dir="rtl" style={{ color: "var(--gold)" }}>{n.title_ar}</p>}
                     {n.body && <p className="text-xs mt-1 opacity-70">{n.body}</p>}
                     <p className="text-[10px] mt-1 opacity-50">{new Date(n.created_at).toLocaleString()}</p>
                   </div>
