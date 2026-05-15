@@ -225,7 +225,9 @@ const JourneyConstellation = ({
             className="font-mono text-[10px] tracking-[0.24em]"
             style={{ color: "var(--gray)" }}
           >
-            JOURNEY MAP · رحلتك
+            {showEn && <span>JOURNEY MAP</span>}
+            {showEn && showAr && <span> · </span>}
+            {showAr && <span dir="rtl">رحلتك</span>}
           </p>
         </div>
         <span
@@ -235,7 +237,7 @@ const JourneyConstellation = ({
             background: "var(--teal-light)",
           }}
         >
-          {compact.length} STOPS
+          {compact.length} {showEn ? "STOPS" : ""}{showEn && showAr ? " · " : ""}{showAr ? "محطات" : ""}
         </span>
       </header>
 
