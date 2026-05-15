@@ -325,7 +325,7 @@ const JourneyConstellation = ({
               key={n.m.id}
               onClick={() => onSelect(n.m.id)}
               data-testid={`constellation-node-${n.m.id}`}
-              aria-label={`${n.m.title} · ${n.m.titleAr}`}
+              aria-label={(showEn && showAr) ? `${n.m.title} · ${n.m.titleAr}` : showAr ? n.m.titleAr : n.m.title}
               aria-current={isCurrent ? "step" : undefined}
               className="absolute group focus:outline-none"
               style={{
