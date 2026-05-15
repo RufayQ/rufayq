@@ -350,7 +350,7 @@ const QuickSignup = () => {
                       value={lastNameAr}
                       onChange={(e) => setLastNameAr(e.target.value)}
                       placeholder="آل سعود"
-                      className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
+                      className="w-full mt-1 px-4 py-3 rounded-xl outline-none lang-keep"
                       style={inputStyle}
                       dir="rtl"
                     />
