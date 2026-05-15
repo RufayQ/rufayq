@@ -565,6 +565,24 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
   );
 };
 
+/* ─── STEP 4 (flight, AI disabled): manual entry only ─── */
+const Step4ManualOnly = ({
+  onSubmit,
+  onClose,
+}: {
+  onSubmit: (payload: ManualFlightPayload) => void;
+  onClose: () => void;
+}) => (
+  <div className="relative h-full">
+    <ManualFlightEntrySheet
+      initial={null}
+      draftId="current"
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
+  </div>
+);
+
 /* ─── STEP 4: AI REVIEW & DATA EXTRACT ─── */
 type OcrStatus = "idle" | "analyzing-pdf" | "pick-pages" | "scanning" | "success" | "failed";
 
