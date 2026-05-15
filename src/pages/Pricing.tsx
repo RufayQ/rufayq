@@ -5,6 +5,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 import { Seo } from "@/seo/Seo";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { usePricingCatalog, addonPrice } from "@/hooks/usePricingCatalog";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import CountryPicker from "@/components/CountryPicker";
