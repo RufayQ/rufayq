@@ -35,6 +35,7 @@ const ProviderDashboard = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [tab, setTab] = useState<Tab>("patients");
+  const [accountOpen, setAccountOpen] = useState(false);
 
   // Add-patient form
   const [showAdd, setShowAdd] = useState(false);
@@ -197,6 +198,14 @@ const ProviderDashboard = () => {
             <span className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5" style={{ background: BG2, border: `1px solid ${BORDER}` }}>
               <Building2 size={12} color={GOLD} /> {orgs.find(o => o.id === activeOrg)?.name}
             </span>
+            <button
+              onClick={() => setAccountOpen(true)}
+              title="My account"
+              className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5"
+              style={{ background: BG2, border: `1px solid ${BORDER}`, color: TEXT }}
+            >
+              <UserCircle2 size={12} color={GOLD} /> Account
+            </button>
             <button onClick={logout} className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5" style={{ background: "rgba(233,69,96,0.15)", color: "#E94560" }}>
               <LogOut size={12} /> Logout
             </button>
