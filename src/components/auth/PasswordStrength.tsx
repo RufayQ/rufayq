@@ -88,14 +88,14 @@ const PasswordStrength = ({ password, firstName, lastName, phone, visible = true
 
   if (!visible || !password) return null;
 
-  const requiredCount = REQUIRED_KEYS.filter((k) => checks[k]).length;
+  const requiredCount = SIGNUP_REQUIRED_KEYS.filter((k) => checks[k]).length;
   const totalScore = requiredCount + (checks.symbol ? 1 : 0);
 
   let band: { label: string; color: string; segments: number };
   if (requiredCount <= 2) band = { label: t("Weak", "ضعيفة"), color: "#E5484D", segments: 1 };
-  else if (requiredCount <= 4) band = { label: t("Fair", "مقبولة"), color: "#F5A524", segments: 2 };
-  else if (requiredCount === 5) band = { label: t("Good", "جيدة"), color: "#0FB5C9", segments: 3 };
-  else band = { label: totalScore >= 7 ? t("Strong", "قوية جداً") : t("Strong", "قوية"), color: "#C5965A", segments: 4 };
+  else if (requiredCount === 3) band = { label: t("Fair", "مقبولة"), color: "#F5A524", segments: 2 };
+  else if (requiredCount === 4) band = { label: t("Good", "جيدة"), color: "#0FB5C9", segments: 3 };
+  else band = { label: totalScore >= 6 ? t("Strong", "قوية جداً") : t("Strong", "قوية"), color: "#C5965A", segments: 4 };
 
   const rules: { key: keyof PasswordChecks; label: string; bonus?: boolean }[] = [
     { key: "length", label: t("At least 8 characters", "8 أحرف على الأقل") },
