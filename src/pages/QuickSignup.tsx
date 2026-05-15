@@ -275,16 +275,16 @@ const QuickSignup = () => {
 
             <div>
               <label className="text-[12px]" style={labelStyle}>{t("Mobile number", "رقم الجوال")}</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+966 5X XXX XXXX"
-                className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
-                style={inputStyle}
-                autoComplete="tel"
-                inputMode="tel"
-                required
+              <PhoneInput
+                country={dialCountry}
+                onCountryChange={(code, meta) => { setDialCountry(code); if (meta.manual) setDialManual(true); }}
+                national={phone}
+                onNationalChange={setPhone}
+                isAr={isAr}
+                inputStyle={inputStyle}
+                chipStyle={inputStyle}
+                placeholder={t("5X XXX XXXX", "5X XXX XXXX")}
+                autoDetected={!dialManual}
               />
             </div>
 
