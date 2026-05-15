@@ -48,8 +48,8 @@ const TIERS: TierMeta[] = [
     descEn: "The complete medical-travel experience.",
     descAr: "تجربة السفر الطبي الكاملة.",
     ctaEn: "Get Companion", ctaAr: "ابدأ كومبانيون", highlight: true,
-    featuresEn: ["Everything in Starter", "Care Hub — full video library", "Real-time symptom monitoring", "Translated discharge summaries", "KSA doctor coordination handoff", "1 free Medical Consultant session / month", "Priority 24/7 support"],
-    featuresAr: ["كل ما في ستارتر", "مركز الرعاية — مكتبة فيديو كاملة", "متابعة أعراض فورية", "ملخصات خروج مترجمة", "تنسيق مع الطبيب السعودي", "جلسة مستشار طبي مجانية شهرياً", "دعم ٢٤/٧ بأولوية"],
+    featuresEn: ["Everything in Starter", "Care Hub — full video library", "Real-time symptom monitoring", "Translated discharge summaries", "KSA doctor coordination handoff", "1 free Medical Consultant session / month", "Priority 24/7 support", "Touristic agents: TourAI, TasteAI, ExploreAI"],
+    featuresAr: ["كل ما في ستارتر", "مركز الرعاية — مكتبة فيديو كاملة", "متابعة أعراض فورية", "ملخصات خروج مترجمة", "تنسيق مع الطبيب السعودي", "جلسة مستشار طبي مجانية شهرياً", "دعم ٢٤/٧ بأولوية", "وكلاء سياحيون: TourAI و TasteAI و ExploreAI"],
   },
   {
     id: "family", eyebrowEn: "Up to 4 patients", eyebrowAr: "حتى ٤ مرضى", nameEn: "Family", nameAr: "فاميلي",

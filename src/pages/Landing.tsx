@@ -221,15 +221,15 @@ const Landing = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-mono mb-7" style={{ background: "rgba(197,150,90,0.08)", color: GOLD, border: `1px solid ${BORDER}` }}>
                 <SparklesIcon size={11} />
-                {mode === "en" && "AI MEDICAL COMPANION"}
-                {mode === "ar" && <span dir="rtl" className="font-arabic">رُفَيِّق · رفيقك الطبي الذكي</span>}
-                {isBoth && <>AI MEDICAL COMPANION · <span dir="rtl" className="font-arabic">رُفَيِّق</span></>}
+                {mode === "en" && "AI COMPANION · MEDICAL, CULTURAL & BEYOND"}
+                {mode === "ar" && <span dir="rtl" className="font-arabic">رُفَيِّق · رفيقك الذكي في كل رحلة</span>}
+                {isBoth && <>AI COMPANION · <span dir="rtl" className="font-arabic">رُفَيِّق</span></>}
               </div>
 
               <h1 className="font-display text-5xl md:text-7xl leading-[1.05] mb-7 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-                {mode === "en" && (<>Bilingual AI Medical<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Companion</span></>)}
-                {mode === "ar" && (<span dir="rtl" className="font-arabic">رفيقك الطبي الذكي<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>للسفر العلاجي</span></span>)}
-                {isBoth && (<>Bilingual AI Medical<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Companion</span><span dir="rtl" className="font-arabic block text-3xl md:text-4xl mt-3" style={{ opacity: 0.85 }}>رفيقك الطبي الذكي للسفر العلاجي</span></>)}
+                {mode === "en" && (<>Your AI Companion for<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Every Journey</span></>)}
+                {mode === "ar" && (<span dir="rtl" className="font-arabic">رُفَيِّقك الذكي في<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>كل رحلة</span></span>)}
+                {isBoth && (<>Your AI Companion for<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Every Journey</span><span dir="rtl" className="font-arabic block text-3xl md:text-4xl mt-3" style={{ opacity: 0.85 }}>رُفَيِّقك الذكي في كل رحلة</span></>)}
               </h1>
 
               {mode !== "ar" && (
