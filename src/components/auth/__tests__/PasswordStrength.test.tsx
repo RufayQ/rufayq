@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { evaluatePassword, allRequiredPass } from "../PasswordStrength";
+import { evaluatePassword, allRequiredPass, fairAndAbovePass } from "../PasswordStrength";
 
 describe("evaluatePassword", () => {
   it("flips each required rule as conditions are met", () => {
