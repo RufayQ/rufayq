@@ -1,86 +1,85 @@
-# Connected Accounts — confirmation, prominence, auto-refresh, multi-provider, all roles
+## Push Notifications + Admin Composer
 
-Builds on the existing `ConnectedAccountsCard` + `useLinkedProviders` (in patient `ProfileScreen`). All four asks:
+Build an in-app push system with bilingual content, segmented audiences, scheduling, and a campaign log. No FCM/APNs yet — delivery happens by inserting rows into `patient_notifications` (already wired to real-time toasts + the bell inbox via `usePatientNotifications`). FCM can plug in later with no UI changes.
 
-## 1. Confirmation modal before unlinking
+### 1. Database (one migration)
 
-- New `src/components/profile/UnlinkConfirmDialog.tsx`: lightweight modal (no UI lib — fixed overlay + centered card, matches existing sheet styling), bilingual title/body, shows the provider name + masked email being unlinked, and the consequence ("You'll need another sign-in method to access this account").
-- `Cancel · إلغاء` / `Unlink · فصل` buttons; destructive button is the red outline already used for Sign Out.
-- Card opens this modal instead of unlinking directly. Modal calls back into the same `unlinkIdentity` flow already in the card.
-- Identity-count guard ("only sign-in method") is checked before opening the modal so we don't show a confirm the user can't fulfil.
+**`push_campaigns`** — one row per send/scheduled job
+- `title`, `title_ar`, `body`, `body_ar`, `link` (deep link)
+- `kind` (default `'announcement'`)
+- `audience` JSONB — `{ all:bool, countries:string[], plans:string[], roles:('patient'|'provider')[] }`
+- `scope` — `'global' | 'org'`, `organization_id` nullable (org staff sends are scoped to their org)
+- `status` — `'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'cancelled'`
+- `scheduled_at`, `sent_at`, `audience_size`, `delivered_count`, `failed_count`
+- `created_by`, `is_test` (for "Test send to myself")
 
-## 2. More prominent linked-account display
+**`push_campaign_recipients`** — audit per recipient (campaign_id, patient_device_id, notification_id, status, created_at). Lets the campaign-history view show real delivery counts.
 
-Redesign the Google row (and every other provider row) into a two-line block:
+**RPC `push_campaign_send(_campaign_id uuid)`** — SECURITY DEFINER, gated by `has_role(admin)` OR (org staff AND campaign.scope='org' AND `is_org_member(auth.uid(), organization_id)`). Resolves audience:
+- patients → distinct `device_id` from `profiles` (filtered by `nationality` if `countries` set) joined to active `user_subscriptions` (filtered by `plan` if `plans` set)
+- providers → join through `provider_members` for `role='provider'`
+- For each device, INSERT into `patient_notifications` and `push_campaign_recipients`; update campaign counters and set status to `sent`.
 
-```text
-[ G ]  Google · linked                     [ Unlink ]
-       sara.alrashidi@gmail.com
-       Connected Mar 2026 · sign-in + email
-```
+**RLS**
+- `push_campaigns`: admins full; org staff can SELECT/INSERT/UPDATE rows where `scope='org' AND organization_id IN (user_org_ids(auth.uid()))`. Patients: no access.
+- `push_campaign_recipients`: admins read all; org staff read own org's; patients no.
 
-- Line 1: provider name + `Linked` pill (teal) or `Not connected` (gray).
-- Line 2 (when linked): full email in a slightly larger, navy, mono-leaning style; LTR-locked even in RTL layout.
-- Line 3 (when linked): "Connected {Mon YYYY}" from `google_linked_at` (read from the profile row when present, falling back to "Recently") plus the scopes the identity grants ("sign-in", "email", "profile" — derived from `identity_data` keys).
-- Tap-to-copy on the email with the existing bilingual toast pattern (`copyToClipboard`).
-- Card header rewritten as "Connected sign-in methods · طرق تسجيل الدخول المرتبطة" with a one-line helper underneath.
+**Scheduler** — enable `pg_cron` + `pg_net`, add a 1-minute job that calls a new edge function `push-dispatch-scheduled` which selects `status='scheduled' AND scheduled_at<=now()` and calls the RPC for each.
 
-## 3. Auto-refresh after OAuth redirect
+### 2. Admin portal
 
-`useLinkedProviders` already refreshes on `SIGNED_IN` / `USER_UPDATED` / `TOKEN_REFRESHED`. To make the user-visible state snap immediately when Profile re-opens via `?profile=1`:
+New nav entry **Communications → Push Notifications** in `src/components/admin/shell/adminNav.ts`, lazy-loaded into `Admin.tsx` switch.
 
-- In `ConnectedAccountsCard`, add a `useEffect` that:
-  - Reads `?profile=1` on mount and, when present, calls `refresh()` once and then `getSession()` to force a token refresh round-trip.
-  - Subscribes to `window` `focus` and `visibilitychange` events; on either, calls `refresh()` (covers the case where the OAuth tab returned focus before Supabase fired its event).
-- Add a 4-second `setInterval` poll that auto-stops after 3 ticks or the first state change — short window only when the URL had `?profile=1` — to catch the rare case where Supabase's identity propagation lags the redirect.
-- The query-param strip in `Index.tsx` stays (already implemented), so subsequent navigation isn't affected.
+**`AdminPushNotifications.tsx`** — two tabs:
 
-## 4. Multi-provider section, available to both Travellers and Providers
+- **Composer**
+  - Bilingual title + body (EN/AR) with live mobile preview card
+  - Optional deep link input with autocomplete suggestions (`/journey`, `/medications`, `/profile`, `/pricing`, …)
+  - Audience builder:
+    - "All users" toggle
+    - Countries multi-select (sourced from distinct `profiles.nationality`)
+    - Plans multi-select (`free`, `plus`, `premium` — distinct from `user_subscriptions.plan`)
+    - Roles checkboxes (patient / provider)
+  - Live audience-size estimate (calls a lightweight `push_estimate_audience` RPC on debounce)
+  - Schedule toggle → datetime picker; otherwise send immediately
+  - Buttons: **Test send to me** (forces audience = current admin's device only), **Save draft**, **Schedule / Send now**
+  - Org-staff users see scope locked to "My organization only"
 
-Generalise the card to render every supported sign-in method, not just Google.
+- **History**
+  - Table of past + scheduled campaigns: status badge, audience summary chips, audience size / delivered, sent-at, sender
+  - Row actions: Duplicate, Cancel (scheduled only), View recipients
 
-- New `src/lib/auth/providers.ts` declares the catalogue:
-  ```text
-  google   — connect & unlink supported (lovable.auth + supabase.auth.linkIdentity)
-  apple    — connect & unlink supported (only shown when the lovable runtime exposes apple)
-  email    — read-only row showing the user's email, "Primary sign-in" badge
-  phone    — read-only row showing masked E.164 phone, "Primary sign-in" badge
-  ```
-  Each entry: id, label EN/AR, glyph component, `canConnect`, `canUnlink`.
-- `useLinkedProviders` extended to return a normalised array `providers: ProviderState[]` derived from `getUserIdentities()` (`provider`, `identity_data.email`, `last_sign_in_at`, `created_at`). Existing `google` shortcut kept for back-compat.
-- `ConnectedAccountsCard` iterates `providers`, renders the prominent block from §2, gates Connect/Unlink based on `canConnect/canUnlink`, and reuses the confirm modal from §1.
-- Apple connect uses `supabase.auth.linkIdentity({ provider: 'apple', ... })`. If Supabase rejects with "provider not enabled", the toast says "Apple sign-in isn't enabled yet · لم يُفعَّل تسجيل الدخول عبر Apple" and the row stays in connect state — no crash, no silent failure.
-- Email/phone rows are informational: show the value, no Connect button (already part of the account).
+### 3. Frontend wiring
 
-### Make it available to Providers
+- New hook `useAdminPushCampaigns` (list + create + cancel + estimate).
+- Reuse existing `usePatientNotifications` — no client changes needed; new rows trigger the existing real-time toast + bell badge automatically.
+- Add a "Last campaign" KPI tile to `AdminDashboard.tsx`.
 
-- Patient app: card already in `ProfileScreen`. No change.
-- Provider shell (`src/pages/ProviderDashboard.tsx`): currently has no profile screen. Add a new top-bar avatar/menu button that opens a slide-over panel `src/components/provider/ProviderAccountPanel.tsx` containing:
-  - Display name + organisation
-  - `<ConnectedAccountsCard />` (the same component)
-  - Sign-out button (reusing the existing `logout` handler)
-  This is the smallest non-disruptive surface — no new route, no nav rewrite.
-- Admin shell (`src/pages/Admin.tsx`): inject `<ConnectedAccountsCard />` into the existing **Settings → General** tab (`AdminSettingsGeneral`), under a new "My account" subsection. Admin users land here from the existing settings nav; no new menu entries.
+### 4. Future-proofing for native FCM
 
-## Files
+Edge function `push-dispatch-scheduled` is the single execution path. When FCM is wired later, it will additionally read `device_push_tokens` for each resolved user and call FCM — no schema or UI change required. The `FCM_SERVER_KEY` secret will be added at that time.
 
-- New `src/components/profile/UnlinkConfirmDialog.tsx`
-- New `src/lib/auth/providers.ts`
-- New `src/components/provider/ProviderAccountPanel.tsx`
-- Edit `src/components/profile/ConnectedAccountsCard.tsx` — multi-provider rendering, prominence, confirm flow, focus/visibility/?profile=1 refresh
-- Edit `src/hooks/useLinkedProviders.ts` — return `providers[]`, expose `linkedAt` per provider; keep current `google` field
-- Edit `src/lib/auth/googleLink.ts` — already has `clearGoogleLinkage`; add a generic `clearProviderLinkage(userId, provider)` for parity (used by Apple unlink)
-- Edit `src/pages/ProviderDashboard.tsx` — add account button + panel mount
-- Edit `src/components/admin/AdminSettingsGeneral.tsx` — add "My account" block hosting the card
+### Out of scope (this turn)
 
-## Out of scope
+- Native FCM/APNs delivery, A/B testing, rich media payloads, per-recipient retry workers, segments saved as reusable lists.
 
-- No new database migrations (existing `profiles.google_*` columns are sufficient; Apple linkage is read directly from `getUserIdentities()` and not mirrored).
-- No backend Supabase auth-config changes; if Apple isn't enabled in the project, the row degrades gracefully.
-- No changes to QuickSignup / LoginScreen / PhoneInput.
+### Files
 
-## Verification
+**New**
+- `supabase/migrations/<ts>_push_campaigns.sql`
+- `supabase/functions/push-dispatch-scheduled/index.ts`
+- `src/components/admin/AdminPushNotifications.tsx`
+- `src/components/admin/push/CampaignComposer.tsx`
+- `src/components/admin/push/CampaignHistory.tsx`
+- `src/components/admin/push/AudienceBuilder.tsx`
+- `src/hooks/useAdminPushCampaigns.ts`
 
-- `npx tsc -p tsconfig.app.json --noEmit` → 0 errors.
-- `bunx vitest run` → 443 still pass; add tests for `useLinkedProviders.providers[]` shape and for the confirm-dialog open/cancel/confirm path with mocked `supabase.auth`.
-- Manual: phone+password user → Profile → tap **Connect Google** → return → row auto-flips to Linked with email + connection date visible. Tap **Unlink** → confirm modal appears → Cancel keeps state → Confirm unlinks and toasts. Sign in as a provider → top-bar avatar → same card behaves identically. Admin Settings → General → "My account" → same card.
+**Edited**
+- `src/pages/Admin.tsx` (route case)
+- `src/components/admin/shell/adminNav.ts` (nav entry)
+- `src/components/admin/AdminDashboard.tsx` (KPI tile)
+
+### Verification
+
+- `npx tsc` → 0 errors
+- Manual: send broadcast → patient device shows toast + bell badge increments; schedule a send 2 min out → cron fires, status flips to `sent`, recipients table populated; org-staff session sees scope locked and audience filtered to their org's patients only.
