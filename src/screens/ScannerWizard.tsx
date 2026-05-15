@@ -285,6 +285,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
             category={selectedCategory}
             payload={scannedPayload}
             pendingSegmentRef={pendingSegmentRef}
+            userId={authUserId}
             onViewSection={() => { if (onSave) onSave(selectedCategory, enrichedPayload(scannedPayload)); else onClose(); }}
             onScanAnother={() => {
               setStep(1);
