@@ -1,210 +1,219 @@
-## **Verdict: Approved, with one clarification**
+Verification & Fix Pass
 
-Yes — this is the right plan **if src/pages/QuickSignup.tsx already exists in Lovable’s working branch**.
+No redesign. Run the requested checks, fix only what fails, and sweep the codebase for any Arabic RufayQ wordmark that isn't رُفَيِّق.
 
-The plan directly addresses the screenshot UX issue:
+Important repo-specific corrections:
 
-1. **Name capture is clearer** with First name + Last name.
-2. **Password weakness is explained live** before submit, instead of failing after the user clicks “Create account & continue.”
+- The PasswordStrength test is at:
 
-I would approve it with one clarification: the submit gate should use the password-check result directly, not only a visual strength score.
+  src/components/auth/PasswordStrength.test.tsx
 
----
+  not src/components/auth/__tests__/PasswordStrength.test.tsx.
 
-## **What I approve**
+- There is no src/pages/QuickSignup.tsx in this repo. For signup/recovery verification, inspect:
 
-### **1. Split Full name into First name + Last name**
+  src/screens/LoginScreen.tsx
 
-Approved.
+  src/pages/Auth.tsx if relevant.
 
-Use UI fields:
+1. Environment & checks
 
-`First name *`  
-`Last name *`  
-`First name (AR)`  
-`Last name (AR)`  
+Run from repo root:
 
+bun install
 
-Save into existing profile columns:
+If bun install fails, report the failure and fall back to npm ci only if needed.
 
-`full_name_en = ${firstName} ${lastName}.trim()`  
-`full_name_ar = [firstNameAr, lastNameAr].filter(Boolean).join(" ").trim() || null`  
+Then run:
 
+npx tsc -p [tsconfig.app](http://tsconfig.app).json --noEmit
 
-No database migration is needed because the existing profile model uses full_name_en and full_name_ar.
+Targeted tests:
 
-### **2. Keep Arabic names visible**
+bunx vitest run src/components/auth/PasswordStrength.test.tsx src/screens/__tests__/HomeScreen.test.tsx
 
-Approved.
+Full test suite:
 
-Arabic first/last fields should not be hidden behind “Add optional details.” They should be visible near the English name fields.
+bunx vitest run
 
-That solves the user’s “Arabic name is missing” complaint.
+Build:
 
-### **3. Add password strength meter**
+bun run build
 
-Approved.
+Capture exact stdout/stderr and exit code for each command. Report pass/fail summary.
 
-The proposed PasswordStrength component is the right place for this. It should be:
+2. Fix policy
 
-- dependency-free
-- bilingual
-- live as the user types
-- hidden until the password field is used
-- green checks for fulfilled rules
-- no red error rows while typing
-- strength bar communicates weakness/fair/good/strong
+- Only patch code that is actually red, except for the Arabic wordmark sweep requested below.
 
-### **4. Gate submit on required password rules**
+- No refactors.
 
-Approved.
+- No UI rewrites.
 
-I strongly agree with this rule:
+- For each failure:
 
-`All 6 required checks must pass.`  
+  - Apply the smallest possible diff.
 
+  - Re-run only the affected command.
 
-Do **not** rely on score >= 3.
+  - Re-run the full suite once at the end.
 
-Required checks:
+- If a test asserts old behavior, fix the test.
 
-- at least 8 chars
-- uppercase
-- lowercase
-- number
-- not common/easy
-- does not contain name/phone
+- If production code is wrong, fix production code.
 
-Symbol can remain bonus/recommended.
+- Include a one-line justification per fix.
 
-### **5. Inline server-side password error**
+3. Manual sanity checks
 
-Approved.
+Read-only inspection unless something is clearly broken:
 
-If Supabase still rejects the password, show the message inline near the meter, not only in a corner toast.
+- src/screens/LoginScreen.tsx + src/components/auth/PasswordStrength.tsx:
 
-This is important because server rules may catch passwords our simple client rules do not.
+  Confirm registration submit is gated by allRequiredPass/evaluatePassword for:
 
----
+  length, upper, lower, number, notCommon, notIdentity.
 
-## **One clarification I would add**
+- Recovery/new-password flow:
 
-### **Phone digit check should normalize the phone**
+  Confirm the recovery/new-password screen imports/renders PasswordStrength and gates submit on the same allRequiredPass/evaluatePassword rules.
 
-For the rule:
+  If it does not, this is an allowed code fix: wire in PasswordStrength + allRequiredPass with no visual changes beyond the meter itself.
 
-`Doesn't contain your phone`  
+- src/screens/HomeScreen.tsx + src/components/home/PatientMetricsGrid.tsx + src/components/home/HomeJourneyPreview.tsx:
 
+  Verify loading skeleton, zero-state, and populated-state branches exist and use existing hooks/data.
 
-Normalize both values before comparing:
+- PhaseRibbon5 and JourneyScreen:
 
-`passwordDigits = password.replace(/\D/g, "")`  
-`phoneDigits = phone.replace(/\D/g, "")`  
+  Confirm phase taps call onNavigate("journey", "phase:<id>") or equivalent.
 
+  Confirm JourneyScreen reads phase:<id> context and selects the relevant phase/milestone.
 
-Then fail if the password contains any 4+ consecutive run from the phone number.
+- RTL:
 
-For example, if phone is:
+  Search for dir="rtl" / mode === "ar" usage in the new components.
 
-`+966569590418`  
+  Confirm the phase ribbon order is not double-reversed.
 
+  Do not manually reverse PHASES; visual mirroring should be handled by dir/flex only.
 
-Reject passwords containing:
+Report findings as a short checklist with ✅ / ⚠️ and file:line references.
 
-`5695`  
-`9590`  
-`9041`  
-`0418`  
+4. Arabic wordmark sweep — رُفَيِّق
 
+Goal:
 
-or longer runs.
+Every Arabic rendering of the brand should read exactly:
 
-This is better than only checking the full phone number.
+رُفَيِّق
 
----
+Not bare "رفيق" or another variant.
 
-## **Common-password rule**
+Procedure:
 
-The built-in list is fine as a first pass.
+Run:
 
-I would include at minimum:
+rg -n "رفيق|رفيّق|رُفيق|رفيِّق|رُفَيِّق" src public index.html
 
-`[`  
-  `"password",`  
-  `"password1",`  
-  `"password123",`  
-  `"12345678",`  
-  `"123456789",`  
-  `"qwerty",`  
-  `"qwerty123",`  
-  `"letmein",`  
-  `"iloveyou",`  
-  `"welcome",`  
-  `"admin",`  
-  `"admin123",`  
-  `"test",`  
-  `"test123",`  
-  `"testfamily",`  
-  `"rufayq",`  
-`]`  
+List every hit.
 
+For each Arabic brand mention that is not already رُفَيِّق, replace it with رُفَيِّق.
 
-Also reject substring matches case-insensitively, as the plan says.
+Scope includes:
 
----
+- Wordmark/logo components
 
-## **Tests are appropriate**
+- Auth/login/signup screens
 
-The proposed tests are exactly what I would expect:
+- Onboarding
 
-### **QuickSignup tests**
+- Home header
 
-- First/last name fields render.
-- Arabic first/last fields render without expanding optional details.
-- TestFamily disables submit.
-- Str0ng!Pass enables submit when other fields are valid.
-- profiles.upsert receives:
-  - full_name_en: "Mohammed Al-Saud"
-  - full_name_ar: "محمد آل سعود"
-- No WhatsApp/SMS/Email picker appears.
+- Settings
 
-### **PasswordStrength tests**
+- Support
 
-- Rules turn green as input satisfies them.
-- Name-derived password fails.
-- Phone-derived password fails.
-- Common password fails.
+- Profile
 
-Approved.
+- Care Hub
 
----
+- Chat
 
-## **Out-of-scope list is correct**
+- Records
 
-I agree with keeping these out:
+- Pricing
 
-- no first/last DB columns
-- no LoginScreen changes
-- no Auth changes
-- no ProfileCompletionBanner changes
-- no edge-function changes
-- no zxcvbn dependency
+- Journey
 
-This should stay focused on QuickSignup and the new password component.
+- Medications
 
----
+- Static SEO/meta files: index.html, public/manifest.webmanifest, public/llms.txt, public/robots.txt, sitemap/static text if present
 
-  
-**Final approved implementation prompt**
+- README/user-facing strings if present
 
-Use this:
+- Toasts, disclaimers, share messages
 
-> *Update QuickSignup to replace the single Full name field with First name and Last name plus visible optional Arabic first/last fields. Save concatenated values into existing profiles.full_name_en and profiles.full_name_ar; do not add schema columns. Add a dependency-free PasswordStrength component that renders a live strength bar and bilingual checklist. Required rules are 8+ chars, uppercase, lowercase, number, not common/easy, and not containing the user’s name or phone digits; symbol is bonus only. Disable submit until all required checks pass, phone is valid, required names are filled, terms are accepted, and optional email is valid if present. If Supabase still rejects the password, show an inline password error above the meter and keep toast as secondary feedback. Add/update tests for name splitting, Arabic names, password checklist behavior, name/phone/common-password rejection, strong-password submit, and no OTP picker.*
+- supabase/functions/** email templates if they contain Arabic brand text
 
----
+Do not touch:
 
-## **Final decision**
+- code identifiers
 
-**Approved.**
+- file names
 
-This is the correct UX refinement for /quick-signup. It prevents avoidable weak-password failures and makes name capture more structured without requiring any backend or schema changes.
+- English "RufayQ"
+
+- Latin wordmark text
+
+After replacement, re-run:
+
+npx tsc -p [tsconfig.app](http://tsconfig.app).json --noEmit
+
+bunx vitest run
+
+bun run build
+
+If string/snapshot tests fail only because the expected Arabic brand spelling changed, update those expectations.
+
+5. Final report format
+
+Reply with:
+
+- Commands run:
+
+  exact command strings + exit codes.
+
+- Failures fixed:
+
+  file, one-line diff summary, and one-line justification.
+
+- Manual checks:
+
+  checklist with ✅ / ⚠️ and file:line references.
+
+- Arabic wordmark sweep:
+
+  count of matching occurrences before,
+
+  files changed,
+
+  count after,
+
+  confirmation that every Arabic brand mention is now رُفَيِّق.
+
+- Remaining concerns:
+
+  anything needing user/product decision.
+
+Out of scope:
+
+- New features
+
+- Visual redesign
+
+- New dependencies
+
+- Schema/RLS changes
+
+- Edge function logic changes
