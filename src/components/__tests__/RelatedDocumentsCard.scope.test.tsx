@@ -99,10 +99,12 @@ const pickAndConfirm = async (container: HTMLElement) => {
     fireEvent.change(fileInput, { target: { files: [file] } });
   });
 
-  // Click the "Attach" confirm button on the label sheet.
-  // The sheet renders two buttons: Cancel and Attach. Find by text content.
-  const buttons = Array.from(document.querySelectorAll("button"));
-  const attach = buttons.find((b) => /Attach/.test(b.textContent || ""));
+  // Multiple buttons contain "Attach" (the dashed trigger tile + the confirm
+  // button on the label sheet). The confirm sheet renders last in DOM order.
+  const buttons = Array.from(document.querySelectorAll("button")).filter((b) =>
+    /Attach/.test(b.textContent || ""),
+  );
+  const attach = buttons[buttons.length - 1];
   expect(attach).toBeTruthy();
   await act(async () => {
     fireEvent.click(attach!);
