@@ -205,7 +205,7 @@ const TodayCard = ({ overview, onOpenJourney, onPlanFirstTrip }: TodayCardProps)
           boxShadow: "0 6px 18px -6px rgba(0,77,91,0.55)",
         }}
       >
-        Open Journey · افتح رحلتك <ArrowRight size={14} />
+        {showEn && "Open Journey"}{showEn && showAr && " · "}{showAr && "افتح رحلتك"} <ArrowRight size={14} />
       </button>
     </div>
   );
