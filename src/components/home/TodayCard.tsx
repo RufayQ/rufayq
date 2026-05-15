@@ -76,19 +76,23 @@ const TodayCard = ({ overview, onOpenJourney, onPlanFirstTrip }: TodayCardProps)
           style={{ background: "radial-gradient(closest-side, rgba(197,150,90,0.18), transparent)" }}
         />
         <p className="font-mono text-[9.5px] tracking-[0.22em] mb-2" style={{ color: "var(--gold)" }}>
-          TODAY · اليوم
+          {showEn && "TODAY"}{showEn && showAr && " · "}{showAr && "اليوم"}
         </p>
-        <p className="font-display text-[20px] leading-tight" style={{ color: "var(--navy)" }}>
-          Plan your first journey
-        </p>
-        <p className="font-arabic text-[12px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
-          ابدأ رحلتك العلاجية الأولى
-        </p>
+        {showEn && (
+          <p className="font-display text-[20px] leading-tight" style={{ color: "var(--navy)" }}>
+            Plan your first journey
+          </p>
+        )}
+        {showAr && (
+          <p className="font-arabic text-[12px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
+            ابدأ رحلتك العلاجية الأولى
+          </p>
+        )}
         <span
           className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold"
           style={{ color: "var(--teal-deep)" }}
         >
-          Begin <ArrowRight size={13} />
+          {showEn ? "Begin" : "ابدأ"} <ArrowRight size={13} />
         </span>
       </button>
     );
