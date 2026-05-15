@@ -38,4 +38,13 @@ describe("evaluatePassword", () => {
     expect(allRequiredPass(evaluatePassword("Str0ng!Pass"))).toBe(true);
     expect(allRequiredPass(evaluatePassword("strongpass"))).toBe(false); // no upper, no number
   });
+
+  it("fairAndAbovePass accepts >=3 of 5 signup rules and rejects fewer", () => {
+    // 3/5: length+lower+notIdentity (no upper, no number) → Fair
+    expect(fairAndAbovePass(evaluatePassword("abcdefgh"))).toBe(true);
+    // 2/5: only length+lower
+    expect(fairAndAbovePass(evaluatePassword("ab"))).toBe(false);
+    // Even a common password passes if it meets 3+ rules (notCommon no longer required)
+    expect(fairAndAbovePass(evaluatePassword("Password1"))).toBe(true);
+  });
 });
