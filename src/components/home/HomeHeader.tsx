@@ -67,7 +67,12 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase, n
         <div className="flex items-center justify-between mb-3">
           <RufayQWordmark size="sm" variant="light" />
           <div className="flex items-center gap-2">
-            <NotificationBell color="#fff" />
+            <NotificationBell
+              color="#fff"
+              open={notificationOpen}
+              onOpenChange={onNotificationOpenChange}
+              onNavigate={onNotificationNavigate}
+            />
             <HeaderMenu items={menuItems} />
             <button
               onClick={onProfile}
