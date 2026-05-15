@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Building2, Briefcase, Activity, Shield, FileText,
-  CreditCard, MessageSquare, Star, UserPlus, Globe, Settings, Sparkles, Headphones,
+  CreditCard, MessageSquare, Star, UserPlus, Globe, Settings, Sparkles, Headphones, Bell,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
