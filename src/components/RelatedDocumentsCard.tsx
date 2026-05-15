@@ -122,7 +122,7 @@ const RelatedDocumentsCard = ({
             (ticketId && !r.ticket_id),
         );
         for (const r of stale) {
-          const patch: Record<string, string> = {};
+          const patch: { user_id?: string; ticket_id?: string } = {};
           if (userId && !r.user_id) patch.user_id = userId;
           if (ticketId && !r.ticket_id) patch.ticket_id = ticketId;
           // Fire-and-forget; failures are non-blocking.
