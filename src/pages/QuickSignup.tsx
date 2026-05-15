@@ -369,10 +369,9 @@ const QuickSignup = () => {
                 </div>
                 <div>
                   <label className="text-[12px]" style={labelStyle}>{t("Nationality", "الجنسية")}</label>
-                  <input
-                    type="text"
+                  <NationalityCombobox
                     value={nationality}
-                    onChange={(e) => setNationality(e.target.value)}
+                    onChange={setNationality}
                     className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
                     style={inputStyle}
                   />
