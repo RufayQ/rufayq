@@ -11,6 +11,7 @@ import type { FlightInfo } from "@/components/AddTripSheet";
 import type { TransportSegment } from "@/components/TransportCard";
 import { isHHmm, normalizeTo24Hour } from "@/lib/time24";
 import { normalizeTerminal } from "@/lib/terminal";
+import { formatDuration } from "@/lib/flightJourney";
 
 export type TripType = "one-way" | "round-trip" | "multi-city";
 export type Direction = "outbound" | "return";
