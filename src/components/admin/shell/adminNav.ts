@@ -10,7 +10,7 @@ export type LeafKey =
   | "orgs" | "applications"
   | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk"
   | "subs" | "payments" | "ai_usage" | "pricing"
-  | "reviews" | "tickets"
+  | "reviews" | "tickets" | "push"
   | "news" | "pages" | "website_cms"
   | "cms_seo" | "cms_media" | "cms_blog_cats"
   | "audit" | "wallet_audit"
