@@ -1,66 +1,203 @@
-## Goal
+# Connect Google account from Profile
 
-Add automatic country dial-code detection for the mobile-number input on **Quick Sign-up** and **Sign-in**, with an obvious manual override so the user can always change it. The composed E.164 number stays the source of truth so backend/RLS/edge functions are unaffected.
+The PhoneInput country selector + auto-detect with manual override is already shipped. Google sign-in already syncs `google_email`, `google_sub`, `google_linked_at`, and the `auth_providers` array onto the user's profile via `syncGoogleLinkage` on every auth event. What's missing is a UI for an already-signed-in user (e.g. someone who registered with phone+password) to attach a Google account to their existing profile, see the linked email, and unlink it.
 
-## UX
+## Validate and implement Google account linking from Profile, but do not assume existing Google linkage columns or helpers unless the branch proves them.
 
-```text
-┌─────────────────────────────────────────────┐
-│ Mobile number                               │
-│ ┌──────────┐ ┌──────────────────────────┐   │
-│ │ 🇸🇦 +966 ▾│ │ 5X XXX XXXX              │   │
-│ └──────────┘ └──────────────────────────┘   │
-│  Detected from your region · change anytime │
-└─────────────────────────────────────────────┘
-```
+Branch reality checks first:
 
-- Left chip shows flag + dial code, opens a searchable popover (reuses the existing nationality list pattern).
-- Right field accepts the **national** number only (digits, optional leading 0 stripped on submit).
-- Tiny helper line under the field: `Detected from your region · change anytime` (bilingual). Disappears once the user manually overrides.
+1. Run:
 
-## Auto-detection priority (offline first, no new deps)
+   rg -n "syncGoogleLinkage|google_email|google_sub|google_linked_at|auth_providers|linkIdentity|getUserIdentities|unlinkIdentity" src supabase
 
-1. **Manual override** (once user picks a country, lock it for the session — store in `localStorage` key `rufayq_dial_country`).
-2. `**navigator.language` region** — e.g. `ar-SA` → `SA`, `en-AE` → `AE`. Use `Intl.Locale(navigator.language).region` with fallback parser.
-3. **Timezone heuristic** — `Intl.DateTimeFormat().resolvedOptions().timeZone` mapped through a tiny `tz → ISO2` table for GCC + common corridors (Asia/Riyadh→SA, Asia/Dubai→AE, Africa/Cairo→EG, etc.).
-4. **Nationality field** (Quick Sign-up only) — if user has picked a Nationality and hasn't manually overridden the dial, mirror it (same auto-sync pattern already used in `AdminCreateUser.tsx`).
-5. **Default** → `SA` (+966).
+   rg --files src/lib | rg "google|auth"
 
-No IP geolocation call (avoids new network dep, privacy, and offline failures).
+   nl -ba src/integrations/supabase/types.ts | sed -n '2575,2645p'
 
-## Files to add
+   nl -ba src/components/AppAuthGuard.tsx | sed -n '1,110p'
 
-- `**src/lib/auth/phoneCountries.ts**` — single source of truth: `{ code, name, nameAr, dial, flag }[]` (~40 entries, GCC + medical-travel corridor — same set already in `AdminCreateUser` so we can dedupe later). Exports `detectDialCountry()` implementing the priority chain above.
-- `**src/components/auth/PhoneInput.tsx**` — controlled component:
-  - Props: `value: string` (national digits), `onChange(value)`, `country: string`, `onCountryChange(code, { manual })`, `dir`, `style`, bilingual labels.
-  - Renders flag/dial chip + popover with search input, and the national-number `<input>`.
-  - Emits a derived `e164` via callback or via shared helper `composeE164(country, national)`.
+   nl -ba src/pages/Index.tsx | sed -n '300,335p'
 
-## Files to edit
+2. If google_email/google_sub/google_linked_at/auth_providers are absent from types and migrations, do not claim “no DB migration needed.”
 
-- `src/lib/auth/phoneEmail.ts` — add `composeE164(dialIso2: string, national: string)` and small `splitE164(e164)` helper. Keep existing `phoneToE164` for backward compat (still used by tests + edge functions).
-- `src/pages/QuickSignup.tsx`:
-  - Replace the single `<input value={phone}>` block with `<PhoneInput>`.
-  - Track `dialCountry` (init from `detectDialCountry()`) and `phoneNational`.
-  - Compute `e164 = composeE164(dialCountry, phoneNational)` for submit + password identity check.
-  - When `nationality` changes inside the "Add optional details" section AND the user has not manually overridden, mirror it into `dialCountry`.
-- `src/screens/LoginScreen.tsx`:
-  - Replace the bare phone input (~line 330) with `<PhoneInput>`.
-  - Same detection on mount; same composition for `phoneToE164` callsites at lines 102 and 232.
-- `src/lib/auth/__tests__/phoneEmail.test.ts` — add cases for `composeE164` and `splitE164` (round-trip, leading-zero stripping, default fallback).
+Implementation constraints:
 
-## - User to be able to link Google account to be able to use it , maintain it in user record in the database 
+- No schema changes unless you include a migration and generated type updates.
 
-&nbsp;
+- Prefer deriving linked Google state from Supabase Auth identities via getUserIdentities().
 
-## Out of scope
+- Do not depend on nonexistent syncGoogleLinkage/googleLink.ts.
 
-- Admin Create User (already has a country picker — left untouched).
-- Backend / edge functions / RLS — the wire format remains E.164.
-- Visual redesign of the form beyond the new chip + helper line.
+- Do not redirect to /profile unless you add a real route.
 
-## Verification
+- Use an existing route such as /app or /ar/app, optionally with a query param that opens Profile after return.
 
-- `npx tsc -p tsconfig.app.json --noEmit`
-- `bunx vitest run src/lib/auth src/pages/__tests__/QuickSignup.test.tsx src/screens/__tests__/LoginScreen.register-removed.test.tsx`
-- Manual: load Quick Sign-up with `navigator.language=en-US` → chip shows 🇺🇸 +1; switch nationality to UAE in optional section → chip auto-flips to 🇦🇪 +971; manually pick 🇪🇬 +20 → chip stays on Egypt even after changing nationality again.
+Build:
+
+1. New hook: src/hooks/useLinkedProviders.ts
+
+   - Reads supabase.auth.getUser()
+
+   - Reads supabase.auth.getUserIdentities()
+
+   - Derives:
+
+     google.linked
+
+     [google.email](http://google.email) from identity.identity_data?.email or user email fallback
+
+     google.identity
+
+   - Subscribes to onAuthStateChange and refreshes after SIGNED_IN, USER_UPDATED, TOKEN_REFRESHED.
+
+   - Does not require profile google_* columns.
+
+2. New component: src/components/profile/ConnectedAccountsCard.tsx
+
+   - Renders Google row:
+
+     - Not linked: Connect button
+
+     - Linking: spinner/loading label
+
+     - Linked: email + linked badge + unlink button
+
+   - Link action:
+
+     supabase.auth.linkIdentity({
+
+       provider: "google",
+
+       options: {
+
+         redirectTo: `${window.location.origin}/app?profile=1`
+
+       }
+
+     })
+
+   - Use /ar/app?profile=1 if the current location starts with /ar.
+
+   - Surface bilingual errors with sonner toasts.
+
+   - Handle identity_already_exists with a specific bilingual message.
+
+   - Confirm whether Supabase manual identity linking is enabled; if disabled, show a clear setup error.
+
+3. Profile return:
+
+   - In src/pages/Index.tsx, if URL has ?profile=1 and user is authenticated, open ProfileScreen once and then remove/ignore the query param.
+
+   - Keep this minimal.
+
+4. Unlink:
+
+   - Call getUserIdentities().
+
+   - Find identity.provider === "google".
+
+   - Block unlink if identities.length <= 1 with bilingual toast:
+
+     "Add another sign-in method before unlinking Google."
+
+   - Call unlinkIdentity(googleIdentity).
+
+   - Refresh hook state after success.
+
+   - Do not attempt profile google_* updates unless a schema migration is added.
+
+5. ProfileScreen:
+
+   - Add ConnectedAccountsCard above Legal in registered-user view.
+
+   - Keep guest-mode profile unchanged.
+
+6. Tests:
+
+   - Add tests for useLinkedProviders or ConnectedAccountsCard with mocked supabase.auth methods:
+
+     - not linked
+
+     - linked
+
+     - link action calls linkIdentity with google
+
+     - unlink blocked if only identity
+
+     - unlink calls unlinkIdentity if multiple identities
+
+   - Update any ProfileScreen test if present.
+
+Verification:
+
+- npx tsc -p [tsconfig.app](http://tsconfig.app).json --noEmit
+
+- bunx vitest run
+
+- bun run build
+
+Manual:
+
+- Phone/password user → Profile → Link Google → Google flow → return to /app?profile=1 → Profile opens → Google row linked.
+
+- Linked user → Unlink → confirm → row returns to not linked.
+
+- Attempt unlink as only identity → blocked.
+
+If product wants profile-side columns anyway
+
+If the team specifically wants the profile table to store Google linkage fields, then the plan must include a schema step:
+
+sql
+
+alter table public.profiles
+
+  add column if not exists google_email text,
+
+  add column if not exists google_sub text,
+
+  add column if not exists google_linked_at timestamptz,
+
+  add column if not exists auth_providers text[] not null default '{}';
+
+Then regenerate/update src/integrations/supabase/types.ts.
+
+But I would still derive canonical identity state from Supabase Auth identities and treat profile columns as a cached display/sync field.
+
+Final recommendation
+
+Approve the feature direction, not the implementation plan as written.
+
+The key changes I’d require before Lovable implements:
+
+Do not claim existing Google profile columns unless migrations/types prove it.
+
+Do not depend on nonexistent syncGoogleLinkage / googleLink.ts.
+
+Do not redirect to /profile; use /app?profile=1 or add a real route.
+
+Use getUserIdentities() as the source of truth for link/unlink state.
+
+Block unlink based on actual identity count.
+
+Add tests for connected-account state and link/unlink behavior.
+
+Commands I used to validate
+
+rg -n "syncGoogleLinkage|google_email|google_sub|auth_providers|linkIdentity|getUserIdentities|unlinkIdentity|ProfileScreen|SettingRow|profile" src supabase -g '*.{ts,tsx,js}' | head -240
+
+rg --files src/lib src/hooks src | rg 'google|auth'
+
+rg -n "syncGoogleLinkage|google_email|google_sub|google_linked_at|auth_providers|provider_identities|identities|linkIdentity|unlinkIdentity|signInWithOAuth|onAuthStateChange" src supabase -g '*.{ts,tsx,js}'
+
+nl -ba src/integrations/supabase/types.ts | sed -n '2575,2645p'
+
+rg -n "create table.*profiles|alter table.*profiles|google|auth_providers" supabase/migrations -i
+
+rg --files src/lib | sort
+
+nl -ba src/screens/ProfileScreen.tsx | sed -n '1,120p;360,410p'
+
+nl -ba src/components/AppAuthGuard.tsx | sed -n '1,95p'
+
+nl -ba src/pages/Index.tsx | sed -n '300,335p'
