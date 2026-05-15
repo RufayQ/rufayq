@@ -36,7 +36,7 @@ const QuickSignup = () => {
   const [email, setEmail] = useState("");
   const [nationality, setNationality] = useState("Saudi Arabia");
   const [terms, setTerms] = useState(false);
-  const [showOptional, setShowOptional] = useState(false);
+  const [showOptional, setShowOptional] = useState(isAr);
   const [submitting, setSubmitting] = useState(false);
   const [serverPwError, setServerPwError] = useState<string | null>(null);
 
