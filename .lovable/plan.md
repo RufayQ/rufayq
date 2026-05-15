@@ -1,203 +1,86 @@
-# Connect Google account from Profile
-
-The PhoneInput country selector + auto-detect with manual override is already shipped. Google sign-in already syncs `google_email`, `google_sub`, `google_linked_at`, and the `auth_providers` array onto the user's profile via `syncGoogleLinkage` on every auth event. What's missing is a UI for an already-signed-in user (e.g. someone who registered with phone+password) to attach a Google account to their existing profile, see the linked email, and unlink it.
-
-## Validate and implement Google account linking from Profile, but do not assume existing Google linkage columns or helpers unless the branch proves them.
-
-Branch reality checks first:
-
-1. Run:
-
-   rg -n "syncGoogleLinkage|google_email|google_sub|google_linked_at|auth_providers|linkIdentity|getUserIdentities|unlinkIdentity" src supabase
-
-   rg --files src/lib | rg "google|auth"
-
-   nl -ba src/integrations/supabase/types.ts | sed -n '2575,2645p'
-
-   nl -ba src/components/AppAuthGuard.tsx | sed -n '1,110p'
-
-   nl -ba src/pages/Index.tsx | sed -n '300,335p'
-
-2. If google_email/google_sub/google_linked_at/auth_providers are absent from types and migrations, do not claim “no DB migration needed.”
-
-Implementation constraints:
-
-- No schema changes unless you include a migration and generated type updates.
-
-- Prefer deriving linked Google state from Supabase Auth identities via getUserIdentities().
-
-- Do not depend on nonexistent syncGoogleLinkage/googleLink.ts.
-
-- Do not redirect to /profile unless you add a real route.
-
-- Use an existing route such as /app or /ar/app, optionally with a query param that opens Profile after return.
-
-Build:
-
-1. New hook: src/hooks/useLinkedProviders.ts
-
-   - Reads supabase.auth.getUser()
-
-   - Reads supabase.auth.getUserIdentities()
-
-   - Derives:
-
-     google.linked
-
-     [google.email](http://google.email) from identity.identity_data?.email or user email fallback
-
-     google.identity
-
-   - Subscribes to onAuthStateChange and refreshes after SIGNED_IN, USER_UPDATED, TOKEN_REFRESHED.
-
-   - Does not require profile google_* columns.
-
-2. New component: src/components/profile/ConnectedAccountsCard.tsx
-
-   - Renders Google row:
-
-     - Not linked: Connect button
-
-     - Linking: spinner/loading label
-
-     - Linked: email + linked badge + unlink button
-
-   - Link action:
-
-     supabase.auth.linkIdentity({
-
-       provider: "google",
-
-       options: {
-
-         redirectTo: `${window.location.origin}/app?profile=1`
-
-       }
-
-     })
-
-   - Use /ar/app?profile=1 if the current location starts with /ar.
-
-   - Surface bilingual errors with sonner toasts.
-
-   - Handle identity_already_exists with a specific bilingual message.
-
-   - Confirm whether Supabase manual identity linking is enabled; if disabled, show a clear setup error.
-
-3. Profile return:
-
-   - In src/pages/Index.tsx, if URL has ?profile=1 and user is authenticated, open ProfileScreen once and then remove/ignore the query param.
-
-   - Keep this minimal.
-
-4. Unlink:
-
-   - Call getUserIdentities().
-
-   - Find identity.provider === "google".
-
-   - Block unlink if identities.length <= 1 with bilingual toast:
-
-     "Add another sign-in method before unlinking Google."
-
-   - Call unlinkIdentity(googleIdentity).
-
-   - Refresh hook state after success.
-
-   - Do not attempt profile google_* updates unless a schema migration is added.
-
-5. ProfileScreen:
-
-   - Add ConnectedAccountsCard above Legal in registered-user view.
-
-   - Keep guest-mode profile unchanged.
-
-6. Tests:
-
-   - Add tests for useLinkedProviders or ConnectedAccountsCard with mocked supabase.auth methods:
-
-     - not linked
-
-     - linked
-
-     - link action calls linkIdentity with google
-
-     - unlink blocked if only identity
-
-     - unlink calls unlinkIdentity if multiple identities
-
-   - Update any ProfileScreen test if present.
-
-Verification:
-
-- npx tsc -p [tsconfig.app](http://tsconfig.app).json --noEmit
-
-- bunx vitest run
-
-- bun run build
-
-Manual:
-
-- Phone/password user → Profile → Link Google → Google flow → return to /app?profile=1 → Profile opens → Google row linked.
-
-- Linked user → Unlink → confirm → row returns to not linked.
-
-- Attempt unlink as only identity → blocked.
-
-If product wants profile-side columns anyway
-
-If the team specifically wants the profile table to store Google linkage fields, then the plan must include a schema step:
-
-sql
-
-alter table public.profiles
-
-  add column if not exists google_email text,
-
-  add column if not exists google_sub text,
-
-  add column if not exists google_linked_at timestamptz,
-
-  add column if not exists auth_providers text[] not null default '{}';
-
-Then regenerate/update src/integrations/supabase/types.ts.
-
-But I would still derive canonical identity state from Supabase Auth identities and treat profile columns as a cached display/sync field.
-
-Final recommendation
-
-Approve the feature direction, not the implementation plan as written.
-
-The key changes I’d require before Lovable implements:
-
-Do not claim existing Google profile columns unless migrations/types prove it.
-
-Do not depend on nonexistent syncGoogleLinkage / googleLink.ts.
-
-Do not redirect to /profile; use /app?profile=1 or add a real route.
-
-Use getUserIdentities() as the source of truth for link/unlink state.
-
-Block unlink based on actual identity count.
-
-Add tests for connected-account state and link/unlink behavior.
-
-Commands I used to validate
-
-rg -n "syncGoogleLinkage|google_email|google_sub|auth_providers|linkIdentity|getUserIdentities|unlinkIdentity|ProfileScreen|SettingRow|profile" src supabase -g '*.{ts,tsx,js}' | head -240
-
-rg --files src/lib src/hooks src | rg 'google|auth'
-
-rg -n "syncGoogleLinkage|google_email|google_sub|google_linked_at|auth_providers|provider_identities|identities|linkIdentity|unlinkIdentity|signInWithOAuth|onAuthStateChange" src supabase -g '*.{ts,tsx,js}'
-
-nl -ba src/integrations/supabase/types.ts | sed -n '2575,2645p'
-
-rg -n "create table.*profiles|alter table.*profiles|google|auth_providers" supabase/migrations -i
-
-rg --files src/lib | sort
-
-nl -ba src/screens/ProfileScreen.tsx | sed -n '1,120p;360,410p'
-
-nl -ba src/components/AppAuthGuard.tsx | sed -n '1,95p'
-
-nl -ba src/pages/Index.tsx | sed -n '300,335p'
+# Connected Accounts — confirmation, prominence, auto-refresh, multi-provider, all roles
+
+Builds on the existing `ConnectedAccountsCard` + `useLinkedProviders` (in patient `ProfileScreen`). All four asks:
+
+## 1. Confirmation modal before unlinking
+
+- New `src/components/profile/UnlinkConfirmDialog.tsx`: lightweight modal (no UI lib — fixed overlay + centered card, matches existing sheet styling), bilingual title/body, shows the provider name + masked email being unlinked, and the consequence ("You'll need another sign-in method to access this account").
+- `Cancel · إلغاء` / `Unlink · فصل` buttons; destructive button is the red outline already used for Sign Out.
+- Card opens this modal instead of unlinking directly. Modal calls back into the same `unlinkIdentity` flow already in the card.
+- Identity-count guard ("only sign-in method") is checked before opening the modal so we don't show a confirm the user can't fulfil.
+
+## 2. More prominent linked-account display
+
+Redesign the Google row (and every other provider row) into a two-line block:
+
+```text
+[ G ]  Google · linked                     [ Unlink ]
+       sara.alrashidi@gmail.com
+       Connected Mar 2026 · sign-in + email
+```
+
+- Line 1: provider name + `Linked` pill (teal) or `Not connected` (gray).
+- Line 2 (when linked): full email in a slightly larger, navy, mono-leaning style; LTR-locked even in RTL layout.
+- Line 3 (when linked): "Connected {Mon YYYY}" from `google_linked_at` (read from the profile row when present, falling back to "Recently") plus the scopes the identity grants ("sign-in", "email", "profile" — derived from `identity_data` keys).
+- Tap-to-copy on the email with the existing bilingual toast pattern (`copyToClipboard`).
+- Card header rewritten as "Connected sign-in methods · طرق تسجيل الدخول المرتبطة" with a one-line helper underneath.
+
+## 3. Auto-refresh after OAuth redirect
+
+`useLinkedProviders` already refreshes on `SIGNED_IN` / `USER_UPDATED` / `TOKEN_REFRESHED`. To make the user-visible state snap immediately when Profile re-opens via `?profile=1`:
+
+- In `ConnectedAccountsCard`, add a `useEffect` that:
+  - Reads `?profile=1` on mount and, when present, calls `refresh()` once and then `getSession()` to force a token refresh round-trip.
+  - Subscribes to `window` `focus` and `visibilitychange` events; on either, calls `refresh()` (covers the case where the OAuth tab returned focus before Supabase fired its event).
+- Add a 4-second `setInterval` poll that auto-stops after 3 ticks or the first state change — short window only when the URL had `?profile=1` — to catch the rare case where Supabase's identity propagation lags the redirect.
+- The query-param strip in `Index.tsx` stays (already implemented), so subsequent navigation isn't affected.
+
+## 4. Multi-provider section, available to both Travellers and Providers
+
+Generalise the card to render every supported sign-in method, not just Google.
+
+- New `src/lib/auth/providers.ts` declares the catalogue:
+  ```text
+  google   — connect & unlink supported (lovable.auth + supabase.auth.linkIdentity)
+  apple    — connect & unlink supported (only shown when the lovable runtime exposes apple)
+  email    — read-only row showing the user's email, "Primary sign-in" badge
+  phone    — read-only row showing masked E.164 phone, "Primary sign-in" badge
+  ```
+  Each entry: id, label EN/AR, glyph component, `canConnect`, `canUnlink`.
+- `useLinkedProviders` extended to return a normalised array `providers: ProviderState[]` derived from `getUserIdentities()` (`provider`, `identity_data.email`, `last_sign_in_at`, `created_at`). Existing `google` shortcut kept for back-compat.
+- `ConnectedAccountsCard` iterates `providers`, renders the prominent block from §2, gates Connect/Unlink based on `canConnect/canUnlink`, and reuses the confirm modal from §1.
+- Apple connect uses `supabase.auth.linkIdentity({ provider: 'apple', ... })`. If Supabase rejects with "provider not enabled", the toast says "Apple sign-in isn't enabled yet · لم يُفعَّل تسجيل الدخول عبر Apple" and the row stays in connect state — no crash, no silent failure.
+- Email/phone rows are informational: show the value, no Connect button (already part of the account).
+
+### Make it available to Providers
+
+- Patient app: card already in `ProfileScreen`. No change.
+- Provider shell (`src/pages/ProviderDashboard.tsx`): currently has no profile screen. Add a new top-bar avatar/menu button that opens a slide-over panel `src/components/provider/ProviderAccountPanel.tsx` containing:
+  - Display name + organisation
+  - `<ConnectedAccountsCard />` (the same component)
+  - Sign-out button (reusing the existing `logout` handler)
+  This is the smallest non-disruptive surface — no new route, no nav rewrite.
+- Admin shell (`src/pages/Admin.tsx`): inject `<ConnectedAccountsCard />` into the existing **Settings → General** tab (`AdminSettingsGeneral`), under a new "My account" subsection. Admin users land here from the existing settings nav; no new menu entries.
+
+## Files
+
+- New `src/components/profile/UnlinkConfirmDialog.tsx`
+- New `src/lib/auth/providers.ts`
+- New `src/components/provider/ProviderAccountPanel.tsx`
+- Edit `src/components/profile/ConnectedAccountsCard.tsx` — multi-provider rendering, prominence, confirm flow, focus/visibility/?profile=1 refresh
+- Edit `src/hooks/useLinkedProviders.ts` — return `providers[]`, expose `linkedAt` per provider; keep current `google` field
+- Edit `src/lib/auth/googleLink.ts` — already has `clearGoogleLinkage`; add a generic `clearProviderLinkage(userId, provider)` for parity (used by Apple unlink)
+- Edit `src/pages/ProviderDashboard.tsx` — add account button + panel mount
+- Edit `src/components/admin/AdminSettingsGeneral.tsx` — add "My account" block hosting the card
+
+## Out of scope
+
+- No new database migrations (existing `profiles.google_*` columns are sufficient; Apple linkage is read directly from `getUserIdentities()` and not mirrored).
+- No backend Supabase auth-config changes; if Apple isn't enabled in the project, the row degrades gracefully.
+- No changes to QuickSignup / LoginScreen / PhoneInput.
+
+## Verification
+
+- `npx tsc -p tsconfig.app.json --noEmit` → 0 errors.
+- `bunx vitest run` → 443 still pass; add tests for `useLinkedProviders.providers[]` shape and for the confirm-dialog open/cancel/confirm path with mocked `supabase.auth`.
+- Manual: phone+password user → Profile → tap **Connect Google** → return → row auto-flips to Linked with email + connection date visible. Tap **Unlink** → confirm modal appears → Cancel keeps state → Confirm unlinks and toasts. Sign in as a provider → top-bar avatar → same card behaves identically. Admin Settings → General → "My account" → same card.
