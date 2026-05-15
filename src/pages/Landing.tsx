@@ -81,7 +81,7 @@ const Landing = () => {
   const navLinks: { en: string; ar: string; href: string; isRoute?: boolean; anchorId?: string }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
     { en: "How", ar: "كيف يعمل", href: "#how" },
-    { en: "Pricing", ar: "الأسعار", href: "/pricing", isRoute: true },
+    { en: "Pricing", ar: "الأسعار", href: "#pricing" },
     { en: "FAQ", ar: "الأسئلة", href: "#faq" },
     { en: "Contact", ar: "تواصل", href: "#contact" },
   ];

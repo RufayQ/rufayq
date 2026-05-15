@@ -107,12 +107,13 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
               {isAr ? <span className="font-arabic">من العلاج إلى الثقافة والترفيه — كل مرافق متخصص في رحلة جزء من حياتك بالخارج.</span> : "From treatment to culture and leisure — each agent specializes in one part of your time abroad."}
             </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="flex md:grid overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 -mx-6 px-6 md:mx-0 md:px-0 md:grid-cols-3 lg:grid-cols-6">
             {agents.map((a) => (
               <a
                 key={a.id}
-                href={`/agents/${a.id}`}
-                className="group rounded-2xl p-5 transition-all hover:-translate-y-1 flex flex-col text-center"
+                href="#agents"
+                aria-label={isAr ? `${a.ar} — اعرف أكثر` : `${a.en} — learn more`}
+                className="group rounded-2xl p-5 transition-all hover:-translate-y-1 flex flex-col text-center min-w-[200px] md:min-w-0 snap-start shrink-0 md:shrink"
                 style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}
               >
                 <div
