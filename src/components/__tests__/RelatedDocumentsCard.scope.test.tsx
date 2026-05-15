@@ -95,9 +95,9 @@ const pickAndConfirm = async (container: HTMLElement) => {
   expect(fileInput).toBeTruthy();
 
   const file = new File(["hello"], "visa.pdf", { type: "application/pdf" });
-  // jsdom: assign files via Object.defineProperty
-  Object.defineProperty(fileInput, "files", { value: [file] });
-  fireEvent.change(fileInput);
+  await act(async () => {
+    fireEvent.change(fileInput, { target: { files: [file] } });
+  });
 
   // Click the "Attach" confirm button on the label sheet.
   // The sheet renders two buttons: Cancel and Attach. Find by text content.
