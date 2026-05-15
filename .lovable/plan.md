@@ -1,41 +1,42 @@
-# QuickSignup password gating relaxation
+# Recovery/new-password parity with QuickSignup
 
-## Goal
-For the Quick Traveller Sign-up flow only:
-1. Accept passwords rated **Fair** and above (currently only accepts all 6 rules = Strong).
-2. Remove the **"Not a common password"** requirement entirely.
+## Problem
 
-## Why scoped to QuickSignup
-`LoginScreen.tsx` (recovery/new-password view) also imports `allRequiredPass` from the same component. Changing `allRequiredPass` globally would silently relax recovery gating too. We will keep `allRequiredPass` unchanged and add a new signup-specific validator.
+After the last change:
 
-## Changes
+- `PasswordStrength` no longer displays the "Not a common password" rule.
+- But `LoginScreen.tsx` (the recovery → new-password view at line ~401-415) still gates submission with `allRequiredPass`, which **still requires** `notCommon` plus all 5 other rules.
+- Result: recovery requires Strong (6/6), shows a 5-rule checklist that can be 100% green while submit stays disabled. Inconsistent with QuickSignup, which now accepts Fair (≥3/5).
 
-### 1. `src/components/auth/PasswordStrength.tsx`
-- **Keep** `REQUIRED_KEYS` and `allRequiredPass` exactly as-is so `LoginScreen.tsx` is untouched.
-- **Remove** the `notCommon` rule from the displayed `rules` array (line ~96) so users no longer see it in the checklist on any screen.
-- **Add** new export `fairAndAbovePass`:
-  - Checks the 5 remaining rules: `length`, `upper`, `lower`, `number`, `notIdentity`.
-  - Returns `true` when **≥ 3** of those 5 pass (Fair threshold per existing band definitions).
-- **Adjust** the band/segment logic so the UI still makes sense with 5 invisible required keys instead of 6. Mapping:
-  - 0–2 rules → Weak (1 segment)
-  - 3 rules → Fair (2 segments)
-  - 4 rules → Good (3 segments)
-  - 5 rules → Strong (4 segments)
+The "Forgot password?" CTA on the sign-in view (`handleForgot`) is the only entry point and lands on the same `newpass` view, so fixing it covers the entire forget-password scenario.
 
-### 2. `src/pages/QuickSignup.tsx`
-- Replace the single call `allRequiredPass(pwChecks)` with `fairAndAbovePass(pwChecks)` (lines 48 and 82).
-- No other behavioural changes (optional fields, terms checkbox, server error handling all stay the same).
+## Also, the password acceptance is accepting fair to strong, yet still the server rejects it
 
-### 3. Tests
-- `src/components/auth/__tests__/PasswordStrength.test.tsx`
-  - Keep existing `allRequiredPass` tests.
-  - Add tests for `fairAndAbovePass`: verify it returns `true` at 3/5 rules and `false` at 2/5 or below.
-- `src/pages/__tests__/QuickSignup.test.tsx`
-  - Update the "disables submit when password fails required rules" test so the "weak" example now uses a password that fails the *new* signup threshold (e.g. only 2 of 5 rules) and the "strong" example uses a Fair-or-better password (e.g. 3 of 5 rules).
-  - Remove assertions against `pw-rule-notCommon` since that rule is no longer rendered.
+## Change
 
-## Verification (post-implementation)
+### `src/screens/LoginScreen.tsx`
+
+- Update import (line 14) from `allRequiredPass` → `fairAndAbovePass`.
+- Inside the `newpass` view (line ~404):
+  - `const pwOk = fairAndAbovePass(pwChecks);`
+  - Keep the existing `valid = pwOk && newPass === newPassConfirm` and the confirm-match border-error styling.
+- Update the input label (line ~425) from "New password (min 8 chars)" to something neutral like "New password" (the meter still shows length requirement); leave Arabic as-is.
+
+No schema, RLS, edge function, or other auth-flow changes. No styling redesign.
+
+## Tests
+
+- Add a small test in `src/screens/__tests__/` (new file `LoginScreen.newpass-gate.test.tsx`) that:
+  - Renders `LoginScreen` with `view` forced to `newpass` via the recovery path is awkward; simpler: extract assertion at unit level by importing `fairAndAbovePass` and asserting it's the gate used. **Or** skip a new test and rely on the existing `PasswordStrength` + `fairAndAbovePass` unit tests, since the LoginScreen change is a one-line wiring swap that typecheck + manual confirms.
+- Decision: skip new test (consistent with previous recovery-flow patches that didn't add LoginScreen-specific tests). TypeScript + the existing 441-test suite cover regression risk.
+
+## Add Google Sign in 
+
+&nbsp;
+
+## Verification
+
 - `npx tsc -p tsconfig.app.json --noEmit`
-- `bunx vitest run src/components/auth/__tests__/PasswordStrength.test.tsx src/pages/__tests__/QuickSignup.test.tsx`
-- `bunx vitest run` (full suite)
+- `bunx vitest run` (full)
 - `bun run build`
+- Manual checklist: cite `LoginScreen.tsx:14` (import) and `:404` (gate) showing `fairAndAbovePass`.
