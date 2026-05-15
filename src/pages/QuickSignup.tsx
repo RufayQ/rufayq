@@ -5,7 +5,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { setStoredRole } from "@/screens/RoleSelectorScreen";
-import { phoneToE164, phoneToEmail, isValidEmail, isValidE164 } from "@/lib/auth/phoneEmail";
+import { phoneToEmail, isValidEmail, isValidE164, composeE164 } from "@/lib/auth/phoneEmail";
+import { detectDialCountry, getStoredDialCountry, nationalityToIso2 } from "@/lib/auth/phoneCountries";
+import PhoneInput from "@/components/auth/PhoneInput";
 import PasswordStrength, { evaluatePassword, fairAndAbovePass } from "@/components/auth/PasswordStrength";
 import RufayQLogo from "@/components/RufayQLogo";
 import NationalityCombobox from "@/components/NationalityCombobox";
@@ -31,6 +33,8 @@ const QuickSignup = () => {
   const [firstNameAr, setFirstNameAr] = useState("");
   const [lastNameAr, setLastNameAr] = useState("");
   const [phone, setPhone] = useState("");
+  const [dialCountry, setDialCountry] = useState<string>(() => detectDialCountry());
+  const [dialManual, setDialManual] = useState<boolean>(() => !!getStoredDialCountry());
   const [password, setPassword] = useState("");
   const [pwFocused, setPwFocused] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -43,7 +47,7 @@ const QuickSignup = () => {
 
   const fullNameEn = `${firstName.trim()} ${lastName.trim()}`.trim();
   const fullNameAr = [firstNameAr.trim(), lastNameAr.trim()].filter(Boolean).join(" ").trim() || null;
-  const e164 = phoneToE164(phone);
+  const e164 = composeE164(dialCountry, phone);
   const pwChecks = evaluatePassword(password, { firstName, lastName, phone });
   const pwOk = fairAndAbovePass(pwChecks);
   const canSubmit =
@@ -54,6 +58,13 @@ const QuickSignup = () => {
     terms &&
     (!email.trim() || isValidEmail(email)) &&
     !submitting;
+
+  // Mirror nationality -> dial code unless the user manually overrode the chip.
+  useEffect(() => {
+    if (dialManual) return;
+    const iso = nationalityToIso2(nationality);
+    if (iso && iso !== dialCountry) setDialCountry(iso);
+  }, [nationality, dialManual, dialCountry]);
 
   // Persist Traveller role + sign out any stale staff/provider session.
   useEffect(() => {
@@ -264,16 +275,16 @@ const QuickSignup = () => {
 
             <div>
               <label className="text-[12px]" style={labelStyle}>{t("Mobile number", "رقم الجوال")}</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+966 5X XXX XXXX"
-                className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
-                style={inputStyle}
-                autoComplete="tel"
-                inputMode="tel"
-                required
+              <PhoneInput
+                country={dialCountry}
+                onCountryChange={(code, meta) => { setDialCountry(code); if (meta.manual) setDialManual(true); }}
+                national={phone}
+                onNationalChange={setPhone}
+                isAr={isAr}
+                inputStyle={inputStyle}
+                chipStyle={inputStyle}
+                placeholder={t("5X XXX XXXX", "5X XXX XXXX")}
+                autoDetected={!dialManual}
               />
             </div>
 

@@ -10,7 +10,9 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biometric } from "@/lib/native/biometric";
-import { phoneToE164, phoneToEmail } from "@/lib/auth/phoneEmail";
+import { phoneToEmail, composeE164 } from "@/lib/auth/phoneEmail";
+import { detectDialCountry, getStoredDialCountry } from "@/lib/auth/phoneCountries";
+import PhoneInput from "@/components/auth/PhoneInput";
 import PasswordStrength, { evaluatePassword, fairAndAbovePass } from "@/components/auth/PasswordStrength";
 import { lovable } from "@/integrations/lovable";
 
@@ -25,6 +27,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
   // Sign-in state
   const [phone, setPhone] = useState("");
+  const [dialCountry, setDialCountry] = useState<string>(() => detectDialCountry());
+  const [dialManual, setDialManual] = useState<boolean>(() => !!getStoredDialCountry());
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -99,7 +103,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   // SIGN-IN (phone + password)
   // ============================================================
   const handleSignIn = async () => {
-    const e164 = phoneToE164(phone);
+    const e164 = composeE164(dialCountry, phone);
     if (!e164 || e164.length < 8) { toast.error("Enter your mobile number"); return; }
     if (!password) { toast.error("Enter your password"); return; }
     setSubmitting(true);
@@ -229,7 +233,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   // RECOVER (forgot password) — sends OTP, verify-otp resets temp pw
   // ============================================================
   const handleForgot = async () => {
-    const e164 = phoneToE164(phone);
+    const e164 = composeE164(dialCountry, phone);
     if (!e164) { toast.error("Enter your mobile number first"); return; }
     handleSendOtp("whatsapp", e164, "recover");
   };
@@ -325,12 +329,15 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
             <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>
               Mobile Number <span className="font-arabic" style={{ color: "var(--gray)" }}>· رقم الجوال</span>
             </label>
-            <div className="flex items-center mt-1 rounded-xl overflow-hidden" style={{ border: "1px solid var(--gray-light)", height: 52 }}>
-              <span className="pl-3 pr-2 text-sm" style={{ color: "var(--gray)" }}>🇸🇦 +966</span>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="5X XXX XXXX"
-                inputMode="tel" autoComplete="tel"
-                className="flex-1 h-full px-2 text-sm outline-none" style={{ background: "transparent", color: "var(--navy)" }} />
-            </div>
+            <PhoneInput
+              country={dialCountry}
+              onCountryChange={(code, meta) => { setDialCountry(code); if (meta.manual) setDialManual(true); }}
+              national={phone}
+              onNationalChange={setPhone}
+              inputStyle={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+              chipStyle={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+              autoDetected={!dialManual}
+            />
           </div>
           <div>
             <div className="flex justify-between items-center">

@@ -15,6 +15,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { syncGoogleLinkage } from "@/lib/auth/googleLink";
 
 type Status = "checking" | "allow" | "redirecting";
 
@@ -76,11 +77,12 @@ const AppAuthGuard = ({ children }: Props) => {
 
     supabase.auth
       .getSession()
-      .then(({ data: { session } }) => evaluate(!!session?.user))
+      .then(({ data: { session } }) => { evaluate(!!session?.user); if (session?.user) syncGoogleLinkage(session.user.id); })
       .catch(() => evaluate(false));
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       evaluate(!!session?.user);
+      if (session?.user) syncGoogleLinkage(session.user.id);
     });
 
     return () => {

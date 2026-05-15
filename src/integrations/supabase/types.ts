@@ -2574,6 +2574,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auth_providers: string[]
           contact_verification_status: string
           contact_verified: boolean
           created_at: string
@@ -2585,6 +2586,9 @@ export type Database = {
           full_name_ar: string | null
           full_name_en: string | null
           gender: string | null
+          google_email: string | null
+          google_linked_at: string | null
+          google_sub: string | null
           id: string
           iqama_number: string | null
           nationality: string | null
@@ -2599,6 +2603,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auth_providers?: string[]
           contact_verification_status?: string
           contact_verified?: boolean
           created_at?: string
@@ -2610,6 +2615,9 @@ export type Database = {
           full_name_ar?: string | null
           full_name_en?: string | null
           gender?: string | null
+          google_email?: string | null
+          google_linked_at?: string | null
+          google_sub?: string | null
           id?: string
           iqama_number?: string | null
           nationality?: string | null
@@ -2624,6 +2632,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auth_providers?: string[]
           contact_verification_status?: string
           contact_verified?: boolean
           created_at?: string
@@ -2635,6 +2644,9 @@ export type Database = {
           full_name_ar?: string | null
           full_name_en?: string | null
           gender?: string | null
+          google_email?: string | null
+          google_linked_at?: string | null
+          google_sub?: string | null
           id?: string
           iqama_number?: string | null
           nationality?: string | null

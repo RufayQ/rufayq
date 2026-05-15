@@ -75,7 +75,7 @@ describe("QuickSignup", () => {
 
     fireEvent.change(screen.getByPlaceholderText(/e\.g\. Mohammed$/), { target: { value: "Mohammed" } });
     fireEvent.change(screen.getByPlaceholderText(/e\.g\. Al-Saud/), { target: { value: "Al-Saud" } });
-    fireEvent.change(screen.getByPlaceholderText(/\+966/), { target: { value: "+966569590418" } });
+    fireEvent.change(screen.getByPlaceholderText(/5X XXX XXXX/), { target: { value: "569590418" } });
 
     // Below Fair: only 2/5 rules pass (lower + notIdentity, fails length/upper/number)
     fireEvent.change(screen.getByPlaceholderText(/At least 8 characters/), { target: { value: "ab" } });
