@@ -10,7 +10,9 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biometric } from "@/lib/native/biometric";
-import { phoneToE164, phoneToEmail } from "@/lib/auth/phoneEmail";
+import { phoneToEmail, composeE164 } from "@/lib/auth/phoneEmail";
+import { detectDialCountry, getStoredDialCountry } from "@/lib/auth/phoneCountries";
+import PhoneInput from "@/components/auth/PhoneInput";
 import PasswordStrength, { evaluatePassword, fairAndAbovePass } from "@/components/auth/PasswordStrength";
 import { lovable } from "@/integrations/lovable";
 
