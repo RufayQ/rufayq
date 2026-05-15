@@ -12,8 +12,17 @@ interface BottomNavProps {
 
 const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
   const { showEn, showAr } = useLanguage();
-  const biLabel = (en: string, ar: string) =>
-    showEn && showAr ? `${en} · ${ar}` : showAr ? ar : en;
+  const tabAriaLabel = (en: string, ar: string) =>
+    showEn && showAr
+      ? `${en} tab · تبويب ${ar}`
+      : showAr
+        ? `تبويب ${ar}`
+        : `${en} tab`;
+  const homeAriaLabel = showEn && showAr
+    ? "Home tab · رُفَيِّق الرئيسية"
+    : showAr
+      ? "رُفَيِّق الرئيسية"
+      : "Home tab";
 
   const sideTabs: { id: Tab; icon: typeof Map; labelEn: string; labelAr: string; isGold?: boolean }[] = [
     { id: "journey", icon: Map, labelEn: "Journey", labelAr: "رحلة" },
