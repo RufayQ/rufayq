@@ -3,6 +3,7 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import NotificationBell from "@/components/NotificationBell";
 import PhaseRibbon from "@/components/home/PhaseRibbon";
 import { type Phase } from "@/components/home/journeyPhase";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export type HomeHeaderMenuItem = HeaderMenuItem;
 
@@ -13,6 +14,10 @@ interface HomeHeaderProps {
   menuItems: HomeHeaderMenuItem[];
   /** Optional: when present, renders a faint phase ribbon along the bottom edge. */
   phase?: Phase;
+  /** Controlled notification drawer state (lifted from HomeScreen). */
+  notificationOpen?: boolean;
+  onNotificationOpenChange?: (open: boolean) => void;
+  onNotificationNavigate?: (link: string) => void;
 }
 
 function greetingForHour(hour: number) {
