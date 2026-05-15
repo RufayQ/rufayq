@@ -33,6 +33,7 @@ import ComingSoon from "@/components/admin/shell/ComingSoon";
 import AdminCmsSeo from "@/components/admin/AdminCmsSeo";
 import AdminCmsMedia from "@/components/admin/AdminCmsMedia";
 import AdminCmsBlogCategories from "@/components/admin/AdminCmsBlogCategories";
+import AdminPushNotifications from "@/components/admin/AdminPushNotifications";
 
 import { NAV_MODULES, ALL_LEAVES, findGroupForLeaf, type LeafKey } from "@/components/admin/shell/adminNav";
 import { useAdminBadges } from "@/components/admin/shell/useAdminBadges";
