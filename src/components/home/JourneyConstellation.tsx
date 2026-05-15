@@ -112,11 +112,11 @@ function layout(milestones: JourneyMilestone[]): {
 
 import { formatChipDate } from "@/lib/journeyOverview";
 
-const PHASE_LABELS: Record<JourneyMilestone["phase"], { en: string; order: number }> = {
-  before: { en: "BEFORE", order: 0 },
-  travel: { en: "TRAVEL", order: 1 },
-  care:   { en: "CARE",   order: 2 },
-  after:  { en: "AFTER",  order: 3 },
+const PHASE_LABELS: Record<JourneyMilestone["phase"], { en: string; ar: string; order: number }> = {
+  before: { en: "BEFORE", ar: "قبل",   order: 0 },
+  travel: { en: "TRAVEL", ar: "سفر",   order: 1 },
+  care:   { en: "CARE",   ar: "علاج",  order: 2 },
+  after:  { en: "AFTER",  ar: "بعد",   order: 3 },
 };
 
 const JourneyConstellation = ({
