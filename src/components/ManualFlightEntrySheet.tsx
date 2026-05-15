@@ -484,6 +484,9 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], draftId = "curre
       source: "manual",
       traveler,
     });
+
+    // Successful submit — drop the in-progress draft.
+    clearDraft(draftId);
   };
 
   const TRAVELER_OPTIONS: { id: TravelerKind; label: string; ar: string; icon: React.ReactNode }[] = [
