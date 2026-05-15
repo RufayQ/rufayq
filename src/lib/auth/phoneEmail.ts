@@ -3,7 +3,7 @@
  * and the Supabase verify-otp edge function. Synthetic email format
  * MUST stay in sync with `supabase/functions/verify-otp/index.ts`.
  */
-import { findDialCountry } from "./phoneCountries";
+import { findDialCountry, DIAL_COUNTRIES } from "./phoneCountries";
 
 export const phoneToE164 = (raw: string, defaultCountry = "+966"): string => {
   const trimmed = (raw || "").trim().replace(/\s+/g, "");
