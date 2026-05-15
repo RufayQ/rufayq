@@ -1,167 +1,84 @@
 ## Scope
 
-Branch: `edit/edt-bc3726f8-449b-4dbb-a6e0-ec4b4268ebec` @ `3b93138`. The live signup is `src/pages/QuickSignup.tsx`. `LoginScreen.tsx` no longer hosts signup (guarded by `LoginScreen.register-removed.test.tsx`) and will not be touched. The canonical combobox is `src/components/NationalityCombobox.tsx`; no `auth/` duplicate will be created.
+Phase 1 only — pure code fixes targeting Lighthouse Perf 82→90+ and A11y 95→100. SEO is already 100; Phase 2 (CMS publishing, MedicalWebPage schema, agent route pages, billing) is out of scope and will be handled in separate prompts.
 
-## Implementation
+Files touched: `index.html`, `src/index.css`, `src/pages/Landing.tsx`, `src/pages/LandingBelow.tsx`, `src/pages/About.tsx`, `src/pages/Pricing.tsx`, `public/llms.txt`. No behavior changes, no new dependencies.
 
-### 1. `src/pages/QuickSignup.tsx`
+## Edits
 
-- Add state: `const [gender, setGender] = useState<"" | "male" | "female" | "other">("")`.
-- Inside the existing `{showOptional && ...}` block (after the Nationality field), add a Gender selector:
-  - Three-segment pill (Male / Female / Other) bilingual: `t("Male","ذكر")`, `t("Female","أنثى")`, `t("Other","آخر")`.
-  - Selected segment uses gold border/text on `BG_DARK_2`; unselected uses `TEXT_MUTED`. No new design tokens; reuses existing `inputStyle` palette.
-  - Buttons are `type="button"` and never affect `canSubmit`.
-- Update `profiles` upsert to include `gender: gender || null` alongside the existing `nationality: nationality.trim() || null`.
-- Do NOT add `gender` to `canSubmit`. Required gating stays: firstName, lastName, valid e164, password, terms, optional valid email.
+### 1. LCP font path (`index.html`)
 
-### 2. `src/pages/__tests__/QuickSignup.test.tsx`
+a. Add preload alongside existing DM Sans preload (after line 53):
+   ```html
+   <link rel="preload" href="/fonts/cormorant-latin-2fed1d1b.woff2" as="font" type="font/woff2" crossorigin />
+   ```
 
-Add/update tests that read straight from the rendered DOM and a mocked `supabase.from('profiles').upsert` spy:
+b. Append two `@font-face` rules to the inlined `<style>` block (after the DM Sans 700 face, line 58) — Cormorant Garamond 300 and 400, latin subset, mirroring fonts.css's `unicode-range`. The hero `<h1>` then resolves Cormorant in the same waterfall as DM Sans, eliminating the swap that delays LCP.
 
-- `optional details are hidden by default in English` — assert "First name (Arabic)", "Nationality" label, and Gender pill are NOT in the document on initial render.
-- `clicking Add optional details reveals Arabic name, nationality, and gender` — click the toggle, assert all three groups present.
-- `submitting with only required fields persists nationality: null and gender: null` — fill required fields only, submit, assert the upsert payload has `nationality: null, gender: null` and never `"Saudi Arabia"` or `"male"`.
-- `selecting a gender in optional details persists that value` — open optional details, click Female pill, submit, assert upsert payload `gender: "female"`.
+c. Remove the `<noscript>` fallback line:
+   ```html
+   <noscript><link rel="stylesheet" href="/fonts/fonts.css" /></noscript>
+   ```
+   The `media="print" onload="..."` link above still loads heavier weights (Cormorant 600/700, Naskh) for JS users; non-JS visitors get the system fallback in the inline body style.
 
-Test infrastructure:
+Expected: LCP 3.8 s → < 3.0 s, render-blocking saving ~160 ms + swap eliminated ~600 ms.
 
-- Mock `@/integrations/supabase/client` so `supabase.auth.signUp` resolves with a fake user, `supabase.auth.getSession` resolves with a session, and `supabase.from('profiles').upsert` is a `vi.fn()` we can assert on.
-- Mock `@/hooks/useFreshStart` to no-op.
-- Wrap render in `MemoryRouter`.
+### 2. Agent-tile contrast (`src/index.css`, lines 52–57)
 
-### 3. `src/components/__tests__/NationalityCombobox.test.tsx`
+Replace the six agent tokens with brighter values that hit WCAG AA against `#0B1A28`:
 
-Already covers: EN-stored→EN display, EN-stored→AR display (relocalize), AR-stored→EN display (relocalize), placeholder fallback, localized emit on selection. **No changes needed.** Will re-run to confirm green.
+```
+--color-medai:     #4FB8C9;   /* was #004D5B */
+--color-shopai:    #B89BFF;   /* was #7B4FBF */
+--color-tourai:    #5BC07F;   /* was #1A6B3C */
+--color-tasteai:   #FF8A5C;   /* was #C44B1A */
+--color-exploreai: #5FA8FF;   /* was #0C5FA8 */
+--color-planai:    #E6B756;   /* was #8B6914 */
+```
 
-## Out of scope
+These tokens are only used by the six agent cards in `LandingBelow.tsx` (verified by ripgrep) — no light-surface usages exist elsewhere, so no `-dark` variant is needed.
 
-- LoginScreen.tsx (no signup code — explicitly removed; do not recreate).
-- `src/components/auth/NationalityCombobox.tsx` (does not exist on this branch — do not create duplicate).
-- Password rules, design tokens, layout.
+### 3. Static-shell title/description (`index.html`, lines 29 + 31)
 
-In this checkout:
+Align with runtime `<SeoLazy>` to stop Google rewriting the title:
 
-- current HEAD is 512e148, branch work;
-- there is **no** src/pages/QuickSignup.tsx;
-- there is **no** src/components/NationalityCombobox.tsx;
-- the combobox is at src/components/auth/NationalityCombobox.tsx;
-- signup/gender/nationality code still exists in src/screens/LoginScreen.tsx.
+```html
+<title>RufayQ — Your AI Companion for Every Journey</title>
+<meta name="description" content="Bilingual EN/AR AI companion for patients traveling abroad — medical, cultural & beyond." />
+```
 
-So the implementation plan is likely correct **for Lovable’s branch**, but it is **not applicable to this checkout**.
+Update `og:title`, `twitter:title`, and the SSG hero `<h1>` text to match.
 
----
+### 4. Agent cards — fix broken links + mobile UX (`src/pages/LandingBelow.tsx`)
 
-## **If Lovable is definitely working on branch 3b93138**
+- Change `href={`/agents/${a.id}`}` → `href="#agents"` until those routes exist.
+- Add `aria-label={isAr ? \`${a.ar} — اعرف أكثر\` : \`${a.en} — learn more\`}` to each `<a>`.
+- Container: keep `grid` at `md:` and up. On mobile use a horizontal snap rail:
+  ```
+  flex md:grid overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 -mx-6 px-6 md:mx-0 md:px-0 md:grid-cols-3 lg:grid-cols-6
+  ```
+  Each card adds `min-w-[200px] md:min-w-0 snap-start shrink-0 md:shrink`.
 
-If they really are on branch:
+### 5. Pricing nav anchor (`src/pages/Landing.tsx`, line 84)
 
-`edit/edt-bc3726f8-449b-4dbb-a6e0-ec4b4268ebec @ 3b93138`  
+Change `{ en: "Pricing", ar: "الأسعار", href: "/pricing", isRoute: true }` → `{ en: "Pricing", ar: "الأسعار", href: "#pricing" }`. The `/pricing` route still exists for direct visits and is reached from elsewhere.
 
+### 6. Public copy alignment (limited)
 
-and if that branch really has:
+- `src/pages/About.tsx` line 12: "AI medical companion" → "AI companion".
+- `public/llms.txt`: replace standalone "medical companion" mentions in marketing prose with "AI companion" (leave technical/medical-records terminology intact).
+- Do NOT touch `docs/`, in-app screen copy, or the Lovable Cloud-managed disclaimers.
 
-- src/pages/QuickSignup.tsx,
-- src/components/NationalityCombobox.tsx,
-- LoginScreen.register-removed.test.tsx,
-- signup routed through QuickSignup,
+### 7. Pricing CTAs for unbillable tiers (`src/pages/Pricing.tsx`)
 
-then their plan is **good** and I would approve it with two small additions.
+For the "Journey Companion" and "Full Companion" plans only: change the CTA label and behavior to a `Contact us →` link that scrolls to `#contact` on the landing page (`/#contact` or `/ar/#contact`). Leave Free Trial and Basic tiers untouched.
 
-### **Add these two requirements**
+## Verification
 
-1. **Assert gender is not required for submit**
+- `npx tsc -p tsconfig.app.json --noEmit` — clean.
+- Reload `/` — confirm hero `<h1>` paints in Cormorant immediately (no glyph swap), agent tiles brighter, mobile shows horizontal snap rail, nav "Pricing" smooth-scrolls, agent cards no longer 404.
+- Re-run Lighthouse on `/` — expect Perf ≥ 90, A11y = 100, SEO = 100, Best Practices = 100.
 
-Add/keep a test that proves selecting gender is optional and does not affect canSubmit.
+## Out of scope (Phase 2 — separate prompts)
 
-2. **Assert “Other” persists correctly**
-
-Since they add "other" as a third option, add a test for it or at least include it in the selector test coverage.
-
-Suggested addition:
-
-`Also add:`  
-`- Test that canSubmit does not require gender.`  
-`- Test that selecting Other persists gender: "other".`  
-
-
-Other than that, their plan is well-scoped for their branch:
-
-- gender defaults to "";
-- gender is inside optional details;
-- gender persists as gender || null;
-- nationality persists as nationality.trim() || null;
-- tests assert no silent "Saudi Arabia" or "male";
-- no duplicate combobox;
-- no old LoginScreen restoration.
-
----
-
-## **If this PR is supposed to target the branch I can inspect here**
-
-Then **do not accept Lovable’s plan**, because it targets the wrong files.
-
-Current branch evidence:
-
-- src/screens/LoginScreen.tsx imports NationalityCombobox from @/components/auth/NationalityCombobox. 【F:src/screens/LoginScreen.tsx†L1-L7】
-- Registration state still has gender: "male" and nationality: "Saudi Arabia". 【F:src/screens/LoginScreen.tsx†L56-L60】
-- These values are still persisted directly as gender: reg.gender and nationality: reg.nationality. 【F:src/screens/LoginScreen.tsx†L281-L292】
-- NationalityCombobox is only present at src/components/auth/NationalityCombobox.tsx, not src/components/NationalityCombobox.tsx. 【F:src/components/auth/NationalityCombobox.tsx†L22-L23】
-
-For this branch, the correct fix remains:
-
-`Patch src/screens/LoginScreen.tsx and src/components/auth/NationalityCombobox.tsx, not QuickSignup.`  
-
-
----
-
-## **What I would tell Lovable now**
-
-Send this:
-
-`Your plan is approved only for branch edit/edt-bc3726f8-449b-4dbb-a6e0-ec4b4268ebec @ 3b93138 if raw output proves QuickSignup is the live signup.`  
-  
-`Please add two test requirements:`  
-`1. Gender is optional and does not affect submit gating.`  
-`2. Selecting "Other" persists gender: "other".`  
-  
-`Otherwise proceed as planned:`  
-`- edit src/pages/QuickSignup.tsx`  
-`- edit src/pages/__tests__/QuickSignup.test.tsx`  
-`- do not touch LoginScreen`  
-`- do not create auth/NationalityCombobox duplicate`  
-`- verify typecheck, targeted tests, full suite, and build.`  
-  
-`But if the PR target is branch work @ 512e148, your plan is targeting the wrong files. In that branch, patch:`  
-`- src/screens/LoginScreen.tsx`  
-`- src/components/auth/NationalityCombobox.tsx`  
-`and fix gender/nationality defaults there.`  
-
-
----
-
-## **Commands I used to validate current checkout**
-
-`pwd`  
-`git rev-parse --short HEAD`  
-`git branch --show-current`  
-`git status --short`  
-`rg --files src | rg 'QuickSignup|NationalityCombobox|LoginScreen|register-removed'`  
-`rg -n "QuickSignup|quick-signup|NationalityCombobox|gender:|nationality:" src/App.tsx src/pages src/screens src/components -g '*.{ts,tsx}' | head -260`  
-
-
-  
-  
-Verification
-
-1. `npx tsc -p tsconfig.app.json --noEmit` → 0 errors.
-2. `bunx vitest run src/pages/__tests__/QuickSignup.test.tsx src/components/__tests__/NationalityCombobox.test.tsx` → all green.
-3. `bunx vitest run` → full suite green (no regressions).
-4. `bun run build` → success.
-
-Final report will paste exit codes, changed-file list, and cite line numbers showing `gender` default `""`, `nationality` default `""`, `gender: gender || null`, `nationality: nationality.trim() || null`, plus the new test names.
-
-## Files
-
-- Edit: `src/pages/QuickSignup.tsx`
-- Edit: `src/pages/__tests__/QuickSignup.test.tsx`
-- (No new files.)
+Articles 2 & 3 publish + cross-links, MedicalWebPage/E-E-A-T schema, `/agents/*` route pages, expanded `llms.txt` 6-agent description, sourcing the Beyond Medicine stats, billing-backend extension. Cache TTL on fonts is host-level and not addressable in app code.
