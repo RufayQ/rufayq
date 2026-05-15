@@ -299,7 +299,9 @@ const JourneyConstellation = ({
                 backdropFilter: "blur(2px)",
               }}
             >
-              <span style={{ color: "var(--navy)", fontWeight: 700 }}>{c.label}</span>
+              {showEn && <span style={{ color: "var(--navy)", fontWeight: 700 }}>{c.label}</span>}
+              {showEn && showAr && <span className="mx-1" style={{ color: "var(--gray-light)" }}>·</span>}
+              {showAr && <span className="font-arabic" dir="rtl" style={{ color: "var(--navy)", fontWeight: 700 }}>{c.labelAr}</span>}
               {c.sub && (
                 <>
                   <span className="mx-1" style={{ color: "var(--gray-light)" }}>·</span>
