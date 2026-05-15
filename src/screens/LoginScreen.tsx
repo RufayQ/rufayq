@@ -198,6 +198,9 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const submitOtp = async (code: string) => {
     setSubmitting(true);
     const { data, error } = await supabase.functions.invoke("verify-otp", {
+      // No `profile` payload here: this LoginScreen path is recover-only
+      // (signup lives in /quick-signup). The edge function still derives the
+      // verified phone/email from the OTP recipient and writes the profile.
       body: { to: otpRecipient, code, channel: otpChannel },
     });
     if (error || !data?.approved) {
@@ -208,6 +211,17 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       setOtp(["", "", "", "", "", ""]);
       setOtpError(true);
       setTimeout(() => setOtpError(false), 500);
+      return;
+    }
+
+    // Server-side profile persistence is the source of truth. If it failed,
+    // do NOT report success — the user (and Admin) would see a ghost account.
+    if (data.profilePersisted === false) {
+      setSubmitting(false);
+      toast.error("Could not save your contact details · لم نتمكن من حفظ بياناتك", {
+        description: data?.error || "Please try the code again, or contact support.",
+      });
+      setOtp(["", "", "", "", "", ""]);
       return;
     }
 
@@ -222,8 +236,6 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         return;
       }
     }
-
-    const userId = data.userId as string | undefined;
 
     setSubmitting(false);
     toast.success("Verified · set a new password");
