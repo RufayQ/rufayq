@@ -243,6 +243,55 @@ describe("Index — Arabic shell (/ar/app) returnTo handling", () => {
   });
 });
 
+describe("Index — profile effect URL hygiene (?profile=1)", () => {
+  // The profile effect operates on window.location via history.replaceState,
+  // so we seed window.location to match the route under test.
+  it("/ar/app?signin=1&profile=1 opens Profile and strips signin + profile + returnTo", async () => {
+    window.history.replaceState({}, "", "/ar/app?signin=1&profile=1");
+    getSessionMock.mockResolvedValue(fakeSession());
+    renderAt("/ar/app?signin=1&profile=1");
+
+    await waitFor(() => expect(screen.getByTestId("profile-screen")).toBeInTheDocument());
+
+    await waitFor(() => {
+      expect(window.location.search).not.toMatch(/signin/);
+      expect(window.location.search).not.toMatch(/profile/);
+      expect(window.location.search).not.toMatch(/returnTo/);
+    });
+    // Cannot become /ar/app?signin=1 after the profile effect.
+    expect(window.location.search).not.toBe("?signin=1");
+  });
+
+  it("/ar/app?profile=1&returnTo=%2Fapp%2Fwallet strips returnTo and does not navigate to it", async () => {
+    window.history.replaceState({}, "", "/ar/app?profile=1&returnTo=%2Fapp%2Fwallet");
+    getSessionMock.mockResolvedValue(fakeSession());
+    renderAt("/ar/app?profile=1&returnTo=%2Fapp%2Fwallet");
+
+    await waitFor(() => expect(screen.getByTestId("profile-screen")).toBeInTheDocument());
+
+    await waitFor(() => {
+      expect(window.location.search).not.toMatch(/returnTo/);
+      expect(window.location.search).not.toMatch(/profile/);
+    });
+    // Profile effect must not honor returnTo as a navigation target.
+    expect(navigateMock).not.toHaveBeenCalledWith("/app/wallet", expect.anything());
+  });
+
+  it("/app?signin=1&profile=1 (EN shell) also strips signin + profile + returnTo", async () => {
+    window.history.replaceState({}, "", "/app?signin=1&profile=1");
+    getSessionMock.mockResolvedValue(fakeSession());
+    renderAt("/app?signin=1&profile=1");
+
+    await waitFor(() => expect(screen.getByTestId("profile-screen")).toBeInTheDocument());
+
+    await waitFor(() => {
+      expect(window.location.search).not.toMatch(/signin/);
+      expect(window.location.search).not.toMatch(/profile/);
+    });
+    expect(window.location.search).not.toBe("?signin=1");
+  });
+});
+
 describe("Index — explicit logout", () => {
   it("calls supabase.auth.signOut() and clears the guest flag", async () => {
     localStorage.setItem("rufayq_guest_ok", "1");
