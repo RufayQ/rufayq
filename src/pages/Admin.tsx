@@ -273,6 +273,7 @@ const Admin = () => {
               case "ai_usage": return gate(isAdmin, "AI Usage") ?? <AdminAiUsage />;
               case "reviews": return <AdminReviews />;
               case "tickets": return <AdminTickets />;
+              case "push": return <AdminPushNotifications isAdmin={isAdmin} />;
               case "news": return <AdminNews />;
               case "pages": return <AdminPages />;
               case "website_cms": return gate(isAdmin, "Website CMS") ?? <AdminWebsiteCms />;
