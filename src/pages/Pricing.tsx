@@ -5,6 +5,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 import { Seo } from "@/seo/Seo";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { usePricingCatalog, addonPrice } from "@/hooks/usePricingCatalog";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import CountryPicker from "@/components/CountryPicker";
@@ -84,6 +85,24 @@ const Pricing = () => {
   const isAr = useLocation().pathname.startsWith("/ar");
   const { mode } = useLanguage();
   const { format, getPrice, getAddon, currency, setCurrency, country, countryManual, detectionSource, geoLoading, debug } = useCurrency();
+  const { addons: catalogAddons } = usePricingCatalog();
+  // Journey Plans are managed in the admin Pricing & Catalog (Add-ons tab).
+  // Description is "tagline\n• feature 1\n• feature 2\n…" — first line is the tagline,
+  // subsequent lines starting with • or - are bullet features.
+  const journeyAddons = (["journeyCompanion", "fullCompanion"] as const)
+    .map((k) => catalogAddons.find((a) => a.key === k))
+    .filter((a): a is NonNullable<typeof a> => Boolean(a));
+  const parseJourney = (raw: string | null) => {
+    const lines = (raw || "").split("\n").map((l) => l.trim()).filter(Boolean);
+    const features: string[] = [];
+    let tagline = "";
+    for (const line of lines) {
+      const m = line.match(/^[•\-–·]\s*(.+)$/);
+      if (m) features.push(m[1]);
+      else if (!tagline) tagline = line;
+    }
+    return { tagline, features };
+  };
   const [period, setPeriod] = useState<"monthly" | "annual">("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [familyOpen, setFamilyOpen] = useState(false);
@@ -416,98 +435,62 @@ const Pricing = () => {
             {showAr ? "للعلاج والترفيه معاً" : <>Where care meets <em style={{ color: GOLD }}>leisure</em></>}
           </h3>
         </div>
-        <div className="grid md:grid-cols-2 gap-5">
-          {([
-            {
-              id: "journey-companion",
-              eyebrowEn: "Patient + family", eyebrowAr: "للمريض والعائلة",
-              nameEn: "Journey Companion", nameAr: "رفيق الرحلة",
-              priceEn: "SAR 189", priceAr: "١٨٩ ر.س",
-              descEn: "MedAI + TourAI + TasteAI + ExploreAI — medical care meets leisure.",
-              descAr: "MedAI + TourAI + TasteAI + ExploreAI — رعاية طبية مع ترفيه.",
-              featuresEn: [
-                "Everything in Companion",
-                "ShopAI — smart shopping abroad",
-                "TourAI — cultural sights & guides",
-                "TasteAI — diet-aware restaurants",
-                "ExploreAI — leisure activities",
-              ],
-              featuresAr: [
-                "كل ما في كومبانيون",
-                "ShopAI — تسوّق ذكي بالخارج",
-                "TourAI — معالم ثقافية ومرشدون",
-                "TasteAI — مطاعم تراعي حميتك",
-                "ExploreAI — أنشطة ترفيهية",
-              ],
-              highlight: false,
-              badge: null,
-            },
-            {
-              id: "full-companion",
-              eyebrowEn: "All 6 agents", eyebrowAr: "كل المرافقين",
-              nameEn: "Full Companion", nameAr: "الرفيق الكامل",
-              priceEn: "SAR 269", priceAr: "٢٦٩ ر.س",
-              descEn: "All 6 AI agents. Complete journey mastery.",
-              descAr: "كل المرافقين الستة. إتقان كامل للرحلة.",
-              featuresEn: [
-                "Everything in Journey Companion",
-                "PlanAI — orchestrates every agent",
-                "Unlimited family members",
-                "Priority concierge support",
-                "Personalised journey insights",
-              ],
-              featuresAr: [
-                "كل ما في رفيق الرحلة",
-                "PlanAI — ينسّق جميع المرافقين",
-                "أفراد عائلة بلا حدود",
-                "دعم كونسيرج بأولوية",
-                "رؤى رحلة مخصّصة",
-              ],
-              highlight: true,
-              badge: showAr ? "متكامل ★" : "★ COMPLETE",
-            },
-          ] as const).map((t) => (
-            <div
-              key={t.id}
-              className="relative rounded-3xl p-6 flex flex-col"
-              style={{
-                background: t.highlight ? `linear-gradient(180deg, ${GOLD}18, ${BG2})` : BG2,
-                border: `1px solid ${t.highlight ? GOLD : BORDER}`,
-                boxShadow: t.highlight ? `0 20px 60px -20px ${GOLD}55` : undefined,
-              }}
-            >
-              {t.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider" style={{ background: GOLD, color: "#06101A" }}>
-                  {t.badge}
+        {journeyAddons.length > 0 && (
+          <div className="grid md:grid-cols-2 gap-5">
+            {journeyAddons.map((a, idx) => {
+              const highlight = a.key === "fullCompanion";
+              const eyebrowEn = a.key === "fullCompanion" ? "All 6 agents" : "Patient + family";
+              const eyebrowAr = a.key === "fullCompanion" ? "كل المرافقين" : "للمريض والعائلة";
+              const badge = highlight ? (showAr ? "متكامل ★" : "★ COMPLETE") : null;
+              const { tagline, features } = parseJourney(showAr ? a.descriptionAr : a.descriptionEn);
+              const amount = addonPrice(a, currency);
+              const priceLabel = amount != null ? format(amount) : "—";
+              const unit = (showAr ? a.unitAr : a.unitEn) || (showAr ? "/ شهر" : "/ month");
+              const cta = (showAr ? a.ctaAr : a.ctaEn) || (showAr ? "تواصل معنا ←" : "Contact us →");
+              return (
+                <div
+                  key={a.id || a.key || idx}
+                  className="relative rounded-3xl p-6 flex flex-col"
+                  style={{
+                    background: highlight ? `linear-gradient(180deg, ${GOLD}18, ${BG2})` : BG2,
+                    border: `1px solid ${highlight ? GOLD : BORDER}`,
+                    boxShadow: highlight ? `0 20px 60px -20px ${GOLD}55` : undefined,
+                  }}
+                >
+                  {badge && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider" style={{ background: GOLD, color: "#06101A" }}>
+                      {badge}
+                    </div>
+                  )}
+                  <p className="font-mono text-[10px] tracking-[0.25em] uppercase mb-2" style={{ color: GOLD }}>
+                    {showAr ? eyebrowAr : eyebrowEn}
+                  </p>
+                  <h3 className="font-display text-2xl mb-1" style={{ color: TEXT }}>{showAr ? a.nameAr : a.nameEn}</h3>
+                  <p className="text-xs mb-4" style={{ color: MUTED, minHeight: 32 }}>{tagline}</p>
+                  <div className="mb-5">
+                    <span className="font-display text-3xl font-semibold" style={{ color: TEXT }}>{priceLabel}</span>
+                    <span className="text-xs ms-1" style={{ color: MUTED }}>{unit}</span>
+                  </div>
+                  <ul className="space-y-2 mb-6 flex-1">
+                    {features.map((f, i) => (
+                      <li key={i} className="flex items-start gap-2 text-[13px]" style={{ color: TEXT }} dir={showAr ? "rtl" : "ltr"}>
+                        <Check size={14} className="mt-0.5 flex-shrink-0" color={GOLD} />
+                        <span className={showAr ? "font-arabic" : ""}>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="/#contact"
+                    className="block text-center px-4 py-2.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.02]"
+                    style={{ background: highlight ? GOLD : "transparent", color: highlight ? "#06101A" : TEXT, border: highlight ? "none" : `1px solid ${BORDER}` }}
+                  >
+                    {cta}
+                  </a>
                 </div>
-              )}
-              <p className="font-mono text-[10px] tracking-[0.25em] uppercase mb-2" style={{ color: GOLD }}>
-                {showAr ? t.eyebrowAr : t.eyebrowEn}
-              </p>
-              <h3 className="font-display text-2xl mb-1" style={{ color: TEXT }}>{showAr ? t.nameAr : t.nameEn}</h3>
-              <p className="text-xs mb-4" style={{ color: MUTED, minHeight: 32 }}>{showAr ? t.descAr : t.descEn}</p>
-              <div className="mb-5">
-                <span className="font-display text-3xl font-semibold" style={{ color: TEXT }}>{showAr ? t.priceAr : t.priceEn}</span>
-                <span className="text-xs ms-1" style={{ color: MUTED }}>{showAr ? "/ شهر" : "/ month"}</span>
-              </div>
-              <ul className="space-y-2 mb-6 flex-1">
-                {(showAr ? t.featuresAr : t.featuresEn).map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[13px]" style={{ color: TEXT }} dir={showAr ? "rtl" : "ltr"}>
-                    <Check size={14} className="mt-0.5 flex-shrink-0" color={GOLD} />
-                    <span className={showAr ? "font-arabic" : ""}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="/#contact"
-                className="block text-center px-4 py-2.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.02]"
-                style={{ background: t.highlight ? GOLD : "transparent", color: t.highlight ? "#06101A" : TEXT, border: t.highlight ? "none" : `1px solid ${BORDER}` }}
-              >
-                {showAr ? "تواصل معنا ←" : "Contact us →"}
-              </a>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Enterprise tier — contact sales */}
         <div className="mt-6 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-5"
