@@ -11,6 +11,7 @@ import { parseFlightJourney } from "@/lib/flightJourney";
 import JourneyTimeline from "@/components/JourneyTimeline";
 import ManualFlightEntrySheet, { type ManualFlightPayload } from "@/components/ManualFlightEntrySheet";
 import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
+import { useAuthUserId } from "@/hooks/useAuthUserId";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import { type FlightSegment, segmentToFlightInfo } from "@/lib/transportTickets";
 import Time24Input from "@/components/Time24Input";
@@ -1817,7 +1818,7 @@ const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onS
           <p className="text-[10px] mb-2 px-1" style={{ color: "rgba(255,255,255,0.5)" }}>
             Attach VISA, passport, insurance or any related file. Stays linked to this ticket.
           </p>
-          <RelatedDocumentsCard segmentRef={pendingSegmentRef} userId={userId} compact />
+          <Step5SuccessAttachments segmentRef={pendingSegmentRef} />
         </div>
       )}
 
