@@ -1,28 +1,88 @@
-Verification & Fix Pass
+Fix + Verification Pass — Optional Arabic Fields Disclosure + Report Defect Correction  
+  
+Do not redesign. Do not add dependencies. Do not change password rules, schema/RLS, edge functions, or auth business logic.
 
-No redesign. Run the requested checks, fix only what fails, and sweep the codebase for any Arabic RufayQ wordmark that isn't رُفَيِّق.
+Important: Your previous branch-reality report conflicts with the repo state I can see. Before patching, prove the actual branch state with command output.
 
-Important repo-specific corrections:
+Step 0 — Branch reality proof
 
-- The PasswordStrength test is at:
+Run these commands from repo root and paste the exact output in your report:
 
-  src/components/auth/PasswordStrength.test.tsx
+pwd
 
-  not src/components/auth/__tests__/PasswordStrength.test.tsx.
+git rev-parse --short HEAD
 
-- There is no src/pages/QuickSignup.tsx in this repo. For signup/recovery verification, inspect:
+git status --short
 
-  src/screens/LoginScreen.tsx
+rg --files src | rg 'QuickSignup|LoginScreen|Auth\.tsx|App\.tsx|PasswordStrength'
 
-  src/pages/Auth.tsx if relevant.
+rg -n "quick-signup|QuickSignup|register view is retired|PasswordStrength" src/App.tsx src/pages src/screens src/components/auth 2>/dev/null
 
-1. Environment & checks
+find src/components/auth -maxdepth 3 -type f | sort
+
+Based on this output, identify the actual live signup component:
+
+- If src/pages/QuickSignup.tsx truly exists and is routed from src/App.tsx, patch QuickSignup.tsx.
+
+- If QuickSignup.tsx does not exist, patch src/screens/LoginScreen.tsx.
+
+- Do not reference nonexistent files in the final report.
+
+- Name the exact file you patched.
+
+Product fix
+
+In English signup mode, Arabic-name fields should not be visible in the primary signup path. Hide optional Arabic/profile fields behind an “Add optional details” disclosure/collapse, matching the attached UI direction.
+
+Requirements:
+
+1. Primary signup fields should stay minimal:
+
+   - Name fields required by the current implementation
+
+   - Mobile number
+
+   - Password
+
+   - Terms/privacy checkbox
+
+2. Optional fields should move behind the disclosure:
+
+   - Arabic name fields
+
+   - DOB
+
+   - Nationality
+
+   - Any similar non-required profile details currently inline
+
+3. The disclosure should be closed by default in English mode.
+
+4. In Arabic mode, it is acceptable for Arabic-related optional details to be open by default if that matches the current language UX.
+
+5. Preserve all state and submission payload fields.
+
+6. Preserve PasswordStrength UI and allRequiredPass/evaluatePassword gating.
+
+7. Keep the change minimal and in the actual signup component only.
+
+8. If tests assert old behavior, update the test with a one-line justification.
+
+Known branch-state caveat:
+
+- In my visible checkout, the optional fields are inline in src/screens/LoginScreen.tsx:
+
+  Full Name, Arabic name, ID/Passport, DOB, mobile, nationality.
+
+- If your branch instead has src/pages/QuickSignup.tsx, prove it with the Step 0 command output and patch that file.
+
+Verification commands
 
 Run from repo root:
 
 bun install
 
-If bun install fails, report the failure and fall back to npm ci only if needed.
+If bun install fails, report the failure and fall back to npm ci only if necessary.
 
 Then run:
 
@@ -30,9 +90,17 @@ npx tsc -p [tsconfig.app](http://tsconfig.app).json --noEmit
 
 Targeted tests:
 
-bunx vitest run src/components/auth/PasswordStrength.test.tsx src/screens/__tests__/HomeScreen.test.tsx
+- Use the actual PasswordStrength test path discovered in Step 0.
 
-Full test suite:
+- If the file is flat, run:
+
+  bunx vitest run src/components/auth/PasswordStrength.test.tsx src/screens/__tests__/HomeScreen.test.tsx
+
+- If the file is under **tests**, run:
+
+  bunx vitest run src/components/auth/__tests__/PasswordStrength.test.tsx src/screens/__tests__/HomeScreen.test.tsx
+
+Full suite:
 
 bunx vitest run
 
@@ -40,180 +108,142 @@ Build:
 
 bun run build
 
-Capture exact stdout/stderr and exit code for each command. Report pass/fail summary.
+Manual checks to report with ✅ / ⚠️ and actual file:line references
 
-2. Fix policy
+1. Optional-field disclosure:
 
-- Only patch code that is actually red, except for the Arabic wordmark sweep requested below.
+   Confirm Arabic-name/profile optional fields are hidden behind “Add optional details” in English mode.
 
-- No refactors.
+2. Registration password gating:
 
-- No UI rewrites.
+   Confirm signup submit is gated by evaluatePassword/allRequiredPass for:
 
-- For each failure:
+   - length
 
-  - Apply the smallest possible diff.
+   - upper
 
-  - Re-run only the affected command.
+   - lower
 
-  - Re-run the full suite once at the end.
+   - number
 
-- If a test asserts old behavior, fix the test.
+   - notCommon
 
-- If production code is wrong, fix production code.
+   - notIdentity
 
-- Include a one-line justification per fix.
+3. Recovery/new-password:
 
-3. Manual sanity checks
+   Confirm the actual recovery/new-password flow renders PasswordStrength and gates submit with the same rules.
 
-Read-only inspection unless something is clearly broken:
+   If there is no recovery/new-password UI in your branch, report that with file evidence.
 
-- src/screens/LoginScreen.tsx + src/components/auth/PasswordStrength.tsx:
+   Do not incorrectly claim it is absent if LoginScreen.tsx has a newpass view.
 
-  Confirm registration submit is gated by allRequiredPass/evaluatePassword for:
+4. Home wiring:
 
-  length, upper, lower, number, notCommon, notIdentity.
+   Report what HomeScreen actually renders today.
 
-- Recovery/new-password flow:
+   If it renders PatientMetricsGrid, PhaseRibbon5, and HomeJourneyPreview, cite those lines.
 
-  Confirm the recovery/new-password screen imports/renders PasswordStrength and gates submit on the same allRequiredPass/evaluatePassword rules.
+   If it renders JourneyConstellation instead, cite those lines.
 
-  If it does not, this is an allowed code fix: wire in PasswordStrength + allRequiredPass with no visual changes beyond the meter itself.
+   Do not report stale wiring.
 
-- src/screens/HomeScreen.tsx + src/components/home/PatientMetricsGrid.tsx + src/components/home/HomeJourneyPreview.tsx:
+5. Phase routing:
 
-  Verify loading skeleton, zero-state, and populated-state branches exist and use existing hooks/data.
+   Confirm whether Home phase taps navigate with phase:<id> or only milestone:<id>.
 
-- PhaseRibbon5 and JourneyScreen:
+   Confirm what JourneyScreen actually reads: phase:, milestone:, or both.
 
-  Confirm phase taps call onNavigate("journey", "phase:<id>") or equivalent.
+6. RTL:
 
-  Confirm JourneyScreen reads phase:<id> context and selects the relevant phase/milestone.
+   Confirm PhaseRibbon5 does not double-reverse phase order.
 
-- RTL:
+   Specifically check for manual .reverse() usage and [PHASES.map](http://PHASES.map) usage.
 
-  Search for dir="rtl" / mode === "ar" usage in the new components.
-
-  Confirm the phase ribbon order is not double-reversed.
-
-  Do not manually reverse PHASES; visual mirroring should be handled by dir/flex only.
-
-Report findings as a short checklist with ✅ / ⚠️ and file:line references.
-
-4. Arabic wordmark sweep — رُفَيِّق
-
-Goal:
-
-Every Arabic rendering of the brand should read exactly:
-
-رُفَيِّق
-
-Not bare "رفيق" or another variant.
-
-Procedure:
+Arabic wordmark sweep
 
 Run:
 
 rg -n "رفيق|رفيّق|رُفيق|رفيِّق|رُفَيِّق" src public index.html
 
-List every hit.
+Report:
 
-For each Arabic brand mention that is not already رُفَيِّق, replace it with رُفَيِّق.
+- Count before.
 
-Scope includes:
+- Any changed files.
 
-- Wordmark/logo components
+- Count after.
 
-- Auth/login/signup screens
+- Every Arabic brand mention must be رُفَيِّق.
 
-- Onboarding
+- Bare رفيق may remain only if it is clearly the generic Arabic noun “companion,” not the brand. For each remaining generic-noun occurrence, list file:line and surrounding phrase.
 
-- Home header
+Final report format
 
-- Settings
+1. Branch reality proof:
 
-- Support
+   Paste the Step 0 command outputs.
 
-- Profile
+2. Commands run:
 
-- Care Hub
+   Exact command strings, exit codes, and concise stdout/stderr summaries.
 
-- Chat
+3. Files changed:
 
-- Records
+   Exact file paths and one-line summary per file.
 
-- Pricing
+4. Failures fixed:
 
-- Journey
+   Any failing command, cause, and minimal fix.
 
-- Medications
+   If no command failed, say so.
 
-- Static SEO/meta files: index.html, public/manifest.webmanifest, public/llms.txt, public/robots.txt, sitemap/static text if present
+5. Manual checks:
 
-- README/user-facing strings if present
+   ✅ / ⚠️ checklist with actual file:line references.
 
-- Toasts, disclaimers, share messages
+6. Arabic wordmark sweep:
 
-- supabase/functions/** email templates if they contain Arabic brand text
+   Count before, changed files, count after, and generic noun exceptions.
 
-Do not touch:
+7. Remaining concerns:
 
-- code identifiers
+   Anything needing product/user decision.
 
-- file names
+Do not submit a report that references QuickSignup.tsx unless your Step 0 output proves that file exists and is routed in this branch.
 
-- English "RufayQ"
+Do not submit a report that references src/components/auth/__tests__/PasswordStrength.test.tsx unless your Step 0 output proves that file exists.
 
-- Latin wordmark text
+Why I’d send this version instead of Lovable’s current plan
 
-After replacement, re-run:
+Lovable’s plan may be valid in their environment, but it is not consistent with the branch I can inspect. The safest approach is to make them paste branch-proof command output before making or reporting changes.
 
-npx tsc -p [tsconfig.app](http://tsconfig.app).json --noEmit
+Current checkout evidence
 
-bunx vitest run
+The current route table I can inspect has /app, /ar/app, /auth, and /ar/auth, but not /quick-signup in this section. 【F:src/App.tsx†L99-L108】
 
-bun run build
+The traveler click path in Auth.tsx navigates to /app with query params. 【F:src/pages/Auth.tsx†L58-L60】
 
-If string/snapshot tests fail only because the expected Arabic brand spelling changed, update those expectations.
+The actual flat PasswordStrength.test.tsx path exists and imports from ./PasswordStrength. 【F:src/components/auth/PasswordStrength.test.tsx†L1-L6】
 
-5. Final report format
+The inline optional profile fields visible in this checkout are in LoginScreen.tsx: Arabic name, DOB, and nationality are in the same primary field list as required fields. 【F:src/screens/LoginScreen.tsx†L870-L889】
 
-Reply with:
+The registration password meter is already wired below the password input and should be preserved. 【F:src/screens/LoginScreen.tsx†L953-L963】
 
-- Commands run:
+Commands I used for this validation
 
-  exact command strings + exit codes.
+pwd
 
-- Failures fixed:
+rg --files src | rg 'QuickSignup|LoginScreen|Auth\.tsx|App\.tsx|PasswordStrength'
 
-  file, one-line diff summary, and one-line justification.
+rg -n "quick-signup|QuickSignup|register view is retired|PasswordStrength" src/App.tsx src/pages src/screens src/components/auth 2>/dev/null | head -120
 
-- Manual checks:
+git status --short; git log --oneline -3
 
-  checklist with ✅ / ⚠️ and file:line references.
+nl -ba src/App.tsx | sed -n '90,125p'
 
-- Arabic wordmark sweep:
+nl -ba src/pages/Auth.tsx | sed -n '50,75p'
 
-  count of matching occurrences before,
+nl -ba src/screens/LoginScreen.tsx | sed -n '849,889p;953,963p'
 
-  files changed,
-
-  count after,
-
-  confirmation that every Arabic brand mention is now رُفَيِّق.
-
-- Remaining concerns:
-
-  anything needing user/product decision.
-
-Out of scope:
-
-- New features
-
-- Visual redesign
-
-- New dependencies
-
-- Schema/RLS changes
-
-- Edge function logic changes
+nl -ba src/components/auth/PasswordStrength.test.tsx | sed -n '1,8p'## My validation of Lovable’s proposed plan

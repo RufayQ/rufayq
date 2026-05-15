@@ -39,10 +39,15 @@ const renderPage = () =>
   );
 
 describe("QuickSignup", () => {
-  it("renders First name + Last name and Arabic counterparts visibly", () => {
+  it("renders First/Last name inline and hides Arabic counterparts behind 'Add optional details' in EN mode", () => {
     renderPage();
     expect(screen.getByText(/^First name$/)).toBeTruthy();
     expect(screen.getByText(/^Last name$/)).toBeTruthy();
+    // Arabic fields hidden by default in English mode
+    expect(screen.queryByText(/First name \(Arabic\)/)).toBeNull();
+    expect(screen.queryByText(/Last name \(Arabic\)/)).toBeNull();
+    // Toggle reveals them
+    fireEvent.click(screen.getByText(/Add optional details/i));
     expect(screen.getByText(/First name \(Arabic\)/)).toBeTruthy();
     expect(screen.getByText(/Last name \(Arabic\)/)).toBeTruthy();
   });
