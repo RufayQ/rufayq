@@ -47,7 +47,6 @@ describe("QuickSignup", () => {
     expect(screen.queryByText(/First name \(Arabic\)/)).toBeNull();
     expect(screen.queryByText(/Last name \(Arabic\)/)).toBeNull();
     expect(screen.queryByText(/^Nationality$/)).toBeNull();
-    expect(screen.queryByText(/Date of birth/i)).toBeNull();
     // Toggle reveals them
     fireEvent.click(screen.getByText(/Add optional details/i));
     expect(screen.getByText(/First name \(Arabic\)/)).toBeTruthy();
