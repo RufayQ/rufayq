@@ -44,12 +44,14 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const homeMenuItems: HomeHeaderMenuItem[] = [
     { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: () => { window.location.reload(); } },
     { icon: <Bell size={14} />, label: "Notifications", labelAr: "الإشعارات",
-      onClick: () => { toast("Notifications · الإشعارات", { description: "All notifications are up to date · جميع الإشعارات محدّثة" }); } },
+      onClick: () => setNotificationOpen(true) },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص",
       onClick: () => {
         const summary = `Active Trip: ${activeTrip?.destination ?? "—"}`;
         navigator.clipboard.writeText(`RufayQ – Trip Summary\n${summary}`);
-        toast("Copied · تم النسخ");
+        const enMsg = "Copied";
+        const arMsg = "تم النسخ";
+        toast(showEn && showAr ? `${enMsg} · ${arMsg}` : showAr ? arMsg : enMsg);
       } },
     { icon: <Share2 size={14} />, label: "Share App", labelAr: "مشاركة التطبيق",
       onClick: () => {
