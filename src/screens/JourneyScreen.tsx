@@ -133,7 +133,7 @@ const stayTypeOptions = [
   { icon: "🏥", en: "Hospital Stay", ar: "إقامة مستشفى" },
 ];
 
-type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | null;
+type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | `phase:${string}` | null;
 
 const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
   const isGuest = useGuestMode();
