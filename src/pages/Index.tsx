@@ -74,18 +74,53 @@ const Index = () => {
   const [appView, setAppView] = useState<AppView>(() => {
     const seen = localStorage.getItem("rufayq_onboarded");
     if (!seen) return "onboarding";
+    if (forceSignIn && localStorage.getItem("rufayq_guest_ok") === "1") return "main";
     if (forceSignIn) return "login";
     // New flow: pick role BEFORE sign in. If no stored role, show role screen first.
     if (!getStoredRole()) return "role";
     return "main";
   });
 
+  // Validate / strip ?signin=1 + ?returnTo from the URL after a successful
+  // patient-shell entry. Same-origin /app or /ar/app paths only.
+  const isSafePatientPath = (p: string) =>
+    p.startsWith("/") &&
+    !p.startsWith("//") &&
+    (p.startsWith("/app") || p.startsWith("/ar/app"));
+
+  const cleanPatientAppPath = () =>
+    window.location.pathname.startsWith("/ar") ? "/ar/app" : "/app";
+
+  const finishPatientEntryNavigation = useCallback(() => {
+    const rawReturnTo = searchParams.get("returnTo");
+    if (rawReturnTo && isSafePatientPath(rawReturnTo)) {
+      navigate(rawReturnTo, { replace: true });
+      return;
+    }
+    if (searchParams.get("signin") === "1" || searchParams.has("returnTo")) {
+      navigate(cleanPatientAppPath(), { replace: true });
+    }
+  }, [navigate, searchParams]);
+
   // If user arrives at /app with no Supabase session, route them through
   // role-selector → LoginScreen. Guests can still tap "Continue as guest"
-  // inside LoginScreen.
+  // inside LoginScreen. Self-heal stale ?signin=1 when a session or guest flag
+  // already exists so refresh never bounces the user back to Login.
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && forceSignIn) {
+        localStorage.setItem("rufayq_onboarded", "true");
+        setAppView("main");
+        finishPatientEntryNavigation();
+        return;
+      }
+      if (!session?.user && forceSignIn && localStorage.getItem("rufayq_guest_ok") === "1") {
+        localStorage.setItem("rufayq_onboarded", "true");
+        setAppView("main");
+        finishPatientEntryNavigation();
+        return;
+      }
       if (!session?.user && (forceSignIn || appView === "main")) {
         if (forceSignIn || !localStorage.getItem("rufayq_guest_ok")) {
           setAppView(getStoredRole() ? "login" : "role");
@@ -93,7 +128,7 @@ const Index = () => {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forceSignIn]);
+  }, [forceSignIn, finishPatientEntryNavigation]);
 
   // After returning from an OAuth identity-link redirect, open Profile once.
   useEffect(() => {
