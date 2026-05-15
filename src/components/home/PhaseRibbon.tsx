@@ -73,7 +73,9 @@ const PhaseRibbon = ({ current, variant = "light" }: PhaseRibbonProps) => {
                 fontWeight: isActive ? 700 : 500,
               }}
             >
-              {p.en.toUpperCase()}
+              {showEn && <span>{p.en.toUpperCase()}</span>}
+              {showEn && showAr && <span> · </span>}
+              {showAr && <span className="font-arabic" dir="rtl">{p.ar}</span>}
             </span>
           </div>
         );
