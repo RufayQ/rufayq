@@ -171,6 +171,8 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
             </button>
           </div>
 
+          <ConnectedAccountsCard />
+
           <div className="mx-4 mt-6">
             <button onClick={onLogout} className="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 btn-press" style={{ background: "var(--white)", border: "1px solid var(--error)", color: "var(--error)" }}>
               <LogOut size={16} /> Sign Out · تسجيل الخروج
