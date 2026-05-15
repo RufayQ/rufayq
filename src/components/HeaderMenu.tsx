@@ -18,6 +18,7 @@ interface HeaderMenuProps {
 
 const HeaderMenu = ({ items }: HeaderMenuProps) => {
   const [open, setOpen] = useState(false);
+  const { showEn, showAr } = useLanguage();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ top: 0, right: 0 });
