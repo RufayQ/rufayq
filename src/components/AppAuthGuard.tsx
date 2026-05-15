@@ -82,6 +82,7 @@ const AppAuthGuard = ({ children }: Props) => {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       evaluate(!!session?.user);
+      if (session?.user) syncGoogleLinkage(session.user.id);
     });
 
     return () => {
