@@ -103,7 +103,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   // SIGN-IN (phone + password)
   // ============================================================
   const handleSignIn = async () => {
-    const e164 = phoneToE164(phone);
+    const e164 = composeE164(dialCountry, phone);
     if (!e164 || e164.length < 8) { toast.error("Enter your mobile number"); return; }
     if (!password) { toast.error("Enter your password"); return; }
     setSubmitting(true);
@@ -233,7 +233,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   // RECOVER (forgot password) — sends OTP, verify-otp resets temp pw
   // ============================================================
   const handleForgot = async () => {
-    const e164 = phoneToE164(phone);
+    const e164 = composeE164(dialCountry, phone);
     if (!e164) { toast.error("Enter your mobile number first"); return; }
     handleSendOtp("whatsapp", e164, "recover");
   };
