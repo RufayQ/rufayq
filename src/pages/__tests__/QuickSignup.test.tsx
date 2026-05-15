@@ -5,6 +5,8 @@ import { MemoryRouter } from "react-router-dom";
 
 const upsertCalls: any[] = [];
 
+beforeEach(() => { upsertCalls.length = 0; });
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
