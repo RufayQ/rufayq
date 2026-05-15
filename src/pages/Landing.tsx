@@ -249,7 +249,7 @@ const Landing = () => {
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-5 mt-10">
+              <div className="flex flex-wrap gap-5 mt-10" style={{ minHeight: 18 }}>
                 {trustPoints.map((t, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <t.Icon size={13} color={GOLD} />
