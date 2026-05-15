@@ -38,8 +38,6 @@ export const useCmsPage = (slug: string) => {
         .eq("slug", slug)
         .eq("status", "published")
         .maybeSingle();
-        .eq("status", "published")
-        .maybeSingle();
       if (!page || cancelled) { setLoaded(true); return; }
       const { data: sections } = await supabase
         .from("cms_sections")
