@@ -56,8 +56,17 @@ export const REQUIRED_KEYS: (keyof PasswordChecks)[] = [
   "length", "upper", "lower", "number", "notCommon", "notIdentity",
 ];
 
+// Signup-only required keys (notCommon removed per product decision).
+export const SIGNUP_REQUIRED_KEYS: (keyof PasswordChecks)[] = [
+  "length", "upper", "lower", "number", "notIdentity",
+];
+
 export const allRequiredPass = (c: PasswordChecks) =>
   REQUIRED_KEYS.every((k) => c[k]);
+
+// Fair-and-above gate for QuickSignup: at least 3 of the 5 signup rules pass.
+export const fairAndAbovePass = (c: PasswordChecks) =>
+  SIGNUP_REQUIRED_KEYS.filter((k) => c[k]).length >= 3;
 
 interface Props {
   password: string;

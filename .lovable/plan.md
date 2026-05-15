@@ -1,39 +1,41 @@
-# Three small fixes
+# QuickSignup password gating relaxation
 
-## 1. Bug: Arabic name inputs invisible in EN mode (root cause found)
+## Goal
+For the Quick Traveller Sign-up flow only:
+1. Accept passwords rated **Fair** and above (currently only accepts all 6 rules = Strong).
+2. Remove the **"Not a common password"** requirement entirely.
 
-`src/index.css:301-304` has a global rule:
+## Why scoped to QuickSignup
+`LoginScreen.tsx` (recovery/new-password view) also imports `allRequiredPass` from the same component. Changing `allRequiredPass` globally would silently relax recovery gating too. We will keep `allRequiredPass` unchanged and add a new signup-specific validator.
 
-```
-html[data-lang="en"] [dir="rtl"]:not(.lang-keep) { display: none !important; }
-```
+## Changes
 
-The two Arabic-name `<input dir="rtl">` elements at `src/pages/QuickSignup.tsx:336-356` match it and get hidden — only their labels render, which matches the screenshot exactly.
+### 1. `src/components/auth/PasswordStrength.tsx`
+- **Keep** `REQUIRED_KEYS` and `allRequiredPass` exactly as-is so `LoginScreen.tsx` is untouched.
+- **Remove** the `notCommon` rule from the displayed `rules` array (line ~96) so users no longer see it in the checklist on any screen.
+- **Add** new export `fairAndAbovePass`:
+  - Checks the 5 remaining rules: `length`, `upper`, `lower`, `number`, `notIdentity`.
+  - Returns `true` when **≥ 3** of those 5 pass (Fair threshold per existing band definitions).
+- **Adjust** the band/segment logic so the UI still makes sense with 5 invisible required keys instead of 6. Mapping:
+  - 0–2 rules → Weak (1 segment)
+  - 3 rules → Fair (2 segments)
+  - 4 rules → Good (3 segments)
+  - 5 rules → Strong (4 segments)
 
-**Fix:** append `lang-keep` to the className on both Arabic inputs (the documented opt-out at `index.css:298-299`). One-line change per input. No CSS edits, no behavior change.
+### 2. `src/pages/QuickSignup.tsx`
+- Replace the single call `allRequiredPass(pwChecks)` with `fairAndAbovePass(pwChecks)` (lines 48 and 82).
+- No other behavioural changes (optional fields, terms checkbox, server error handling all stay the same).
 
-## 2. Recovery flow parity (your remaining-concerns item 1)
+### 3. Tests
+- `src/components/auth/__tests__/PasswordStrength.test.tsx`
+  - Keep existing `allRequiredPass` tests.
+  - Add tests for `fairAndAbovePass`: verify it returns `true` at 3/5 rules and `false` at 2/5 or below.
+- `src/pages/__tests__/QuickSignup.test.tsx`
+  - Update the "disables submit when password fails required rules" test so the "weak" example now uses a password that fails the *new* signup threshold (e.g. only 2 of 5 rules) and the "strong" example uses a Fair-or-better password (e.g. 3 of 5 rules).
+  - Remove assertions against `pw-rule-notCommon` since that rule is no longer rendered.
 
-In `src/screens/LoginScreen.tsx`'s `newpass` view (around line 401):
-
-- Import `PasswordStrength`, `evaluatePassword`, `allRequiredPass` from `@/components/auth/PasswordStrength`.
-- Render `<PasswordStrength password={newPass} visible={…} />` under the new-password input.
-- Replace the existing local `valid` boolean with one that requires `allRequiredPass(evaluatePassword(newPass))` AND the confirm-match check that's already there.
-- Identity hints (firstName/lastName/phone) aren't available in the recovery context, so omit them — the meter still enforces length/upper/lower/number/notCommon.
-
-No schema, RLS, or auth-business-logic changes.
-
-## 3. HomeScreen (your remaining-concerns item 2)
-
-Skip — you flagged it as awaiting product decision, not a request. Will not touch.
-
-4. Nationality to be drop down list across the wole application with search to pick the nationality 
-
-## Verification
-
+## Verification (post-implementation)
 - `npx tsc -p tsconfig.app.json --noEmit`
-- `bunx vitest run src/pages/__tests__/QuickSignup.test.tsx src/components/auth/__tests__/PasswordStrength.test.tsx src/screens/__tests__/LoginScreen.register-removed.test.tsx src/screens/__tests__/HomeScreen.test.tsx`
-- `bunx vitest run` (full)
+- `bunx vitest run src/components/auth/__tests__/PasswordStrength.test.tsx src/pages/__tests__/QuickSignup.test.tsx`
+- `bunx vitest run` (full suite)
 - `bun run build`
-
-Report exit codes + a short ✅/⚠️ checklist citing real file:line.
