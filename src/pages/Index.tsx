@@ -298,8 +298,13 @@ const Index = () => {
         typeof context === "string" && context.startsWith("milestone:")
           ? (context as `milestone:${string}`)
           : null;
+      const phaseIntent =
+        typeof context === "string" && context.startsWith("phase:")
+          ? (context as `phase:${string}`)
+          : null;
       setJourneyIntent(
         milestoneIntent ??
+          phaseIntent ??
           (context === "new-trip"
             ? "new-trip"
             : context === "view"
