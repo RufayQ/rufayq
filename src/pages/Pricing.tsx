@@ -85,6 +85,24 @@ const Pricing = () => {
   const isAr = useLocation().pathname.startsWith("/ar");
   const { mode } = useLanguage();
   const { format, getPrice, getAddon, currency, setCurrency, country, countryManual, detectionSource, geoLoading, debug } = useCurrency();
+  const { addons: catalogAddons } = usePricingCatalog();
+  // Journey Plans are managed in the admin Pricing & Catalog (Add-ons tab).
+  // Description is "tagline\n• feature 1\n• feature 2\n…" — first line is the tagline,
+  // subsequent lines starting with • or - are bullet features.
+  const journeyAddons = (["journeyCompanion", "fullCompanion"] as const)
+    .map((k) => catalogAddons.find((a) => a.key === k))
+    .filter((a): a is NonNullable<typeof a> => Boolean(a));
+  const parseJourney = (raw: string | null) => {
+    const lines = (raw || "").split("\n").map((l) => l.trim()).filter(Boolean);
+    const features: string[] = [];
+    let tagline = "";
+    for (const line of lines) {
+      const m = line.match(/^[•\-–·]\s*(.+)$/);
+      if (m) features.push(m[1]);
+      else if (!tagline) tagline = line;
+    }
+    return { tagline, features };
+  };
   const [period, setPeriod] = useState<"monthly" | "annual">("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [familyOpen, setFamilyOpen] = useState(false);
