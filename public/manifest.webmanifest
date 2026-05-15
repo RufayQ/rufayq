@@ -1,7 +1,7 @@
 {
-  "name": "RufayQ — Your AI Medical Companion",
+  "name": "RufayQ — Your AI Companion for Every Journey",
   "short_name": "RufayQ",
-  "description": "Bilingual AI medical companion for Saudi & Gulf patients travelling for treatment. You're never alone abroad.",
+  "description": "Bilingual AI companion for Saudi & Gulf travellers — medical, cultural & beyond. You're never alone abroad.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",
