@@ -46,7 +46,9 @@ const NotificationBell = ({ color = "#fff", onNavigate, open: openProp, onOpenCh
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <button onClick={markAllRead} className="text-[11px] px-2 py-1 rounded-full" style={{ background: "var(--teal)", color: "#fff" }}>
-                  {showEn ? "Mark all read" : "تعليم الكل"}
+                  {showEn && <span>Mark all read</span>}
+                  {showEn && showAr && <span> · </span>}
+                  {showAr && <span dir="rtl">تعليم الكل</span>}
                 </button>
               )}
               <button onClick={() => setOpen(false)}><X size={20} /></button>

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { MoreVertical, Copy, Share2, Download, Trash2, RefreshCw, FileText, Bell, Settings, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export interface HeaderMenuItem {
   icon: React.ReactNode;
@@ -17,6 +18,7 @@ interface HeaderMenuProps {
 
 const HeaderMenu = ({ items }: HeaderMenuProps) => {
   const [open, setOpen] = useState(false);
+  const { showEn, showAr } = useLanguage();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ top: 0, right: 0 });
@@ -76,9 +78,9 @@ const HeaderMenu = ({ items }: HeaderMenuProps) => {
             >
               {item.icon}
               <div className="flex-1">
-                <span>{item.label}</span>
-                {item.labelAr && (
-                  <span className="font-arabic text-[10px] ml-1.5" dir="rtl" style={{ color: "var(--gray)" }}>{item.labelAr}</span>
+                {showEn && <span>{item.label}</span>}
+                {showAr && item.labelAr && (
+                  <span className={`font-arabic text-[10px] ${showEn ? "ml-1.5" : ""}`} dir="rtl" style={{ color: "var(--gray)" }}>{item.labelAr}</span>
                 )}
               </div>
             </button>

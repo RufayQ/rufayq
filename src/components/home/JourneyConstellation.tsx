@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 /**
  * JourneyConstellation
@@ -111,11 +112,11 @@ function layout(milestones: JourneyMilestone[]): {
 
 import { formatChipDate } from "@/lib/journeyOverview";
 
-const PHASE_LABELS: Record<JourneyMilestone["phase"], { en: string; order: number }> = {
-  before: { en: "BEFORE", order: 0 },
-  travel: { en: "TRAVEL", order: 1 },
-  care:   { en: "CARE",   order: 2 },
-  after:  { en: "AFTER",  order: 3 },
+const PHASE_LABELS: Record<JourneyMilestone["phase"], { en: string; ar: string; order: number }> = {
+  before: { en: "BEFORE", ar: "قبل",   order: 0 },
+  travel: { en: "TRAVEL", ar: "سفر",   order: 1 },
+  care:   { en: "CARE",   ar: "علاج",  order: 2 },
+  after:  { en: "AFTER",  ar: "بعد",   order: 3 },
 };
 
 const JourneyConstellation = ({
@@ -125,6 +126,7 @@ const JourneyConstellation = ({
   departureDate,
   returnDate,
 }: JourneyConstellationProps) => {
+  const { showEn, showAr } = useLanguage();
   const compact = milestones.slice(0, 8);
   const { nodes } = useMemo(() => layout(compact), [compact]);
 
@@ -167,7 +169,7 @@ const JourneyConstellation = ({
   const chips = useMemo(() => {
     if (nodes.length === 0) return [];
     const seen = new Set<string>();
-    const out: { id: string; label: string; sub: string; cx: number; cy: number }[] = [];
+    const out: { id: string; label: string; labelAr: string; sub: string; cx: number; cy: number }[] = [];
     // Iterate in phase order so chips list stays predictable for a11y.
     const ordered = [...nodes].sort((a, b) => {
       const oa = PHASE_LABELS[a.m.phase].order;
@@ -190,6 +192,7 @@ const JourneyConstellation = ({
       out.push({
         id: `chip-${phase}`,
         label: PHASE_LABELS[phase].en,
+        labelAr: PHASE_LABELS[phase].ar,
         sub: formatChipDate(dateSrc),
         cx, cy,
       });
@@ -222,7 +225,9 @@ const JourneyConstellation = ({
             className="font-mono text-[10px] tracking-[0.24em]"
             style={{ color: "var(--gray)" }}
           >
-            JOURNEY MAP · رحلتك
+            {showEn && <span>JOURNEY MAP</span>}
+            {showEn && showAr && <span> · </span>}
+            {showAr && <span dir="rtl">رحلتك</span>}
           </p>
         </div>
         <span
@@ -232,7 +237,7 @@ const JourneyConstellation = ({
             background: "var(--teal-light)",
           }}
         >
-          {compact.length} STOPS
+          {compact.length} {showEn ? "STOPS" : ""}{showEn && showAr ? " · " : ""}{showAr ? "محطات" : ""}
         </span>
       </header>
 
@@ -294,7 +299,9 @@ const JourneyConstellation = ({
                 backdropFilter: "blur(2px)",
               }}
             >
-              <span style={{ color: "var(--navy)", fontWeight: 700 }}>{c.label}</span>
+              {showEn && <span style={{ color: "var(--navy)", fontWeight: 700 }}>{c.label}</span>}
+              {showEn && showAr && <span className="mx-1" style={{ color: "var(--gray-light)" }}>·</span>}
+              {showAr && <span className="font-arabic" dir="rtl" style={{ color: "var(--navy)", fontWeight: 700 }}>{c.labelAr}</span>}
               {c.sub && (
                 <>
                   <span className="mx-1" style={{ color: "var(--gray-light)" }}>·</span>
@@ -318,7 +325,7 @@ const JourneyConstellation = ({
               key={n.m.id}
               onClick={() => onSelect(n.m.id)}
               data-testid={`constellation-node-${n.m.id}`}
-              aria-label={`${n.m.title} · ${n.m.titleAr}`}
+              aria-label={(showEn && showAr) ? `${n.m.title} · ${n.m.titleAr}` : showAr ? n.m.titleAr : n.m.title}
               aria-current={isCurrent ? "step" : undefined}
               className="absolute group focus:outline-none"
               style={{
@@ -397,21 +404,40 @@ const JourneyConstellation = ({
                 </div>
 
                 {/* Title */}
-                <p
-                  className="mt-2 text-[11px] font-semibold leading-[1.15] text-center"
-                  style={{
-                    color: isDone || isCurrent || isSelected ? "var(--navy)" : "var(--gray)",
-                    maxWidth: 88,
-                    textShadow: "0 1px 0 rgba(255,255,255,0.65)",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                  title={n.m.title}
-                >
-                  {n.m.title}
-                </p>
+                {showEn && (
+                  <p
+                    className="mt-2 text-[11px] font-semibold leading-[1.15] text-center"
+                    style={{
+                      color: isDone || isCurrent || isSelected ? "var(--navy)" : "var(--gray)",
+                      maxWidth: 88,
+                      textShadow: "0 1px 0 rgba(255,255,255,0.65)",
+                      display: "-webkit-box",
+                      WebkitLineClamp: showAr ? 1 : 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                    title={n.m.title}
+                  >
+                    {n.m.title}
+                  </p>
+                )}
+                {showAr && (
+                  <p
+                    className={`${showEn ? "mt-0.5" : "mt-2"} font-arabic text-[10px] leading-[1.15] text-center`}
+                    dir="rtl"
+                    style={{
+                      color: isDone || isCurrent || isSelected ? "var(--navy)" : "var(--gray)",
+                      maxWidth: 88,
+                      display: "-webkit-box",
+                      WebkitLineClamp: showEn ? 1 : 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                    title={n.m.titleAr}
+                  >
+                    {n.m.titleAr}
+                  </p>
+                )}
 
                 {/* Date / today */}
                 {isCurrent ? (
@@ -419,7 +445,7 @@ const JourneyConstellation = ({
                     className="mt-1 px-2 py-[1px] rounded-full font-mono text-[8.5px] tracking-[0.14em]"
                     style={{ background: s.ring, color: "#fff" }}
                   >
-                    TODAY
+                    {showEn ? "TODAY" : "اليوم"}
                   </span>
                 ) : n.m.date ? (
                   <span
