@@ -141,7 +141,6 @@ describe("RelatedDocumentsCard — guest scope (userId == null)", () => {
     expect(payload.device_id).toBe("test-device-xyz");
     expect(payload.segment_ref).toBe("seg-guest-1");
   });
-});
 
   it("falls back to device scope when userId is undefined", async () => {
     const { container } = render(
