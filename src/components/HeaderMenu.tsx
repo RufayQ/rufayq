@@ -78,9 +78,9 @@ const HeaderMenu = ({ items }: HeaderMenuProps) => {
             >
               {item.icon}
               <div className="flex-1">
-                <span>{item.label}</span>
-                {item.labelAr && (
-                  <span className="font-arabic text-[10px] ml-1.5" dir="rtl" style={{ color: "var(--gray)" }}>{item.labelAr}</span>
+                {showEn && <span>{item.label}</span>}
+                {showAr && item.labelAr && (
+                  <span className={`font-arabic text-[10px] ${showEn ? "ml-1.5" : ""}`} dir="rtl" style={{ color: "var(--gray)" }}>{item.labelAr}</span>
                 )}
               </div>
             </button>
