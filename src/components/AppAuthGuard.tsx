@@ -15,6 +15,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { syncGoogleLinkage } from "@/lib/auth/googleLink";
 
 type Status = "checking" | "allow" | "redirecting";
 
