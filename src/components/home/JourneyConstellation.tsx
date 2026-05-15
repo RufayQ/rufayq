@@ -404,21 +404,40 @@ const JourneyConstellation = ({
                 </div>
 
                 {/* Title */}
-                <p
-                  className="mt-2 text-[11px] font-semibold leading-[1.15] text-center"
-                  style={{
-                    color: isDone || isCurrent || isSelected ? "var(--navy)" : "var(--gray)",
-                    maxWidth: 88,
-                    textShadow: "0 1px 0 rgba(255,255,255,0.65)",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                  title={n.m.title}
-                >
-                  {n.m.title}
-                </p>
+                {showEn && (
+                  <p
+                    className="mt-2 text-[11px] font-semibold leading-[1.15] text-center"
+                    style={{
+                      color: isDone || isCurrent || isSelected ? "var(--navy)" : "var(--gray)",
+                      maxWidth: 88,
+                      textShadow: "0 1px 0 rgba(255,255,255,0.65)",
+                      display: "-webkit-box",
+                      WebkitLineClamp: showAr ? 1 : 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                    title={n.m.title}
+                  >
+                    {n.m.title}
+                  </p>
+                )}
+                {showAr && (
+                  <p
+                    className={`${showEn ? "mt-0.5" : "mt-2"} font-arabic text-[10px] leading-[1.15] text-center`}
+                    dir="rtl"
+                    style={{
+                      color: isDone || isCurrent || isSelected ? "var(--navy)" : "var(--gray)",
+                      maxWidth: 88,
+                      display: "-webkit-box",
+                      WebkitLineClamp: showEn ? 1 : 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                    title={n.m.titleAr}
+                  >
+                    {n.m.titleAr}
+                  </p>
+                )}
 
                 {/* Date / today */}
                 {isCurrent ? (
@@ -426,7 +445,7 @@ const JourneyConstellation = ({
                     className="mt-1 px-2 py-[1px] rounded-full font-mono text-[8.5px] tracking-[0.14em]"
                     style={{ background: s.ring, color: "#fff" }}
                   >
-                    TODAY
+                    {showEn ? "TODAY" : "اليوم"}
                   </span>
                 ) : n.m.date ? (
                   <span
