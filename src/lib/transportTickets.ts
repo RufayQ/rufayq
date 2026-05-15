@@ -384,8 +384,7 @@ export function ticketToTransportSegments(t: TransportTicket): TransportSegment[
         : NaN;
       if (!isNaN(arrTs) && !isNaN(nextDep) && nextDep > arrTs) {
         const mins = Math.round((nextDep - arrTs) / 60000);
-        const h = Math.floor(mins / 60); const m = mins % 60;
-        duration = h > 0 ? `${h}h ${m}m` : `${m}m`;
+        duration = formatDuration(mins);
       }
       layoverAfter = {
         duration,

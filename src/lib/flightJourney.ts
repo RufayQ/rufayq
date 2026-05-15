@@ -116,11 +116,27 @@ export interface ComputedLayover {
   code: string;
 }
 
-const fmtDur = (mins: number) => {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+/**
+ * Format a duration in minutes for the journey UI.
+ *
+ *   < 60m  →  "Nm"
+ *   < 24h  →  "Hh Mm"  (drops "0m"  →  e.g. "1h", "1h 30m")
+ *   ≥ 24h  →  "Dd Hh"  (drops "0h"  →  e.g. "1d", "1d 1h", "2d")
+ */
+export const formatDuration = (mins: number): string => {
+  const total = Math.max(0, Math.round(mins));
+  if (total < 60) return `${total}m`;
+  if (total < 24 * 60) {
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    return m === 0 ? `${h}h` : `${h}h ${m}m`;
+  }
+  const d = Math.floor(total / (24 * 60));
+  const h = Math.floor((total % (24 * 60)) / 60);
+  return h === 0 ? `${d}d` : `${d}d ${h}h`;
 };
+
+const fmtDur = (mins: number) => formatDuration(mins);
 
 export function computeLayover(prev: JourneyLeg, next: JourneyLeg): ComputedLayover | null {
   if (!prev || !next) return null;
