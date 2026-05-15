@@ -12,8 +12,17 @@ interface BottomNavProps {
 
 const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
   const { showEn, showAr } = useLanguage();
-  const biLabel = (en: string, ar: string) =>
-    showEn && showAr ? `${en} · ${ar}` : showAr ? ar : en;
+  const tabAriaLabel = (en: string, ar: string) =>
+    showEn && showAr
+      ? `${en} tab · تبويب ${ar}`
+      : showAr
+        ? `تبويب ${ar}`
+        : `${en} tab`;
+  const homeAriaLabel = showEn && showAr
+    ? "Home tab · رُفَيِّق الرئيسية"
+    : showAr
+      ? "رُفَيِّق الرئيسية"
+      : "Home tab";
 
   const sideTabs: { id: Tab; icon: typeof Map; labelEn: string; labelAr: string; isGold?: boolean }[] = [
     { id: "journey", icon: Map, labelEn: "Journey", labelAr: "رحلة" },
@@ -39,7 +48,7 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
         onClick={() => onNavigate(id)}
         className="flex flex-col items-center gap-0.5 relative btn-press"
         style={{ flex: 1, padding: "10px 4px 8px", background: "none", border: "none", cursor: "pointer" }}
-        aria-label={`${biLabel(labelEn, labelAr)} tab`}
+        aria-label={tabAriaLabel(labelEn, labelAr)}
       >
         <div className="absolute top-0 w-5 h-0.5 rounded-full transition-transform" style={{
           background: indicatorColor,
@@ -112,7 +121,7 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
             marginBottom: 2,
             transition: "all 200ms ease",
           }}
-          aria-label={biLabel("Home", "رُفَيِّق")}
+          aria-label={homeAriaLabel}
         >
           <RufayQLogo size={24} variant={isHomeActive ? "light" : "dark"} />
         </button>
