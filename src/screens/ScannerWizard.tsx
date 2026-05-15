@@ -1818,7 +1818,7 @@ const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onS
           <p className="text-[10px] mb-2 px-1" style={{ color: "rgba(255,255,255,0.5)" }}>
             Attach VISA, passport, insurance or any related file. Stays linked to this ticket.
           </p>
-          <Step5SuccessAttachments segmentRef={pendingSegmentRef} />
+          <RelatedDocumentsCard segmentRef={pendingSegmentRef} compact />
         </div>
       )}
 
