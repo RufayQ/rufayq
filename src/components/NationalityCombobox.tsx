@@ -37,7 +37,16 @@ const NationalityCombobox = ({ value, onChange, placeholder, className, style, r
     );
   }, [query]);
 
-  const selectedLabel = value || (placeholder ?? (isAr ? "اختر الجنسية" : "Select nationality"));
+  const selectedCountry = useMemo(
+    () =>
+      COUNTRIES.find(
+        (c) => value === c.name || value === c.nameAr || value === c.code,
+      ),
+    [value],
+  );
+  const selectedLabel = selectedCountry
+    ? isAr ? selectedCountry.nameAr : selectedCountry.name
+    : value || (placeholder ?? (isAr ? "اختر الجنسية" : "Select nationality"));
 
   return (
     <div ref={wrapRef} className="relative" style={{ width: "100%" }}>
