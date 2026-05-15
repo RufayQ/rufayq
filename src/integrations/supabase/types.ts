@@ -3047,6 +3047,121 @@ export type Database = {
           },
         ]
       }
+      push_campaign_recipients: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          notification_id: string | null
+          patient_device_id: string
+          status: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          notification_id?: string | null
+          patient_device_id: string
+          status?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          notification_id?: string | null
+          patient_device_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "push_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_campaigns: {
+        Row: {
+          audience: Json
+          audience_size: number
+          body: string | null
+          body_ar: string | null
+          created_at: string
+          created_by: string | null
+          delivered_count: number
+          error_msg: string | null
+          failed_count: number
+          id: string
+          is_test: boolean
+          kind: string
+          link: string | null
+          organization_id: string | null
+          scheduled_at: string | null
+          scope: string
+          sent_at: string | null
+          status: string
+          title: string
+          title_ar: string | null
+          updated_at: string
+        }
+        Insert: {
+          audience?: Json
+          audience_size?: number
+          body?: string | null
+          body_ar?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_count?: number
+          error_msg?: string | null
+          failed_count?: number
+          id?: string
+          is_test?: boolean
+          kind?: string
+          link?: string | null
+          organization_id?: string | null
+          scheduled_at?: string | null
+          scope?: string
+          sent_at?: string | null
+          status?: string
+          title: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audience?: Json
+          audience_size?: number
+          body?: string | null
+          body_ar?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_count?: number
+          error_msg?: string | null
+          failed_count?: number
+          id?: string
+          is_test?: boolean
+          kind?: string
+          link?: string | null
+          organization_id?: string | null
+          scheduled_at?: string | null
+          scope?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_campaigns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rcm_admissions: {
         Row: {
           actual_los_days: number | null
@@ -7329,6 +7444,22 @@ export type Database = {
           _section: Database["public"]["Enums"]["consent_section"]
         }
         Returns: boolean
+      }
+      push_campaign_cancel: {
+        Args: { _campaign_id: string }
+        Returns: undefined
+      }
+      push_campaign_send: { Args: { _campaign_id: string }; Returns: Json }
+      push_campaign_test_send: { Args: { _campaign_id: string }; Returns: Json }
+      push_estimate_audience: {
+        Args: { _audience: Json; _org: string; _scope: string }
+        Returns: number
+      }
+      push_resolve_devices: {
+        Args: { _audience: Json; _org: string; _scope: string }
+        Returns: {
+          device_id: string
+        }[]
       }
       rcm_advance_discharge: {
         Args: {
