@@ -25,8 +25,6 @@ export const composeE164 = (countryIso2: string, national: string): string => {
 export const splitE164 = (e164: string): { country: string; national: string } => {
   const s = (e164 || "").trim();
   if (!s.startsWith("+")) return { country: "SA", national: s.replace(/\D/g, "") };
-  // Try longest dial-code match first.
-  const { DIAL_COUNTRIES } = require("./phoneCountries") as typeof import("./phoneCountries");
   const sorted = [...DIAL_COUNTRIES].sort((a, b) => b.dial.length - a.dial.length);
   for (const c of sorted) {
     if (s.startsWith(c.dial)) return { country: c.code, national: s.slice(c.dial.length) };
