@@ -89,10 +89,11 @@ export const NAV_MODULES: NavGroup[] = [
   },
   {
     key: "support", label: "Support", icon: MessageSquare,
-    hint: "Tickets & reviews",
+    hint: "Tickets, reviews & broadcasts",
     leaves: [
       { key: "tickets", label: "Tickets", icon: MessageSquare, badgeKey: "open_tickets" },
       { key: "reviews", label: "Reviews", icon: Star },
+      { key: "push",    label: "Push Notifications", icon: Bell, pillTone: "new" },
     ],
   },
   {
