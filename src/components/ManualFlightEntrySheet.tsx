@@ -239,7 +239,7 @@ const SegmentEditor = ({ segment, onChange, onRemove, onMoveUp, onMoveDown, titl
 
 const reverseAirport = (a: Airport): Airport => a;
 
-const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmit }: Props) => {
+const ManualFlightEntrySheet = ({ initial, documentImages = [], draftId = "current", onClose, onSubmit }: Props) => {
   const [mode, setMode] = useState<TripMode>(initial?.return ? "round-trip" : "one-way");
   const [outboundSegs, setOutboundSegs] = useState<FlightSegment[]>(() => [emptySegment("outbound", 0)]);
   const [returnSegs, setReturnSegs] = useState<FlightSegment[]>(() =>
@@ -251,6 +251,94 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
   const [traveler, setTraveler] = useState<TravelerKind>("patient");
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+
+  // ── Draft autosave / recovery ─────────────────────────────────────────────
+  // Holds a draft that hasn't been hydrated yet (so we can show a banner that
+  // asks the user whether to resume). When `null`, no pending offer.
+  const [pendingDraft, setPendingDraft] = useState<FlightDraft | null>(() =>
+    initial ? null : loadDraft(draftId),
+  );
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const hydratedRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // After mount, try to fetch a (possibly newer) cloud draft to surface in the
+  // resume banner. Best-effort — silent on failure.
+  useEffect(() => {
+    if (initial || hydratedRef.current) return;
+    let cancelled = false;
+    void loadDraftRemoteFirst(draftId).then((d) => {
+      if (cancelled || hydratedRef.current || !d) return;
+      // Only update the banner if remote is newer than what we already have.
+      const localTs = pendingDraft ? Date.parse(pendingDraft.updatedAt) : 0;
+      if (Date.parse(d.updatedAt) >= localTs) setPendingDraft(d);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId]);
+
+  const hydrateFromDraft = (d: FlightDraft) => {
+    hydratedRef.current = true;
+    setMode(d.mode);
+    setOutboundSegs(d.outboundSegments?.length ? d.outboundSegments : [emptySegment("outbound", 0)]);
+    setReturnSegs(d.returnSegments ?? []);
+    setPassengerName(d.passenger?.name ?? "");
+    setPassengerPassport(d.passenger?.passport ?? "");
+    setTraveler(d.traveler ?? "patient");
+    setLastSavedAt(d.updatedAt);
+    setPendingDraft(null);
+  };
+
+  const startFresh = () => {
+    hydratedRef.current = true;
+    clearDraft(draftId);
+    setLastSavedAt(null);
+    setPendingDraft(null);
+  };
+
+  const handleClearDraft = () => {
+    if (typeof window !== "undefined" && !window.confirm("Clear saved draft? · مسح المسودة المحفوظة؟")) return;
+    clearDraft(draftId);
+    setLastSavedAt(null);
+    setPendingDraft(null);
+    setMode("one-way");
+    setOutboundSegs([emptySegment("outbound", 0)]);
+    setReturnSegs([]);
+    setPassengerName("");
+    setPassengerPassport("");
+  };
+
+  // Debounced autosave whenever any tracked field changes. Skipped while a
+  // resume banner is showing (avoid overwriting the saved draft before the
+  // user decides). Skipped on the very first mount before any user edit.
+  const isFirstSaveTickRef = useRef(true);
+  useEffect(() => {
+    if (pendingDraft) return; // banner is up — don't clobber
+    if (isFirstSaveTickRef.current) { isFirstSaveTickRef.current = false; return; }
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveDraft(draftId, {
+        mode,
+        outboundSegments: outboundSegs,
+        returnSegments: returnSegs,
+        passenger:
+          passengerName || passengerPassport
+            ? { name: passengerName || undefined, passport: passengerPassport || undefined }
+            : undefined,
+        traveler,
+      });
+      setLastSavedAt(new Date().toISOString());
+    }, 600);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [mode, outboundSegs, returnSegs, passengerName, passengerPassport, traveler, pendingDraft, draftId]);
+
+  const formattedLastSaved = useMemo(() => {
+    if (!lastSavedAt) return null;
+    const d = new Date(lastSavedAt);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }, [lastSavedAt]);
 
   const trial = useTrial();
   const sub = useSubscription();
