@@ -14,12 +14,25 @@ export interface TransportAttachment {
   mime_type: string | null;
   size_bytes: number | null;
   created_at: string;
+  // Durability fields (added by the transport_attachments durability migration)
+  user_id?: string | null;
+  ticket_id?: string | null;
+  source_document_id?: string | null;
+  deleted_at?: string | null;
 }
 
 interface Props {
   /** Stable identifier for the parent transport segment (e.g. flight ticket).
    *  Used as the storage folder + DB key. */
   segmentRef: string;
+  /** Optional parent ticket id. When provided, attachments survive segment-id
+   *  changes (ticket replace, segment renumber) by also being matched on ticket_id. */
+  ticketId?: string;
+  /** Optional auth user id. When provided, attachments are claimed for the
+   *  signed-in user so they survive sign-in across devices. Pass `null` for guests. */
+  userId?: string | null;
+  /** Optional source-document linkage (the originating Smart Scan document). */
+  sourceDocumentId?: string;
   /** Optional title override (defaults to "Related documents · مستندات مرفقة"). */
   title?: string;
   /** Compact spacing, used inside scanner wizard step 5. */
@@ -32,7 +45,29 @@ const COMMON_LABELS = ["VISA", "Passport", "Insurance", "Hotel", "Other"];
 
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
 
-const RelatedDocumentsCard = ({ segmentRef, title, compact }: Props) => {
+/**
+ * RelatedDocumentsCard — durable attachments for a transport segment / ticket.
+ *
+ * Persistence model (after the durability migration):
+ *   row.user_id     – signed-in owner (claims on first read for signed-in users)
+ *   row.ticket_id   – parent ticket (survives segment-ref changes)
+ *   row.segment_ref – legacy/guest key (still queried as a fallback)
+ *   row.deleted_at  – soft-delete tombstone (UI hides; data recoverable)
+ *
+ * Read query is OR-shaped (user_id OR device_id) AND (segment_ref OR ticket_id)
+ * so a row remains discoverable across:
+ *   – sign-in / sign-out             (user_id ↔ device_id)
+ *   – ticket replace via duplicate   (segment_ref → new segment + ticket_id)
+ *   – fresh device for same account  (different device_id, same user_id)
+ */
+const RelatedDocumentsCard = ({
+  segmentRef,
+  ticketId,
+  userId,
+  sourceDocumentId,
+  title,
+  compact,
+}: Props) => {
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -45,24 +80,70 @@ const RelatedDocumentsCard = ({ segmentRef, title, compact }: Props) => {
 
   const refresh = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("transport_attachments")
-      .select("*")
-      .eq("device_id", deviceId)
-      .eq("segment_ref", segmentRef)
-      .order("created_at", { ascending: true });
-    if (error) {
-      console.error(error);
-    } else {
-      setItems((data as TransportAttachment[]) ?? []);
+    try {
+      let query = supabase
+        .from("transport_attachments")
+        .select("*")
+        .is("deleted_at", null);
+
+      // Ownership: signed-in OR device match. Guests are device-only.
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},device_id.eq.${deviceId}`);
+      } else {
+        query = query.eq("device_id", deviceId);
+      }
+
+      // Reference: segment_ref OR ticket_id (when known).
+      if (ticketId) {
+        query = query.or(`segment_ref.eq.${segmentRef},ticket_id.eq.${ticketId}`);
+      } else {
+        query = query.eq("segment_ref", segmentRef);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: true });
+
+      if (error) {
+        // Keep last-known items on screen — never blank the list on a transient error.
+        console.error("[RelatedDocumentsCard] refresh failed", error);
+        toast.error("Could not refresh documents", { description: error.message });
+        return;
+      }
+
+      const rows = (data as TransportAttachment[]) ?? [];
+      setItems(rows);
+
+      // Best-effort client backfill: relink rows that match by device but are
+      // missing the new ownership fields. RLS allows this because the existing
+      // row already passes the device-id predicate.
+      if (userId || ticketId) {
+        const stale = rows.filter(
+          (r) =>
+            (userId && !r.user_id) ||
+            (ticketId && !r.ticket_id),
+        );
+        for (const r of stale) {
+          const patch: Record<string, string> = {};
+          if (userId && !r.user_id) patch.user_id = userId;
+          if (ticketId && !r.ticket_id) patch.ticket_id = ticketId;
+          // Fire-and-forget; failures are non-blocking.
+          void supabase
+            .from("transport_attachments")
+            .update(patch)
+            .eq("id", r.id)
+            .then(({ error: relinkErr }) => {
+              if (relinkErr) console.warn("[RelatedDocumentsCard] relink failed", relinkErr);
+            });
+        }
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segmentRef]);
+  }, [segmentRef, ticketId, userId]);
 
   const onPickFile = (file: File) => {
     if (file.size > MAX_BYTES) {
@@ -79,13 +160,24 @@ const RelatedDocumentsCard = ({ segmentRef, title, compact }: Props) => {
     setUploading(true);
     try {
       const ext = picking.name.split(".").pop() || "bin";
-      const path = `${deviceId}/${segmentRef}/${crypto.randomUUID()}.${ext}`;
+      // Path scheme:
+      //   signed-in: user/<uid>/<ticketId||segmentRef>/<uuid>.<ext>
+      //   guest:     <deviceId>/<segmentRef>/<uuid>.<ext>   (legacy convention)
+      const folderRef = ticketId || segmentRef;
+      const path = userId
+        ? `user/${userId}/${folderRef}/${crypto.randomUUID()}.${ext}`
+        : `${deviceId}/${segmentRef}/${crypto.randomUUID()}.${ext}`;
+
       const { error: upErr } = await supabase.storage
         .from(BUCKET)
         .upload(path, picking, { contentType: picking.type, upsert: false });
       if (upErr) throw upErr;
+
       const { error: insErr } = await supabase.from("transport_attachments").insert({
         device_id: deviceId,
+        user_id: userId ?? null,
+        ticket_id: ticketId ?? null,
+        source_document_id: sourceDocumentId ?? null,
         segment_ref: segmentRef,
         label,
         file_name: picking.name,
@@ -119,8 +211,15 @@ const RelatedDocumentsCard = ({ segmentRef, title, compact }: Props) => {
 
   const removeItem = async (item: TransportAttachment) => {
     if (!confirm(`Remove "${item.label} · ${item.file_name}"?`)) return;
-    await supabase.storage.from(BUCKET).remove([item.file_path]);
-    await supabase.from("transport_attachments").delete().eq("id", item.id);
+    // Soft-delete only — file stays in the bucket so accidental taps are recoverable.
+    const { error } = await supabase
+      .from("transport_attachments")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", item.id);
+    if (error) {
+      toast.error("Could not remove", { description: error.message });
+      return;
+    }
     toast.success("Attachment removed");
     refresh();
   };
@@ -140,13 +239,13 @@ const RelatedDocumentsCard = ({ segmentRef, title, compact }: Props) => {
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        {loading && (
+        {loading && items.length === 0 && (
           <div className="flex items-center gap-2 px-2 py-3" style={{ color: "var(--gray)" }}>
             <Loader2 size={14} className="animate-spin" />
             <span className="text-[11px]">Loading…</span>
           </div>
         )}
-        {!loading && items.map((item) => (
+        {items.map((item) => (
           <div
             key={item.id}
             className="shrink-0 rounded-xl p-2 relative group"
