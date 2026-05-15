@@ -168,15 +168,7 @@ const Index = () => {
    * Validate a `returnTo` query param so a malicious deep link can't bounce
    * the user out of the patient app shell. Same-origin patient paths only.
    */
-  const consumePatientReturnTo = (): boolean => {
-    const raw = searchParams.get("returnTo");
-    if (!raw) return false;
-    if (!raw.startsWith("/")) return false;
-    if (raw.startsWith("//")) return false;
-    if (!(raw.startsWith("/app") || raw.startsWith("/ar/app"))) return false;
-    navigate(raw, { replace: true });
-    return true;
-  };
+  // (returnTo handling now lives in finishPatientEntryNavigation above.)
 
   const handleLogin = async () => {
     const stored = getStoredRole();
