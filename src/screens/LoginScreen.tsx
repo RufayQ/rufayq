@@ -427,6 +427,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
               autoComplete="new-password" placeholder="••••••••"
               className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none"
               style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+            <PasswordStrength password={newPass} visible={newPass.length > 0} />
           </div>
           <div>
             <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Confirm new password</label>
