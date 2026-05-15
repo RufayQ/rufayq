@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import type { JourneyOverview } from "@/hooks/useJourneyOverview";
 import { derivePhase, PHASES } from "./journeyPhase";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface TodayCardProps {
   overview: JourneyOverview;
