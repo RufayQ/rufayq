@@ -27,6 +27,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
   // Sign-in state
   const [phone, setPhone] = useState("");
+  const [dialCountry, setDialCountry] = useState<string>(() => detectDialCountry());
+  const [dialManual, setDialManual] = useState<boolean>(() => !!getStoredDialCountry());
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [submitting, setSubmitting] = useState(false);
