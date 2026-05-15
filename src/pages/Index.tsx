@@ -183,6 +183,7 @@ const Index = () => {
         setAppView("login");
         return;
       case "guest_patient":
+        localStorage.setItem("rufayq_onboarded", "true");
         setAppView("main");
         finishPatientEntryNavigation();
         return;
