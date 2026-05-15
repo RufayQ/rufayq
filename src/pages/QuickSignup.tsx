@@ -165,6 +165,7 @@ const QuickSignup = () => {
       phone: e164,
       email: email.trim() || null,
       nationality: nationality.trim() || null,
+      gender: gender || null,
       terms_accepted_at: now,
       privacy_accepted_at: now,
       contact_verified: false,
