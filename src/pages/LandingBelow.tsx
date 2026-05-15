@@ -74,8 +74,94 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
     { qEn: "What languages are supported?", qAr: "ما اللغات المدعومة؟", aEn: "Arabic and English are fully supported across the entire app, including RufayQ AI responses, scans, and exports.", aAr: "العربية والإنجليزية مدعومتان بالكامل في كل أنحاء التطبيق، بما في ذلك ردود الذكاء الاصطناعي والمسح الضوئي والتصدير." },
   ];
 
+  const agents = [
+    { id: "medai",     emoji: "🏥", en: "MedAI",     ar: "المرافق الطبي",       descEn: "Your medical journey, end-to-end.",         descAr: "رحلتك الطبية من البداية للنهاية.",   color: "var(--color-medai)" },
+    { id: "shopai",    emoji: "🛍️", en: "ShopAI",    ar: "مرافق التسوق",        descEn: "Smart shopping & gifts abroad.",            descAr: "تسوّق ذكي وهدايا في الخارج.",         color: "var(--color-shopai)" },
+    { id: "tourai",    emoji: "🗺️", en: "TourAI",    ar: "المرشد السياحي",      descEn: "Cultural sights, tailored to you.",         descAr: "معالم ثقافية مصمّمة لك.",             color: "var(--color-tourai)" },
+    { id: "tasteai",   emoji: "🍽️", en: "TasteAI",   ar: "مرافق المطاعم",       descEn: "Restaurants that fit your diet.",           descAr: "مطاعم تناسب حميتك.",                  color: "var(--color-tasteai)" },
+    { id: "exploreai", emoji: "🎯", en: "ExploreAI", ar: "مرافق الأنشطة",       descEn: "Activities that match your energy.",        descAr: "أنشطة تناسب طاقتك.",                  color: "var(--color-exploreai)" },
+    { id: "planai",    emoji: "🧭", en: "PlanAI",    ar: "منسق الرحلة",         descEn: "Orchestrates every agent for you.",         descAr: "ينسّق كل المرافقين من أجلك.",         color: "var(--color-planai)" },
+  ];
+
+  const beyondStats = [
+    { value: "14–21",   unit: isAr ? "يوم" : "days", labelEn: "Average trip duration abroad", labelAr: "متوسط مدة الرحلة" },
+    { value: "2.8x",    unit: "",                    labelEn: "Family companions per patient", labelAr: "مرافقين عائليين لكل مريض" },
+    { value: "SAR 8,400", unit: "",                  labelEn: "Avg. leisure spend per trip",   labelAr: "متوسط الإنفاق الترفيهي" },
+  ];
+
   return (
     <>
+      {/* OUR AI COMPANIONS */}
+      <section id="agents" className="lazy-section py-24 px-6 relative" style={{ scrollMarginTop: 80, background: BG_DARK }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
+              {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>ستة مرافقين ذكيين</span> : "SIX AI AGENTS, ONE COMPANION"}
+            </p>
+            <h2 className="font-display text-4xl md:text-5xl mb-4 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
+              {mode === "en" && <>Your AI <em style={{ color: GOLD }}>Companions</em></>}
+              {mode === "ar" && <span dir="rtl" className="font-arabic">رُفَيِّقاتك <em style={{ color: GOLD }}>الذكيون</em></span>}
+              {isBoth && <>Your AI <em style={{ color: GOLD }}>Companions</em><span dir="rtl" className="font-arabic block text-2xl md:text-3xl mt-2" style={{ opacity: 0.85 }}>رُفَيِّقاتك الذكيون</span></>}
+            </h2>
+            <p className="text-base max-w-xl mx-auto" style={{ color: TEXT_MUTED }}>
+              {isAr ? <span className="font-arabic">من العلاج إلى الثقافة والترفيه — كل مرافق متخصص في رحلة جزء من حياتك بالخارج.</span> : "From treatment to culture and leisure — each agent specializes in one part of your time abroad."}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {agents.map((a) => (
+              <a
+                key={a.id}
+                href={`/agents/${a.id}`}
+                className="group rounded-2xl p-5 transition-all hover:-translate-y-1 flex flex-col text-center"
+                style={{ background: BG_DARK_2, border: `1px solid ${BORDER}` }}
+              >
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 mx-auto transition-all group-hover:scale-110 text-2xl"
+                  style={{ background: `${a.color}25`, border: `1px solid ${a.color}` }}
+                  aria-hidden="true"
+                >
+                  {a.emoji}
+                </div>
+                <h3 className="font-display text-lg font-semibold mb-1" style={{ color: TEXT }}>{a.en}</h3>
+                <p className="font-arabic text-xs mb-2" dir="rtl" style={{ color: GOLD }}>{a.ar}</p>
+                <p className="text-xs leading-relaxed mb-3 flex-1" style={{ color: TEXT_MUTED }}>
+                  {isAr ? <span className="font-arabic" dir="rtl">{a.descAr}</span> : a.descEn}
+                </p>
+                <span className="text-[11px] font-mono tracking-wide mt-auto" style={{ color: a.color }}>
+                  {isAr ? "اعرف أكثر ←" : "Learn more →"}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* BEYOND MEDICINE — 3-stat row */}
+      <section id="beyond" className="lazy-section py-20 px-6 relative" style={{ scrollMarginTop: 80, background: BG_DARK_2, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="font-mono text-[10px] tracking-[0.3em] mb-4" style={{ color: GOLD }}>
+              {isAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>ما وراء العلاج</span> : "BEYOND MEDICINE"}
+            </p>
+            <h2 className="font-display text-3xl md:text-4xl tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
+              {isAr ? <span className="font-arabic">رحلتك أكبر من المستشفى</span> : <>Your trip is <em style={{ color: GOLD }}>more</em> than the hospital</>}
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5">
+            {beyondStats.map((s, i) => (
+              <div key={i} className="rounded-2xl p-7 text-center" style={{ background: BG_DARK, border: `1px solid ${BORDER}` }}>
+                <p className="font-display text-4xl md:text-5xl mb-1" style={{ color: GOLD, fontWeight: 300 }}>
+                  {s.value}{s.unit && <span className="text-xl ms-2" style={{ color: TEXT_MUTED }}>{s.unit}</span>}
+                </p>
+                <p className="text-sm mt-3" style={{ color: TEXT_MUTED }}>
+                  {isAr ? <span className="font-arabic" dir="rtl">{s.labelAr}</span> : s.labelEn}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* FEATURES */}
       <section id="features" className="lazy-section py-24 px-6 relative" style={{ scrollMarginTop: 80, background: BG_DARK }}>
         <div className="max-w-6xl mx-auto">
