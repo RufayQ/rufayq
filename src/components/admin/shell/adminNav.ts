@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Building2, Briefcase, Activity, Shield, FileText,
-  CreditCard, MessageSquare, Star, UserPlus, Globe, Settings, Sparkles, Headphones,
+  CreditCard, MessageSquare, Star, UserPlus, Globe, Settings, Sparkles, Headphones, Bell,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -10,7 +10,7 @@ export type LeafKey =
   | "orgs" | "applications"
   | "claims" | "rcm" | "rcm_activations" | "rcm_imports" | "rcm_bulk"
   | "subs" | "payments" | "ai_usage" | "pricing"
-  | "reviews" | "tickets"
+  | "reviews" | "tickets" | "push"
   | "news" | "pages" | "website_cms"
   | "cms_seo" | "cms_media" | "cms_blog_cats"
   | "audit" | "wallet_audit"
@@ -89,10 +89,11 @@ export const NAV_MODULES: NavGroup[] = [
   },
   {
     key: "support", label: "Support", icon: MessageSquare,
-    hint: "Tickets & reviews",
+    hint: "Tickets, reviews & broadcasts",
     leaves: [
       { key: "tickets", label: "Tickets", icon: MessageSquare, badgeKey: "open_tickets" },
       { key: "reviews", label: "Reviews", icon: Star },
+      { key: "push",    label: "Push Notifications", icon: Bell, pillTone: "new" },
     ],
   },
   {
