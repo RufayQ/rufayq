@@ -1,6 +1,6 @@
 # RufayQ
 
-> RufayQ (رُفَيِّق) is a bilingual English/Arabic AI medical companion for patients travelling abroad for treatment. It organises flights, hotels, hospital appointments, medications and medical records — and explains every document instantly in both languages.
+> RufayQ (رُفَيِّق) is a bilingual English/Arabic AI companion for travellers — medical, cultural and beyond. It organises flights, hotels, hospital appointments, medications and medical records — and explains every document instantly in both languages.
 
 RufayQ serves Saudi Arabia and the wider Gulf region (UAE, Qatar, Kuwait, Bahrain, Oman) plus international medical travellers. The app maps the full treatment journey: pre-travel preparation, in-destination care coordination, and post-discharge recovery.
 

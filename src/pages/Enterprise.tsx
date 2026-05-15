@@ -241,7 +241,7 @@ const Enterprise = () => {
               {ar ? "للمؤسسات" : "For Enterprise"}
             </div>
             <h1 style={{ fontSize: "clamp(36px, 5vw, 56px)", lineHeight: 1.1, fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 20px" }}>
-              {ar ? "بنية رحلة العلاج، بمعايير المؤسسات." : "Medical-travel infrastructure, built for institutions."}
+              {ar ? "منصة رُفَيِّق الذكية — مبنية لمرضاك." : "The AI companion platform — built for your patients."}
             </h1>
             <p style={{ fontSize: 18, lineHeight: 1.6, color: MUTED, margin: "0 auto 32px", maxWidth: 680 }}>
               {ar

@@ -48,8 +48,8 @@ const TIERS: TierMeta[] = [
     descEn: "The complete medical-travel experience.",
     descAr: "تجربة السفر الطبي الكاملة.",
     ctaEn: "Get Companion", ctaAr: "ابدأ كومبانيون", highlight: true,
-    featuresEn: ["Everything in Starter", "Care Hub — full video library", "Real-time symptom monitoring", "Translated discharge summaries", "KSA doctor coordination handoff", "1 free Medical Consultant session / month", "Priority 24/7 support"],
-    featuresAr: ["كل ما في ستارتر", "مركز الرعاية — مكتبة فيديو كاملة", "متابعة أعراض فورية", "ملخصات خروج مترجمة", "تنسيق مع الطبيب السعودي", "جلسة مستشار طبي مجانية شهرياً", "دعم ٢٤/٧ بأولوية"],
+    featuresEn: ["Everything in Starter", "Care Hub — full video library", "Real-time symptom monitoring", "Translated discharge summaries", "KSA doctor coordination handoff", "1 free Medical Consultant session / month", "Priority 24/7 support", "Touristic agents: TourAI, TasteAI, ExploreAI"],
+    featuresAr: ["كل ما في ستارتر", "مركز الرعاية — مكتبة فيديو كاملة", "متابعة أعراض فورية", "ملخصات خروج مترجمة", "تنسيق مع الطبيب السعودي", "جلسة مستشار طبي مجانية شهرياً", "دعم ٢٤/٧ بأولوية", "وكلاء سياحيون: TourAI و TasteAI و ExploreAI"],
   },
   {
     id: "family", eyebrowEn: "Up to 4 patients", eyebrowAr: "حتى ٤ مرضى", nameEn: "Family", nameAr: "فاميلي",
@@ -334,6 +334,11 @@ const Pricing = () => {
 
       {/* Tier cards */}
       <section className="max-w-6xl mx-auto px-6 pb-16">
+        <div className="text-center mb-6">
+          <p className="font-mono text-[10px] tracking-[0.3em] uppercase" style={{ color: GOLD }}>
+            {showAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>خطط طبية</span> : "MEDICAL PLANS"}
+          </p>
+        </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
           {TIERS.map((t) => (
             <div key={t.id}
@@ -398,6 +403,108 @@ const Pricing = () => {
                   {showAr ? t.ctaAr : t.ctaEn}
                 </Link>
               )}
+            </div>
+          ))}
+        </div>
+
+        {/* Journey Plans — touristic agent bundles */}
+        <div className="mt-16 text-center mb-6">
+          <p className="font-mono text-[10px] tracking-[0.3em] uppercase" style={{ color: GOLD }}>
+            {showAr ? <span className="font-arabic" style={{ letterSpacing: 2 }}>خطط السياحة</span> : "JOURNEY PLANS"}
+          </p>
+          <h3 className="font-display text-2xl md:text-3xl mt-2" style={{ color: TEXT, fontWeight: 300 }}>
+            {showAr ? "للعلاج والترفيه معاً" : <>Where care meets <em style={{ color: GOLD }}>leisure</em></>}
+          </h3>
+        </div>
+        <div className="grid md:grid-cols-2 gap-5">
+          {([
+            {
+              id: "journey-companion",
+              eyebrowEn: "Patient + family", eyebrowAr: "للمريض والعائلة",
+              nameEn: "Journey Companion", nameAr: "رفيق الرحلة",
+              priceEn: "SAR 189", priceAr: "١٨٩ ر.س",
+              descEn: "MedAI + TourAI + TasteAI + ExploreAI — medical care meets leisure.",
+              descAr: "MedAI + TourAI + TasteAI + ExploreAI — رعاية طبية مع ترفيه.",
+              featuresEn: [
+                "Everything in Companion",
+                "ShopAI — smart shopping abroad",
+                "TourAI — cultural sights & guides",
+                "TasteAI — diet-aware restaurants",
+                "ExploreAI — leisure activities",
+              ],
+              featuresAr: [
+                "كل ما في كومبانيون",
+                "ShopAI — تسوّق ذكي بالخارج",
+                "TourAI — معالم ثقافية ومرشدون",
+                "TasteAI — مطاعم تراعي حميتك",
+                "ExploreAI — أنشطة ترفيهية",
+              ],
+              highlight: false,
+              badge: null,
+            },
+            {
+              id: "full-companion",
+              eyebrowEn: "All 6 agents", eyebrowAr: "كل المرافقين",
+              nameEn: "Full Companion", nameAr: "الرفيق الكامل",
+              priceEn: "SAR 269", priceAr: "٢٦٩ ر.س",
+              descEn: "All 6 AI agents. Complete journey mastery.",
+              descAr: "كل المرافقين الستة. إتقان كامل للرحلة.",
+              featuresEn: [
+                "Everything in Journey Companion",
+                "PlanAI — orchestrates every agent",
+                "Unlimited family members",
+                "Priority concierge support",
+                "Personalised journey insights",
+              ],
+              featuresAr: [
+                "كل ما في رفيق الرحلة",
+                "PlanAI — ينسّق جميع المرافقين",
+                "أفراد عائلة بلا حدود",
+                "دعم كونسيرج بأولوية",
+                "رؤى رحلة مخصّصة",
+              ],
+              highlight: true,
+              badge: showAr ? "متكامل ★" : "★ COMPLETE",
+            },
+          ] as const).map((t) => (
+            <div
+              key={t.id}
+              className="relative rounded-3xl p-6 flex flex-col"
+              style={{
+                background: t.highlight ? `linear-gradient(180deg, ${GOLD}18, ${BG2})` : BG2,
+                border: `1px solid ${t.highlight ? GOLD : BORDER}`,
+                boxShadow: t.highlight ? `0 20px 60px -20px ${GOLD}55` : undefined,
+              }}
+            >
+              {t.badge && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider" style={{ background: GOLD, color: "#06101A" }}>
+                  {t.badge}
+                </div>
+              )}
+              <p className="font-mono text-[10px] tracking-[0.25em] uppercase mb-2" style={{ color: GOLD }}>
+                {showAr ? t.eyebrowAr : t.eyebrowEn}
+              </p>
+              <h3 className="font-display text-2xl mb-1" style={{ color: TEXT }}>{showAr ? t.nameAr : t.nameEn}</h3>
+              <p className="text-xs mb-4" style={{ color: MUTED, minHeight: 32 }}>{showAr ? t.descAr : t.descEn}</p>
+              <div className="mb-5">
+                <span className="font-display text-3xl font-semibold" style={{ color: TEXT }}>{showAr ? t.priceAr : t.priceEn}</span>
+                <span className="text-xs ms-1" style={{ color: MUTED }}>{showAr ? "/ شهر" : "/ month"}</span>
+              </div>
+              <ul className="space-y-2 mb-6 flex-1">
+                {(showAr ? t.featuresAr : t.featuresEn).map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[13px]" style={{ color: TEXT }} dir={showAr ? "rtl" : "ltr"}>
+                    <Check size={14} className="mt-0.5 flex-shrink-0" color={GOLD} />
+                    <span className={showAr ? "font-arabic" : ""}>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/app"
+                className="block text-center px-4 py-2.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.02]"
+                style={{ background: t.highlight ? GOLD : "transparent", color: t.highlight ? "#06101A" : TEXT, border: t.highlight ? "none" : `1px solid ${BORDER}` }}
+              >
+                {showAr ? `ابدأ ${t.nameAr}` : `Get ${t.nameEn}`}
+              </Link>
             </div>
           ))}
         </div>
