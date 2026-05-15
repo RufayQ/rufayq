@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biometric } from "@/lib/native/biometric";
 import { phoneToE164, phoneToEmail } from "@/lib/auth/phoneEmail";
+import PasswordStrength, { evaluatePassword, allRequiredPass } from "@/components/auth/PasswordStrength";
 
 
 type AuthView = "welcome" | "login" | "otp" | "recover" | "newpass";
