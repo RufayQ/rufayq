@@ -203,6 +203,7 @@ const Index = () => {
         navigate("/provider", { replace: true });
         return;
       case "patient_ok":
+        localStorage.setItem("rufayq_onboarded", "true");
         setAppView("main");
         finishPatientEntryNavigation();
         break;
