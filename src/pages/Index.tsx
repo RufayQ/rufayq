@@ -84,9 +84,10 @@ const Index = () => {
   // Validate / strip ?signin=1 + ?returnTo from the URL after a successful
   // patient-shell entry. Same-origin /app or /ar/app paths only.
   const isSafePatientPath = (p: string) =>
-    p.startsWith("/") &&
-    !p.startsWith("//") &&
-    (p.startsWith("/app") || p.startsWith("/ar/app"));
+    p === "/app" ||
+    p.startsWith("/app/") ||
+    p === "/ar/app" ||
+    p.startsWith("/ar/app/");
 
   const cleanPatientAppPath = () =>
     window.location.pathname.startsWith("/ar") ? "/ar/app" : "/app";
@@ -139,6 +140,8 @@ const Index = () => {
       setAppView("profile");
       const url = new URL(window.location.href);
       url.searchParams.delete("profile");
+      url.searchParams.delete("signin");
+      url.searchParams.delete("returnTo");
       window.history.replaceState({}, "", url.toString());
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
