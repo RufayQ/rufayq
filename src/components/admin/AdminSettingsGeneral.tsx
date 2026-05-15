@@ -121,6 +121,34 @@ const AdminSettingsGeneral = () => {
           </button>
         </div>
       </div>
+
+      <div className="mt-8">
+        <div className="flex items-center gap-2 mb-1">
+          <UserCircle2 size={16} className="text-amber-400" />
+          <h3 className="text-base font-semibold text-slate-100">My account</h3>
+        </div>
+        <p className="text-xs text-slate-500 mb-3">Manage the sign-in methods linked to your admin account.</p>
+        <div
+          className="rounded-xl"
+          style={{
+            background: "#F7F4EE",
+            // Reset semantic tokens so the card renders correctly inside the dark admin shell.
+            // @ts-expect-error CSS custom props
+            "--white": "#FFFFFF",
+            "--navy": "#0A2540",
+            "--gold": "#C5965A",
+            "--gray": "#5C6B7A",
+            "--gray-light": "rgba(10,37,64,0.1)",
+            "--teal-deep": "#0E7C7B",
+            "--teal-light": "rgba(14,124,123,0.12)",
+            "--error": "#C0392B",
+          } as React.CSSProperties}
+        >
+          <div className="py-2" style={{ fontFamily: "'DM Sans', system-ui" }}>
+            <ConnectedAccountsCard />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
