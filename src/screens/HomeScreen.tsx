@@ -73,6 +73,9 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
         onProfile={onProfile}
         menuItems={homeMenuItems}
         phase={phase}
+        notificationOpen={notificationOpen}
+        onNotificationOpenChange={setNotificationOpen}
+        onNotificationNavigate={(link) => onNavigate(link)}
       />
 
       <div
