@@ -88,3 +88,33 @@ export async function clearGoogleLinkage(userId: string): Promise<void> {
     console.warn("[google-link] clear error", e);
   }
 }
+
+/**
+ * Generic provider clear — keeps the auth_providers cache in sync after the user
+ * unlinks any non-Google identity (e.g. Apple). Google has its own dedicated
+ * clearer above because we also persist `google_email` / `google_sub` columns.
+ */
+export async function clearProviderLinkage(
+  userId: string,
+  provider: string
+): Promise<void> {
+  try {
+    const deviceId = `auth_${userId}`;
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("device_id, auth_providers")
+      .eq("device_id", deviceId)
+      .maybeSingle();
+    if (!existing) return;
+    const providers = (existing.auth_providers || []).filter(
+      (p: string) => p !== provider
+    );
+    const { error } = await supabase
+      .from("profiles")
+      .update({ auth_providers: providers } as any)
+      .eq("device_id", deviceId);
+    if (error) console.warn("[provider-link] clear failed", error.message);
+  } catch (e) {
+    console.warn("[provider-link] clear error", e);
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Settings as SettingsIcon, Save, Sparkles } from "lucide-react";
+import { Settings as SettingsIcon, Save, Sparkles, UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import ConnectedAccountsCard from "@/components/profile/ConnectedAccountsCard";
 
 interface Prefs {
   density: "comfortable" | "compact";
@@ -118,6 +119,32 @@ const AdminSettingsGeneral = () => {
           >
             <Save size={12} /> Save changes
           </button>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <div className="flex items-center gap-2 mb-1">
+          <UserCircle2 size={16} className="text-amber-400" />
+          <h3 className="text-base font-semibold text-slate-100">My account</h3>
+        </div>
+        <p className="text-xs text-slate-500 mb-3">Manage the sign-in methods linked to your admin account.</p>
+        <div
+          className="rounded-xl"
+          style={{
+            background: "#F7F4EE",
+            ["--white" as any]: "#FFFFFF",
+            ["--navy" as any]: "#0A2540",
+            ["--gold" as any]: "#C5965A",
+            ["--gray" as any]: "#5C6B7A",
+            ["--gray-light" as any]: "rgba(10,37,64,0.1)",
+            ["--teal-deep" as any]: "#0E7C7B",
+            ["--teal-light" as any]: "rgba(14,124,123,0.12)",
+            ["--error" as any]: "#C0392B",
+          } as React.CSSProperties}
+        >
+          <div className="py-2" style={{ fontFamily: "'DM Sans', system-ui" }}>
+            <ConnectedAccountsCard />
+          </div>
         </div>
       </div>
     </div>
