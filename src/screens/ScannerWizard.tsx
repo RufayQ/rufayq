@@ -162,6 +162,7 @@ const sectionLabels: Record<string, string> = {
 };
 
 const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
+  const authUserId = useAuthUserId();
   // When the AI extraction path is disabled (currently the case for flights),
   // and the wizard is opened with a preselected flight category, skip the
   // upload/review/category steps and jump straight to manual entry (Step 4).
@@ -284,6 +285,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
             category={selectedCategory}
             payload={scannedPayload}
             pendingSegmentRef={pendingSegmentRef}
+            userId={authUserId}
             onViewSection={() => { if (onSave) onSave(selectedCategory, enrichedPayload(scannedPayload)); else onClose(); }}
             onScanAnother={() => {
               setStep(1);
@@ -1691,10 +1693,11 @@ const FlightSegmentEditSheet = ({
 };
 
 /* ─── STEP 5: SUCCESS ─── */
-const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onScanAnother, onDone }: {
+const Step5Success = ({ category, payload, pendingSegmentRef, userId, onViewSection, onScanAnother, onDone }: {
   category: string | null;
   payload?: ScannerSavePayload | null;
   pendingSegmentRef?: string;
+  userId?: string | null;
   onViewSection: () => void;
   onScanAnother: () => void;
   onDone: () => void;
@@ -1818,7 +1821,7 @@ const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onS
           <p className="text-[10px] mb-2 px-1" style={{ color: "rgba(255,255,255,0.5)" }}>
             Attach VISA, passport, insurance or any related file. Stays linked to this ticket.
           </p>
-          <RelatedDocumentsCard segmentRef={pendingSegmentRef} compact />
+          <RelatedDocumentsCard segmentRef={pendingSegmentRef} userId={userId} compact />
         </div>
       )}
 
