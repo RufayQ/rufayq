@@ -27,7 +27,8 @@ function greetingForHour(hour: number) {
   };
 }
 
-const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase }: HomeHeaderProps) => {
+const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase, notificationOpen, onNotificationOpenChange, onNotificationNavigate }: HomeHeaderProps) => {
+  const { showEn, showAr } = useLanguage();
   const dateStr = new Date()
     .toLocaleDateString("en-US", {
       weekday: "short",
