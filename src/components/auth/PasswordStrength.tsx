@@ -56,8 +56,17 @@ export const REQUIRED_KEYS: (keyof PasswordChecks)[] = [
   "length", "upper", "lower", "number", "notCommon", "notIdentity",
 ];
 
+// Signup-only required keys (notCommon removed per product decision).
+export const SIGNUP_REQUIRED_KEYS: (keyof PasswordChecks)[] = [
+  "length", "upper", "lower", "number", "notIdentity",
+];
+
 export const allRequiredPass = (c: PasswordChecks) =>
   REQUIRED_KEYS.every((k) => c[k]);
+
+// Fair-and-above gate for QuickSignup: at least 3 of the 5 signup rules pass.
+export const fairAndAbovePass = (c: PasswordChecks) =>
+  SIGNUP_REQUIRED_KEYS.filter((k) => c[k]).length >= 3;
 
 interface Props {
   password: string;
@@ -79,21 +88,20 @@ const PasswordStrength = ({ password, firstName, lastName, phone, visible = true
 
   if (!visible || !password) return null;
 
-  const requiredCount = REQUIRED_KEYS.filter((k) => checks[k]).length;
+  const requiredCount = SIGNUP_REQUIRED_KEYS.filter((k) => checks[k]).length;
   const totalScore = requiredCount + (checks.symbol ? 1 : 0);
 
   let band: { label: string; color: string; segments: number };
   if (requiredCount <= 2) band = { label: t("Weak", "ضعيفة"), color: "#E5484D", segments: 1 };
-  else if (requiredCount <= 4) band = { label: t("Fair", "مقبولة"), color: "#F5A524", segments: 2 };
-  else if (requiredCount === 5) band = { label: t("Good", "جيدة"), color: "#0FB5C9", segments: 3 };
-  else band = { label: totalScore >= 7 ? t("Strong", "قوية جداً") : t("Strong", "قوية"), color: "#C5965A", segments: 4 };
+  else if (requiredCount === 3) band = { label: t("Fair", "مقبولة"), color: "#F5A524", segments: 2 };
+  else if (requiredCount === 4) band = { label: t("Good", "جيدة"), color: "#0FB5C9", segments: 3 };
+  else band = { label: totalScore >= 6 ? t("Strong", "قوية جداً") : t("Strong", "قوية"), color: "#C5965A", segments: 4 };
 
   const rules: { key: keyof PasswordChecks; label: string; bonus?: boolean }[] = [
     { key: "length", label: t("At least 8 characters", "8 أحرف على الأقل") },
     { key: "upper", label: t("Uppercase letter (A–Z)", "حرف كبير (A–Z)") },
     { key: "lower", label: t("Lowercase letter (a–z)", "حرف صغير (a–z)") },
     { key: "number", label: t("A number (0–9)", "رقم (0–9)") },
-    { key: "notCommon", label: t("Not a common password", "ليست كلمة سر شائعة") },
     { key: "notIdentity", label: t("Doesn't contain your name or phone", "لا تحتوي على اسمك أو رقم جوالك") },
     { key: "symbol", label: t("Symbol (recommended)", "رمز (موصى به)"), bonus: true },
   ];

@@ -68,7 +68,7 @@ describe("QuickSignup", () => {
     expect(screen.getByTestId("pw-rule-length").getAttribute("data-ok")).toBe("0");
   });
 
-  it("disables submit when password fails required rules, enables when strong", () => {
+  it("disables submit when password is below Fair, enables at Fair-or-better with terms", () => {
     renderPage();
     const submit = screen.getByRole("button", { name: /Create account & continue/i }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
@@ -76,13 +76,13 @@ describe("QuickSignup", () => {
     fireEvent.change(screen.getByPlaceholderText(/e\.g\. Mohammed$/), { target: { value: "Mohammed" } });
     fireEvent.change(screen.getByPlaceholderText(/e\.g\. Al-Saud/), { target: { value: "Al-Saud" } });
     fireEvent.change(screen.getByPlaceholderText(/\+966/), { target: { value: "+966569590418" } });
-    // Weak: contains name
-    fireEvent.change(screen.getByPlaceholderText(/At least 8 characters/), { target: { value: "Mohammed1A" } });
-    expect(screen.getByTestId("pw-rule-notIdentity").getAttribute("data-ok")).toBe("0");
+
+    // Below Fair: only 2/5 rules pass (lower + notIdentity, fails length/upper/number)
+    fireEvent.change(screen.getByPlaceholderText(/At least 8 characters/), { target: { value: "ab" } });
     expect(submit.disabled).toBe(true);
 
-    // Strong + accept terms
-    fireEvent.change(screen.getByPlaceholderText(/At least 8 characters/), { target: { value: "Str0ng!Pass" } });
+    // Fair (3/5): length + lower + notIdentity, still no upper/number — accept terms
+    fireEvent.change(screen.getByPlaceholderText(/At least 8 characters/), { target: { value: "abcdefgh" } });
     const termsCheckbox = document.querySelector('input[type="checkbox"]') as HTMLInputElement;
     fireEvent.click(termsCheckbox);
     expect(submit.disabled).toBe(false);
