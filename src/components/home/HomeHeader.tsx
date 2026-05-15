@@ -100,16 +100,20 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase, n
             {dateStr}
           </p>
         </div>
-        <p className="font-display text-[22px] italic text-white leading-tight" style={{ fontWeight: 300 }}>
-          {patientName ? `${greeting.en}, ${patientName}` : `${greeting.en} 👋`}
-        </p>
-        <p
-          className="font-arabic text-[13px] mt-0.5"
-          dir="rtl"
-          style={{ color: "rgba(255,255,255,0.6)" }}
-        >
-          {patientNameAr || patientName ? `${greeting.ar}، ${patientNameAr || patientName}` : `${greeting.ar} 👋`}
-        </p>
+        {showEn && (
+          <p className="font-display text-[22px] italic text-white leading-tight" style={{ fontWeight: 300 }}>
+            {patientName ? `${greeting.en}, ${patientName}` : `${greeting.en} 👋`}
+          </p>
+        )}
+        {showAr && (
+          <p
+            className="font-arabic text-[13px] mt-0.5"
+            dir="rtl"
+            style={{ color: "rgba(255,255,255,0.6)" }}
+          >
+            {patientNameAr || patientName ? `${greeting.ar}، ${patientNameAr || patientName}` : `${greeting.ar} 👋`}
+          </p>
+        )}
       </div>
 
       {/* Phase ribbon embedded near the bottom edge of the hero */}
