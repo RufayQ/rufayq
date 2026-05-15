@@ -498,13 +498,13 @@ const Pricing = () => {
                   </li>
                 ))}
               </ul>
-              <Link
-                to="/app"
+              <a
+                href="/#contact"
                 className="block text-center px-4 py-2.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.02]"
                 style={{ background: t.highlight ? GOLD : "transparent", color: t.highlight ? "#06101A" : TEXT, border: t.highlight ? "none" : `1px solid ${BORDER}` }}
               >
-                {showAr ? `ابدأ ${t.nameAr}` : `Get ${t.nameEn}`}
-              </Link>
+                {showAr ? "تواصل معنا ←" : "Contact us →"}
+              </a>
             </div>
           ))}
         </div>

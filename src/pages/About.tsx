@@ -9,7 +9,7 @@ const t = {
   en: {
     title: "About RufayQ — Built by clinicians and patients, for patients",
     description:
-      "RufayQ is the bilingual AI medical companion for Gulf patients travelling abroad for treatment. Founded by Dr. Abdelrahman Morsy and Sara Aljandal.",
+      "RufayQ is the bilingual AI companion for Gulf patients travelling abroad for treatment. Founded by Dr. Abdelrahman Morsy and Sara Aljandal.",
     h1: "About RufayQ",
     intro:
       "RufayQ exists because medical travel is hard, lonely, and expensive — and the tools patients are given are not built for them. We are building the companion we wish our families had.",
