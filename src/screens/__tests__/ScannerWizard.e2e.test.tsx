@@ -1,23 +1,20 @@
 /**
- * Slice 4 — End-to-end ScannerWizard tests.
+ * Slice 4 — End-to-end ScannerWizard tests (post AI-disable for flights).
  *
- * These tests drive the wizard through the multi-step flow with the OCR
- * edge-function and PDF rendering mocked. Coverage:
- *   • image upload → OCR success → Step 5 shows JourneyTimeline
- *   • image upload → OCR failure → manual entry → success → onSave fires
- *     with `source: "manual"` and parsed legs
- *   • PDF upload → analyze → manual page selection → OCR → success
+ * Flight category currently bypasses the AI extraction path (flag
+ * FLIGHT_AI_ENABLED = false in src/lib/flightAiFlag.ts) and routes the
+ * user straight to the manual entry sheet on Step 4. These tests verify:
+ *   • Wizard opened with `preselectedCategory="flight"` mounts the manual
+ *     entry sheet immediately, with no OCR call and no PDF analysis.
+ *   • Submitting valid manual data lands us on Step 5 with `source: "manual"`.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 
 // ---- Mocks ---------------------------------------------------------------
 
 const invokeMock = vi.fn();
-// Generic chainable query mock — every chain method returns the same proxy,
-// and any awaited terminal returns { data: [] | null, error: null }. Covers
-// .select().eq().eq().order(), .order().limit().maybeSingle(), etc.
 const makeQueryStub = (): any => {
   const stub: any = new Proxy(
     { then: (resolve: any) => resolve({ data: [], error: null }) },
@@ -40,6 +37,9 @@ const storageFromMock: any = vi.fn(() => ({
 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
+    auth: {
+      getUser: async () => ({ data: { user: null }, error: null }),
+    },
     functions: { invoke: (...args: any[]) => invokeMock(...args) },
     from: (table: string) => fromMock(table),
     storage: { from: (b: string) => storageFromMock(b) },
@@ -57,143 +57,40 @@ vi.mock("@/lib/pdfToImages", () => ({
   renderPdfPagesAtScale: (...args: any[]) => renderPdfPagesAtScaleMock(...args),
 }));
 
-// FileUploadPreview tries to render real images; stub it.
 vi.mock("@/shared/ui", () => ({
   FileUploadPreview: ({ file }: any) => <div data-testid="file-preview">{file?.name}</div>,
 }));
 
 import ScannerWizard from "@/screens/ScannerWizard";
 
-// ---- Helpers -------------------------------------------------------------
-
-const okOcrResponse = {
-  data: {
-    data: {
-      outboundFlight: {
-        airline: "Saudia",
-        flightNumber: "SV 215",
-        bookingRef: "ABC123",
-        fromAirport: "JED", fromCity: "Jeddah",
-        toAirport: "LHR", toCity: "London",
-        departureDateTime: "2026-05-10T08:30",
-        arrivalDateTime: "2026-05-10T13:00",
-        seatClass: "Business", seatNumber: "3A",
-      },
-      returnFlight: null,
-      passengerFirstName: "Mohammed",
-      passengerLastName: "Al-Rashidi",
-      passportNumber: "K482916",
-      detectedLanguage: "english",
-      translated: false,
-      confidence: 0.88,
-    },
-  },
-  error: null,
-};
-
-const makeImageFile = () => {
-  const blob = new Blob(["fake-image-bytes"], { type: "image/png" });
-  return new File([blob], "ticket.png", { type: "image/png" });
-};
-const makePdfFile = () => {
-  const blob = new Blob(["%PDF-1.4 fake"], { type: "application/pdf" });
-  return new File([blob], "ticket.pdf", { type: "application/pdf" });
-};
-
-const uploadFile = async (file: File) => {
-  // Wizard hides the file input; grab it directly.
-  const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-  expect(input).toBeTruthy();
-  // jsdom doesn't read FileReader for our mock, so stub readAsDataURL.
-  const origFR = (global as any).FileReader;
-  class StubFR {
-    public result: string = "data:image/png;base64,FAKE";
-    public onload: any = null;
-    public onerror: any = null;
-    readAsDataURL() { setTimeout(() => this.onload?.({}), 0); }
-  }
-  (global as any).FileReader = StubFR;
-  fireEvent.change(input, { target: { files: [file] } });
-  // restore after a tick
-  setTimeout(() => { (global as any).FileReader = origFR; }, 50);
-};
-
-const advanceToOcr = async () => {
-  // Step 2 → "Use This" (advances to category step)
-  const useBtn = await screen.findByText(/Use This/i);
-  fireEvent.click(useBtn.closest("button")!);
-  // Step 3 → "Continue" (preselectedCategory keeps the button enabled)
-  const continueBtn = await screen.findByText(/Continue →/i);
-  fireEvent.click(continueBtn.closest("button")!);
-};
-
 beforeEach(() => {
   invokeMock.mockReset();
   analyzePdfPagesMock.mockReset();
   renderPdfPagesAtScaleMock.mockReset();
-  // Default: each PDF analyse returns 3 pages with page 2 recommended.
-  analyzePdfPagesMock.mockResolvedValue({
-    totalPages: 3,
-    recommended: [2],
-    scannedFallback: false,
-    pages: [
-      { pageIndex: 1, score: 1.2, thumbDataUrl: "data:image/png;base64,A", aspect: 0.75 },
-      { pageIndex: 2, score: 9.5, thumbDataUrl: "data:image/png;base64,B", aspect: 0.75 },
-      { pageIndex: 3, score: 0.3, thumbDataUrl: "data:image/png;base64,C", aspect: 0.75 },
-    ],
-  });
-  renderPdfPagesAtScaleMock.mockResolvedValue(["data:image/png;base64,RENDERED"]);
+  // Clean any draft persisted from a previous test
+  if (typeof localStorage !== "undefined") localStorage.clear();
 });
 
-// ---- Tests ---------------------------------------------------------------
+describe("ScannerWizard E2E — flight flow (AI disabled)", () => {
+  it("jumps straight to the manual entry sheet — no OCR, no PDF analysis", async () => {
+    render(<ScannerWizard onClose={() => {}} preselectedCategory="flight" onSave={() => {}} />);
 
-describe("ScannerWizard E2E — flight flow", () => {
-  it("image upload → OCR success → JourneyTimeline preview on Step 5", async () => {
-    invokeMock.mockResolvedValue(okOcrResponse);
-    const onSave = vi.fn();
-    render(<ScannerWizard onClose={() => {}} preselectedCategory="flight" onSave={onSave} />);
-
-    await uploadFile(makeImageFile());
-    await advanceToOcr();
-
-    // OCR success → success view; click "Save to RufayQ" → Step 5
-    await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(1), { timeout: 4000 });
-    const saveBtn = await screen.findByText(/Save to RufayQ/i, undefined, { timeout: 4000 });
-    fireEvent.click((saveBtn as HTMLElement).closest("button")!);
-
-    // Step 5 shows the JourneyTimeline preview
-    await waitFor(() => {
-      expect(screen.getByTestId("journey-timeline")).toBeInTheDocument();
-    }, { timeout: 4000 });
-    expect(screen.getAllByText(/JED/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/LHR/).length).toBeGreaterThan(0);
-
-    fireEvent.click((await screen.findAllByText(/Done/i)).at(-1)!.closest("button")!);
-    expect(onSave).toHaveBeenCalledWith("flight", expect.objectContaining({
-      extraction: expect.objectContaining({ provider: "openai", confidence: 0.88 }),
-    }));
+    // Manual entry sheet renders immediately on open.
+    expect(await screen.findByTestId("manual-flight-sheet")).toBeInTheDocument();
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(analyzePdfPagesMock).not.toHaveBeenCalled();
   });
 
-  it("OCR failure → manual entry → onSave receives source=manual + valid leg", async () => {
-    invokeMock.mockResolvedValue({ data: { data: null }, error: null });
+  it("manual submission advances to Step 5 with source=manual", async () => {
     const onSave = vi.fn();
     render(<ScannerWizard onClose={() => {}} preselectedCategory="flight" onSave={onSave} />);
 
-    await uploadFile(makeImageFile());
-    await advanceToOcr();
-
-    // Failure card appears with the manual-entry CTA
-    const manualBtn = await screen.findByTestId("open-manual-entry", undefined, { timeout: 4000 });
-    fireEvent.click(manualBtn);
     expect(await screen.findByTestId("manual-flight-sheet")).toBeInTheDocument();
 
-    // Fill required fields
     fireEvent.change(screen.getByTestId("seg-outbound-0-flight"), { target: { value: "EK500" } });
-    // From: open AirportSelect, type, click DXB option
     fireEvent.click(screen.getByTestId("seg-outbound-0-from"));
     fireEvent.change(await screen.findByTestId("seg-outbound-0-from-search"), { target: { value: "DXB" } });
     fireEvent.click(await screen.findByTestId("seg-outbound-0-from-option-DXB"));
-    // To
     fireEvent.click(screen.getByTestId("seg-outbound-0-to"));
     fireEvent.change(await screen.findByTestId("seg-outbound-0-to-search"), { target: { value: "BKK" } });
     fireEvent.click(await screen.findByTestId("seg-outbound-0-to-option-BKK"));
@@ -202,31 +99,15 @@ describe("ScannerWizard E2E — flight flow", () => {
     fireEvent.change(screen.getByTestId("seg-outbound-0-dep-time-mm"), { target: { value: "00" } });
     fireEvent.click(screen.getByTestId("submit-manual"));
 
-    // We should now be on the success view of Step 4 — with our manual data
     await waitFor(() => {
       expect(screen.queryByTestId("manual-flight-sheet")).not.toBeInTheDocument();
     });
-    // The success view displays the airline/flight no in the editable fields.
-    expect(await screen.findByText(/EK500/)).toBeInTheDocument();
-  });
 
-  it("PDF upload → analyze → user picks a page → OCR runs on selected page", async () => {
-    invokeMock.mockResolvedValue(okOcrResponse);
-    render(<ScannerWizard onClose={() => {}} preselectedCategory="flight" onSave={() => {}} />);
-
-    await uploadFile(makePdfFile());
-    await advanceToOcr();
-
-    // Pick-pages screen appears
-    await waitFor(() => expect(analyzePdfPagesMock).toHaveBeenCalled(), { timeout: 4000 });
-    const runBtn = await screen.findByText(/Extract with AI Vision/i, undefined, { timeout: 4000 });
-    fireEvent.click((runBtn as HTMLElement).closest("button")!);
-
-    await waitFor(() => expect(renderPdfPagesAtScaleMock).toHaveBeenCalled(), { timeout: 4000 });
-    // The auto-recommended page (#2) should have been chosen.
-    const callArg = renderPdfPagesAtScaleMock.mock.calls[0][1];
-    expect(callArg).toContain(2);
-
-    await waitFor(() => expect(invokeMock).toHaveBeenCalled(), { timeout: 4000 });
+    // We're now on Step 5 — JourneyTimeline should appear with our route.
+    await waitFor(() => {
+      expect(screen.getByTestId("journey-timeline")).toBeInTheDocument();
+    }, { timeout: 4000 });
+    expect(screen.getAllByText(/DXB/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/BKK/).length).toBeGreaterThan(0);
   });
 });
