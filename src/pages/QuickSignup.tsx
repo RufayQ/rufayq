@@ -33,6 +33,8 @@ const QuickSignup = () => {
   const [firstNameAr, setFirstNameAr] = useState("");
   const [lastNameAr, setLastNameAr] = useState("");
   const [phone, setPhone] = useState("");
+  const [dialCountry, setDialCountry] = useState<string>(() => detectDialCountry());
+  const [dialManual, setDialManual] = useState<boolean>(() => !!getStoredDialCountry());
   const [password, setPassword] = useState("");
   const [pwFocused, setPwFocused] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -45,7 +47,7 @@ const QuickSignup = () => {
 
   const fullNameEn = `${firstName.trim()} ${lastName.trim()}`.trim();
   const fullNameAr = [firstNameAr.trim(), lastNameAr.trim()].filter(Boolean).join(" ").trim() || null;
-  const e164 = phoneToE164(phone);
+  const e164 = composeE164(dialCountry, phone);
   const pwChecks = evaluatePassword(password, { firstName, lastName, phone });
   const pwOk = fairAndAbovePass(pwChecks);
   const canSubmit =
@@ -56,6 +58,13 @@ const QuickSignup = () => {
     terms &&
     (!email.trim() || isValidEmail(email)) &&
     !submitting;
+
+  // Mirror nationality -> dial code unless the user manually overrode the chip.
+  useEffect(() => {
+    if (dialManual) return;
+    const iso = nationalityToIso2(nationality);
+    if (iso && iso !== dialCountry) setDialCountry(iso);
+  }, [nationality, dialManual, dialCountry]);
 
   // Persist Traveller role + sign out any stale staff/provider session.
   useEffect(() => {
