@@ -102,7 +102,6 @@ const PasswordStrength = ({ password, firstName, lastName, phone, visible = true
     { key: "upper", label: t("Uppercase letter (A–Z)", "حرف كبير (A–Z)") },
     { key: "lower", label: t("Lowercase letter (a–z)", "حرف صغير (a–z)") },
     { key: "number", label: t("A number (0–9)", "رقم (0–9)") },
-    { key: "notCommon", label: t("Not a common password", "ليست كلمة سر شائعة") },
     { key: "notIdentity", label: t("Doesn't contain your name or phone", "لا تحتوي على اسمك أو رقم جوالك") },
     { key: "symbol", label: t("Symbol (recommended)", "رمز (موصى به)"), bonus: true },
   ];
