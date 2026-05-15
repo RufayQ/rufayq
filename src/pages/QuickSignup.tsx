@@ -163,7 +163,7 @@ const QuickSignup = () => {
       full_name_ar: fullNameAr,
       phone: e164,
       email: email.trim() || null,
-      nationality,
+      nationality: nationality.trim() || null,
       terms_accepted_at: now,
       privacy_accepted_at: now,
       contact_verified: false,
