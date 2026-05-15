@@ -345,3 +345,83 @@ export async function deleteTicket(
   writeCache(scope, local.filter((t) => t.id !== ticketId));
 }
 
+
+/* ───────────────────  attachment durability helpers  ─────────────────── */
+
+/**
+ * Re-link existing attachment rows to a new ticket / segment_ref.
+ * Used by the duplicate-replace flow so files stay visible under the new
+ * ticket without rewriting storage object paths.
+ *
+ * Matches by `segment_ref IN $oldRefs` and (user_id = auth.uid() OR device_id = $deviceId)
+ * so the operation works for both signed-in and guest contexts (RLS enforces the rest).
+ */
+export async function migrateAttachments(args: {
+  fromRefs: string[];
+  toTicketId: string;
+  toSegmentRef: string;
+  userId?: string | null;
+  deviceId: string;
+}): Promise<void> {
+  const { fromRefs, toTicketId, toSegmentRef, userId, deviceId } = args;
+  if (!fromRefs.length || !deviceId) return;
+  const patch: { ticket_id: string; segment_ref: string; user_id?: string } = {
+    ticket_id: toTicketId,
+    segment_ref: toSegmentRef,
+  };
+  if (userId) patch.user_id = userId;
+
+  let query = (supabase as any)
+    .from("transport_attachments")
+    .update(patch)
+    .is("deleted_at", null)
+    .in("segment_ref", fromRefs);
+
+  // Ownership predicate matches the RLS update policy.
+  query = userId
+    ? query.or(`user_id.eq.${userId},device_id.eq.${deviceId}`)
+    : query.eq("device_id", deviceId);
+
+  const { error } = await query;
+  if (error) {
+    console.warn("[transportStore] migrateAttachments failed", error);
+    throw error;
+  }
+}
+
+/**
+ * Soft-delete every attachment owned by the given ticket. Used by the optional
+ * "Also delete related documents" toggle on the delete-flight dialog. Files in
+ * the storage bucket are intentionally left in place — only the row is
+ * tombstoned, so the attachment can be recovered via a support helper.
+ */
+export async function softDeleteAttachmentsForTicket(args: {
+  ticketId: string;
+  segmentRefs?: string[];
+  userId?: string | null;
+  deviceId: string;
+}): Promise<void> {
+  const { ticketId, segmentRefs = [], userId, deviceId } = args;
+  if (!ticketId && !segmentRefs.length) return;
+
+  const tombstone = { deleted_at: new Date().toISOString() };
+  const orRef = segmentRefs.length
+    ? `ticket_id.eq.${ticketId},segment_ref.in.(${segmentRefs.map((r) => `"${r}"`).join(",")})`
+    : `ticket_id.eq.${ticketId}`;
+
+  let query = (supabase as any)
+    .from("transport_attachments")
+    .update(tombstone)
+    .is("deleted_at", null)
+    .or(orRef);
+
+  query = userId
+    ? query.or(`user_id.eq.${userId},device_id.eq.${deviceId}`)
+    : query.eq("device_id", deviceId);
+
+  const { error } = await query;
+  if (error) {
+    console.warn("[transportStore] softDeleteAttachmentsForTicket failed", error);
+    throw error;
+  }
+}

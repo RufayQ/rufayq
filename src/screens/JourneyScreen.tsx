@@ -1441,7 +1441,11 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
                   }} />
                 </div>
                 {seg.type === "flight" && (
-                  <RelatedDocumentsCard segmentRef={seg.id} />
+                  <RelatedDocumentsCard
+                    segmentRef={seg.id}
+                    ticketId={seg.groupId}
+                    userId={userId}
+                  />
                 )}
                 {group === "past" && (
                   <div className="mx-4 mb-3 -mt-2 flex justify-end">
