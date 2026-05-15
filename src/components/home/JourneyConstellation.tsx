@@ -169,7 +169,7 @@ const JourneyConstellation = ({
   const chips = useMemo(() => {
     if (nodes.length === 0) return [];
     const seen = new Set<string>();
-    const out: { id: string; label: string; sub: string; cx: number; cy: number }[] = [];
+    const out: { id: string; label: string; labelAr: string; sub: string; cx: number; cy: number }[] = [];
     // Iterate in phase order so chips list stays predictable for a11y.
     const ordered = [...nodes].sort((a, b) => {
       const oa = PHASE_LABELS[a.m.phase].order;
@@ -192,6 +192,7 @@ const JourneyConstellation = ({
       out.push({
         id: `chip-${phase}`,
         label: PHASE_LABELS[phase].en,
+        labelAr: PHASE_LABELS[phase].ar,
         sub: formatChipDate(dateSrc),
         cx, cy,
       });
