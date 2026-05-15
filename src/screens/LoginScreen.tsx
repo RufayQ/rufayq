@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biometric } from "@/lib/native/biometric";
 import { phoneToE164, phoneToEmail } from "@/lib/auth/phoneEmail";
-import PasswordStrength, { evaluatePassword, allRequiredPass } from "@/components/auth/PasswordStrength";
+import PasswordStrength, { evaluatePassword, fairAndAbovePass } from "@/components/auth/PasswordStrength";
 
 
 type AuthView = "welcome" | "login" | "otp" | "recover" | "newpass";
@@ -401,7 +401,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   // ----- NEW PASSWORD (after recovery OTP) -----
   if (view === "newpass") {
     const pwChecks = evaluatePassword(newPass);
-    const pwOk = allRequiredPass(pwChecks);
+    const pwOk = fairAndAbovePass(pwChecks);
     const valid = pwOk && newPass === newPassConfirm;
     const submitNewPass = async () => {
       if (!valid) { toast.error("Password doesn't meet requirements or doesn't match"); return; }
@@ -422,7 +422,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         </div>
         <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--white)" }}>
           <div>
-            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>New password (min 8 chars)</label>
+            <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>New password</label>
             <input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)}
               autoComplete="new-password" placeholder="••••••••"
               className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none"
