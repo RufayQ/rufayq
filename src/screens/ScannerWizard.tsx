@@ -162,6 +162,7 @@ const sectionLabels: Record<string, string> = {
 };
 
 const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
+  const authUserId = useAuthUserId();
   // When the AI extraction path is disabled (currently the case for flights),
   // and the wizard is opened with a preselected flight category, skip the
   // upload/review/category steps and jump straight to manual entry (Step 4).

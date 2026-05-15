@@ -1,84 +1,67 @@
-## Scope
+## Goal
 
-Phase 1 only — pure code fixes targeting Lighthouse Perf 82→90+ and A11y 95→100. SEO is already 100; Phase 2 (CMS publishing, MedicalWebPage schema, agent route pages, billing) is out of scope and will be handled in separate prompts.
+Ensure flight attachments uploaded on Scanner Step 5 are inserted with `user_id` and stored under `user/<uid>/...` for signed-in users, instead of falling back to device/guest scoping. The `useAuthUserId` import already exists in `ScannerWizard.tsx` but is never called, and `RelatedDocumentsCard` is rendered without `userId`.
 
-Files touched: `index.html`, `src/index.css`, `src/pages/Landing.tsx`, `src/pages/LandingBelow.tsx`, `src/pages/About.tsx`, `src/pages/Pricing.tsx`, `public/llms.txt`. No behavior changes, no new dependencies.
+## Changes (single file: `src/screens/ScannerWizard.tsx`)
 
-## Edits
-
-### 1. LCP font path (`index.html`)
-
-a. Add preload alongside existing DM Sans preload (after line 53):
-   ```html
-   <link rel="preload" href="/fonts/cormorant-latin-2fed1d1b.woff2" as="font" type="font/woff2" crossorigin />
-   ```
-
-b. Append two `@font-face` rules to the inlined `<style>` block (after the DM Sans 700 face, line 58) — Cormorant Garamond 300 and 400, latin subset, mirroring fonts.css's `unicode-range`. The hero `<h1>` then resolves Cormorant in the same waterfall as DM Sans, eliminating the swap that delays LCP.
-
-c. Remove the `<noscript>` fallback line:
-   ```html
-   <noscript><link rel="stylesheet" href="/fonts/fonts.css" /></noscript>
-   ```
-   The `media="print" onload="..."` link above still loads heavier weights (Cormorant 600/700, Naskh) for JS users; non-JS visitors get the system fallback in the inline body style.
-
-Expected: LCP 3.8 s → < 3.0 s, render-blocking saving ~160 ms + swap eliminated ~600 ms.
-
-### 2. Agent-tile contrast (`src/index.css`, lines 52–57)
-
-Replace the six agent tokens with brighter values that hit WCAG AA against `#0B1A28`:
-
-```
---color-medai:     #4FB8C9;   /* was #004D5B */
---color-shopai:    #B89BFF;   /* was #7B4FBF */
---color-tourai:    #5BC07F;   /* was #1A6B3C */
---color-tasteai:   #FF8A5C;   /* was #C44B1A */
---color-exploreai: #5FA8FF;   /* was #0C5FA8 */
---color-planai:    #E6B756;   /* was #8B6914 */
-```
-
-These tokens are only used by the six agent cards in `LandingBelow.tsx` (verified by ripgrep) — no light-surface usages exist elsewhere, so no `-dark` variant is needed.
-
-### 3. Static-shell title/description (`index.html`, lines 29 + 31)
-
-Align with runtime `<SeoLazy>` to stop Google rewriting the title:
-
-```html
-<title>RufayQ — Your AI Companion for Every Journey</title>
-<meta name="description" content="Bilingual EN/AR AI companion for patients traveling abroad — medical, cultural & beyond." />
-```
-
-Update `og:title`, `twitter:title`, and the SSG hero `<h1>` text to match.
-
-### 4. Agent cards — fix broken links + mobile UX (`src/pages/LandingBelow.tsx`)
-
-- Change `href={`/agents/${a.id}`}` → `href="#agents"` until those routes exist.
-- Add `aria-label={isAr ? \`${a.ar} — اعرف أكثر\` : \`${a.en} — learn more\`}` to each `<a>`.
-- Container: keep `grid` at `md:` and up. On mobile use a horizontal snap rail:
+1. **Call the hook inside `ScannerWizard**` (after line 164):
+  ```ts
+   const authUserId = useAuthUserId();
   ```
-  flex md:grid overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 -mx-6 px-6 md:mx-0 md:px-0 md:grid-cols-3 lg:grid-cols-6
+2. **Pass `userId` to `Step5Success**` (line 283 block):
+  ```tsx
+   <Step5Success
+     category={selectedCategory}
+     payload={scannedPayload}
+     pendingSegmentRef={pendingSegmentRef}
+     userId={authUserId}
+     onViewSection={...}
+     onScanAnother={...}
+     onDone={...}
+   />
   ```
-  Each card adds `min-w-[200px] md:min-w-0 snap-start shrink-0 md:shrink`.
+3. **Add `userId` to `Step5Success` props** (line 1694):
+  ```ts
+   const Step5Success = ({ category, payload, pendingSegmentRef, userId, onViewSection, onScanAnother, onDone }: {
+     category: string | null;
+     payload?: ScannerSavePayload | null;
+     pendingSegmentRef?: string;
+     userId?: string | null;
+     onViewSection: () => void;
+     onScanAnother: () => void;
+     onDone: () => void;
+   }) => { ... }
+  ```
+4. **Forward to `RelatedDocumentsCard**` (line 1821):
+  ```tsx
+   <RelatedDocumentsCard segmentRef={pendingSegmentRef} userId={userId} compact />
+  ```
 
-### 5. Pricing nav anchor (`src/pages/Landing.tsx`, line 84)
+## Out of scope
 
-Change `{ en: "Pricing", ar: "الأسعار", href: "/pricing", isRoute: true }` → `{ en: "Pricing", ar: "الأسعار", href: "#pricing" }`. The `/pricing` route still exists for direct visits and is reached from elsewhere.
+- No DB / RLS / migration changes — `transport_attachments.user_id` and the `user/<uid>/...` storage path already exist and are honored by `RelatedDocumentsCard`.
+- No changes to `RelatedDocumentsCard`, `useAuthUserId`, or any other call site.
+- No test changes required (existing E2E mock returns `user: null`, so guest path still passes).  
+  
 
-### 6. Public copy alignment (limited)
 
-- `src/pages/About.tsx` line 12: "AI medical companion" → "AI companion".
-- `public/llms.txt`: replace standalone "medical companion" mentions in marketing prose with "AI companion" (leave technical/medical-records terminology intact).
-- Do NOT touch `docs/`, in-app screen copy, or the Lovable Cloud-managed disclaimers.
+> *Apply the ScannerWizard auth-user propagation exactly as proposed. Importing useAuthUserId is not enough: call const authUserId = useAuthUserId() inside ScannerWizard, pass userId={authUserId} into Step5Success, add userId?: string | null to Step5Success props, and render <RelatedDocumentsCard segmentRef={pendingSegmentRef} userId={userId} compact />. Confirm this is paired with the existing durable attachment migration/RLS and RelatedDocumentsCard upload logic, so signed-in Step 5 uploads insert transport_attachments.user_id and store files under user/<uid>/....*
 
-### 7. Pricing CTAs for unbillable tiers (`src/pages/Pricing.tsx`)
+## **Verification Performed**
 
-For the "Journey Companion" and "Full Companion" plans only: change the CTA label and behavior to a `Contact us →` link that scrolls to `#contact` on the landing page (`/#contact` or `/ar/#contact`). Leave Free Trial and Basic tiers untouched.
+- ✅ git status --short && rg -n "useAuthUserId|authUserId|userId=\\{authUserId\\}|Step5Success|RelatedDocumentsCard segmentRef=\\{pendingSegmentRef\\}|userId\\?: string \\| null|file_path|deleted_at|migrateAttachments|softDeleteTicketAttachments" src/screens/ScannerWizard.tsx src/components/RelatedDocumentsCard.tsx src/hooks/useAuthUserId.ts src/screens/JourneyScreen.tsx src/lib/transportStore.ts supabase/migrations/20260515120000_transport_attachments_durability.sql
+- ✅ nl -ba src/screens/ScannerWizard.tsx | sed -n '1,14p;174,184p;255,262p;1649,1657p;1774,1779p'
+- ✅ nl -ba src/components/RelatedDocumentsCard.tsx | sed -n '24,36p;80,107p;127,155p;180,185p'
+- ✅ nl -ba src/hooks/useAuthUserId.ts | sed -n '1,36p'
+- ✅ nl -ba supabase/migrations/20260515120000_transport_attachments_durability.sql | sed -n '3,24p;67,97p;110,138p'
+- ✅ nl -ba src/lib/transportStore.ts | sed -n '365,427p'
+- ✅ nl -ba src/screens/JourneyScreen.tsx | sed -n '390,405p;1438,1449p'
+- ✅ npm run typecheck
+
+No code changes were needed in this turn because the requested ScannerWizard fix is already present in the current branch.
 
 ## Verification
 
-- `npx tsc -p tsconfig.app.json --noEmit` — clean.
-- Reload `/` — confirm hero `<h1>` paints in Cormorant immediately (no glyph swap), agent tiles brighter, mobile shows horizontal snap rail, nav "Pricing" smooth-scrolls, agent cards no longer 404.
-- Re-run Lighthouse on `/` — expect Perf ≥ 90, A11y = 100, SEO = 100, Best Practices = 100.
-
-## Out of scope (Phase 2 — separate prompts)
-
-Articles 2 & 3 publish + cross-links, MedicalWebPage/E-E-A-T schema, `/agents/*` route pages, expanded `llms.txt` 6-agent description, sourcing the Beyond Medicine stats, billing-backend extension. Cache TTL on fonts is host-level and not addressable in app code.
+- `rg "userId" src/screens/ScannerWizard.tsx` shows the hook called, prop declared, and forwarded.
+- TypeScript compiles cleanly.
+- Manual smoke: signed-in upload on Step 5 → new `transport_attachments` row has `user_id` set and `file_path` starts with `user/<uid>/`.
