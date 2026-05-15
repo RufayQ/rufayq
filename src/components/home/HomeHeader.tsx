@@ -3,6 +3,7 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import NotificationBell from "@/components/NotificationBell";
 import PhaseRibbon from "@/components/home/PhaseRibbon";
 import { type Phase } from "@/components/home/journeyPhase";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export type HomeHeaderMenuItem = HeaderMenuItem;
 
@@ -13,6 +14,10 @@ interface HomeHeaderProps {
   menuItems: HomeHeaderMenuItem[];
   /** Optional: when present, renders a faint phase ribbon along the bottom edge. */
   phase?: Phase;
+  /** Controlled notification drawer state (lifted from HomeScreen). */
+  notificationOpen?: boolean;
+  onNotificationOpenChange?: (open: boolean) => void;
+  onNotificationNavigate?: (link: string) => void;
 }
 
 function greetingForHour(hour: number) {
@@ -22,7 +27,8 @@ function greetingForHour(hour: number) {
   };
 }
 
-const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase }: HomeHeaderProps) => {
+const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase, notificationOpen, onNotificationOpenChange, onNotificationNavigate }: HomeHeaderProps) => {
+  const { showEn, showAr } = useLanguage();
   const dateStr = new Date()
     .toLocaleDateString("en-US", {
       weekday: "short",
@@ -61,7 +67,12 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase }:
         <div className="flex items-center justify-between mb-3">
           <RufayQWordmark size="sm" variant="light" />
           <div className="flex items-center gap-2">
-            <NotificationBell color="#fff" />
+            <NotificationBell
+              color="#fff"
+              open={notificationOpen}
+              onOpenChange={onNotificationOpenChange}
+              onNavigate={onNotificationNavigate}
+            />
             <HeaderMenu items={menuItems} />
             <button
               onClick={onProfile}
@@ -89,16 +100,20 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase }:
             {dateStr}
           </p>
         </div>
-        <p className="font-display text-[22px] italic text-white leading-tight" style={{ fontWeight: 300 }}>
-          {patientName ? `${greeting.en}, ${patientName}` : `${greeting.en} 👋`}
-        </p>
-        <p
-          className="font-arabic text-[13px] mt-0.5"
-          dir="rtl"
-          style={{ color: "rgba(255,255,255,0.6)" }}
-        >
-          {patientNameAr || patientName ? `${greeting.ar}، ${patientNameAr || patientName}` : `${greeting.ar} 👋`}
-        </p>
+        {showEn && (
+          <p className="font-display text-[22px] italic text-white leading-tight" style={{ fontWeight: 300 }}>
+            {patientName ? `${greeting.en}, ${patientName}` : `${greeting.en} 👋`}
+          </p>
+        )}
+        {showAr && (
+          <p
+            className="font-arabic text-[13px] mt-0.5"
+            dir="rtl"
+            style={{ color: "rgba(255,255,255,0.6)" }}
+          >
+            {patientNameAr || patientName ? `${greeting.ar}، ${patientNameAr || patientName}` : `${greeting.ar} 👋`}
+          </p>
+        )}
       </div>
 
       {/* Phase ribbon embedded near the bottom edge of the hero */}

@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
 import { CreditCard, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { usePatientName } from "@/hooks/usePatientName";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
 import TodayCard from "@/components/home/TodayCard";
@@ -22,7 +23,9 @@ interface HomeScreenProps {
 
 const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps) => {
   const { patientName, patientNameAr } = usePatientName();
+  const { showEn, showAr } = useLanguage();
   const overview = useJourneyOverview({ isGuest });
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const {
     activeTrip, milestones, alerts, dayN, totalDays,
   } = overview;
@@ -41,12 +44,14 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const homeMenuItems: HomeHeaderMenuItem[] = [
     { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: () => { window.location.reload(); } },
     { icon: <Bell size={14} />, label: "Notifications", labelAr: "الإشعارات",
-      onClick: () => { toast("Notifications · الإشعارات", { description: "All notifications are up to date · جميع الإشعارات محدّثة" }); } },
+      onClick: () => setNotificationOpen(true) },
     { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص",
       onClick: () => {
         const summary = `Active Trip: ${activeTrip?.destination ?? "—"}`;
         navigator.clipboard.writeText(`RufayQ – Trip Summary\n${summary}`);
-        toast("Copied · تم النسخ");
+        const enMsg = "Copied";
+        const arMsg = "تم النسخ";
+        toast(showEn && showAr ? `${enMsg} · ${arMsg}` : showAr ? arMsg : enMsg);
       } },
     { icon: <Share2 size={14} />, label: "Share App", labelAr: "مشاركة التطبيق",
       onClick: () => {
@@ -68,6 +73,9 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
         onProfile={onProfile}
         menuItems={homeMenuItems}
         phase={phase}
+        notificationOpen={notificationOpen}
+        onNotificationOpenChange={setNotificationOpen}
+        onNotificationNavigate={(link) => onNavigate(link)}
       />
 
       <div

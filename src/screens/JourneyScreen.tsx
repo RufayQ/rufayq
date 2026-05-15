@@ -133,7 +133,7 @@ const stayTypeOptions = [
   { icon: "🏥", en: "Hospital Stay", ar: "إقامة مستشفى" },
 ];
 
-type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | null;
+type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | `phase:${string}` | null;
 
 const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
   const isGuest = useGuestMode();
@@ -289,6 +289,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       setActiveSubTab("overview");
       pendingMilestoneIdRef.current = initialIntent.slice("milestone:".length);
       setPendingMilestoneToken((v) => v + 1);
+    } else if (typeof initialIntent === "string" && initialIntent.startsWith("phase:")) {
+      // Phase deep-link: land on the overview where PhaseRibbon5 is visible.
+      setActiveSubTab("overview");
     }
     onIntentHandled?.();
   }, [initialIntent, onIntentHandled]);

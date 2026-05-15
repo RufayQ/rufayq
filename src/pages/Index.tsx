@@ -112,7 +112,7 @@ const Index = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
-  const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | null>(null);
+  const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | `phase:${string}` | null>(null);
   const [badges, setBadges] = useState<Partial<Record<Tab, boolean>>>({
     carehub: true,
   });
@@ -298,8 +298,13 @@ const Index = () => {
         typeof context === "string" && context.startsWith("milestone:")
           ? (context as `milestone:${string}`)
           : null;
+      const phaseIntent =
+        typeof context === "string" && context.startsWith("phase:")
+          ? (context as `phase:${string}`)
+          : null;
       setJourneyIntent(
         milestoneIntent ??
+          phaseIntent ??
           (context === "new-trip"
             ? "new-trip"
             : context === "view"

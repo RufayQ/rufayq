@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import type { JourneyOverview } from "@/hooks/useJourneyOverview";
 import { derivePhase, PHASES } from "./journeyPhase";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface TodayCardProps {
   overview: JourneyOverview;
@@ -53,6 +54,7 @@ const ProgressRing = ({ pct, dayN, totalDays }: { pct: number; dayN: number | nu
 };
 
 const TodayCard = ({ overview, onOpenJourney, onPlanFirstTrip }: TodayCardProps) => {
+  const { showEn, showAr } = useLanguage();
   const { activeTrip, dayN, totalDays, progressPct, nextAppointment, nextMedication, formattedReturnDate } = overview;
 
   // ---- Empty state: refined, single inline CTA. ----
@@ -74,19 +76,23 @@ const TodayCard = ({ overview, onOpenJourney, onPlanFirstTrip }: TodayCardProps)
           style={{ background: "radial-gradient(closest-side, rgba(197,150,90,0.18), transparent)" }}
         />
         <p className="font-mono text-[9.5px] tracking-[0.22em] mb-2" style={{ color: "var(--gold)" }}>
-          TODAY · اليوم
+          {showEn && "TODAY"}{showEn && showAr && " · "}{showAr && "اليوم"}
         </p>
-        <p className="font-display text-[20px] leading-tight" style={{ color: "var(--navy)" }}>
-          Plan your first journey
-        </p>
-        <p className="font-arabic text-[12px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
-          ابدأ رحلتك العلاجية الأولى
-        </p>
+        {showEn && (
+          <p className="font-display text-[20px] leading-tight" style={{ color: "var(--navy)" }}>
+            Plan your first journey
+          </p>
+        )}
+        {showAr && (
+          <p className="font-arabic text-[12px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
+            ابدأ رحلتك العلاجية الأولى
+          </p>
+        )}
         <span
           className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold"
           style={{ color: "var(--teal-deep)" }}
         >
-          Begin <ArrowRight size={13} />
+          {showEn ? "Begin" : "ابدأ"} <ArrowRight size={13} />
         </span>
       </button>
     );
@@ -139,7 +145,7 @@ const TodayCard = ({ overview, onOpenJourney, onPlanFirstTrip }: TodayCardProps)
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             <p className="font-mono text-[9.5px] tracking-[0.22em]" style={{ color: "var(--gold)" }}>
-              TODAY
+              {showAr && !showEn ? "اليوم" : "TODAY"}
             </p>
             <span
               className="font-mono text-[9px] tracking-[0.18em] px-2 py-[2px] rounded-full"
@@ -149,7 +155,9 @@ const TodayCard = ({ overview, onOpenJourney, onPlanFirstTrip }: TodayCardProps)
                 border: "1px solid rgba(0,77,91,0.10)",
               }}
             >
-              {phaseLabel.en.toUpperCase()} · {phaseLabel.ar}
+              {showEn && phaseLabel.en.toUpperCase()}
+              {showEn && showAr && " · "}
+              {showAr && phaseLabel.ar}
             </span>
           </div>
           <p
@@ -168,16 +176,20 @@ const TodayCard = ({ overview, onOpenJourney, onPlanFirstTrip }: TodayCardProps)
           >
             <span className="text-[14px]">{next.emoji}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-[11.5px] font-semibold truncate" style={{ color: "var(--navy)" }}>
-                {next.en}
-              </p>
-              <p
-                className="font-arabic text-[10px] truncate"
-                dir="rtl"
-                style={{ color: "var(--gray)" }}
-              >
-                {next.ar}
-              </p>
+              {showEn && (
+                <p className="text-[11.5px] font-semibold truncate" style={{ color: "var(--navy)" }}>
+                  {next.en}
+                </p>
+              )}
+              {showAr && (
+                <p
+                  className="font-arabic text-[10px] truncate"
+                  dir="rtl"
+                  style={{ color: "var(--gray)" }}
+                >
+                  {next.ar}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -193,7 +205,7 @@ const TodayCard = ({ overview, onOpenJourney, onPlanFirstTrip }: TodayCardProps)
           boxShadow: "0 6px 18px -6px rgba(0,77,91,0.55)",
         }}
       >
-        Open Journey · افتح رحلتك <ArrowRight size={14} />
+        {showEn && "Open Journey"}{showEn && showAr && " · "}{showAr && "افتح رحلتك"} <ArrowRight size={14} />
       </button>
     </div>
   );
