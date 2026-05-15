@@ -23,7 +23,9 @@ interface HomeScreenProps {
 
 const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps) => {
   const { patientName, patientNameAr } = usePatientName();
+  const { showEn, showAr } = useLanguage();
   const overview = useJourneyOverview({ isGuest });
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const {
     activeTrip, milestones, alerts, dayN, totalDays,
   } = overview;
