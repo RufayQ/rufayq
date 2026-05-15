@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { setStoredRole } from "@/screens/RoleSelectorScreen";
 import { phoneToE164, phoneToEmail, isValidEmail, isValidE164 } from "@/lib/auth/phoneEmail";
-import PasswordStrength, { evaluatePassword, allRequiredPass } from "@/components/auth/PasswordStrength";
+import PasswordStrength, { evaluatePassword, fairAndAbovePass } from "@/components/auth/PasswordStrength";
 import RufayQLogo from "@/components/RufayQLogo";
 import NationalityCombobox from "@/components/NationalityCombobox";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -45,7 +45,7 @@ const QuickSignup = () => {
   const fullNameAr = [firstNameAr.trim(), lastNameAr.trim()].filter(Boolean).join(" ").trim() || null;
   const e164 = phoneToE164(phone);
   const pwChecks = evaluatePassword(password, { firstName, lastName, phone });
-  const pwOk = allRequiredPass(pwChecks);
+  const pwOk = fairAndAbovePass(pwChecks);
   const canSubmit =
     !!firstName.trim() &&
     !!lastName.trim() &&
