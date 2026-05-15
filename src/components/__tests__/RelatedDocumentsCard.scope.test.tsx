@@ -141,6 +141,32 @@ describe("RelatedDocumentsCard — guest scope (userId == null)", () => {
     expect(payload.device_id).toBe("test-device-xyz");
     expect(payload.segment_ref).toBe("seg-guest-1");
   });
+
+  it("falls back to device scope when userId is undefined", async () => {
+    const { container } = render(
+      <RelatedDocumentsCard segmentRef="seg-guest-2" userId={undefined} compact />,
+    );
+
+    await waitFor(() => expect(orderSpy).toHaveBeenCalled());
+
+    expect(orSpy).not.toHaveBeenCalled();
+    expect(eqSpy).toHaveBeenCalledWith("device_id", "test-device-xyz");
+    expect(eqSpy).toHaveBeenCalledWith("segment_ref", "seg-guest-2");
+    expect(isSpy).toHaveBeenCalledWith("deleted_at", null);
+
+    await pickAndConfirm(container);
+
+    await waitFor(() => expect(uploadSpy).toHaveBeenCalled());
+    const uploadedPath = uploadSpy.mock.calls[0][0] as string;
+    expect(uploadedPath.startsWith("test-device-xyz/seg-guest-2/")).toBe(true);
+    expect(uploadedPath.startsWith("user/")).toBe(false);
+
+    await waitFor(() => expect(insertSpy).toHaveBeenCalled());
+    const payload = insertSpy.mock.calls[0][0];
+    expect(payload.user_id).toBeNull();
+    expect(payload.device_id).toBe("test-device-xyz");
+    expect(payload.segment_ref).toBe("seg-guest-2");
+  });
 });
 
 describe("RelatedDocumentsCard — signed-in scope (userId set)", () => {
