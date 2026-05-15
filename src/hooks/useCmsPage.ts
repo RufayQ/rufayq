@@ -29,10 +29,15 @@ export const useCmsPage = (slug: string) => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Defer Supabase client import until after Landing has painted.
+      const { supabase } = await import("@/integrations/supabase/client");
+      if (cancelled) return;
       const { data: page } = await supabase
         .from("cms_pages")
         .select("id, slug, title_en, title_ar")
         .eq("slug", slug)
+        .eq("status", "published")
+        .maybeSingle();
         .eq("status", "published")
         .maybeSingle();
       if (!page || cancelled) { setLoaded(true); return; }
