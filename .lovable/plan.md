@@ -1,85 +1,315 @@
-## Push Notifications + Admin Composer
+# Signup optional-details correctness pass + NationalityCombobox localization + tests  
+  
+Signup optional-details correctness pass — branch-accurate version
 
-Build an in-app push system with bilingual content, segmented audiences, scheduling, and a campaign log. No FCM/APNs yet — delivery happens by inserting rows into `patient_notifications` (already wired to real-time toasts + the bell inbox via `usePatientNotifications`). FCM can plug in later with no UI changes.
+Do not redesign. Do not change password rules. Do not add dependencies. Do not touch Google connected accounts in this patch.
 
-### 1. Database (one migration)
+Important branch reality:
 
-**`push_campaigns`** — one row per send/scheduled job
-- `title`, `title_ar`, `body`, `body_ar`, `link` (deep link)
-- `kind` (default `'announcement'`)
-- `audience` JSONB — `{ all:bool, countries:string[], plans:string[], roles:('patient'|'provider')[] }`
-- `scope` — `'global' | 'org'`, `organization_id` nullable (org staff sends are scoped to their org)
-- `status` — `'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'cancelled'`
-- `scheduled_at`, `sent_at`, `audience_size`, `delivered_count`, `failed_count`
-- `created_by`, `is_test` (for "Test send to myself")
+In the branch under review, the signup implementation is in:
 
-**`push_campaign_recipients`** — audit per recipient (campaign_id, patient_device_id, notification_id, status, created_at). Lets the campaign-history view show real delivery counts.
+- src/screens/LoginScreen.tsx
 
-**RPC `push_campaign_send(_campaign_id uuid)`** — SECURITY DEFINER, gated by `has_role(admin)` OR (org staff AND campaign.scope='org' AND `is_org_member(auth.uid(), organization_id)`). Resolves audience:
-- patients → distinct `device_id` from `profiles` (filtered by `nationality` if `countries` set) joined to active `user_subscriptions` (filtered by `plan` if `plans` set)
-- providers → join through `provider_members` for `role='provider'`
-- For each device, INSERT into `patient_notifications` and `push_campaign_recipients`; update campaign counters and set status to `sent`.
+The nationality combobox is:
 
-**RLS**
-- `push_campaigns`: admins full; org staff can SELECT/INSERT/UPDATE rows where `scope='org' AND organization_id IN (user_org_ids(auth.uid()))`. Patients: no access.
-- `push_campaign_recipients`: admins read all; org staff read own org's; patients no.
+- src/components/auth/NationalityCombobox.tsx
 
-**Scheduler** — enable `pg_cron` + `pg_net`, add a 1-minute job that calls a new edge function `push-dispatch-scheduled` which selects `status='scheduled' AND scheduled_at<=now()` and calls the RPC for each.
+Do not reference src/pages/QuickSignup.tsx or src/components/NationalityCombobox.tsx unless your raw command output proves those files exist in the branch being reviewed.
 
-### 2. Admin portal
+Before editing, paste raw output for:
 
-New nav entry **Communications → Push Notifications** in `src/components/admin/shell/adminNav.ts`, lazy-loaded into `Admin.tsx` switch.
+pwd
 
-**`AdminPushNotifications.tsx`** — two tabs:
+git rev-parse --short HEAD
 
-- **Composer**
-  - Bilingual title + body (EN/AR) with live mobile preview card
-  - Optional deep link input with autocomplete suggestions (`/journey`, `/medications`, `/profile`, `/pricing`, …)
-  - Audience builder:
-    - "All users" toggle
-    - Countries multi-select (sourced from distinct `profiles.nationality`)
-    - Plans multi-select (`free`, `plus`, `premium` — distinct from `user_subscriptions.plan`)
-    - Roles checkboxes (patient / provider)
-  - Live audience-size estimate (calls a lightweight `push_estimate_audience` RPC on debounce)
-  - Schedule toggle → datetime picker; otherwise send immediately
-  - Buttons: **Test send to me** (forces audience = current admin's device only), **Save draft**, **Schedule / Send now**
-  - Org-staff users see scope locked to "My organization only"
+git status --short
 
-- **History**
-  - Table of past + scheduled campaigns: status badge, audience summary chips, audience size / delivered, sent-at, sender
-  - Row actions: Duplicate, Cancel (scheduled only), View recipients
+rg --files src | rg 'QuickSignup|LoginScreen|NationalityCombobox|googleLink'
 
-### 3. Frontend wiring
+rg -n "nationality|gender|NationalityCombobox|QuickSignup|googleLink" src/pages src/screens src/components src/lib -g '*.{ts,tsx}'
 
-- New hook `useAdminPushCampaigns` (list + create + cancel + estimate).
-- Reuse existing `usePatientNotifications` — no client changes needed; new rows trigger the existing real-time toast + bell badge automatically.
-- Add a "Last campaign" KPI tile to `AdminDashboard.tsx`.
+Fixes required in this branch:
 
-### 4. Future-proofing for native FCM
+1. Nationality must not silently default to Saudi Arabia.
 
-Edge function `push-dispatch-scheduled` is the single execution path. When FCM is wired later, it will additionally read `device_push_tokens` for each resolved user and call FCM — no schema or UI change required. The `FCM_SERVER_KEY` secret will be added at that time.
+   In src/screens/LoginScreen.tsx:
 
-### Out of scope (this turn)
+   - Change registration state from nationality: "Saudi Arabia" to nationality: "".
 
-- Native FCM/APNs delivery, A/B testing, rich media payloads, per-recipient retry workers, segments saved as reusable lists.
+   - Keep the existing placeholder text in the combobox.
 
-### Files
+   - Persist nationality as reg.nationality || null.
 
-**New**
-- `supabase/migrations/<ts>_push_campaigns.sql`
-- `supabase/functions/push-dispatch-scheduled/index.ts`
-- `src/components/admin/AdminPushNotifications.tsx`
-- `src/components/admin/push/CampaignComposer.tsx`
-- `src/components/admin/push/CampaignHistory.tsx`
-- `src/components/admin/push/AudienceBuilder.tsx`
-- `src/hooks/useAdminPushCampaigns.ts`
+2. Gender is optional in this branch and must not silently default to male.
 
-**Edited**
-- `src/pages/Admin.tsx` (route case)
-- `src/components/admin/shell/adminNav.ts` (nav entry)
-- `src/components/admin/AdminDashboard.tsx` (KPI tile)
+   In src/screens/LoginScreen.tsx:
 
-### Verification
+   - Change gender initial state from "male" to "".
 
-- `npx tsc` → 0 errors
-- Manual: send broadcast → patient device shows toast + bell badge increments; schedule a send 2 min out → cron fires, status flips to `sent`, recipients table populated; org-staff session sees scope locked and audience filtered to their org's patients only.
+   - Move the gender selector into the “Add optional details” disclosure with Arabic name, DOB, and nationality.
+
+   - Persist gender as reg.gender || null.
+
+   - Do not add gender to canContinue unless product explicitly wants gender required.
+
+3. NationalityCombobox localization.
+
+   In src/components/auth/NationalityCombobox.tsx:
+
+   - Replace selectedLabel = value || placeholder logic with a country lookup:
+
+     const selectedCountry = COUNTRIES.find(
+
+       (country) =>
+
+         value === [country.name](http://country.name) ||
+
+         value === country.nameAr ||
+
+         value === country.code,
+
+     );
+
+     const selectedLabel = selectedCountry
+
+       ? isAr ? selectedCountry.nameAr : [selectedCountry.name](http://selectedCountry.name)
+
+       : value || placeholder || (isAr ? "اختر الجنسية" : "Select nationality");
+
+   - Keep onChange behavior compatible with the current payload.
+
+   - Stored values in either English or Arabic should display in the current UI language.
+
+4. Tests.
+
+   Add/update tests for the actual files in this branch:
+
+   - English signup: optional fields hidden by default.
+
+   - Clicking “Add optional details” reveals Arabic name, DOB, nationality, and gender.
+
+   - Submitting with only required fields does not save nationality as "Saudi Arabia" or gender as "male"; both should be null/empty in the profile upsert payload.
+
+   - NationalityCombobox displays current-language label for both English and Arabic stored values.
+
+   - NationalityCombobox onChange emits the localized name for the active language.
+
+Suggested test locations:
+
+- If there is no LoginScreen signup test, add one under src/screens/__tests__/LoginScreen.test.tsx or similar existing test convention.
+
+- Add NationalityCombobox tests under src/components/auth/__tests__/NationalityCombobox.test.tsx or keep next to the component if this repo uses flat component tests. Match existing repo convention.
+
+Verification:
+
+npx tsc -p [tsconfig.app](http://tsconfig.app).json --noEmit
+
+bunx vitest run <new/updated LoginScreen signup test> <NationalityCombobox test>
+
+bunx vitest run
+
+bun run build
+
+Report:
+
+- exact files changed
+
+- exact commands and exit codes
+
+- line references proving nationality/gender no longer silently default
+
+- do not mention QuickSignup.tsx unless it exists in the raw command output
+
+Why this corrected prompt is needed
+
+The branch I can inspect shows the actual issue in LoginScreen.tsx:
+
+nationality: "Saudi Arabia" and gender: "male" are still default registration state. 【F:src/screens/LoginScreen.tsx†L56-L60】
+
+Both fields are persisted directly to the profiles row. 【F:src/screens/LoginScreen.tsx†L281-L292】
+
+Gender is still visible in the primary signup form. 【F:src/screens/LoginScreen.tsx†L935-L948】
+
+NationalityCombobox still displays value directly, so it does not relocalize after language changes. 【F:src/components/auth/NationalityCombobox.tsx†L58-L74】
+
+Commands I used to validate this
+
+bash
+
+pwd
+
+bash
+
+git rev-parse --short HEAD
+
+bash
+
+git status --short
+
+bash
+
+rg --files src | rg 'QuickSignup|NationalityCombobox|LoginScreen|PasswordStrength|googleLink|ConnectedAccounts|useLinkedProviders'
+
+bash
+
+rg -n "nationality|gender|NationalityCombobox|QuickSignup|googleLink" src/pages src/screens src/components src/lib -g '*.{ts,tsx}' | head -240
+
+Bottom line
+
+Lovable’s fix intent is good, but their file targeting is wrong for this branch.
+
+The missed fixes are:
+
+LoginScreen.tsx: nationality default should be "", not "Saudi Arabia".
+
+LoginScreen.tsx: gender default should be "", not "male".
+
+LoginScreen.tsx: gender should move into optional details or become explicitly required.
+
+LoginScreen.tsx: save nationality || null and gender || null.
+
+NationalityCombobox.tsx: display selected country in the current language.
+
+Tests should be added against the actual branch files, not QuickSignup.tsx. accept because /work.
+
+**, but the file paths and branch facts are wrong for this checkout.
+
+What Lovable’s plan gets right conceptually
+
+These are valid fixes and should happen:
+
+Nationality should not silently default to Saudi Arabia when hidden in optional details.
+
+**Nationality should persist as null if untouched. NationalityComb should display selected the UI, even the stored value was selected in language.
+
+4.Tests hidden and silent.Those are all.
+
+in Lov’s plan ❌ Quick.ts presentable/pages/Signup.tsxBut not that file. The relevant signup code here is in src/screens/LoginScreen.tsx.
+
+The current visible files include src/screens/LoginScreen.tsx and src/components/auth/NationalityCombobox.tsx, but no src/pages/QuickSignup.tsx.
+
+❌ 2. The live nationality combobox path is different
+
+Lovable says:
+
+srcationalobox fileBut this,/Nity.ts imports it ❌Lov inQuick this this,LoginScreen.ts:
+
+ts
+
+gender: "male"
+
+in registration state. 【F:src/screens/LoginScreen.tsx†L56-L60】
+
+It persists gender: reg.gender. 【F:src/screens/LoginScreen.tsx†L281-L292】
+
+It renders a visible gender selector in the signup form the branch fixed### ❌4 The current branch still has
+
+ity is currently initialized Arabia`. 【F:src/screens/LoginScreen.tsx†L56-L60】
+
+It is then to the Since field is hidden optional details, the silent-default.
+
+❌ 5. Google-linkage file claim is not true in this checkout
+
+Lovable says:
+
+googleLink.ts already exists in this branch
+
+In this checkout, I do not see googleLink.ts. Keep Google connected accounts as a separate workstream, but Lovable stop exist unless raw command output##ed fix prompt for Lov
+
+this instead```text
+
+Signup pass — branch
+
+Do not redesign. not rules not Do not touch Google connected in.
+
+branch reality the review the:
+
+Screenx comb srcobox.ts not reference/QuickSignup.tsx orationality.tsx your raw those exist being reviewed.
+
+, paste output:
+
+revshort HEAD
+
+git status --rg --files src rg 'SignupLoginScreenNationalityrg - "ity|NationalityCombobox src/pages/screens src src/libts,tsx}Fixes this1. Nationality must silently to Saudi Arabia src/screens.tsx:
+
+-:Saudi to nationality.
+
+placeholder theobox - Persist nationalityational ||. is this and must not silently default to male.
+
+In src/screens/LoginScreen.tsx:
+
+Change gender initial state from "male" to "".
+
+Move the gender selector into the “Add optional details” disclosure with Arabic name, DOB, and nationality.
+
+Persist gender as reg.gender || null.
+
+Do gender to can product explicitly wants.ityCombobox localization.
+
+In/components/authationalobox:
+
+Replace selectedLabel = value || logic with a:
+
+const selected = COUNTRIES.find(
+
+country) === const = ?[Country.name](http://Country.name) [selectedCountry.name](http://selectedCountry.name) : placeholder ? "تر الجنسية" : "Select");
+
+Keep on compatible with the current payload - Stored values in either English or should display the current UI language4.
+
+/update tests the files in this:
+
+English signup: optional hidden by default.
+
+Clicking “Add optional details” reveals Arabic name, DOB nationality and.
+
+Submitting with required fields not save nationality as Arabia" asmale"; both null/empty in the upsert payload NationalityCombobox displays current-language for both and.
+
+ityobox onChange emits name active test- there is signup add src/tests/LoginScreen.test.tsx or similar existing convention.
+
+Add Nationality tests under src/components/auth/tests/NationalityComb.test or keep to the component if this repo uses tests. Match existing repo convention.
+
+Verificationn -p.json --Emit
+
+bunx vitest run <new/updated LoginScreen signup test> <NationalityCombobox test>
+
+bunx vitest run
+
+bun run build
+
+Report:
+
+exact files changed
+
+exact commands and exit codes
+
+line references proving nationality/gender no longer silently default
+
+do not mentionSignup.tsx it exists in the raw command output```
+
+this corrected is needed
+
+The I inspect shows the issue inScreen.tsx`:
+
+*nationalSaudi"andgender: "male"` are still default registration state. 【F:src/screens/LoginScreen.tsx†L56-L60】
+
+Both fields are the profiles row 【F:src/screens/LoginScreen.tsx†L281-L292】
+
+still visible in the signup form. not relocalize after language changes. 【F:src/components/auth/NationalityCombobox.tsx†L58-L74】
+
+Commands I used to validate this
+
+gitparse --shortfiles srcQuickSignupLogingoogleLink|ConnectedAccounts|useLinkedProviders'
+
+```bash
+
+rg -n "nationality|gender|NationalityCombobox|QuickSignup|googleLink" src/pages src/screens src/components src/lib -g '*.{ts,tsx}' | head -240
+
+Bottom line
+
+Lovable intent** but targeting branch**.
+
+:
+
+.Screen: not"Loginx gender default should be"", not ": gender shouldnational || . NationalityCombx`: display selected country in.
+
+6 filesx
