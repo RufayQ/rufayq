@@ -338,7 +338,7 @@ const QuickSignup = () => {
                       value={firstNameAr}
                       onChange={(e) => setFirstNameAr(e.target.value)}
                       placeholder="محمد"
-                      className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
+                      className="w-full mt-1 px-4 py-3 rounded-xl outline-none lang-keep"
                       style={inputStyle}
                       dir="rtl"
                     />
