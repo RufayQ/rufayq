@@ -6,7 +6,7 @@
  * `outbound`/`return`/`legs` FlightInfo payload so the existing Step-4 OCR
  * fields display keeps working.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { X, Plus, Trash2, ZoomIn, Lock, User, Users, ArrowDown, Link2, ChevronUp, ChevronDown } from "lucide-react";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import { useTrial } from "@/hooks/useTrial";
@@ -23,6 +23,13 @@ import {
 import { isHHmm } from "@/lib/time24";
 import { normalizeTerminal } from "@/lib/terminal";
 import Time24Input from "@/components/Time24Input";
+import {
+  loadDraft,
+  loadDraftRemoteFirst,
+  saveDraft,
+  clearDraft,
+  type FlightDraft,
+} from "@/lib/flightDraftStore";
 
 type TripMode = "one-way" | "round-trip";
 export type TravelerKind = "patient" | "companion" | "family";
@@ -43,6 +50,8 @@ export interface ManualFlightPayload {
 interface Props {
   initial?: { outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } } | null;
   documentImages?: string[];
+  /** Draft id for autosave/recovery. Defaults to "current". */
+  draftId?: string;
   onClose: () => void;
   onSubmit: (payload: ManualFlightPayload) => void;
 }
