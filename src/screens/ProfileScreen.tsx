@@ -8,6 +8,7 @@ import RcmStatusPanel from "@/components/RcmStatusPanel";
 import EmergencyContactsSheet, { loadEmergencyContacts, CATEGORY_META, type EmergencyContact } from "@/components/EmergencyContactsSheet";
 import { usePendingClaimsCount } from "@/hooks/usePendingClaimsCount";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import ConnectedAccountsCard from "@/components/profile/ConnectedAccountsCard";
 
 interface ProfileScreenProps {
   onBack: () => void;
