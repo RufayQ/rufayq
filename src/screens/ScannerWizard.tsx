@@ -1693,10 +1693,11 @@ const FlightSegmentEditSheet = ({
 };
 
 /* ─── STEP 5: SUCCESS ─── */
-const Step5Success = ({ category, payload, pendingSegmentRef, onViewSection, onScanAnother, onDone }: {
+const Step5Success = ({ category, payload, pendingSegmentRef, userId, onViewSection, onScanAnother, onDone }: {
   category: string | null;
   payload?: ScannerSavePayload | null;
   pendingSegmentRef?: string;
+  userId?: string | null;
   onViewSection: () => void;
   onScanAnother: () => void;
   onDone: () => void;
