@@ -261,33 +261,6 @@ const QuickSignup = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[12px]" style={labelStyle}>{t("First name (Arabic)", "الاسم الأول (عربي)")}</label>
-                <input
-                  type="text"
-                  value={firstNameAr}
-                  onChange={(e) => setFirstNameAr(e.target.value)}
-                  placeholder="محمد"
-                  className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
-                  style={inputStyle}
-                  dir="rtl"
-                />
-              </div>
-              <div>
-                <label className="text-[12px]" style={labelStyle}>{t("Last name (Arabic)", "اسم العائلة (عربي)")}</label>
-                <input
-                  type="text"
-                  value={lastNameAr}
-                  onChange={(e) => setLastNameAr(e.target.value)}
-                  placeholder="آل سعود"
-                  className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
-                  style={inputStyle}
-                  dir="rtl"
-                />
-              </div>
-            </div>
-
             <div>
               <label className="text-[12px]" style={labelStyle}>{t("Mobile number", "رقم الجوال")}</label>
               <input
