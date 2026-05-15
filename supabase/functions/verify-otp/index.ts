@@ -10,10 +10,28 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+interface VerifyOtpProfile {
+  full_name_en?: string | null;
+  full_name_ar?: string | null;
+  national_id_or_passport?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  nationality?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  terms_accepted?: boolean;
+  privacy_accepted?: boolean;
+}
+
 interface VerifyOtpBody {
   to: string;
   code: string;
   channel?: "whatsapp" | "sms" | "email";
+  /** Optional profile payload — used during signup to atomically create the
+   * `public.profiles` row server-side so contact info can never be lost to a
+   * browser race. For non-signup flows (recover) callers may omit this; we
+   * still derive the verified phone/email from the OTP recipient. */
+  profile?: VerifyOtpProfile;
 }
 
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
