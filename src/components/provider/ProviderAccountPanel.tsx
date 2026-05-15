@@ -36,17 +36,15 @@ const ProviderAccountPanel = ({ open, onClose, email, organisation, onSignOut }:
         className="absolute top-0 right-0 h-full w-full max-w-[420px] flex flex-col"
         style={{
           background: PANEL_BG,
-          // Reset the design tokens used by ConnectedAccountsCard so it renders correctly inside the dark provider shell.
-          // @ts-expect-error CSS custom props
-          "--white": "#FFFFFF",
-          "--navy": NAVY,
-          "--gold": GOLD,
-          "--gray": "#5C6B7A",
-          "--gray-light": BORDER,
-          "--teal-deep": "#0E7C7B",
-          "--teal-light": "rgba(14,124,123,0.12)",
-          "--error": "#C0392B",
-        }}
+          ["--white" as any]: "#FFFFFF",
+          ["--navy" as any]: NAVY,
+          ["--gold" as any]: GOLD,
+          ["--gray" as any]: "#5C6B7A",
+          ["--gray-light" as any]: BORDER,
+          ["--teal-deep" as any]: "#0E7C7B",
+          ["--teal-light" as any]: "rgba(14,124,123,0.12)",
+          ["--error" as any]: "#C0392B",
+        } as React.CSSProperties}
       >
         <header
           className="flex items-center justify-between px-5 py-4"
