@@ -94,6 +94,20 @@ const Index = () => {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forceSignIn]);
+
+  // After returning from an OAuth identity-link redirect, open Profile once.
+  useEffect(() => {
+    if (searchParams.get("profile") !== "1") return;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      setAppView("profile");
+      const url = new URL(window.location.href);
+      url.searchParams.delete("profile");
+      window.history.replaceState({}, "", url.toString());
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);

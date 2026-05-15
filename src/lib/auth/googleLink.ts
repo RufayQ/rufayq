@@ -59,3 +59,32 @@ export async function syncGoogleLinkage(userId: string): Promise<void> {
     console.warn("[google-link] sync error", e);
   }
 }
+
+/**
+ * Clear cached Google linkage from the profile row after the user unlinks the
+ * Google identity. Best-effort; safe to call when no row exists.
+ */
+export async function clearGoogleLinkage(userId: string): Promise<void> {
+  try {
+    const deviceId = `auth_${userId}`;
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("device_id, auth_providers")
+      .eq("device_id", deviceId)
+      .maybeSingle();
+    if (!existing) return;
+    const providers = (existing.auth_providers || []).filter((p: string) => p !== "google");
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        google_email: null,
+        google_sub: null,
+        google_linked_at: null,
+        auth_providers: providers,
+      } as any)
+      .eq("device_id", deviceId);
+    if (error) console.warn("[google-link] clear failed", error.message);
+  } catch (e) {
+    console.warn("[google-link] clear error", e);
+  }
+}

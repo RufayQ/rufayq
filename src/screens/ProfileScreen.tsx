@@ -8,6 +8,7 @@ import RcmStatusPanel from "@/components/RcmStatusPanel";
 import EmergencyContactsSheet, { loadEmergencyContacts, CATEGORY_META, type EmergencyContact } from "@/components/EmergencyContactsSheet";
 import { usePendingClaimsCount } from "@/hooks/usePendingClaimsCount";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import ConnectedAccountsCard from "@/components/profile/ConnectedAccountsCard";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -169,6 +170,8 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
               </span>
             </button>
           </div>
+
+          <ConnectedAccountsCard />
 
           <div className="mx-4 mt-6">
             <button onClick={onLogout} className="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 btn-press" style={{ background: "var(--white)", border: "1px solid var(--error)", color: "var(--error)" }}>
