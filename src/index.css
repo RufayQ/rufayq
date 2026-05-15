@@ -49,12 +49,13 @@
     --accent-surgery: #993556;
 
     /* Agent brand colors — used by the homepage "Your AI Companions" cards */
-    --color-medai:     #004D5B;
-    --color-shopai:    #7B4FBF;
-    --color-tourai:    #1A6B3C;
-    --color-tasteai:   #C44B1A;
-    --color-exploreai: #0C5FA8;
-    --color-planai:    #8B6914;
+    /* Brightened to meet WCAG AA (>=4.5:1) against agent-tile bg #0B1A28 */
+    --color-medai:     #4FB8C9;
+    --color-shopai:    #B89BFF;
+    --color-tourai:    #5BC07F;
+    --color-tasteai:   #FF8A5C;
+    --color-exploreai: #5FA8FF;
+    --color-planai:    #E6B756;
 
     /* Helicopter canvas atmosphere + per-kind palette (bg / border / fg) */
     --canvas-sky-top: #F4F1E8;
