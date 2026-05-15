@@ -39,7 +39,7 @@ const QuickSignup = () => {
   const [pwFocused, setPwFocused] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
-  const [nationality, setNationality] = useState("Saudi Arabia");
+  const [nationality, setNationality] = useState("");
   const [terms, setTerms] = useState(false);
   const [showOptional, setShowOptional] = useState(isAr);
   const [submitting, setSubmitting] = useState(false);
@@ -163,7 +163,7 @@ const QuickSignup = () => {
       full_name_ar: fullNameAr,
       phone: e164,
       email: email.trim() || null,
-      nationality,
+      nationality: nationality.trim() || null,
       terms_accepted_at: now,
       privacy_accepted_at: now,
       contact_verified: false,

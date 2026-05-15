@@ -39,17 +39,27 @@ const renderPage = () =>
   );
 
 describe("QuickSignup", () => {
-  it("renders First/Last name inline and hides Arabic counterparts behind 'Add optional details' in EN mode", () => {
+  it("renders First/Last name inline and hides Arabic counterparts + Nationality + DOB behind 'Add optional details' in EN mode", () => {
     renderPage();
     expect(screen.getByText(/^First name$/)).toBeTruthy();
     expect(screen.getByText(/^Last name$/)).toBeTruthy();
-    // Arabic fields hidden by default in English mode
+    // Optional fields hidden by default in English mode
     expect(screen.queryByText(/First name \(Arabic\)/)).toBeNull();
     expect(screen.queryByText(/Last name \(Arabic\)/)).toBeNull();
+    expect(screen.queryByText(/^Nationality$/)).toBeNull();
     // Toggle reveals them
     fireEvent.click(screen.getByText(/Add optional details/i));
     expect(screen.getByText(/First name \(Arabic\)/)).toBeTruthy();
     expect(screen.getByText(/Last name \(Arabic\)/)).toBeTruthy();
+    expect(screen.getByText(/^Nationality$/)).toBeTruthy();
+  });
+
+  it("does not silently default nationality to Saudi Arabia when optional details untouched", () => {
+    renderPage();
+    fireEvent.click(screen.getByText(/Add optional details/i));
+    // Nationality combobox button should show the placeholder, not 'Saudi Arabia'
+    expect(screen.queryByText(/^Saudi Arabia$/)).toBeNull();
+    expect(screen.getByText(/Select nationality/i)).toBeTruthy();
   });
 
   it("does not render WhatsApp / SMS / Email verification picker", () => {
