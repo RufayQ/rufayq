@@ -6468,6 +6468,7 @@ export type Database = {
       transport_attachments: {
         Row: {
           created_at: string
+          deleted_at: string | null
           device_id: string
           file_name: string
           file_path: string
@@ -6476,9 +6477,14 @@ export type Database = {
           mime_type: string | null
           segment_ref: string
           size_bytes: number | null
+          source_document_id: string | null
+          ticket_id: string | null
+          updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           device_id: string
           file_name: string
           file_path: string
@@ -6487,9 +6493,14 @@ export type Database = {
           mime_type?: string | null
           segment_ref: string
           size_bytes?: number | null
+          source_document_id?: string | null
+          ticket_id?: string | null
+          updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           device_id?: string
           file_name?: string
           file_path?: string
@@ -6498,6 +6509,10 @@ export type Database = {
           mime_type?: string | null
           segment_ref?: string
           size_bytes?: number | null
+          source_document_id?: string | null
+          ticket_id?: string | null
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

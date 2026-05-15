@@ -23,6 +23,7 @@ import {
   type DuplicateTicketMatch,
 } from "@/lib/transportTickets";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { useAuthUserId } from "@/hooks/useAuthUserId";
 import { useAppointments } from "@/hooks/useAppointments";
 import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/useProviderAppointments";
@@ -1300,6 +1301,7 @@ const AddButton = ({ labelEn, labelAr, onClick }: { labelEn: string; labelAr: st
 
 /* ─── TICKETS TAB ─── */
 const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDeleteSegment, onAdd, onScan, onReplicate }: { segments: TransportSegment[]; tickets: TransportTicket[]; onRescanTicket: (ticketId: string) => Promise<TransportTicket>; onEditSegment: (seg: TransportSegment) => void; onDeleteSegment: (seg: TransportSegment) => void; onAdd: () => void; onScan?: () => void; onReplicate: (seg: TransportSegment) => void }) => {
+  const userId = useAuthUserId();
   const [selectedSeg, setSelectedSeg] = useState<TransportSegment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TransportSegment | null>(null);
   const [ticketNotes, setTicketNotes] = useState<Record<string, string>>({});
@@ -1441,7 +1443,11 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
                   }} />
                 </div>
                 {seg.type === "flight" && (
-                  <RelatedDocumentsCard segmentRef={seg.id} />
+                  <RelatedDocumentsCard
+                    segmentRef={seg.id}
+                    ticketId={seg.groupId}
+                    userId={userId}
+                  />
                 )}
                 {group === "past" && (
                   <div className="mx-4 mb-3 -mt-2 flex justify-end">
