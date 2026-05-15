@@ -8,6 +8,7 @@ import { setStoredRole } from "@/screens/RoleSelectorScreen";
 import { phoneToE164, phoneToEmail, isValidEmail, isValidE164 } from "@/lib/auth/phoneEmail";
 import PasswordStrength, { evaluatePassword, allRequiredPass } from "@/components/auth/PasswordStrength";
 import RufayQLogo from "@/components/RufayQLogo";
+import NationalityCombobox from "@/components/NationalityCombobox";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Seo } from "@/seo/Seo";
 
@@ -338,7 +339,7 @@ const QuickSignup = () => {
                       value={firstNameAr}
                       onChange={(e) => setFirstNameAr(e.target.value)}
                       placeholder="محمد"
-                      className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
+                      className="w-full mt-1 px-4 py-3 rounded-xl outline-none lang-keep"
                       style={inputStyle}
                       dir="rtl"
                     />
@@ -350,7 +351,7 @@ const QuickSignup = () => {
                       value={lastNameAr}
                       onChange={(e) => setLastNameAr(e.target.value)}
                       placeholder="آل سعود"
-                      className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
+                      className="w-full mt-1 px-4 py-3 rounded-xl outline-none lang-keep"
                       style={inputStyle}
                       dir="rtl"
                     />
@@ -369,10 +370,9 @@ const QuickSignup = () => {
                 </div>
                 <div>
                   <label className="text-[12px]" style={labelStyle}>{t("Nationality", "الجنسية")}</label>
-                  <input
-                    type="text"
+                  <NationalityCombobox
                     value={nationality}
-                    onChange={(e) => setNationality(e.target.value)}
+                    onChange={setNationality}
                     className="w-full mt-1 px-4 py-3 rounded-xl outline-none"
                     style={inputStyle}
                   />

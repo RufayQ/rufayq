@@ -5,6 +5,7 @@ import { Pause, Play, Ban, Trash2, KeyRound, Search, Copy, MessageCircle, Mail, 
 import SubscriptionDrawer from "@/features/subscriptions/admin/ui/SubscriptionDrawer";
 import { statusTone, normalizePlanCode } from "@/features/subscriptions/logic/statusMachine";
 import { usePermissions } from "@/features/auth";
+import NationalityCombobox from "@/components/NationalityCombobox";
 
 interface Profile {
   id: string; device_id: string; full_name_en: string | null; phone: string | null;
@@ -253,8 +254,11 @@ const AdminUsers = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
                     <input value={editForm.full_name_en || ""} onChange={(e) => setEditForm({ ...editForm, full_name_en: e.target.value })}
                       placeholder="Full name" className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200" />
-                    <input value={editForm.nationality || ""} onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })}
-                      placeholder="Nationality" className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200" />
+                    <NationalityCombobox
+                      value={editForm.nationality || ""}
+                      onChange={(v) => setEditForm({ ...editForm, nationality: v })}
+                      className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200"
+                    />
                     <input value={editForm.email || ""} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                       placeholder="Email" className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200" />
                     <input value={editForm.phone || ""} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}

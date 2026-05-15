@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { biometric } from "@/lib/native/biometric";
 import { phoneToE164, phoneToEmail } from "@/lib/auth/phoneEmail";
+import PasswordStrength, { evaluatePassword, allRequiredPass } from "@/components/auth/PasswordStrength";
 
 
 type AuthView = "welcome" | "login" | "otp" | "recover" | "newpass";
@@ -399,9 +400,11 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
   // ----- NEW PASSWORD (after recovery OTP) -----
   if (view === "newpass") {
-    const valid = newPass.length >= 8 && newPass === newPassConfirm;
+    const pwChecks = evaluatePassword(newPass);
+    const pwOk = allRequiredPass(pwChecks);
+    const valid = pwOk && newPass === newPassConfirm;
     const submitNewPass = async () => {
-      if (!valid) { toast.error("Password must be at least 8 chars and match"); return; }
+      if (!valid) { toast.error("Password doesn't meet requirements or doesn't match"); return; }
       setSubmitting(true);
       const { error } = await supabase.auth.updateUser({ password: newPass });
       setSubmitting(false);
@@ -424,6 +427,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
               autoComplete="new-password" placeholder="••••••••"
               className="w-full mt-1 px-3 py-3 rounded-xl text-sm outline-none"
               style={{ border: "1px solid var(--gray-light)", background: "var(--white)", color: "var(--navy)" }} />
+            <PasswordStrength password={newPass} visible={newPass.length > 0} />
           </div>
           <div>
             <label className="text-xs font-medium" style={{ color: "var(--navy)" }}>Confirm new password</label>
