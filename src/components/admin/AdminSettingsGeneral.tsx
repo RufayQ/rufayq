@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Settings as SettingsIcon, Save, Sparkles } from "lucide-react";
+import { Settings as SettingsIcon, Save, Sparkles, UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import ConnectedAccountsCard from "@/components/profile/ConnectedAccountsCard";
 
 interface Prefs {
   density: "comfortable" | "compact";
