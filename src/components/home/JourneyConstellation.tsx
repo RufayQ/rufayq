@@ -126,6 +126,7 @@ const JourneyConstellation = ({
   departureDate,
   returnDate,
 }: JourneyConstellationProps) => {
+  const { showEn, showAr } = useLanguage();
   const compact = milestones.slice(0, 8);
   const { nodes } = useMemo(() => layout(compact), [compact]);
 
