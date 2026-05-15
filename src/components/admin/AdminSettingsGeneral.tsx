@@ -132,16 +132,14 @@ const AdminSettingsGeneral = () => {
           className="rounded-xl"
           style={{
             background: "#F7F4EE",
-            // Reset semantic tokens so the card renders correctly inside the dark admin shell.
-            // @ts-expect-error CSS custom props
-            "--white": "#FFFFFF",
-            "--navy": "#0A2540",
-            "--gold": "#C5965A",
-            "--gray": "#5C6B7A",
-            "--gray-light": "rgba(10,37,64,0.1)",
-            "--teal-deep": "#0E7C7B",
-            "--teal-light": "rgba(14,124,123,0.12)",
-            "--error": "#C0392B",
+            ["--white" as any]: "#FFFFFF",
+            ["--navy" as any]: "#0A2540",
+            ["--gold" as any]: "#C5965A",
+            ["--gray" as any]: "#5C6B7A",
+            ["--gray-light" as any]: "rgba(10,37,64,0.1)",
+            ["--teal-deep" as any]: "#0E7C7B",
+            ["--teal-light" as any]: "rgba(14,124,123,0.12)",
+            ["--error" as any]: "#C0392B",
           } as React.CSSProperties}
         >
           <div className="py-2" style={{ fontFamily: "'DM Sans', system-ui" }}>
