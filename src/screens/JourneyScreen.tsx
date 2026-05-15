@@ -289,6 +289,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       setActiveSubTab("overview");
       pendingMilestoneIdRef.current = initialIntent.slice("milestone:".length);
       setPendingMilestoneToken((v) => v + 1);
+    } else if (typeof initialIntent === "string" && initialIntent.startsWith("phase:")) {
+      // Phase deep-link: land on the overview where PhaseRibbon5 is visible.
+      setActiveSubTab("overview");
     }
     onIntentHandled?.();
   }, [initialIntent, onIntentHandled]);
