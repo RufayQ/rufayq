@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { biometric } from "@/lib/native/biometric";
 import { phoneToE164, phoneToEmail } from "@/lib/auth/phoneEmail";
 import PasswordStrength, { evaluatePassword, fairAndAbovePass } from "@/components/auth/PasswordStrength";
+import { lovable } from "@/integrations/lovable";
 
 
 type AuthView = "welcome" | "login" | "otp" | "recover" | "newpass";
