@@ -1079,6 +1079,33 @@ export type Database = {
           },
         ]
       }
+      flight_drafts: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          payload: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          label?: string | null
+          payload: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          payload?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       journey_artifacts: {
         Row: {
           artifact_type: Database["public"]["Enums"]["journey_artifact_type"]

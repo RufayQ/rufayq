@@ -6,7 +6,7 @@
  * `outbound`/`return`/`legs` FlightInfo payload so the existing Step-4 OCR
  * fields display keeps working.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { X, Plus, Trash2, ZoomIn, Lock, User, Users, ArrowDown, Link2, ChevronUp, ChevronDown } from "lucide-react";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import { useTrial } from "@/hooks/useTrial";
@@ -23,6 +23,13 @@ import {
 import { isHHmm } from "@/lib/time24";
 import { normalizeTerminal } from "@/lib/terminal";
 import Time24Input from "@/components/Time24Input";
+import {
+  loadDraft,
+  loadDraftRemoteFirst,
+  saveDraft,
+  clearDraft,
+  type FlightDraft,
+} from "@/lib/flightDraftStore";
 
 type TripMode = "one-way" | "round-trip";
 export type TravelerKind = "patient" | "companion" | "family";
@@ -43,6 +50,8 @@ export interface ManualFlightPayload {
 interface Props {
   initial?: { outbound?: FlightInfo | null; return?: FlightInfo | null; passenger?: { name?: string; passport?: string } } | null;
   documentImages?: string[];
+  /** Draft id for autosave/recovery. Defaults to "current". */
+  draftId?: string;
   onClose: () => void;
   onSubmit: (payload: ManualFlightPayload) => void;
 }
@@ -230,7 +239,7 @@ const SegmentEditor = ({ segment, onChange, onRemove, onMoveUp, onMoveDown, titl
 
 const reverseAirport = (a: Airport): Airport => a;
 
-const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmit }: Props) => {
+const ManualFlightEntrySheet = ({ initial, documentImages = [], draftId = "current", onClose, onSubmit }: Props) => {
   const [mode, setMode] = useState<TripMode>(initial?.return ? "round-trip" : "one-way");
   const [outboundSegs, setOutboundSegs] = useState<FlightSegment[]>(() => [emptySegment("outbound", 0)]);
   const [returnSegs, setReturnSegs] = useState<FlightSegment[]>(() =>
@@ -242,6 +251,94 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
   const [traveler, setTraveler] = useState<TravelerKind>("patient");
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+
+  // ── Draft autosave / recovery ─────────────────────────────────────────────
+  // Holds a draft that hasn't been hydrated yet (so we can show a banner that
+  // asks the user whether to resume). When `null`, no pending offer.
+  const [pendingDraft, setPendingDraft] = useState<FlightDraft | null>(() =>
+    initial ? null : loadDraft(draftId),
+  );
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const hydratedRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // After mount, try to fetch a (possibly newer) cloud draft to surface in the
+  // resume banner. Best-effort — silent on failure.
+  useEffect(() => {
+    if (initial || hydratedRef.current) return;
+    let cancelled = false;
+    void loadDraftRemoteFirst(draftId).then((d) => {
+      if (cancelled || hydratedRef.current || !d) return;
+      // Only update the banner if remote is newer than what we already have.
+      const localTs = pendingDraft ? Date.parse(pendingDraft.updatedAt) : 0;
+      if (Date.parse(d.updatedAt) >= localTs) setPendingDraft(d);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId]);
+
+  const hydrateFromDraft = (d: FlightDraft) => {
+    hydratedRef.current = true;
+    setMode(d.mode);
+    setOutboundSegs(d.outboundSegments?.length ? d.outboundSegments : [emptySegment("outbound", 0)]);
+    setReturnSegs(d.returnSegments ?? []);
+    setPassengerName(d.passenger?.name ?? "");
+    setPassengerPassport(d.passenger?.passport ?? "");
+    setTraveler(d.traveler ?? "patient");
+    setLastSavedAt(d.updatedAt);
+    setPendingDraft(null);
+  };
+
+  const startFresh = () => {
+    hydratedRef.current = true;
+    clearDraft(draftId);
+    setLastSavedAt(null);
+    setPendingDraft(null);
+  };
+
+  const handleClearDraft = () => {
+    if (typeof window !== "undefined" && !window.confirm("Clear saved draft? · مسح المسودة المحفوظة؟")) return;
+    clearDraft(draftId);
+    setLastSavedAt(null);
+    setPendingDraft(null);
+    setMode("one-way");
+    setOutboundSegs([emptySegment("outbound", 0)]);
+    setReturnSegs([]);
+    setPassengerName("");
+    setPassengerPassport("");
+  };
+
+  // Debounced autosave whenever any tracked field changes. Skipped while a
+  // resume banner is showing (avoid overwriting the saved draft before the
+  // user decides). Skipped on the very first mount before any user edit.
+  const isFirstSaveTickRef = useRef(true);
+  useEffect(() => {
+    if (pendingDraft) return; // banner is up — don't clobber
+    if (isFirstSaveTickRef.current) { isFirstSaveTickRef.current = false; return; }
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveDraft(draftId, {
+        mode,
+        outboundSegments: outboundSegs,
+        returnSegments: returnSegs,
+        passenger:
+          passengerName || passengerPassport
+            ? { name: passengerName || undefined, passport: passengerPassport || undefined }
+            : undefined,
+        traveler,
+      });
+      setLastSavedAt(new Date().toISOString());
+    }, 600);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [mode, outboundSegs, returnSegs, passengerName, passengerPassport, traveler, pendingDraft, draftId]);
+
+  const formattedLastSaved = useMemo(() => {
+    if (!lastSavedAt) return null;
+    const d = new Date(lastSavedAt);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }, [lastSavedAt]);
 
   const trial = useTrial();
   const sub = useSubscription();
@@ -387,6 +484,9 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
       source: "manual",
       traveler,
     });
+
+    // Successful submit — drop the in-progress draft.
+    clearDraft(draftId);
   };
 
   const TRAVELER_OPTIONS: { id: TravelerKind; label: string; ar: string; icon: React.ReactNode }[] = [
@@ -506,6 +606,40 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
         )}
 
         <div className="px-5 py-4 overflow-y-auto flex-1 space-y-4">
+          {pendingDraft && (
+            <div
+              className="rounded-xl p-3 space-y-2"
+              style={{ background: "var(--gold-pale, rgba(197,150,90,0.12))", border: "1px solid var(--gold)" }}
+              data-testid="resume-draft-banner"
+            >
+              <p className="text-[12px] font-bold" style={{ color: "var(--navy)" }}>
+                Resume your saved flight? · <span className="font-arabic text-[11px]">هل تريد المتابعة من المسودة؟</span>
+              </p>
+              <p className="text-[10px]" style={{ color: "var(--gray)" }}>
+                Saved {new Date(pendingDraft.updatedAt).toLocaleString()}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => hydrateFromDraft(pendingDraft)}
+                  data-testid="resume-draft"
+                  className="flex-1 rounded-lg py-2 text-[12px] font-bold text-white btn-press"
+                  style={{ background: "var(--teal-deep)" }}
+                >
+                  Resume · <span className="font-arabic text-[10px]">متابعة</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={startFresh}
+                  data-testid="start-fresh"
+                  className="flex-1 rounded-lg py-2 text-[12px] font-bold btn-press"
+                  style={{ background: "transparent", color: "var(--teal-deep)", border: "1px solid var(--teal-deep)" }}
+                >
+                  Start fresh · <span className="font-arabic text-[10px]">ابدأ من جديد</span>
+                </button>
+              </div>
+            </div>
+          )}
           <div className="rounded-xl p-3 space-y-2.5" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }} data-testid="traveler-selector">
             <div className="flex items-center justify-between">
               <p className="text-[12px] font-bold" style={{ color: "var(--navy)" }}>
@@ -593,7 +727,7 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
           )}
         </div>
 
-        <div className="px-5 py-4 shrink-0" style={{ borderTop: "1px solid var(--gray-light)", background: "var(--white)" }}>
+        <div className="px-5 py-3 shrink-0 space-y-2" style={{ borderTop: "1px solid var(--gray-light)", background: "var(--white)" }}>
           <button
             type="button"
             onClick={submit}
@@ -603,6 +737,22 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], onClose, onSubmi
           >
             Save flight · <span className="font-arabic text-[12px]">حفظ الرحلة</span>
           </button>
+          <div className="flex items-center justify-between text-[10px]" data-testid="draft-footer">
+            <span style={{ color: "var(--gray)" }}>
+              {formattedLastSaved
+                ? <>Saved as draft · <span className="font-arabic">يُحفظ تلقائيًا</span> — {formattedLastSaved}</>
+                : <>Auto-saved as you type · <span className="font-arabic">يُحفظ تلقائيًا</span></>}
+            </span>
+            <button
+              type="button"
+              onClick={handleClearDraft}
+              data-testid="clear-draft"
+              className="font-bold btn-press"
+              style={{ color: "var(--error)" }}
+            >
+              Clear draft · <span className="font-arabic">مسح المسودة</span>
+            </button>
+          </div>
         </div>
       </div>
 

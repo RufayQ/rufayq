@@ -11,6 +11,7 @@ import type { FlightInfo } from "@/components/AddTripSheet";
 import type { TransportSegment } from "@/components/TransportCard";
 import { isHHmm, normalizeTo24Hour } from "@/lib/time24";
 import { normalizeTerminal } from "@/lib/terminal";
+import { formatDuration } from "@/lib/flightJourney";
 
 export type TripType = "one-way" | "round-trip" | "multi-city";
 export type Direction = "outbound" | "return";
@@ -384,8 +385,7 @@ export function ticketToTransportSegments(t: TransportTicket): TransportSegment[
         : NaN;
       if (!isNaN(arrTs) && !isNaN(nextDep) && nextDep > arrTs) {
         const mins = Math.round((nextDep - arrTs) / 60000);
-        const h = Math.floor(mins / 60); const m = mins % 60;
-        duration = h > 0 ? `${h}h ${m}m` : `${m}m`;
+        duration = formatDuration(mins);
       }
       layoverAfter = {
         duration,

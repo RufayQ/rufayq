@@ -14,6 +14,7 @@ import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import type { FlightInfo } from "@/components/AddTripSheet";
 import { type FlightSegment, segmentToFlightInfo } from "@/lib/transportTickets";
 import Time24Input from "@/components/Time24Input";
+import { FLIGHT_AI_ENABLED } from "@/lib/flightAiFlag";
 
 export type TravelerKind = "patient" | "companion" | "family";
 
@@ -160,7 +161,11 @@ const sectionLabels: Record<string, string> = {
 };
 
 const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
-  const [step, setStep] = useState(1);
+  // When the AI extraction path is disabled (currently the case for flights),
+  // and the wizard is opened with a preselected flight category, skip the
+  // upload/review/category steps and jump straight to manual entry (Step 4).
+  const skipAiForFlight = preselectedCategory === "flight" && !FLIGHT_AI_ENABLED;
+  const [step, setStep] = useState(skipAiForFlight ? 4 : 1);
   const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(null);
   const [realFile, setRealFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(preselectedCategory || null);
@@ -241,7 +246,30 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
             onContinue={() => setStep(4)}
           />
         )}
-        {step === 4 && (
+        {step === 4 && skipAiForFlight && (
+          <Step4ManualOnly
+            onSubmit={(payload) => {
+              const out = payload.outbound ? normalizeParsedLeg(payload.outbound) : null;
+              const ret = payload.return ? normalizeParsedLeg(payload.return) : null;
+              const legs = payload.legs?.map(normalizeParsedLeg);
+              setScannedPayload({
+                outbound: out,
+                return: ret,
+                legs,
+                outboundSegments: payload.outboundSegments,
+                returnSegments: payload.returnSegments,
+                rawOutbound: payload.outbound ?? null,
+                rawReturn: payload.return ?? null,
+                passenger: payload.passenger,
+                source: "manual",
+                traveler: payload.traveler,
+              });
+              setStep(5);
+            }}
+            onClose={onClose}
+          />
+        )}
+        {step === 4 && !skipAiForFlight && (
           <Step4AIReview
             category={selectedCategory}
             fileName={capturedFile?.name || "document"}
@@ -536,6 +564,24 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
     </div>
   );
 };
+
+/* ─── STEP 4 (flight, AI disabled): manual entry only ─── */
+const Step4ManualOnly = ({
+  onSubmit,
+  onClose,
+}: {
+  onSubmit: (payload: ManualFlightPayload) => void;
+  onClose: () => void;
+}) => (
+  <div className="relative h-full">
+    <ManualFlightEntrySheet
+      initial={null}
+      draftId="current"
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
+  </div>
+);
 
 /* ─── STEP 4: AI REVIEW & DATA EXTRACT ─── */
 type OcrStatus = "idle" | "analyzing-pdf" | "pick-pages" | "scanning" | "success" | "failed";
