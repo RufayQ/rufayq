@@ -178,7 +178,11 @@ const Index = () => {
     carehub: true,
   });
   // Global chat awareness: drives the bottom-nav badge AND in-app toasts.
-  const { totalUnread: chatUnread } = useGlobalChat();
+  // Pass the active human thread so heads-up overlays are suppressed for the
+  // thread the user is currently reading.
+  const { totalUnread: chatUnread } = useGlobalChat(
+    activeTab === "chat" ? activeHumanThreadId : null,
+  );
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("rufayq_onboarded", "true");
