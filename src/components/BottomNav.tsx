@@ -172,7 +172,7 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
       {/* Center Home Button - raised, gold ring + teal core */}
       <div className="flex flex-col items-center" style={{ flex: 1 }}>
         <button
-          onClick={() => onNavigate("home")}
+          onClick={() => { hapticTap(); onNavigate("home"); }}
           className="flex items-center justify-center btn-press"
           style={{
             width: 54,
