@@ -155,6 +155,11 @@ const Index = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
+  const [pendingChatThreadId, setPendingChatThreadId] = useState<string | null>(null);
+  const openChatThread = useCallback((threadId: string) => {
+    setPendingChatThreadId(threadId);
+    setActiveTab("chat");
+  }, []);
   const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | `phase:${string}` | null>(null);
   const [badges, setBadges] = useState<Partial<Record<Tab, boolean | number>>>({
     carehub: true,
