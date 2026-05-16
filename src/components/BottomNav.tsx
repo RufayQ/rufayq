@@ -160,7 +160,7 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
         style={{
           top: 0,
           height: 1,
-          background: "linear-gradient(90deg, transparent 0%, rgba(197,150,90,0.45) 50%, transparent 100%)",
+          background: "linear-gradient(90deg, transparent 0%, rgba(197,150,90,0.45) 22%, rgba(197,150,90,0.45) 38%, transparent 46%, transparent 54%, rgba(197,150,90,0.45) 62%, rgba(197,150,90,0.45) 78%, transparent 100%)",
           pointerEvents: "none",
         }}
       />
