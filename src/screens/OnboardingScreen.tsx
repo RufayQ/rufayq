@@ -1,6 +1,5 @@
 import { useState } from "react";
 import RufayQWordmark from "@/components/RufayQWordmark";
-import RufayQWordmark from "@/components/RufayQWordmark";
 import BrandHero from "@/components/BrandHero";
 
 interface OnboardingScreenProps {
