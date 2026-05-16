@@ -294,6 +294,7 @@ const RelatedDocumentsCard = ({
     refresh();
   };
 
+  return (
     <div
       className={`mx-4 ${compact ? "mb-2" : "mb-3.5"} rounded-2xl px-4 py-3`}
       style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}
