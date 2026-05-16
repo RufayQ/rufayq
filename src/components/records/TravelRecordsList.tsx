@@ -9,6 +9,49 @@ import RecordActionsSheet from "@/components/records/RecordActionsSheet";
 const BUCKET = "transport-attachments";
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
 
+type TravelCat = "all" | "passport" | "visa" | "booking" | "insurance" | "other";
+
+const CAT_DEFS: { key: TravelCat; en: string; ar: string }[] = [
+  { key: "all",       en: "All",       ar: "الكل" },
+  { key: "passport",  en: "Passport",  ar: "جواز" },
+  { key: "visa",      en: "Visas",     ar: "تأشيرات" },
+  { key: "booking",   en: "Bookings",  ar: "حجوزات" },
+  { key: "insurance", en: "Insurance", ar: "تأمين" },
+  { key: "other",     en: "Other",     ar: "أخرى" },
+];
+
+const classify = (it: { label: string; file_name: string }): TravelCat => {
+  const s = `${it.label} ${it.file_name}`.toLowerCase();
+  if (/(passport|iqama|id\b|جواز|هوية|إقامة)/.test(s)) return "passport";
+  if (/(visa|تأشير|فيزا)/.test(s)) return "visa";
+  if (/(hotel|booking|reservation|ticket|flight|boarding|itinerary|فندق|حجز|تذكر|طيران)/.test(s)) return "booking";
+  if (/(insur|تأمين|policy|بوليصة)/.test(s)) return "insurance";
+  return "other";
+};
+
+// Split text into segments with matches wrapped, for inline highlighting.
+const Highlight = ({ text, query }: { text: string; query: string }) => {
+  if (!query.trim()) return <>{text}</>;
+  const q = query.trim();
+  const parts = text.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig"));
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.toLowerCase() === q.toLowerCase() ? (
+          <mark
+            key={i}
+            style={{ background: "rgba(197,150,90,0.32)", color: "var(--navy)", borderRadius: 3, padding: "0 2px" }}
+          >
+            {p}
+          </mark>
+        ) : (
+          <span key={i}>{p}</span>
+        ),
+      )}
+    </>
+  );
+};
+
 interface Props {
   userId: string | null;
   searchQuery: string;
@@ -21,6 +64,7 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
   const [menuItem, setMenuItem] = useState<TransportAttachment | null>(null);
+  const [cat, setCat] = useState<TravelCat>("all");
 
   const fetchAll = async () => {
     setLoading(true);
