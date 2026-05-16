@@ -332,6 +332,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         })}
 
         <div style={{ height: 24 }} />
+        </>)}
       </div>
 
       {/* Document Detail Sheet — Full Enhanced */}
