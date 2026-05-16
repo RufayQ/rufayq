@@ -46,7 +46,8 @@ export function useChatThread(threadId: string | null) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },
         (payload) => {
-          const m = payload.new as ChatMessageRow;
+          const raw = payload.new as ChatMessageRow;
+          const m: ChatMessageRow = { ...raw, status: "sent" };
           setMessages((prev) => {
             if (prev.some((x) => x.id === m.id)) return prev;
             // Replace optimistic temp message with same body from same device
