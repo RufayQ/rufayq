@@ -1490,7 +1490,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
   // BUG 5: when failed → render ONLY the document strip + error card. Nothing below.
   if (ocrStatus === "failed") {
-    const isFlightCat = category === "flight";
+    // isFlightCat already defined in outer scope
     return (
       <div className="pb-8" style={{ background: "var(--off-white)" }}>
         <div className="mx-4 mt-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
