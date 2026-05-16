@@ -1449,30 +1449,27 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
       })()}
 
       {/* Clear & enter manually — always available so users can flush AI output */}
-      {(ocrStatus === "success" || ocrStatus === "failed") && (
-        <div className="px-5 mt-3">
-          <button
-            onClick={() => {
-              // Wipe every AI-derived field across both flight + generic schemas.
-              setOutboundFields(emptyFlightFields());
-              setReturnFields(null);
-              setOutboundSegs([]);
-              setReturnSegs([]);
-              setActiveLeg("outbound");
-              setGenericFields(emptyGenericFields(category));
-              setSaveError(null);
-              emitParsed(null);
-              if (category === "flight") {
-                setShowManualSheet(true);
-              }
-            }}
-            className="w-full py-2.5 rounded-xl text-[12px] font-bold btn-press flex items-center justify-center gap-2"
-            style={{ background: "var(--white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
-          >
-            🧹 Clear & enter manually · <span className="font-arabic">امسح وأدخل يدويًا</span>
-          </button>
-        </div>
-      )}
+      <div className="px-5 mt-3">
+        <button
+          onClick={() => {
+            setOutboundFields(emptyFlightFields());
+            setReturnFields(null);
+            setOutboundSegs([]);
+            setReturnSegs([]);
+            setActiveLeg("outbound");
+            setGenericFields(emptyGenericFields(category));
+            setSaveError(null);
+            emitParsed(null);
+            if (category === "flight") {
+              setShowManualSheet(true);
+            }
+          }}
+          className="w-full py-2.5 rounded-xl text-[12px] font-bold btn-press flex items-center justify-center gap-2"
+          style={{ background: "var(--white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+        >
+          🧹 Clear & enter manually · <span className="font-arabic">امسح وأدخل يدويًا</span>
+        </button>
+      </div>
 
       {/* Edit note */}
       <div className="flex items-center gap-2 px-5 mt-3">
