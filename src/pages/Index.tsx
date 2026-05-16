@@ -16,6 +16,7 @@ import ProfileScreen from "@/screens/ProfileScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
 import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
+import { addScannedRecord, isMedicalCategory } from "@/lib/scannedRecordsStore";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import { EmrScreen } from "@/features/emr";
