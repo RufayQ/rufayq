@@ -102,6 +102,14 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
           onPlanFirstTrip={() => onNavigate("journey", "new-trip")}
         />
 
+        <HomeStatsGrid
+          trips={stats.trips}
+          reminders={stats.reminders}
+          records={stats.records}
+          plannedAhead={stats.plannedAhead}
+          onNavigate={(tab) => onNavigate(tab)}
+        />
+
         {activeTrip && (
           <JourneyConstellation
             milestones={milestones}
