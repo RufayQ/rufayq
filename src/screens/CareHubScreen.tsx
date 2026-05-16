@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Star, Pin, Copy, Share2, Download, RefreshCw } from "lucide-react";
+import { ChevronDown, Star, Pin, Copy, Share2, Download, RefreshCw, Stethoscope, HeartPulse, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import StepDetailsPanel from "@/components/timeline/StepDetailsPanel";
@@ -11,8 +11,11 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import ProviderFeedCard from "@/components/ProviderFeedCard";
 import { useProviderFeed } from "@/hooks/useProviderFeed";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { useAppointments } from "@/hooks/useAppointments";
+import LifestyleTabs from "@/features/carehub/lifestyle/LifestyleTabs";
 
 type SubTab = "careplan" | "videos" | "education" | "faqs" | "nutrition" | "exercises";
+type Segment = "medical" | "lifestyle";
 
 const subTabs: { id: SubTab; emoji: string; en: string }[] = [
   { id: "careplan", emoji: "📋", en: "Care Plan" },
@@ -23,9 +26,15 @@ const subTabs: { id: SubTab; emoji: string; en: string }[] = [
   { id: "exercises", emoji: "🏃", en: "Exercises" },
 ];
 
-const CareHubScreen = () => {
+interface CareHubScreenProps {
+  onNavigate?: (tab: string, context?: string) => void;
+}
+
+const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
   const isGuest = useGuestMode();
+  const [segment, setSegment] = useState<Segment>("medical");
   const [activeTab, setActiveTab] = useState<SubTab>("careplan");
+  const handleBuddyChat = (context: string) => onNavigate?.("chat", context);
 
   const handleCopyCarePlan = () => {
     navigator.clipboard.writeText("Care Plan Summary\nPost-Op Day 5 · Knee Replacement\nStatus: On Track\n\nFollow your prescribed exercises, medications, and follow-up appointments.");
@@ -95,7 +104,43 @@ const CareHubScreen = () => {
         )}
       </div>
 
-      {!isGuest ? (
+      {/* Segmented switcher: Medical Care | Lifestyle */}
+      <div className="shrink-0 px-4 pt-3" style={{ background: "var(--off-white)" }}>
+        <div
+          role="tablist"
+          aria-label="Care Hub segment"
+          className="flex p-1 rounded-xl"
+          style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+        >
+          {([
+            { key: "medical" as const, icon: <Stethoscope size={13} />, en: "Medical Care", ar: "العناية الطبية" },
+            { key: "lifestyle" as const, icon: <HeartPulse size={13} />, en: "Lifestyle", ar: "أسلوب الحياة" },
+          ]).map((s) => {
+            const active = segment === s.key;
+            return (
+              <button
+                key={s.key}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setSegment(s.key)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold btn-press transition-all"
+                style={{
+                  background: active ? "var(--teal-deep)" : "transparent",
+                  color: active ? "#fff" : "var(--gray)",
+                }}
+              >
+                {s.icon}
+                <span>{s.en}</span>
+                <span className="font-arabic text-[10px] opacity-80" dir="rtl">· {s.ar}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {segment === "lifestyle" ? (
+        <LifestyleTabs onChat={handleBuddyChat} />
+      ) : !isGuest ? (
         <div className="flex-1 overflow-y-auto" style={{ background: "var(--off-white)" }}>
           <div className="px-5 py-10 text-center max-w-sm mx-auto">
             <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-4" style={{ background: "var(--teal-light)" }}>🩺</div>
@@ -147,6 +192,16 @@ const CareHubScreen = () => {
 /* ─── CARE PLAN ─── */
 const CarePlanTab = () => {
   const { instructions } = useProviderFeed();
+  const { items: appointments } = useAppointments();
+  const now = Date.now();
+  const followUps = appointments
+    .filter((a) => {
+      if (!a.start_at) return false;
+      if (new Date(a.start_at).getTime() < now) return false;
+      const hay = `${a.appointment_type ?? ""} ${a.visit_type ?? ""} ${a.title ?? ""}`.toLowerCase();
+      return /follow.?up|post.?op|post.?travel/.test(hay);
+    })
+    .slice(0, 5);
   const [tasks, setTasks] = useState([
     { en: "Morning meds 8AM", ar: "أدوية الصباح ٨ ص", done: false },
     { en: "Elevate leg 30 min", ar: "رفع الرجل ٣٠ دقيقة", done: true },
@@ -190,6 +245,35 @@ const CarePlanTab = () => {
               badgeColor={i.priority === "high" || i.priority === "urgent" ? "rgba(217,79,79,0.15)" : undefined}
             />
           ))}
+        </div>
+      )}
+
+      {/* Post-Travel Follow-Ups */}
+      {followUps.length > 0 && (
+        <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+          <div className="flex items-center gap-1.5 mb-3">
+            <CalendarClock size={12} style={{ color: "var(--gold)" }} />
+            <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+              POST-TRAVEL FOLLOW-UPS · <span className="font-arabic">متابعة بعد السفر</span>
+            </p>
+          </div>
+          <div className="space-y-2">
+            {followUps.map((a) => (
+              <div key={a.id} className="rounded-xl px-3 py-2.5" style={{ background: "var(--off-white)" }}>
+                <div className="flex items-center justify-between">
+                  <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{a.title}</p>
+                  <span className="text-[10px] font-mono" style={{ color: "var(--gold)" }}>
+                    {a.start_at ? new Date(a.start_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""}
+                  </span>
+                </div>
+                {(a.doctor_name || a.facility_name) && (
+                  <p className="text-[10px]" style={{ color: "var(--gray)" }}>
+                    {[a.doctor_name, a.facility_name].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

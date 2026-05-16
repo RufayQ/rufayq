@@ -506,7 +506,7 @@ const Index = () => {
             />
           );
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
-          case "carehub": return <CareHubScreen />;
+          case "carehub": return <CareHubScreen onNavigate={handleNavigate} />;
           case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} onUpgrade={() => setAppView("pricing")} initialThreadId={pendingChatThreadId} onThreadHandled={() => setPendingChatThreadId(null)} onActiveHumanThreadChange={setActiveHumanThreadId} />;
           default:
             // Defensive: never render an empty main shell if activeTab somehow
