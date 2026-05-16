@@ -253,7 +253,27 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
 
       {/* Step Content */}
       <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-        {step === 1 && <Step1Capture onCapture={handleFileCapture} />}
+        {step === 1 && <Step1Capture onCapture={handleFileCapture} uploadMode={uploadMode} onChangeMode={setUploadMode} />}
+        {step === 99 && (
+          <Step2BatchRecords
+            batch={batchFiles}
+            onChange={setBatchFiles}
+            onCancel={() => { setBatchFiles([]); setStep(1); }}
+            onSaveAll={() => {
+              // Save each record one-by-one through onSave; closes the wizard
+              // when finished. No AI extraction is run in this lightweight path.
+              batchFiles.forEach((entry) => {
+                onSave?.(selectedCategory, {
+                  source: "manual",
+                  pendingSegmentRef,
+                  pageImages: [],
+                  passenger: { name: entry.name },
+                });
+              });
+              onClose();
+            }}
+          />
+        )}
         {step === 2 && capturedFile && (
           <Step2Review
             file={capturedFile}
