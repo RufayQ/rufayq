@@ -161,6 +161,8 @@ const sectionLabels: Record<string, string> = {
   other: "Medical Records",
 };
 
+type UploadMode = "single" | "multi-page" | "multi-record";
+
 const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
   const authUserId = useAuthUserId();
   // When the AI extraction path is disabled (currently the case for flights),
@@ -168,8 +170,11 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   // upload/review/category steps and jump straight to manual entry (Step 4).
   const skipAiForFlight = preselectedCategory === "flight" && !FLIGHT_AI_ENABLED;
   const [step, setStep] = useState(skipAiForFlight ? 4 : 1);
+  const [uploadMode, setUploadMode] = useState<UploadMode>("single");
   const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(null);
   const [realFile, setRealFile] = useState<File | null>(null);
+  // Multi-record batch: each entry will be saved as its own record on submit.
+  const [batchFiles, setBatchFiles] = useState<{ file: File; name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(preselectedCategory || null);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -191,22 +196,38 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
       fileInputRef.current.accept = accept;
+      // Multiple selection for multi-page or multi-record modes.
+      fileInputRef.current.multiple = uploadMode !== "single";
       fileInputRef.current.click();
     }
-    // NOTE: removed the 1.5s "demo fallback" — it overwrote a real selected
-    // file with a fake "document_scan.pdf" because the closure captured a
-    // stale `capturedFile === null`, which is why scans appeared as the
-    // hardcoded RUH→BER demo.
   };
 
   const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCapturedFile({ name: file.name, type: file.type, size: `${(file.size / 1024).toFixed(1)} KB` });
-      setRealFile(file);
-      setScannedPayload(null);
-      setStep(2);
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    if (uploadMode === "multi-record" && files.length > 0) {
+      // Route to the batch rename / save screen.
+      setBatchFiles(files.map((f) => ({ file: f, name: f.name.replace(/\.\w+$/, "") })));
+      setStep(99); // sentinel for batch screen
+      // reset single-file state
+      setRealFile(null);
+      setCapturedFile(null);
+      return;
     }
+
+    // Single record (possibly multi-page) — for now we hand the first file to
+    // the existing single-file pipeline. Additional pages are kept on realFile
+    // metadata via "name (+N pages)" so the user knows they were included.
+    const primary = files[0];
+    setCapturedFile({
+      name: files.length > 1 ? `${primary.name} (+${files.length - 1} more pages)` : primary.name,
+      type: primary.type,
+      size: `${(primary.size / 1024).toFixed(1)} KB`,
+    });
+    setRealFile(primary);
+    setScannedPayload(null);
+    setStep(2);
   };
 
   return (
@@ -232,12 +253,41 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
 
       {/* Step Content */}
       <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-        {step === 1 && <Step1Capture onCapture={handleFileCapture} />}
+        {step === 1 && <Step1Capture onCapture={handleFileCapture} uploadMode={uploadMode} onChangeMode={setUploadMode} />}
+        {step === 99 && (
+          <Step2BatchRecords
+            batch={batchFiles}
+            onChange={setBatchFiles}
+            onCancel={() => { setBatchFiles([]); setStep(1); }}
+            onSaveAll={() => {
+              // Save each record one-by-one through onSave; closes the wizard
+              // when finished. No AI extraction is run in this lightweight path.
+              batchFiles.forEach((entry) => {
+                onSave?.(selectedCategory, {
+                  source: "manual",
+                  pendingSegmentRef,
+                  pageImages: [],
+                  passenger: { name: entry.name },
+                });
+              });
+              onClose();
+            }}
+          />
+        )}
         {step === 2 && capturedFile && (
-          <Step2Review file={capturedFile} realFile={realFile} onRetake={() => { setStep(1); setRealFile(null); }} onConfirm={() => {
-            if (preselectedCategory) setSelectedCategory(preselectedCategory);
-            setStep(3);
-          }} />
+          <Step2Review
+            file={capturedFile}
+            realFile={realFile}
+            onRetake={() => { setStep(1); setRealFile(null); }}
+            onTransform={(next) => {
+              setRealFile(next);
+              setCapturedFile({ name: next.name, type: next.type, size: `${(next.size / 1024).toFixed(1)} KB` });
+            }}
+            onConfirm={() => {
+              if (preselectedCategory) setSelectedCategory(preselectedCategory);
+              setStep(3);
+            }}
+          />
         )}
         {step === 3 && (
           <Step3Category
@@ -304,7 +354,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
 };
 
 /* ─── STEP 1: CAPTURE ─── */
-const Step1Capture = ({ onCapture }: { onCapture: (accept: string) => void }) => {
+const Step1Capture = ({ onCapture, uploadMode, onChangeMode }: { onCapture: (accept: string) => void; uploadMode: UploadMode; onChangeMode: (m: UploadMode) => void }) => {
   const [showQRScanner, setShowQRScanner] = useState(false);
 
   if (showQRScanner) {
@@ -378,6 +428,28 @@ const Step1Capture = ({ onCapture }: { onCapture: (accept: string) => void }) =>
       <h2 className="font-display text-[32px] text-white mt-5 text-center" style={{ fontWeight: 300 }}>Scan or Import</h2>
       <p className="font-arabic text-[18px] mt-2 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>امسح أو استورد وثيقتك</p>
 
+      {/* Upload-mode selector */}
+      <div className="w-full mt-5 rounded-2xl p-1 flex" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
+        {([
+          { id: "single" as const, en: "Single", ar: "مفرد", hint: "1 record · 1 page" },
+          { id: "multi-page" as const, en: "Multi-page", ar: "صفحات", hint: "1 record · many pages" },
+          { id: "multi-record" as const, en: "Multi-record", ar: "متعدد", hint: "Many records, named" },
+        ]).map((m) => {
+          const active = uploadMode === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => onChangeMode(m.id)}
+              className="flex-1 px-2 py-2 rounded-xl text-center btn-press transition-all"
+              style={{ background: active ? "var(--gold)" : "transparent", color: active ? "#fff" : "rgba(255,255,255,0.6)" }}
+            >
+              <p className="text-[11px] font-bold">{m.en}</p>
+              <p className="text-[8px] mt-0.5" style={{ opacity: 0.8 }}>{m.hint}</p>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="w-full space-y-3 mt-8">
         {[
           { emoji: "📷", en: "Scan with Camera", ar: "امسح بالكاميرا", gradient: "linear-gradient(135deg, var(--header-teal-from), var(--header-teal-to))", accept: "image/*;capture=camera" },
@@ -415,14 +487,159 @@ const Step1Capture = ({ onCapture }: { onCapture: (accept: string) => void }) =>
   );
 };
 
+/* ─── STEP 2 (BATCH): MULTI-RECORD RENAME & SAVE ─── */
+const Step2BatchRecords = ({
+  batch, onChange, onCancel, onSaveAll,
+}: {
+  batch: { file: File; name: string }[];
+  onChange: (next: { file: File; name: string }[]) => void;
+  onCancel: () => void;
+  onSaveAll: () => void;
+}) => {
+  if (batch.length === 0) return null;
+  const updateName = (i: number, name: string) => onChange(batch.map((b, idx) => idx === i ? { ...b, name } : b));
+  const removeAt = (i: number) => onChange(batch.filter((_, idx) => idx !== i));
+  const allNamed = batch.every((b) => b.name.trim().length > 0);
+  return (
+    <div className="flex flex-col h-full" style={{ background: "var(--off-white)" }}>
+      <div className="px-5 py-4" style={{ background: "var(--white)", borderBottom: "1px solid var(--gray-light)" }}>
+        <p className="text-[18px] font-bold" style={{ color: "var(--navy)" }}>{batch.length} records to save</p>
+        <p className="font-arabic text-[13px]" dir="rtl" style={{ color: "var(--gray)" }}>سيتم حفظ كل ملف كسجل منفصل</p>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+        {batch.map((b, i) => (
+          <div key={i} className="rounded-xl p-3 flex items-center gap-3" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+            <span className="text-2xl shrink-0">{b.file.type.startsWith("image/") ? "🖼️" : "📄"}</span>
+            <div className="flex-1 min-w-0">
+              <input
+                value={b.name}
+                onChange={(e) => updateName(i, e.target.value)}
+                placeholder="Record name"
+                className="w-full text-[13px] font-semibold bg-transparent outline-none border-b py-1"
+                style={{ color: "var(--navy)", borderColor: "var(--gray-light)" }}
+              />
+              <p className="font-mono text-[9px] mt-1" style={{ color: "var(--gray)" }}>{b.file.name} · {(b.file.size/1024).toFixed(1)} KB</p>
+            </div>
+            <button onClick={() => removeAt(i)} className="w-7 h-7 rounded-full flex items-center justify-center btn-press" style={{ background: "var(--off-white)" }} aria-label="Remove">
+              <X size={13} style={{ color: "var(--gray)" }} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-3 px-5 pb-8 pt-3" style={{ background: "var(--off-white)" }}>
+        <button onClick={onCancel} className="flex-1 py-3.5 rounded-xl text-[13px] font-medium btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--navy)", background: "var(--white)" }}>
+          Cancel · <span className="font-arabic">إلغاء</span>
+        </button>
+        <button onClick={onSaveAll} disabled={!allNamed} className="flex-1 py-3.5 rounded-xl text-[13px] font-bold text-white btn-press" style={{ background: "var(--teal-deep)", opacity: allNamed ? 1 : 0.5 }}>
+          Save all ({batch.length}) · <span className="font-arabic">احفظ الكل</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 /* ─── STEP 2: REVIEW ─── */
-const Step2Review = ({ file, realFile, onRetake, onConfirm }: { file: { name: string; type: string; size: string }; realFile?: File | null; onRetake: () => void; onConfirm: () => void }) => {
+const Step2Review = ({
+  file, realFile, onRetake, onConfirm, onTransform,
+}: {
+  file: { name: string; type: string; size: string };
+  realFile?: File | null;
+  onRetake: () => void;
+  onConfirm: () => void;
+  /** Called with a transformed File when the user applied image tools. */
+  onTransform?: (next: File) => void;
+}) => {
   const isImage = file.type.startsWith("image");
+  const [rotation, setRotation] = useState(0); // degrees, multiples of 90
+  const [brightness, setBrightness] = useState(100); // %
+  const [contrast, setContrast] = useState(100); // %
+  const [grayscale, setGrayscale] = useState(0); // 0 or 100
+  const [cropPct, setCropPct] = useState(0); // 0 = none; 10 = trim 10% from each edge
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
+
+  useEffect(() => {
+    if (!realFile || !realFile.type.startsWith("image/")) { setImageUrl(null); return; }
+    const u = URL.createObjectURL(realFile);
+    setImageUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [realFile]);
+
+  const filterCss = `brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%)`;
+  const isPureImage = !!realFile && realFile.type.startsWith("image/") && !!imageUrl;
+  const hasEdits = rotation !== 0 || brightness !== 100 || contrast !== 100 || grayscale !== 0 || cropPct !== 0;
+
+  // Rasterize the current edits into a new File using a canvas.
+  const rasterizeAndConfirm = async () => {
+    if (!isPureImage || !hasEdits || !onTransform) { onConfirm(); return; }
+    setApplying(true);
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((res, rej) => {
+        img.onload = () => res();
+        img.onerror = () => rej(new Error("img-load-failed"));
+        img.src = imageUrl!;
+      });
+      const trim = Math.max(0, Math.min(40, cropPct)) / 100;
+      const sx = img.naturalWidth * trim;
+      const sy = img.naturalHeight * trim;
+      const sw = img.naturalWidth - sx * 2;
+      const sh = img.naturalHeight - sy * 2;
+      const rotated = rotation % 180 !== 0;
+      const cw = rotated ? sh : sw;
+      const ch = rotated ? sw : sh;
+      const canvas = document.createElement("canvas");
+      canvas.width = cw; canvas.height = ch;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no-canvas");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.filter = filterCss;
+      ctx.translate(cw / 2, ch / 2);
+      ctx.rotate((rotation * Math.PI) / 180);
+      ctx.drawImage(img, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
+      const blob: Blob = await new Promise((res, rej) =>
+        canvas.toBlob((b) => (b ? res(b) : rej(new Error("no-blob"))), "image/jpeg", 0.92)
+      );
+      const out = new File([blob], realFile!.name.replace(/\.\w+$/, "") + "-edited.jpg", { type: "image/jpeg" });
+      onTransform(out);
+      // small tick so parent state updates before we advance
+      setTimeout(() => { setApplying(false); onConfirm(); }, 50);
+    } catch (e) {
+      console.error("[scanner] rasterize failed", e);
+      setApplying(false);
+      onConfirm();
+    }
+  };
+
+  const tools = [
+    { icon: <Sun size={18} />, label: "Brightness", active: brightness !== 100, onClick: () => setBrightness((v) => (v >= 140 ? 80 : v + 20)) },
+    { icon: <Contrast size={18} />, label: "Contrast", active: contrast !== 100, onClick: () => setContrast((v) => (v >= 140 ? 80 : v + 20)) },
+    { icon: <Crop size={18} />, label: "Crop", active: cropPct !== 0, onClick: () => setCropPct((v) => (v >= 20 ? 0 : v + 5)) },
+    { icon: <RotateCw size={18} />, label: "Rotate", active: rotation !== 0, onClick: () => setRotation((v) => (v + 90) % 360) },
+    { icon: <Palette size={18} />, label: "B&W", active: grayscale > 0, onClick: () => setGrayscale((v) => (v > 0 ? 0 : 100)) },
+  ];
 
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--scanner-bg)" }}>
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
-        {realFile ? (
+        {isPureImage ? (
+          <div className="w-full rounded-xl overflow-hidden flex items-center justify-center" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", maxHeight: 420 }}>
+            <div className="overflow-hidden" style={{ maxHeight: 420, padding: `${cropPct}%` }}>
+              <img
+                src={imageUrl!}
+                alt={file.name}
+                className="w-full object-contain transition-all"
+                style={{
+                  filter: filterCss,
+                  transform: `rotate(${rotation}deg)`,
+                  maxHeight: 380,
+                }}
+              />
+            </div>
+          </div>
+        ) : realFile ? (
           <div className="w-full">
             <FileUploadPreview file={realFile} lang="both" maxHeight={360} />
           </div>
@@ -431,12 +648,6 @@ const Step2Review = ({ file, realFile, onRetake, onConfirm }: { file: { name: st
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-6xl">📄</span>
             </div>
-            {[{ t: 8, l: 8 }, { t: 8, r: 8 }, { b: 8, l: 8 }, { b: 8, r: 8 }].map((pos, i) => (
-              <div key={i} className="absolute w-5 h-5 rounded-full" style={{
-                background: "var(--gold)", top: (pos as any).t, bottom: (pos as any).b, left: (pos as any).l, right: (pos as any).r,
-                boxShadow: "0 2px 8px rgba(197,150,90,0.4)",
-              }} />
-            ))}
             <p className="absolute bottom-3 left-0 right-0 text-center font-mono text-[10px]" style={{ color: "var(--gold)" }}>{file.name} · {file.size}</p>
           </div>
         ) : (
@@ -444,33 +655,52 @@ const Step2Review = ({ file, realFile, onRetake, onConfirm }: { file: { name: st
             <span className="text-6xl mb-4">📄</span>
             <p className="text-[14px] text-white font-semibold">{file.name}</p>
             <p className="font-mono text-[11px] mt-1" style={{ color: "var(--gold)" }}>{file.size}</p>
-            <p className="font-mono text-[9px] mt-3" style={{ color: "rgba(255,255,255,0.4)" }}>Page 1 of 1</p>
           </div>
         )}
       </div>
 
-      {isImage && (
-        <div className="flex justify-center gap-2 px-4 pb-3">
-          {[
-            { icon: <Sun size={18} />, label: "Brightness" },
-            { icon: <Contrast size={18} />, label: "Contrast" },
-            { icon: <Crop size={18} />, label: "Crop" },
-            { icon: <RotateCw size={18} />, label: "Rotate" },
-            { icon: <Palette size={18} />, label: "B&W" },
-          ].map((tool) => (
-            <button key={tool.label} className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.6)" }}>
-              {tool.icon}
-            </button>
-          ))}
-        </div>
+      {isPureImage && (
+        <>
+          <div className="flex justify-center gap-2 px-4 pb-1">
+            {tools.map((tool) => (
+              <button
+                key={tool.label}
+                onClick={tool.onClick}
+                aria-pressed={tool.active}
+                title={tool.label}
+                className="w-11 h-11 rounded-xl flex items-center justify-center transition-all btn-press"
+                style={{
+                  background: tool.active ? "var(--gold)" : "rgba(255,255,255,0.06)",
+                  color: tool.active ? "#fff" : "rgba(255,255,255,0.75)",
+                }}
+              >
+                {tool.icon}
+              </button>
+            ))}
+          </div>
+          {hasEdits && (
+            <div className="flex items-center justify-center gap-3 px-4 pb-2">
+              <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                Edits will be baked in when you continue
+              </p>
+              <button
+                onClick={() => { setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0); setCropPct(0); }}
+                className="text-[10px] font-bold btn-press"
+                style={{ color: "var(--gold)" }}
+              >
+                Reset
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       <div className="flex gap-3 px-5 pb-8 pt-3">
         <button onClick={onRetake} className="flex-1 py-3.5 rounded-xl text-[13px] font-medium btn-press" style={{ border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
           Retake · <span className="font-arabic">إعادة</span>
         </button>
-        <button onClick={onConfirm} className="flex-1 py-3.5 rounded-xl text-[13px] font-bold text-white btn-press" style={{ background: "var(--gold)" }}>
-          Use This · <span className="font-arabic">استخدم</span>
+        <button onClick={rasterizeAndConfirm} disabled={applying} className="flex-1 py-3.5 rounded-xl text-[13px] font-bold text-white btn-press" style={{ background: "var(--gold)", opacity: applying ? 0.6 : 1 }}>
+          {applying ? "Applying…" : <>Use This · <span className="font-arabic">استخدم</span></>}
         </button>
       </div>
     </div>
@@ -598,6 +828,22 @@ const FLIGHT_FIELD_ORDER: (keyof FlightFields)[] = ["Airline", "Flight No.", "Fr
 const emptyFlightFields = (): FlightFields => ({
   Airline: "", "Flight No.": "", From: "", To: "", Date: "", Time: "", PNR: "", Class: "",
 });
+
+// Per-category empty schemas for manual entry. NO fake demo values — only labels.
+// Used when AI auto-extraction isn't yet wired (everything except flight).
+const GENERIC_SCHEMA_BY_CATEGORY: Record<string, { label: string }[]> = {
+  lab: [{ label: "Test name" }, { label: "Date" }, { label: "Facility" }, { label: "Doctor" }, { label: "Key result" }, { label: "Reference range" }],
+  hotel: [{ label: "Hotel name" }, { label: "Check-in" }, { label: "Check-out" }, { label: "Booking ref" }, { label: "Room" }, { label: "Rate" }],
+  prescription: [{ label: "Medication" }, { label: "Dose" }, { label: "Frequency" }, { label: "Duration" }, { label: "Prescriber" }, { label: "Date" }],
+  discharge: [{ label: "Diagnosis" }, { label: "Procedure" }, { label: "Discharge date" }, { label: "Follow-up" }, { label: "Red flags" }, { label: "Physician" }],
+  passport: [{ label: "Full name" }, { label: "Document no." }, { label: "Nationality" }, { label: "Date of birth" }, { label: "Issue date" }, { label: "Expiry date" }],
+  imaging: [{ label: "Study type" }, { label: "Body part" }, { label: "Date" }, { label: "Facility" }, { label: "Radiologist" }, { label: "Findings" }],
+  insurance: [{ label: "Insurer" }, { label: "Policy no." }, { label: "Member ID" }, { label: "Valid until" }, { label: "Plan" }, { label: "Network" }],
+  train: [{ label: "Carrier" }, { label: "Service" }, { label: "From" }, { label: "To" }, { label: "Date" }, { label: "Time" }],
+  other: [{ label: "Title" }, { label: "Date" }, { label: "Source" }, { label: "Notes" }],
+};
+const emptyGenericFields = (category: string | null) =>
+  (GENERIC_SCHEMA_BY_CATEGORY[category || "other"] || GENERIC_SCHEMA_BY_CATEGORY.other).map((f) => ({ label: f.label, value: "" }));
 
 const fmtDateLite = (s: string) => {
   if (!s) return "";
@@ -801,19 +1047,21 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     emitParsed(null);
 
     async function run() {
-      // Non-flight: keep the existing fake animated flow
+      // Non-flight: we don't yet have category-specific AI extractors, so
+      // produce an EMPTY editable schema (no fake "Saudia / CBC / Ibuprofen"
+      // placeholder data) and let the user fill or clear it manually.
       if (!realFile || category !== "flight") {
         setOcrStatus("scanning");
         const t = [
-          setTimeout(() => !cancelRef.current && setProcessStep(1), 700),
-          setTimeout(() => !cancelRef.current && setProcessStep(2), 1500),
-          setTimeout(() => !cancelRef.current && setProcessStep(3), 2400),
-          setTimeout(() => !cancelRef.current && setProcessStep(4), 3200),
+          setTimeout(() => !cancelRef.current && setProcessStep(1), 350),
+          setTimeout(() => !cancelRef.current && setProcessStep(2), 700),
+          setTimeout(() => !cancelRef.current && setProcessStep(3), 1100),
+          setTimeout(() => !cancelRef.current && setProcessStep(4), 1500),
           setTimeout(() => {
             if (cancelRef.current || runRef.current !== myRun) return;
-            setGenericFields(extractedFieldsByCategory[category || ""] ?? null);
+            setGenericFields(emptyGenericFields(category));
             setOcrStatus("success");
-          }, 4000),
+          }, 1800),
         ];
         return () => t.forEach(clearTimeout);
       }
@@ -1380,14 +1628,33 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-              {(genericFields ?? []).map((f, i) => (
-                <div key={i}>
-                  <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{f.label}</p>
-                  <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{f.value}</p>
+            <>
+              <div className="mb-3 rounded-lg px-3 py-2 flex items-start gap-2" style={{ background: "var(--gold-pale, #FBF3E8)", border: "1px solid rgba(197,150,90,0.3)" }}>
+                <span className="text-[13px] leading-none mt-0.5">ℹ️</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>
+                    AI auto-extraction is optimized for flight tickets only right now.
+                  </p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>
+                    الاستخراج التلقائي متاح حاليًا لتذاكر الطيران فقط — يرجى إدخال التفاصيل يدويًا أدناه.
+                  </p>
                 </div>
-              ))}
-            </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                {(genericFields ?? []).map((f, i) => (
+                  <EditableField
+                    key={`${category}-${i}-${f.label}`}
+                    label={f.label}
+                    value={f.value}
+                    onChange={(v) => {
+                      setGenericFields((prev) =>
+                        (prev ?? []).map((field, idx) => (idx === i ? { ...field, value: v } : field))
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -1410,6 +1677,29 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           />
         );
       })()}
+
+      {/* Clear & enter manually — always available so users can flush AI output */}
+      <div className="px-5 mt-3">
+        <button
+          onClick={() => {
+            setOutboundFields(emptyFlightFields());
+            setReturnFields(null);
+            setOutboundSegs([]);
+            setReturnSegs([]);
+            setActiveLeg("outbound");
+            setGenericFields(emptyGenericFields(category));
+            setSaveError(null);
+            emitParsed(null);
+            if (category === "flight") {
+              setShowManualSheet(true);
+            }
+          }}
+          className="w-full py-2.5 rounded-xl text-[12px] font-bold btn-press flex items-center justify-center gap-2"
+          style={{ background: "var(--white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+        >
+          🧹 Clear & enter manually · <span className="font-arabic">امسح وأدخل يدويًا</span>
+        </button>
+      </div>
 
       {/* Edit note */}
       <div className="flex items-center gap-2 px-5 mt-3">
