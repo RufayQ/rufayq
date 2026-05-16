@@ -160,6 +160,8 @@ const Index = () => {
   const openChatThread = useCallback((threadId: string) => {
     setPendingChatThreadId(threadId);
     setActiveTab("chat");
+    setAppView("main");
+    setShowScanner(false);
   }, []);
   const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | `phase:${string}` | null>(null);
   const [badges, setBadges] = useState<Partial<Record<Tab, boolean | number>>>({
