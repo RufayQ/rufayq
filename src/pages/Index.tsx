@@ -533,7 +533,9 @@ const Index = () => {
           style={{ background: "var(--off-white)", paddingBottom: showNav ? 64 : 0 }}
         >
           {appView === "main" && <TrialLockBanner onUpgrade={() => setAppView("pricing")} />}
-          {renderContent()}
+          <TabErrorBoundary tabKey={`${appView}:${activeTab}`} onError={handleTabRenderError}>
+            {renderContent()}
+          </TabErrorBoundary>
         </div>
 
         {/* Global notification center — visible on every main tab except home (home has its own in the header). */}
