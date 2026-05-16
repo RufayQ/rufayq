@@ -150,7 +150,8 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    let systemPrompt = SYSTEM_PROMPT;
+    const personaKey = typeof persona === "string" && PROMPTS[persona] ? persona : "medical";
+    let systemPrompt = PROMPTS[personaKey];
     if (mode === "smart-scan") {
       systemPrompt += `\n\nYou are in SMART SCAN mode. The user has scanned a medical document. Extract and structure the key information from it. Return a JSON object with these fields when applicable:
 - doctorName, specialty, hospital, date, time, notes
