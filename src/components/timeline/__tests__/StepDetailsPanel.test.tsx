@@ -141,7 +141,7 @@ describe("StepDetailsPanel — guest scope (userId null)", () => {
     await pickFile(container);
     await waitFor(() => expect(insertSpy).toHaveBeenCalled());
 
-    const [table, path] = uploadSpy.mock.calls[0];
+    const [path] = uploadSpy.mock.calls[0];
     expect(path).toMatch(/^test-device-xyz\/journey%3Atrip-1%3Aflight%3Aoutbound\//);
 
     const insertCall = insertSpy.mock.calls.find((c) => c[0] === "step_attachments")!;
