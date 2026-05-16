@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { useResolvedContact } from "@/hooks/useResolvedContact";
 import MessageTicks from "./MessageTicks";
 import EmojiPicker from "./EmojiPicker";
 
@@ -104,7 +105,10 @@ export default function HumanChatView({
     setTimeout(() => el.classList.remove("ring-2", "ring-[var(--gold)]"), 1400);
   };
 
-  const initials = (title || "?").trim().slice(0, 1).toUpperCase();
+  const contact = useResolvedContact(threadId, kind);
+  const displayName = kind === "direct" ? (contact?.name ?? title) : title;
+  const avatarUrl = kind === "direct" ? (contact?.avatarUrl ?? null) : null;
+  const initials = (contact?.initials ?? (displayName || "?").trim().slice(0, 1).toUpperCase()) || "?";
   const roleLabel = kind === "provider" ? "Care provider · مزود الرعاية" : "Direct message · رسالة مباشرة";
 
   return (
@@ -120,19 +124,25 @@ export default function HumanChatView({
           aria-label="View contact info"
         >
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
             style={{
-              background: kind === "provider" ? "var(--teal-deep)" : "rgba(255,255,255,0.18)",
+              background: avatarUrl ? "transparent" : kind === "provider" ? "var(--teal-deep)" : "rgba(255,255,255,0.18)",
               color: "#fff",
               border: "1.5px solid rgba(255,255,255,0.25)",
               fontFamily: "'DM Sans'",
               fontWeight: 700,
             }}
           >
-            {kind === "provider" ? <Stethoscope size={18} /> : (initials || <User size={18} />)}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+            ) : kind === "provider" ? (
+              <Stethoscope size={18} />
+            ) : (
+              initials || <User size={18} />
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-[15px] font-bold truncate" style={{ fontFamily: "'DM Sans'" }}>{title}</p>
+            <p className="text-white text-[15px] font-bold truncate" style={{ fontFamily: "'DM Sans'" }}>{displayName}</p>
             <p className="text-[10.5px] truncate font-mono tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>{roleLabel}</p>
             {subtitle && subtitle !== roleLabel && (
               <p className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.45)" }}>{subtitle}</p>

@@ -3,6 +3,7 @@ import { ChevronLeft, Stethoscope, User, BellOff, Trash2, Ban, Shield, Search } 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { useResolvedContact } from "@/hooks/useResolvedContact";
 
 interface Props {
   threadId: string;
@@ -21,6 +22,13 @@ type ProfileData = {
 export default function ConversationProfile({ threadId, title, kind, onBack }: Props) {
   const [data, setData] = useState<ProfileData | null>(null);
   const me = getDeviceId();
+  const contact = useResolvedContact(threadId, kind === "provider" ? "direct" : kind);
+  // For provider threads keep the existing clinic look + thread title;
+  // for direct threads use the resolved real contact name.
+  const displayName = kind === "direct" ? (contact?.name ?? title) : title;
+  const displayNameAr = kind === "direct" ? (contact?.nameAr ?? null) : null;
+  const avatarUrl = kind === "direct" ? (contact?.avatarUrl ?? null) : null;
+  const initials = (contact?.initials ?? (displayName || "?").trim().slice(0, 1).toUpperCase()) || "?";
 
   useEffect(() => {
     let cancelled = false;
@@ -66,7 +74,6 @@ export default function ConversationProfile({ threadId, title, kind, onBack }: P
     };
   }, [threadId, kind, me]);
 
-  const initials = (title || "?").trim().slice(0, 1).toUpperCase();
   const roleLabel =
     kind === "provider" ? "Care provider · مزود الرعاية" : "Direct message · رسالة مباشرة";
 
@@ -115,9 +122,10 @@ export default function ConversationProfile({ threadId, title, kind, onBack }: P
           }}
         >
           <div
-            className="w-24 h-24 rounded-full flex items-center justify-center mb-3"
+            className="w-24 h-24 rounded-full flex items-center justify-center mb-3 overflow-hidden"
             style={{
               background:
+                avatarUrl ? "transparent" :
                 kind === "provider" ? "var(--teal-deep)" : "rgba(255,255,255,0.95)",
               color: kind === "provider" ? "#fff" : "var(--navy)",
               border: "2px solid var(--gold)",
@@ -127,14 +135,29 @@ export default function ConversationProfile({ threadId, title, kind, onBack }: P
               fontSize: 36,
             }}
           >
-            {kind === "provider" ? <Stethoscope size={40} /> : initials || <User size={36} />}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+            ) : kind === "provider" ? (
+              <Stethoscope size={40} />
+            ) : (
+              initials || <User size={36} />
+            )}
           </div>
           <p
             className="text-[20px] font-bold text-white text-center"
             style={{ fontFamily: "'DM Sans'", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
           >
-            {title}
+            {displayName}
           </p>
+          {displayNameAr && (
+            <p
+              className="font-arabic text-[14px] text-center mt-0.5"
+              dir="rtl"
+              style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
+            >
+              {displayNameAr}
+            </p>
+          )}
           <p
             className="font-mono text-[10px] tracking-widest mt-1"
             style={{ color: "rgba(255,255,255,0.7)" }}
