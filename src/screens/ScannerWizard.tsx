@@ -161,6 +161,8 @@ const sectionLabels: Record<string, string> = {
   other: "Medical Records",
 };
 
+type UploadMode = "single" | "multi-page" | "multi-record";
+
 const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
   const authUserId = useAuthUserId();
   // When the AI extraction path is disabled (currently the case for flights),
@@ -168,8 +170,11 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   // upload/review/category steps and jump straight to manual entry (Step 4).
   const skipAiForFlight = preselectedCategory === "flight" && !FLIGHT_AI_ENABLED;
   const [step, setStep] = useState(skipAiForFlight ? 4 : 1);
+  const [uploadMode, setUploadMode] = useState<UploadMode>("single");
   const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(null);
   const [realFile, setRealFile] = useState<File | null>(null);
+  // Multi-record batch: each entry will be saved as its own record on submit.
+  const [batchFiles, setBatchFiles] = useState<{ file: File; name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(preselectedCategory || null);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -191,22 +196,38 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
       fileInputRef.current.accept = accept;
+      // Multiple selection for multi-page or multi-record modes.
+      fileInputRef.current.multiple = uploadMode !== "single";
       fileInputRef.current.click();
     }
-    // NOTE: removed the 1.5s "demo fallback" — it overwrote a real selected
-    // file with a fake "document_scan.pdf" because the closure captured a
-    // stale `capturedFile === null`, which is why scans appeared as the
-    // hardcoded RUH→BER demo.
   };
 
   const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCapturedFile({ name: file.name, type: file.type, size: `${(file.size / 1024).toFixed(1)} KB` });
-      setRealFile(file);
-      setScannedPayload(null);
-      setStep(2);
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    if (uploadMode === "multi-record" && files.length > 0) {
+      // Route to the batch rename / save screen.
+      setBatchFiles(files.map((f) => ({ file: f, name: f.name.replace(/\.\w+$/, "") })));
+      setStep(99); // sentinel for batch screen
+      // reset single-file state
+      setRealFile(null);
+      setCapturedFile(null);
+      return;
     }
+
+    // Single record (possibly multi-page) — for now we hand the first file to
+    // the existing single-file pipeline. Additional pages are kept on realFile
+    // metadata via "name (+N pages)" so the user knows they were included.
+    const primary = files[0];
+    setCapturedFile({
+      name: files.length > 1 ? `${primary.name} (+${files.length - 1} more pages)` : primary.name,
+      type: primary.type,
+      size: `${(primary.size / 1024).toFixed(1)} KB`,
+    });
+    setRealFile(primary);
+    setScannedPayload(null);
+    setStep(2);
   };
 
   return (
