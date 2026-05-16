@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { records as demoRecords, filterCategories, type DocRecord } from "@/constants/data";
-import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, RefreshCw, Stethoscope, Plane, MoreVertical } from "lucide-react";
+import { Share2, Download, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, Stethoscope, Plane, MoreVertical, Pill, ScanLine } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
@@ -98,11 +98,19 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
     window.open(url, "_blank");
   };
 
-  const recordsMenuItems: HeaderMenuItem[] = [
-    { icon: <Copy size={14} />, label: "Copy All", labelAr: "نسخ الكل", onClick: handleCopyAllRecords },
-    { icon: <Download size={14} />, label: "Export Records", labelAr: "تصدير السجلات", onClick: handleExportRecords },
-    { icon: <Share2 size={14} />, label: "Share Records", labelAr: "مشاركة السجلات", onClick: handleShareRecords },
-  ];
+  // Tab-aware kebab: shared items + medical-only quick actions (+ Meds).
+  const recordsMenuItems: HeaderMenuItem[] = segment === "medical"
+    ? [
+        { icon: <ScanLine size={14} />, label: "Scan / Upload Record", labelAr: "مسح أو رفع سجل", onClick: () => onOpenScanner?.() },
+        { icon: <Pill size={14} />, label: "Add Medication", labelAr: "إضافة دواء", onClick: () => onNavigate?.("medications") },
+        { icon: <Copy size={14} />, label: "Copy All Records", labelAr: "نسخ كل السجلات", onClick: handleCopyAllRecords },
+        { icon: <Download size={14} />, label: "Export Records (.txt)", labelAr: "تصدير السجلات", onClick: handleExportRecords },
+        { icon: <Share2 size={14} />, label: "Share Records", labelAr: "مشاركة السجلات", onClick: handleShareRecords },
+      ]
+    : [
+        { icon: <ScanLine size={14} />, label: "Scan Travel Document", labelAr: "مسح وثيقة سفر", onClick: () => onOpenScanner?.() },
+        { icon: <Share2 size={14} />, label: "Share Travel Docs", labelAr: "مشاركة وثائق السفر", onClick: handleShareRecords },
+      ];
 
   return (
     <div className="flex flex-col relative" style={{ height: 0, flex: 1, overflow: "hidden" }}>
@@ -110,18 +118,15 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
       <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "var(--teal-deep)" }}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-mono text-[10px] tracking-widest" style={{ color: "rgba(255,255,255,0.4)" }}>03 — MEDICAL RECORDS</p>
+            <p className="font-mono text-[10px] tracking-widest" style={{ color: "rgba(255,255,255,0.4)" }}>03 — {segment === "medical" ? "MEDICAL RECORDS" : "TRAVEL RECORDS"}</p>
             <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Your Documents</p>
-            <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>ملفاتك الطبية</p>
+            <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>ملفاتك {segment === "medical" ? "الطبية" : "للسفر"}</p>
           </div>
           <div className="flex items-center gap-2">
-            <HeaderMenu items={recordsMenuItems} />
-            <button onClick={() => onNavigate?.("medications")} className="px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--teal-deep)", color: "#fff" }}>
-              ＋ Meds
-            </button>
             <button onClick={() => onOpenScanner?.()} className="px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
               ＋ Scan
             </button>
+            <HeaderMenu items={recordsMenuItems} />
           </div>
         </div>
         <div className="flex gap-2 mt-3">
@@ -140,8 +145,8 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
           style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
         >
           {([
-            { key: "medical" as const, icon: <Stethoscope size={13} />, en: "Medical", ar: "طبية", count: totalFiles },
             { key: "travel" as const, icon: <Plane size={13} />, en: "Travel", ar: "سفر", count: travelCount },
+            { key: "medical" as const, icon: <Stethoscope size={13} />, en: "Medical", ar: "طبية", count: totalFiles },
           ]).map((s) => {
             const active = segment === s.key;
             return (
