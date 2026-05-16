@@ -2090,7 +2090,19 @@ const AppointmentsTab = ({
   const renderApptCard = (apt: AppointmentCardModel) => {
     const sb = statusBadge(apt.status);
     return (
-      <div key={apt.id} className="rounded-xl p-4 card-press" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+      <div
+        key={apt.id}
+        data-appointment-id={apt.id}
+        className="rounded-xl p-4 card-press"
+        style={{
+          background: "var(--white)",
+          border: "1px solid var(--gray-light)",
+          boxShadow: highlightApptId === apt.id
+            ? "0 0 0 2px var(--gold), 0 1px 6px rgba(0,0,0,0.04)"
+            : "0 1px 6px rgba(0,0,0,0.04)",
+          transition: "box-shadow 300ms ease",
+        }}
+      >
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: apt.type === "telemedicine" ? "var(--teal-light)" : apt.type === "clinic" ? "var(--gold-pale)" : "rgba(61,170,110,0.1)" }}>
             {typeIcon(apt.type)}
