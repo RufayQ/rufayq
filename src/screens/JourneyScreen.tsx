@@ -163,6 +163,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const userSelectedRef = useRef(false);
   const pendingMilestoneIdRef = useRef<string | null>(null);
   const [pendingMilestoneToken, setPendingMilestoneToken] = useState(0);
+  // When Home deep-links to an appointment milestone, store the appointment
+  // id here so the Appointments tab can scroll to and briefly highlight it.
+  const [pendingAppointmentScrollId, setPendingAppointmentScrollId] = useState<string | null>(null);
   const handleMilestoneSelect = (id: string) => {
     userSelectedRef.current = true;
     setSelectedMilestoneId(id);
