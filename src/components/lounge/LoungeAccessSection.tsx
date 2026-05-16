@@ -1,0 +1,298 @@
+import { useEffect, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine } from "lucide-react";
+import { toast } from "sonner";
+import type { TransportSegment } from "@/components/TransportCard";
+import {
+  listLoungeMemberships,
+  saveLoungeMembership,
+  deleteLoungeMembership,
+  subscribeLoungeMemberships,
+  type LoungeMembership,
+} from "@/lib/loungeMemberships";
+
+interface Props {
+  /** Flight segments shown in the linker dropdown so the user can tag a card to a flight. */
+  segments: TransportSegment[];
+}
+
+/**
+ * Lounge Access section rendered inside the Tickets tab. Stores Dragonpass /
+ * Priority Pass / Visa Airport Companion / Mastercard Travel Pass / generic
+ * memberships locally. Tap a card to show the QR a lounge officer can scan;
+ * the QR payload is just the membership number.
+ */
+const LoungeAccessSection = ({ segments }: Props) => {
+  const [items, setItems] = useState<LoungeMembership[]>(() => listLoungeMemberships());
+  const [editing, setEditing] = useState<LoungeMembership | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [qrTarget, setQrTarget] = useState<LoungeMembership | null>(null);
+
+  useEffect(() => subscribeLoungeMemberships(() => setItems(listLoungeMemberships())), []);
+
+  const flightSegments = segments.filter((s) => s.type === "flight");
+
+  return (
+    <section className="px-4 mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>
+            LOUNGE ACCESS
+          </p>
+          <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>
+            بطاقات دخول الصالات
+          </p>
+        </div>
+        <button
+          onClick={() => { setEditing(null); setAdding(true); }}
+          className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press"
+          style={{ background: "var(--teal-deep)", color: "var(--white)" }}
+        >
+          <Plus size={12} /> Add
+        </button>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="rounded-2xl p-4 text-center" style={{ background: "var(--white)", border: "1px dashed var(--gray-light)" }}>
+          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "var(--teal-light)" }}>
+            <ScanLine size={18} style={{ color: "var(--teal-deep)" }} />
+          </div>
+          <p className="text-[12px] font-bold" style={{ color: "var(--navy)" }}>No lounge cards yet</p>
+          <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>لم تتم إضافة بطاقات صالات بعد</p>
+          <p className="mt-1 text-[10px] leading-relaxed" style={{ color: "var(--gray)" }}>
+            Add your Dragonpass, Priority Pass, Visa Airport Companion or Mastercard Travel Pass — show the QR at the lounge desk.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((m) => {
+            const linked = flightSegments.find((s) => s.id === m.linkedSegmentId);
+            return (
+              <button
+                key={m.id}
+                onClick={() => setQrTarget(m)}
+                className="w-full text-left rounded-2xl p-3 btn-press flex items-center gap-3"
+                style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl shrink-0" style={{ background: "linear-gradient(135deg, var(--header-dark-from), var(--header-teal-from))" }}>
+                  <CreditCard size={20} color="#fff" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{m.program}</p>
+                  <p className="font-mono text-[11px] tracking-wider truncate" style={{ color: "var(--gray)" }}>
+                    {m.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
+                  </p>
+                  {linked && (
+                    <p className="mt-0.5 flex items-center gap-1 text-[9px]" style={{ color: "var(--teal-deep)" }}>
+                      <Plane size={9} /> {linked.airline || linked.flightNumber || "Flight"} · {linked.fromCode}→{linked.toCode}
+                    </p>
+                  )}
+                </div>
+                <ScanLine size={16} style={{ color: "var(--gold)" }} />
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {(adding || editing) && (
+        <LoungeFormSheet
+          initial={editing}
+          segments={flightSegments}
+          onClose={() => { setAdding(false); setEditing(null); }}
+          onSave={(input) => {
+            saveLoungeMembership(input);
+            toast.success(editing ? "Membership updated · تم التحديث" : "Membership added · تمت الإضافة", { duration: 1800 });
+            setAdding(false);
+            setEditing(null);
+          }}
+          onDelete={editing ? () => {
+            deleteLoungeMembership(editing.id);
+            toast.success("Removed · تم الحذف", { duration: 1500 });
+            setEditing(null);
+          } : undefined}
+        />
+      )}
+
+      {qrTarget && (
+        <LoungeQrSheet
+          membership={qrTarget}
+          onClose={() => setQrTarget(null)}
+          onEdit={() => { setEditing(qrTarget); setQrTarget(null); }}
+        />
+      )}
+    </section>
+  );
+};
+
+/* ─── Add / Edit form ─── */
+const LoungeFormSheet = ({
+  initial, segments, onClose, onSave, onDelete,
+}: {
+  initial: LoungeMembership | null;
+  segments: TransportSegment[];
+  onClose: () => void;
+  onSave: (input: Parameters<typeof saveLoungeMembership>[0]) => void;
+  onDelete?: () => void;
+}) => {
+  const [program, setProgram] = useState(initial?.program || "Dragonpass");
+  const [membershipNumber, setMembershipNumber] = useState(initial?.membershipNumber || "");
+  const [cardholderName, setCardholderName] = useState(initial?.cardholderName || "");
+  const [cardLast4, setCardLast4] = useState(initial?.cardLast4 || "");
+  const [expiresOn, setExpiresOn] = useState(initial?.expiresOn || "");
+  const [linkedSegmentId, setLinkedSegmentId] = useState(initial?.linkedSegmentId || "");
+  const [notes, setNotes] = useState(initial?.notes || "");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!program.trim() || !membershipNumber.trim() || !cardholderName.trim()) {
+      toast.error("Program, number and cardholder are required");
+      return;
+    }
+    onSave({
+      id: initial?.id,
+      program: program.trim(),
+      membershipNumber: membershipNumber.trim(),
+      cardholderName: cardholderName.trim(),
+      cardLast4: cardLast4.trim() || undefined,
+      expiresOn: expiresOn || undefined,
+      linkedSegmentId: linkedSegmentId || undefined,
+      notes: notes.trim() || undefined,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.45)" }} onClick={onClose}>
+      <form
+        onSubmit={handleSubmit}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[420px] rounded-t-3xl p-5 animate-slide-up"
+        style={{ background: "var(--white)", boxShadow: "0 -8px 32px rgba(0,0,0,0.18)", maxHeight: "85vh", overflowY: "auto" }}
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--gray-light)" }} />
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>{initial ? "Edit Lounge Card" : "Add Lounge Card"}</p>
+            <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>بطاقة صالة المطار</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)" }}>
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <Field label="Program · البرنامج">
+            <select value={program} onChange={(e) => setProgram(e.target.value)} className="w-full rounded-xl px-3 py-2 text-[13px] outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
+              {["Dragonpass", "Priority Pass", "Visa Airport Companion", "Mastercard Travel Pass", "LoungeKey", "Other"].map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Membership Number · رقم العضوية">
+            <input value={membershipNumber} onChange={(e) => setMembershipNumber(e.target.value)} placeholder="e.g. 7800 7311 0008 0979" inputMode="numeric" className="w-full rounded-xl px-3 py-2 text-[13px] font-mono outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+          </Field>
+
+          <Field label="Cardholder Name · اسم حامل البطاقة">
+            <input value={cardholderName} onChange={(e) => setCardholderName(e.target.value)} placeholder="As printed on the card" className="w-full rounded-xl px-3 py-2 text-[13px] outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Linked card last 4">
+              <input value={cardLast4} onChange={(e) => setCardLast4(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="9607" inputMode="numeric" maxLength={4} className="w-full rounded-xl px-3 py-2 text-[13px] font-mono outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+            </Field>
+            <Field label="Expires">
+              <input type="date" value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} className="w-full rounded-xl px-3 py-2 text-[13px] outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+            </Field>
+          </div>
+
+          {segments.length > 0 && (
+            <Field label="Link to flight · ربط بالرحلة">
+              <select value={linkedSegmentId} onChange={(e) => setLinkedSegmentId(e.target.value)} className="w-full rounded-xl px-3 py-2 text-[13px] outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
+                <option value="">— Not linked —</option>
+                {segments.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {(s.airline || "Flight")} {s.flightNumber || ""} · {s.fromCode}→{s.toCode} · {new Date(s.departureDateTime).toLocaleDateString()}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+
+          <Field label="Notes (optional)">
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-xl px-3 py-2 text-[12px] outline-none resize-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+          </Field>
+        </div>
+
+        <div className="mt-5 flex gap-2">
+          {onDelete && (
+            <button type="button" onClick={() => { if (confirm("Delete this card?")) onDelete(); }} className="rounded-full px-3 py-2.5 text-[12px] font-bold btn-press flex items-center gap-1" style={{ background: "rgba(217,79,79,0.1)", color: "var(--error)" }}>
+              <Trash2 size={12} /> Delete
+            </button>
+          )}
+          <button type="submit" className="flex-1 rounded-full py-2.5 text-[13px] font-bold btn-press" style={{ background: "var(--teal-deep)", color: "var(--white)" }}>
+            {initial ? "Save changes" : "Add card"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <label className="block">
+    <span className="mb-1 block text-[10px] font-bold tracking-wide uppercase" style={{ color: "var(--gray)" }}>{label}</span>
+    {children}
+  </label>
+);
+
+/* ─── QR display sheet ─── */
+const LoungeQrSheet = ({
+  membership, onClose, onEdit,
+}: { membership: LoungeMembership; onClose: () => void; onEdit: () => void }) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.6)" }} onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[420px] rounded-t-3xl p-5 animate-slide-up"
+        style={{ background: "var(--white)", boxShadow: "0 -8px 32px rgba(0,0,0,0.25)" }}
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--gray-light)" }} />
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>{membership.program}</p>
+            <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>اعرض الرمز لموظف الصالة للمسح</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={onEdit} aria-label="Edit" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)" }}>
+              <Pencil size={13} />
+            </button>
+            <button onClick={onClose} aria-label="Close" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)" }}>
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 flex flex-col items-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+          <div className="rounded-xl bg-white p-3" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
+            <QRCodeSVG value={membership.membershipNumber} size={196} level="M" includeMargin={false} />
+          </div>
+          <p className="mt-3 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
+            {membership.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
+          </p>
+          <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>{membership.cardholderName}</p>
+          <div className="mt-2 flex gap-3 text-[10px]" style={{ color: "var(--gray)" }}>
+            {membership.cardLast4 && <span>Linked card •••• {membership.cardLast4}</span>}
+            {membership.expiresOn && <span>Exp {membership.expiresOn}</span>}
+          </div>
+        </div>
+
+        <p className="mt-3 text-center text-[10px]" style={{ color: "var(--gray)" }}>
+          Brightness is automatic on most devices · يتم رفع سطوع الشاشة تلقائياً
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default LoungeAccessSection;

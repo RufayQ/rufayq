@@ -53,6 +53,7 @@ import type { TicketExtractionMetadata } from "@/lib/transportTickets";
 import DuplicateTicketDialog from "@/components/DuplicateTicketDialog";
 import TicketsFilterBar, { defaultTicketsFilterState, loadTicketsFilterState, type TicketsFilterState, type TicketQuickFilter } from "@/components/TicketsFilterBar";
 import JourneyHelicopterTimeline from "@/components/JourneyHelicopterTimeline";
+import LoungeAccessSection from "@/components/lounge/LoungeAccessSection";
 import { appointmentFormToRowInput, appointmentRowToAppointment, sortAppointmentRowsByStart, type AppointmentCardModel } from "@/lib/appointmentRows";
 import { type DuplicateMatch } from "@/lib/transportTickets";
 
@@ -1389,6 +1390,7 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
         filteredCount={filteredSegments.length}
         onClear={() => setFilters(defaultTicketsFilterState)}
       />
+      <LoungeAccessSection segments={segments} />
       {filteredSegments.length === 0 && (
         <div className="mx-4 my-4 rounded-2xl p-5 text-center" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
           <p className="font-display text-lg" style={{ color: "var(--navy)" }}>No tickets match these filters</p>
