@@ -84,6 +84,7 @@ export function useChatThread(threadId: string | null) {
         body: trimmed,
         metadata: {},
         created_at: new Date().toISOString(),
+        status: "sending",
       };
       setMessages((prev) => [...prev, optimistic]);
       const { data, error } = await supabase
@@ -97,20 +98,31 @@ export function useChatThread(threadId: string | null) {
         .select("id, thread_id, sender_kind, sender_device_id, sender_org_id, body, metadata, created_at")
         .single();
       if (error) {
-        // Roll back optimistic message on failure
-        setMessages((prev) => prev.filter((x) => x.id !== tempId));
+        // Mark optimistic message as failed so the UI shows a red ! tick + retry
+        setMessages((prev) => prev.map((x) => (x.id === tempId ? { ...x, status: "failed" } : x)));
         throw error;
       }
       if (data) {
+        const sent: ChatMessageRow = { ...(data as ChatMessageRow), status: "sent" };
         setMessages((prev) => {
-          if (prev.some((x) => x.id === (data as ChatMessageRow).id)) {
+          if (prev.some((x) => x.id === sent.id)) {
             return prev.filter((x) => x.id !== tempId);
           }
-          return prev.map((x) => (x.id === tempId ? (data as ChatMessageRow) : x));
+          return prev.map((x) => (x.id === tempId ? sent : x));
         });
       }
     },
     [threadId],
+  );
+
+  const retry = useCallback(
+    async (failedId: string) => {
+      const msg = messages.find((m) => m.id === failedId);
+      if (!msg || msg.status !== "failed") return;
+      setMessages((prev) => prev.filter((x) => x.id !== failedId));
+      await send(msg.body);
+    },
+    [messages, send],
   );
 
   const markRead = useCallback(async () => {
