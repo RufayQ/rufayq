@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 
+export type ChatMessageStatus = "sending" | "sent" | "failed";
+
 export type ChatMessageRow = {
   id: string;
   thread_id: string;
@@ -11,6 +13,8 @@ export type ChatMessageRow = {
   body: string;
   metadata: Record<string, unknown>;
   created_at: string;
+  /** Client-side delivery status. Server rows default to "sent". */
+  status?: ChatMessageStatus;
 };
 
 /** Loads messages for a single thread and subscribes to new ones in realtime. */
