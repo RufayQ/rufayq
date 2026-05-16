@@ -39,6 +39,13 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const userId = useAuthUserId();
   const travelCount = useArtifactCount({ userId });
 
+  // Local-only edits for demo (medical) records — they don't live in DB yet.
+  const [renames, setRenames] = useState<Record<string, string>>({});
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [menuTarget, setMenuTarget] = useState<{ doc: DocRecord; key: string } | null>(null);
+
+  const keyFor = (d: DocRecord, i: number) => `${d.titleEn}-${i}`;
+
   // Dynamic stats
   const totalFiles = records.length;
   const translatedCount = records.filter(r => r.translationStatus === "translated").length;
