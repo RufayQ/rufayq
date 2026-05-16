@@ -150,7 +150,7 @@ function timeLabel(iso: string) {
 
 function ThreadAvatar({ kind, persona }: { kind: ChatThreadRow["kind"]; persona: string | null }) {
   const bg = kind === "ai" ? "var(--navy)" : kind === "provider" ? "var(--teal-deep)" : "var(--teal-light)";
-  const fg = kind === "people" ? "var(--teal-deep)" : "#fff";
+  const fg = kind === "direct" ? "var(--teal-deep)" : "#fff";
   const emoji = kind === "ai" ? (persona === "shopping" ? "🛍️" : persona === "tour" ? "🗺️" : "🩺") : null;
   return (
     <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: bg, color: fg, border: kind === "ai" ? "2px solid var(--gold)" : "none" }}>
