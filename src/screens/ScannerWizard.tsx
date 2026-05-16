@@ -354,7 +354,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
 };
 
 /* ─── STEP 1: CAPTURE ─── */
-const Step1Capture = ({ onCapture }: { onCapture: (accept: string) => void }) => {
+const Step1Capture = ({ onCapture, uploadMode, onChangeMode }: { onCapture: (accept: string) => void; uploadMode: UploadMode; onChangeMode: (m: UploadMode) => void }) => {
   const [showQRScanner, setShowQRScanner] = useState(false);
 
   if (showQRScanner) {
