@@ -17,21 +17,51 @@ interface ChatMessage {
   time: string;
 }
 
+type ChatPersona = "medical" | "shopping" | "tour";
+
+const PERSONAS: Record<ChatPersona, {
+  en: string; ar: string; emoji: string; tagline: string; taglineAr: string;
+  greeting: string; pills: { emoji: string; text: string }[];
+}> = {
+  medical: {
+    en: "Medical AI", ar: "الذكاء الطبي", emoji: "🩺",
+    tagline: "Medications, reports & care", taglineAr: "الأدوية والتقارير والرعاية",
+    greeting: "مرحباً 👋 أنا رُفَيِّق الطبي. اسألني عن أدويتك أو تقاريرك أو خطوات التعافي.",
+    pills: [
+      { emoji: "📋", text: "فسّر نتائجي" },
+      { emoji: "💊", text: "اشرح وصفتي" },
+      { emoji: "🩻", text: "اشرح الأشعة" },
+      { emoji: "⚠️", text: "أعراض الخطر" },
+    ],
+  },
+  shopping: {
+    en: "Shopping AI", ar: "ذكاء التسوق", emoji: "🛍️",
+    tagline: "Compare, deals & sizing", taglineAr: "المقارنة والعروض والمقاسات",
+    greeting: "أهلاً 👋 أنا رفيقك للتسوق. اسألني عن أفضل العروض، المقارنات، المقاسات، أو الجمارك.",
+    pills: [
+      { emoji: "💰", text: "أفضل سعر؟" },
+      { emoji: "📏", text: "حوّل المقاس" },
+      { emoji: "🛒", text: "قارن منتجين" },
+      { emoji: "🛃", text: "الجمارك السعودية" },
+    ],
+  },
+  tour: {
+    en: "Tour Guide AI", ar: "المرشد السياحي", emoji: "🗺️",
+    tagline: "Places, history & logistics", taglineAr: "الأماكن والتاريخ والتنقل",
+    greeting: "مرحباً 👋 أنا مرشدك السياحي. اسألني عن المعالم القريبة، التاريخ، أو التنقل والمطاعم الحلال.",
+    pills: [
+      { emoji: "📍", text: "أماكن قريبة" },
+      { emoji: "🕌", text: "مطاعم حلال" },
+      { emoji: "🚇", text: "كيف أصل؟" },
+      { emoji: "🏛️", text: "تاريخ المدينة" },
+    ],
+  },
+};
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-const promptPills = [
-  { emoji: "📎", text: "ارفع وثيقة" },
-  { emoji: "📋", text: "فسّر نتائجي" },
-  { emoji: "💊", text: "اشرح وصفتي" },
-  { emoji: "🩻", text: "اشرح الأشعة" },
-  { emoji: "🗺️", text: "الخطوة القادمة؟" },
-  { emoji: "📤", text: "أرسل تقريري" },
-  { emoji: "🇸🇦", text: "احجز متابعة" },
-  { emoji: "⚠️", text: "أعراض الخطر" },
-];
-
-const initialMessages: ChatMessage[] = [
-  { id: 1, text: "مرحباً محمد 👋 أنا رُفَيِّق، رفيقك الذكي في رحلتك العلاجية.\n\nكيف يمكنني مساعدتك اليوم؟ يمكنني:\n• شرح أدويتك ونتائج تحاليلك\n• مساعدتك في فهم تقارير الخروج\n• الإجابة على أسئلتك الطبية\n• تنظيم مواعيدك ومتابعاتك", sender: "ai", time: "2:14 PM" },
+const makeGreeting = (persona: ChatPersona): ChatMessage[] => [
+  { id: 1, text: PERSONAS[persona].greeting, sender: "ai", time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) },
 ];
 
 const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void; onUpgrade?: () => void }) => {
