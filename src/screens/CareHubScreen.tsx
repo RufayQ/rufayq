@@ -192,6 +192,16 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
 /* ─── CARE PLAN ─── */
 const CarePlanTab = () => {
   const { instructions } = useProviderFeed();
+  const { items: appointments } = useAppointments();
+  const now = Date.now();
+  const followUps = appointments
+    .filter((a) => {
+      if (!a.start_at) return false;
+      if (new Date(a.start_at).getTime() < now) return false;
+      const hay = `${a.appointment_type ?? ""} ${a.visit_type ?? ""} ${a.title ?? ""}`.toLowerCase();
+      return /follow.?up|post.?op|post.?travel/.test(hay);
+    })
+    .slice(0, 5);
   const [tasks, setTasks] = useState([
     { en: "Morning meds 8AM", ar: "أدوية الصباح ٨ ص", done: false },
     { en: "Elevate leg 30 min", ar: "رفع الرجل ٣٠ دقيقة", done: true },
