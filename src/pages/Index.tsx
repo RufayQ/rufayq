@@ -509,6 +509,16 @@ const Index = () => {
           />
         )}
 
+        {/* Heads-up incoming chat card (WhatsApp-style) with quick reply. */}
+        {appView === "main" && (
+          <IncomingMessageOverlay onOpenThread={openChatThread} />
+        )}
+
+        {/* One-time native push permission prompt (native shells only). */}
+        {appView === "main" && (
+          <PushPermissionPrompt onDeepLink={routeDeepLink} />
+        )}
+
         {/* First-launch tour for newly registered users */}
         {appView === "main" && tourPending && (
           <TourGuide onFinish={markTourDone} />
