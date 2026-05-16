@@ -83,39 +83,54 @@ const categories = [
     subs: ["Referral", "Consultation Note", "Surgical Report", "Consent Form", "Vaccination", "Medical Certificate", "Other"] },
 ];
 
+const MEDICAL_GENERIC_DESTS = [
+  { en: "Save to Medical Records", ar: "حفظ في الملفات الطبية", route: "Records → Medical", checked: true },
+  { en: "Translate to Arabic", ar: "ترجم للعربية", route: "Translation", checked: false },
+  { en: "Send to KSA Doctor", ar: "أرسل لطبيبي", route: "Share", checked: false },
+];
+
 const destinationsByCategory: Record<string, { en: string; ar: string; route: string; checked: boolean }[]> = {
   flight: [
     { en: "Add to Transport Timeline", ar: "أضف لجدول التنقل", route: "Journey → Tickets", checked: true },
     { en: "Save to Medical Records", ar: "حفظ في الملفات", route: "Records → General", checked: false },
     { en: "Send to KSA Doctor", ar: "أرسل لطبيبي", route: "Share", checked: false },
   ],
+  train: [
+    { en: "Add to Transport Timeline", ar: "أضف لجدول التنقل", route: "Journey → Tickets", checked: true },
+    { en: "Save to Travel Records", ar: "حفظ في ملفات السفر", route: "Records → Travel", checked: false },
+  ],
+  hotel: [
+    { en: "Add to Accommodation", ar: "أضف للإقامة", route: "Journey → Stay", checked: true },
+    { en: "Save to Travel Records", ar: "حفظ في ملفات السفر", route: "Records → Travel", checked: true },
+  ],
+  legal: [
+    { en: "Save to Profile", ar: "حفظ في الملف الشخصي", route: "Profile → ID", checked: true },
+    { en: "Save to Travel Records", ar: "حفظ في ملفات السفر", route: "Records → Travel", checked: true },
+    { en: "Share with Hospital", ar: "مشاركة مع المستشفى", route: "Share", checked: false },
+  ],
   lab: [
-    { en: "Add to Lab Results", ar: "أضف لنتائج التحاليل", route: "Records → Lab", checked: true },
+    { en: "Save to Medical Records", ar: "حفظ في الملفات الطبية", route: "Records → Lab", checked: true },
     { en: "Update Care Hub Vitals", ar: "حدّث قراءات الرعاية", route: "Care Hub → Vitals", checked: true },
     { en: "Translate to Arabic", ar: "ترجم للعربية", route: "Translation", checked: false },
     { en: "Send to KSA Doctor", ar: "أرسل لطبيبي", route: "Share", checked: false },
   ],
-  hotel: [
-    { en: "Add to Accommodation", ar: "أضف للإقامة", route: "Journey → Stay", checked: true },
-    { en: "Save to Records", ar: "حفظ في الملفات", route: "Records → General", checked: true },
-  ],
   prescription: [
     { en: "Update Medication Schedule", ar: "حدّث جدول الأدوية", route: "Medications", checked: true },
-    { en: "Save to Records", ar: "حفظ في الملفات", route: "Records → Prescription", checked: true },
+    { en: "Save to Medical Records", ar: "حفظ في الملفات الطبية", route: "Records → Prescription", checked: true },
     { en: "Set medication reminders", ar: "فعّل تذكيرات الأدوية", route: "Notifications", checked: true },
   ],
   discharge: [
     { en: "Update Care Plan", ar: "حدّث خطة الرعاية", route: "Care Hub → Care Plan", checked: true },
-    { en: "Save to Discharge Pack", ar: "أضف لحزمة الخروج", route: "Records → Discharge", checked: true },
+    { en: "Save to Medical Records", ar: "حفظ في الملفات الطبية", route: "Records → Discharge", checked: true },
     { en: "Update Journey Steps", ar: "حدّث خطوات الرحلة", route: "Journey → Steps", checked: true },
     { en: "Send to KSA Doctor", ar: "أرسل لطبيبي", route: "Share", checked: false },
   ],
-  passport: [
-    { en: "Save to Profile", ar: "حفظ في الملف الشخصي", route: "Profile → ID", checked: true },
-    { en: "Save to Medical Records", ar: "حفظ في الملفات الطبية", route: "Records → Identity", checked: true },
-    { en: "Share with Hospital", ar: "مشاركة مع المستشفى", route: "Share", checked: false },
-    { en: "Attach to Insurance", ar: "إرفاق بالتأمين", route: "Insurance", checked: false },
+  imaging: [...MEDICAL_GENERIC_DESTS],
+  insurance: [
+    { en: "Save to Medical Records", ar: "حفظ في الملفات الطبية", route: "Records → Insurance", checked: true },
+    { en: "Attach to Active Trip", ar: "أرفق بالرحلة الحالية", route: "Journey", checked: false },
   ],
+  other: [...MEDICAL_GENERIC_DESTS],
 };
 
 const extractedFieldsByCategory: Record<string, { label: string; value: string }[]> = {
@@ -145,9 +160,9 @@ const extractedFieldsByCategory: Record<string, { label: string; value: string }
     { label: "Discharge", value: "Apr 10, 2026" }, { label: "Follow-up", value: "Apr 17 — wound check" },
     { label: "Red Flags", value: "Fever >38.5°C, swelling" }, { label: "Physician", value: "Dr. Klaus Mueller" },
   ],
-  passport: [
+  legal: [
     { label: "Full Name", value: "Mohammed Abdullah Al-Rashidi" }, { label: "Name (Arabic)", value: "محمد عبدالله الراشدي" },
-    { label: "Passport No.", value: "K482916" }, { label: "Nationality", value: "Saudi Arabian" },
+    { label: "Document No.", value: "K482916" }, { label: "Nationality", value: "Saudi Arabian" },
     { label: "Date of Birth", value: "15 Mar 1985" }, { label: "Gender", value: "Male" },
     { label: "Issue Date", value: "Jan 12, 2024" }, { label: "Expiry Date", value: "Jan 11, 2034" },
     { label: "Issued By", value: "Kingdom of Saudi Arabia" },
@@ -157,7 +172,7 @@ const extractedFieldsByCategory: Record<string, { label: string; value: string }
 const sectionLabels: Record<string, string> = {
   flight: "Transport Timeline", lab: "Lab Results", hotel: "Accommodation",
   prescription: "Medications", discharge: "Discharge Pack", train: "Transport Timeline",
-  imaging: "Imaging Records", insurance: "Insurance Records", passport: "Profile",
+  imaging: "Imaging Records", insurance: "Insurance Records", legal: "Travel Records",
   other: "Medical Records",
 };
 
@@ -872,7 +887,7 @@ const GENERIC_SCHEMA_BY_CATEGORY: Record<string, { label: string }[]> = {
   hotel: [{ label: "Hotel name" }, { label: "Check-in" }, { label: "Check-out" }, { label: "Booking ref" }, { label: "Room" }, { label: "Rate" }],
   prescription: [{ label: "Medication" }, { label: "Dose" }, { label: "Frequency" }, { label: "Duration" }, { label: "Prescriber" }, { label: "Date" }],
   discharge: [{ label: "Diagnosis" }, { label: "Procedure" }, { label: "Discharge date" }, { label: "Follow-up" }, { label: "Red flags" }, { label: "Physician" }],
-  passport: [{ label: "Full name" }, { label: "Document no." }, { label: "Nationality" }, { label: "Date of birth" }, { label: "Issue date" }, { label: "Expiry date" }],
+  legal: [{ label: "Full name" }, { label: "Document no." }, { label: "Nationality" }, { label: "Date of birth" }, { label: "Issue date" }, { label: "Expiry date" }],
   imaging: [{ label: "Study type" }, { label: "Body part" }, { label: "Date" }, { label: "Facility" }, { label: "Radiologist" }, { label: "Findings" }],
   insurance: [{ label: "Insurer" }, { label: "Policy no." }, { label: "Member ID" }, { label: "Valid until" }, { label: "Plan" }, { label: "Network" }],
   train: [{ label: "Carrier" }, { label: "Service" }, { label: "From" }, { label: "To" }, { label: "Date" }, { label: "Time" }],
@@ -940,7 +955,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   const [analyzedImages, setAnalyzedImages] = useState<string[]>([]);
 
   const cat = categories.find(c => c.id === category);
-  const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
+  const dests = destinationsByCategory[category || ""] || MEDICAL_GENERIC_DESTS;
 
   useEffect(() => {
     setDestinations(dests.map(d => d.checked));
@@ -1279,12 +1294,20 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     return cities.join(" → ");
   };
 
-  const processingSteps = [
-    { emoji: "📤", en: "Uploading document securely", ar: "رفع الوثيقة بأمان" },
-    { emoji: "👁️", en: "Reading with AI Vision", ar: "القراءة باستخدام الذكاء البصري" },
-    { emoji: "🧠", en: "Extracting flight segments", ar: "استخراج تفاصيل الرحلات" },
-    { emoji: "📍", en: "Checking airports & dates", ar: "التحقق من المطارات والتواريخ" },
-  ];
+  const isFlightCat = category === "flight";
+  const processingSteps = isFlightCat
+    ? [
+        { emoji: "📤", en: "Uploading document securely", ar: "رفع الوثيقة بأمان" },
+        { emoji: "👁️", en: "Reading with AI Vision", ar: "القراءة باستخدام الذكاء البصري" },
+        { emoji: "🧠", en: "Extracting flight segments", ar: "استخراج تفاصيل الرحلات" },
+        { emoji: "📍", en: "Checking airports & dates", ar: "التحقق من المطارات والتواريخ" },
+      ]
+    : [
+        { emoji: "📤", en: "Uploading document securely", ar: "رفع الوثيقة بأمان" },
+        { emoji: "🔒", en: "Encrypting in your vault", ar: "تشفير في خزنتك" },
+        { emoji: "🗂️", en: `Preparing ${cat?.en || "document"} fields`, ar: "تجهيز الحقول" },
+        { emoji: "✨", en: "Ready for your review", ar: "جاهز للمراجعة" },
+      ];
 
   // PDF analysis spinner — short, lives between scanning category and pick-pages.
   if (ocrStatus === "analyzing-pdf") {
@@ -1467,7 +1490,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
 
   // BUG 5: when failed → render ONLY the document strip + error card. Nothing below.
   if (ocrStatus === "failed") {
-    const isFlightCat = category === "flight";
+    // isFlightCat already defined in outer scope
     return (
       <div className="pb-8" style={{ background: "var(--off-white)" }}>
         <div className="mx-4 mt-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
@@ -2043,7 +2066,7 @@ const Step5Success = ({ category, payload, pendingSegmentRef, userId, onViewSect
   if (payload?.selectedDestinations && payload.selectedDestinations.length > 0) {
     payload.selectedDestinations.forEach(d => actionsTaken.push({ en: d.en, ar: d.ar }));
   } else {
-    const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
+    const dests = destinationsByCategory[category || ""] || MEDICAL_GENERIC_DESTS;
     dests.filter(d => d.checked).forEach(d => actionsTaken.push({ en: d.en, ar: d.ar }));
   }
 

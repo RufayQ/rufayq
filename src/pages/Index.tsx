@@ -16,6 +16,7 @@ import ProfileScreen from "@/screens/ProfileScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
 import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
+import { addScannedRecord, isMedicalCategory } from "@/lib/scannedRecordsStore";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import { EmrScreen } from "@/features/emr";
@@ -269,9 +270,21 @@ const Index = () => {
     setShowScanner(true);
   };
 
-  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string } }) => {
+  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string }; selectedDestinations?: { en: string }[]; pageImages?: string[] }) => {
     setShowScanner(false);
     const msg = toastMessages[category || "other"] || toastMessages.other;
+
+    // Persist scanned medical/legal docs to the local records store so they
+    // appear immediately in the Records screen.
+    if (isMedicalCategory(category)) {
+      try {
+        addScannedRecord({
+          category: category!,
+          source: payload?.passenger?.name ? `Scanned by ${payload.passenger.name}` : "RufayQ Scanner",
+          pageCount: payload?.pageImages?.length || 1,
+        });
+      } catch (e) { console.warn("[scanner] could not store scanned record", e); }
+    }
 
     // Show toast
     toast.success(msg.en, { description: msg.ar, duration: 4000 });

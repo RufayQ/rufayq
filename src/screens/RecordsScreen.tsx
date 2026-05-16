@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { listScannedRecords, subscribeToScannedRecords } from "@/lib/scannedRecordsStore";
 import { records as demoRecords, filterCategories, type DocRecord } from "@/constants/data";
 import { Share2, Download, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, Stethoscope, Plane, MoreVertical, Pill, ScanLine } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
@@ -18,18 +19,22 @@ type SortMode = "newest" | "oldest" | "category";
 const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => void; onNavigate?: (tab: string, context?: string) => void }) => {
   const isGuest = useGuestMode();
   const { categories: guestCats } = useGuestCategories();
+  const [scannedTick, setScannedTick] = useState(0);
+  useEffect(() => subscribeToScannedRecords(() => setScannedTick((n) => n + 1)), []);
   const records: DocRecord[] = useMemo(() => {
-    if (!isGuest) return [];
-    return demoRecords.filter((r) => {
-      const cat = (r.category || "").toLowerCase();
-      // Map record categories to per-category toggles
-      if (cat === "imaging" || cat === "ecg / echo") return guestCats.radiology;
-      if (cat === "lab results") return guestCats.lab;
-      if (cat === "prescriptions") return guestCats.meds;
-      // Discharge/Consultations/Identity/Insurance/Vaccinations always show in guest mode
-      return true;
-    });
-  }, [isGuest, guestCats]);
+    const scanned = listScannedRecords();
+    const demo = isGuest
+      ? demoRecords.filter((r) => {
+          const cat = (r.category || "").toLowerCase();
+          if (cat === "imaging" || cat === "ecg / echo") return guestCats.radiology;
+          if (cat === "lab results") return guestCats.lab;
+          if (cat === "prescriptions") return guestCats.meds;
+          return true;
+        })
+      : [];
+    return [...scanned, ...demo];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGuest, guestCats, scannedTick]);
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedDoc, setSelectedDoc] = useState<DocRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
