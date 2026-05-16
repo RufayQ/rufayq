@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Send, Stethoscope, User } from "lucide-react";
+import { ChevronLeft, Send, Stethoscope, User, RotateCw } from "lucide-react";
+import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
+import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import MessageTicks from "./MessageTicks";
 
 interface Props {
   threadId: string;
