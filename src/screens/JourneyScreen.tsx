@@ -990,7 +990,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                   );
                 })()}
                 <div className="px-4 pt-3">
-                  <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} />
+                  <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} userId={authUserId} />
                 </div>
                 <div className="px-4 pt-3">
                   <OtherJourneysList trips={overview.otherTrips} onSelect={() => setActiveSubTab("steps")} />
