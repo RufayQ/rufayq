@@ -50,8 +50,7 @@ export default function AvatarUploader() {
       const publicUrl = `${pub.publicUrl}?t=${Date.now()}`;
       const { error: profErr } = await supabase
         .from("profiles")
-        .update({ avatar_url: publicUrl })
-        .eq("device_id", deviceId);
+        .upsert({ device_id: deviceId, avatar_url: publicUrl }, { onConflict: "device_id" });
       if (profErr) throw profErr;
       setUrl(publicUrl);
       toast.success("Photo updated · تم تحديث الصورة");
