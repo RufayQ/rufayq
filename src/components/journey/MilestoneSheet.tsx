@@ -2,6 +2,7 @@ import { ArrowUpRight, CalendarClock, FlaskConical, Home, MoreHorizontal, Pill, 
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
 import { formatChipDate } from "@/lib/journeyOverview";
 import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
+import { useArtifactCount } from "@/hooks/useArtifactCount";
 
 export type SheetItemKind = "lab" | "rad" | "med" | "visit" | "flight";
 export type SheetItemTone = "now" | "active" | "soon" | "done" | "muted";
@@ -67,9 +68,17 @@ const MilestoneSheet = ({
   flightSegmentRef,
   userId,
 }: MilestoneSheetProps) => {
+  // Hooks must run unconditionally — call before any early return.
+  const attachmentCount = useArtifactCount({
+    userId: userId ?? null,
+    segmentRef: flightSegmentRef || (flightTicketId ? `flight-${flightTicketId}` : null),
+    ticketId: flightTicketId ?? null,
+  });
+
   if (!milestone) return null;
   const visible = items.slice(0, 4);
   const overflow = Math.max(0, items.length - visible.length);
+  const totalArtifacts = items.length + (flightTicketId ? attachmentCount : 0);
   const pill = headerPill(milestone.state);
   const dateLabel =
     milestone.state === "current"
@@ -116,7 +125,7 @@ const MilestoneSheet = ({
           <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1.5 text-[11px]" style={{ color: "var(--gray)" }}>
             <span>{dateLabel}</span>
             <span className="inline-block w-[2px] h-[2px] rounded-full" style={{ background: "var(--gray-light)" }} />
-            <span>{items.length} {items.length === 1 ? "artifact" : "artifacts"}</span>
+            <span>{totalArtifacts} {totalArtifacts === 1 ? "artifact" : "artifacts"}</span>
             {location && (
               <>
                 <span className="inline-block w-[2px] h-[2px] rounded-full" style={{ background: "var(--gray-light)" }} />
