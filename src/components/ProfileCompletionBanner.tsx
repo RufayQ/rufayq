@@ -60,7 +60,9 @@ const ProfileCompletionBanner = ({ onOpenProfile }: Props) => {
       setDeviceId(id);
 
       try {
-        const dismissedFlag = sessionStorage.getItem(`${DISMISS_KEY_PREFIX}:${id}`) === "1";
+        const dismissedFlag =
+          localStorage.getItem(`${DISMISS_KEY_PREFIX}:${id}`) === "1" ||
+          sessionStorage.getItem(`${DISMISS_KEY_PREFIX}:${id}`) === "1";
         if (dismissedFlag) { setDismissed(true); return; }
       } catch { /* noop */ }
 
@@ -96,6 +98,7 @@ const ProfileCompletionBanner = ({ onOpenProfile }: Props) => {
 
   const dismiss = () => {
     if (deviceId) {
+      try { localStorage.setItem(`${DISMISS_KEY_PREFIX}:${deviceId}`, "1"); } catch { /* noop */ }
       try { sessionStorage.setItem(`${DISMISS_KEY_PREFIX}:${deviceId}`, "1"); } catch { /* noop */ }
     }
     setDismissed(true);
@@ -135,11 +138,11 @@ const ProfileCompletionBanner = ({ onOpenProfile }: Props) => {
         <button
           type="button"
           onClick={dismiss}
-          className="p-1 rounded-md"
+          className="p-2 rounded-full btn-press"
           aria-label={t("Dismiss", "إغلاق")}
-          style={{ color: "var(--gray)" }}
+          style={{ color: "var(--navy)", background: "rgba(0,0,0,0.05)" }}
         >
-          <X size={14} />
+          <X size={16} />
         </button>
       </div>
 
