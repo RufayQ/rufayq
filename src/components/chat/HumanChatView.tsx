@@ -21,7 +21,8 @@ interface Props {
  * kinds. Realtime updates come from useChatThread.
  */
 export default function HumanChatView({ threadId, title, subtitle, kind = "direct", onBack }: Props) {
-  const { messages, send, markRead } = useChatThread(threadId);
+  const { messages, send, retry, markRead } = useChatThread(threadId);
+  const { othersLastReadAt } = useThreadReadReceipts(threadId);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -34,6 +35,7 @@ export default function HumanChatView({ threadId, title, subtitle, kind = "direc
     if (!input.trim() || sending) return;
     setSending(true);
     try { await send(input); setInput(""); }
+    catch { toast.error("Couldn't send message · لم تُرسل الرسالة"); }
     finally { setSending(false); }
   };
 
