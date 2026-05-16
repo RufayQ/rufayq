@@ -2019,6 +2019,22 @@ const AppointmentsTab = ({
     if (isGuest) setGuestAppts(appointmentItems);
   }, [appointmentItems, isGuest]);
 
+  // Deep-link from Home: scroll to the requested appointment and pulse its
+  // border for ~1.6s so the user can see exactly which row they landed on.
+  useEffect(() => {
+    if (!scrollToAppointmentId) return;
+    const id = scrollToAppointmentId;
+    requestAnimationFrame(() => {
+      const node = document.querySelector(`[data-appointment-id="${id}"]`) as HTMLElement | null;
+      if (node) {
+        node.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightApptId(id);
+        setTimeout(() => setHighlightApptId((curr) => (curr === id ? null : curr)), 1600);
+      }
+      onScrollHandled?.();
+    });
+  }, [scrollToAppointmentId, onScrollHandled]);
+
   const typeIcon = (type: Appointment["type"]) => {
     if (type === "telemedicine") return <Video size={14} style={{ color: "var(--teal-deep)" }} />;
     if (type === "clinic") return <Building2 size={14} style={{ color: "var(--gold)" }} />;
