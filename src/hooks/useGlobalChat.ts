@@ -86,11 +86,8 @@ export function useGlobalChat(activeThreadId?: string | null) {
             detail: { threadId: m.thread_id, body: m.body, sender: who, messageId: m.id },
           }));
 
-          // Fallback toast in case the overlay isn't mounted (defensive)
-          toast.message(who, {
-            description: m.body.length > 80 ? m.body.slice(0, 80) + "…" : m.body,
-            duration: 4000,
-          });
+          void toast; // kept available for caller-side opt-in; overlay handles UX
+        
         },
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, () => recompute())
