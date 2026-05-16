@@ -422,12 +422,16 @@ const Index = () => {
           </div>
         )}
 
-        <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--off-white)" }}>
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0" style={{ background: "var(--off-white)" }}>
           {appView === "main" && <TrialLockBanner onUpgrade={() => setAppView("pricing")} />}
           {renderContent()}
         </div>
 
-        {showNav && <BottomNav active={activeTab} onNavigate={handleTabNavigate} badges={badges} />}
+        {showNav && (
+          <div className="shrink-0 relative z-30">
+            <BottomNav active={activeTab} onNavigate={handleTabNavigate} badges={badges} />
+          </div>
+        )}
 
         {showScanner && (
           <ScannerWizard
