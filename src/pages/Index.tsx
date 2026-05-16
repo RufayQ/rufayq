@@ -38,6 +38,11 @@ import ChatHeadBubble from "@/components/chat/ChatHeadBubble";
 import PushPermissionPrompt from "@/components/PushPermissionPrompt";
 import TabErrorBoundary from "@/components/TabErrorBoundary";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
+import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
+
+// Visual L→R order of the bottom nav: Journey, Records, Home (center), Care Hub, Chat.
+// Swiping left advances to the next tab; swiping right goes back.
+const TAB_ORDER: Tab[] = ["journey", "records", "home", "carehub", "chat"];
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
