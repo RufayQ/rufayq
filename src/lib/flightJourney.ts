@@ -18,6 +18,8 @@ export interface JourneyAirportRef {
   fullName?: string;
 }
 
+export type LegDirection = "outbound" | "return";
+
 export interface JourneyLeg {
   airline: string;
   flightNumber: string;
@@ -28,6 +30,8 @@ export interface JourneyLeg {
   arrivalDateTime: string;   // ISO or empty
   seatClass: string;
   seatNumber: string;
+  /** Outbound = travel to destination (treatment) city. Return = trip back home / onward after the journey. */
+  direction: LegDirection;
 }
 
 export interface JourneyPassenger {
@@ -69,7 +73,7 @@ const toAirportRef = (code: string, city: string, full: string): JourneyAirportR
 const isFlightInfoShape = (v: any): v is FlightInfo =>
   v && typeof v === "object" && "fromAirport" in v && "toAirport" in v;
 
-const toJourneyLeg = (info: FlightInfo): JourneyLeg => ({
+const toJourneyLeg = (info: FlightInfo, direction: LegDirection): JourneyLeg => ({
   airline: (info.airline || "").trim(),
   flightNumber: (info.flightNumber || "").trim().toUpperCase().replace(/\s+/g, ""),
   bookingRef: (info.bookingRef || "").trim().toUpperCase(),
@@ -79,6 +83,7 @@ const toJourneyLeg = (info: FlightInfo): JourneyLeg => ({
   arrivalDateTime: info.arrivalDateTime || "",
   seatClass: (info.seatClass || "").trim(),
   seatNumber: (info.seatNumber || "").trim().toUpperCase(),
+  direction,
 });
 
 const isLegValid = (l: JourneyLeg) => !!(l.from.code && l.to.code && l.from.code !== l.to.code);
