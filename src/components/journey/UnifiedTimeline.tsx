@@ -9,7 +9,7 @@
  * preserved: tapping the row body still fires onItemTap; the chevron is a
  * separate control that only toggles expansion.
  */
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { TripData, FlightInfo } from "@/components/AddTripSheet";
 import StepDetailsPanel from "@/components/timeline/StepDetailsPanel";
