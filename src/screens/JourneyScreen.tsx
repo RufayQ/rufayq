@@ -923,7 +923,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
           <>
             {activeTrip ? (
               <>
-                 <HelicopterCanvas
+                 <HelicopterTimelineRail
                   milestones={overview.milestones}
                   selectedId={selectedMilestoneId}
                   onSelect={handleMilestoneSelect}
