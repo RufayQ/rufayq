@@ -360,6 +360,25 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
     }
   };
 
+  // Auto-open a thread when the parent passes `initialThreadId`
+  // (e.g. user tapped a message in the notification center or overlay).
+  useEffect(() => {
+    if (!initialThreadId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("chat_threads")
+        .select("id, kind, title, ai_persona, organization_id, last_message_at, last_message_preview")
+        .eq("id", initialThreadId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      handleOpenThread(data as ChatThreadRow);
+      onThreadHandled?.();
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialThreadId]);
+
   const chatMenuItems: HeaderMenuItem[] = [
     { icon: <Sparkles size={14} />, label: "New Chat", labelAr: "محادثة جديدة", onClick: handleNewChat },
     { icon: <Copy size={14} />, label: "Copy Chat", labelAr: "نسخ المحادثة", onClick: handleCopyChat },
