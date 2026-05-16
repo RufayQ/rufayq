@@ -497,6 +497,34 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
           </div>
         </div>
       )}
+
+      <RecordActionsSheet
+        open={!!menuTarget}
+        target={menuTarget ? { id: menuTarget.key, name: renames[menuTarget.key] ?? menuTarget.doc.titleEn, subtitle: menuTarget.doc.category, mutable: true } : null}
+        onClose={() => setMenuTarget(null)}
+        onPreview={() => menuTarget && setSelectedDoc({ ...menuTarget.doc, titleEn: renames[menuTarget.key] ?? menuTarget.doc.titleEn })}
+        onRename={(newName) => {
+          if (!menuTarget) return;
+          setRenames((r) => ({ ...r, [menuTarget.key]: newName }));
+        }}
+        onShare={() => {
+          if (!menuTarget) return;
+          const name = renames[menuTarget.key] ?? menuTarget.doc.titleEn;
+          const text = `📄 ${name} — ${menuTarget.doc.category} — ${menuTarget.doc.date}`;
+          if (navigator.share) {
+            navigator.share({ title: name, text }).catch(() => {});
+          } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+          }
+        }}
+        onApplyToMilestone={(m) => {
+          toast.success(`Linked to ${m.title}`, { description: "Stored for this session · محفوظ مؤقتًا", duration: 2200 });
+        }}
+        onDelete={() => {
+          if (!menuTarget) return;
+          setHidden((s) => new Set(s).add(menuTarget.key));
+        }}
+      />
     </div>
   );
 };
