@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
-import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard, Wallet, Archive, CalendarClock } from "lucide-react";
+import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard, Wallet, Archive, CalendarClock, LogOut } from "lucide-react";
 import { defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
 import { useJourneys } from "@/hooks/useJourneys";
 import { useJourneySteps } from "@/hooks/useJourneySteps";
