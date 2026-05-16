@@ -5,6 +5,8 @@ import { toast } from "sonner";
 
 import { usePatientName } from "@/hooks/usePatientName";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
+import { useJourneys } from "@/hooks/useJourneys";
+import { useMedicalRecords } from "@/hooks/useMedicalRecords";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
@@ -12,6 +14,7 @@ import TodayCard from "@/components/home/TodayCard";
 import JourneyConstellation from "@/components/home/JourneyConstellation";
 import AlertsStack from "@/components/home/AlertsStack";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
+import HomeStatsGrid from "@/components/home/HomeStatsGrid";
 import { derivePhase } from "@/components/home/journeyPhase";
 import ProfileCompletionBanner from "@/components/ProfileCompletionBanner";
 
