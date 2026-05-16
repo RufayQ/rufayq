@@ -416,13 +416,107 @@ const Step1Capture = ({ onCapture }: { onCapture: (accept: string) => void }) =>
 };
 
 /* ─── STEP 2: REVIEW ─── */
-const Step2Review = ({ file, realFile, onRetake, onConfirm }: { file: { name: string; type: string; size: string }; realFile?: File | null; onRetake: () => void; onConfirm: () => void }) => {
+const Step2Review = ({
+  file, realFile, onRetake, onConfirm, onTransform,
+}: {
+  file: { name: string; type: string; size: string };
+  realFile?: File | null;
+  onRetake: () => void;
+  onConfirm: () => void;
+  /** Called with a transformed File when the user applied image tools. */
+  onTransform?: (next: File) => void;
+}) => {
   const isImage = file.type.startsWith("image");
+  const [rotation, setRotation] = useState(0); // degrees, multiples of 90
+  const [brightness, setBrightness] = useState(100); // %
+  const [contrast, setContrast] = useState(100); // %
+  const [grayscale, setGrayscale] = useState(0); // 0 or 100
+  const [cropPct, setCropPct] = useState(0); // 0 = none; 10 = trim 10% from each edge
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
+
+  useEffect(() => {
+    if (!realFile || !realFile.type.startsWith("image/")) { setImageUrl(null); return; }
+    const u = URL.createObjectURL(realFile);
+    setImageUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [realFile]);
+
+  const filterCss = `brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%)`;
+  const isPureImage = !!realFile && realFile.type.startsWith("image/") && !!imageUrl;
+  const hasEdits = rotation !== 0 || brightness !== 100 || contrast !== 100 || grayscale !== 0 || cropPct !== 0;
+
+  // Rasterize the current edits into a new File using a canvas.
+  const rasterizeAndConfirm = async () => {
+    if (!isPureImage || !hasEdits || !onTransform) { onConfirm(); return; }
+    setApplying(true);
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((res, rej) => {
+        img.onload = () => res();
+        img.onerror = () => rej(new Error("img-load-failed"));
+        img.src = imageUrl!;
+      });
+      const trim = Math.max(0, Math.min(40, cropPct)) / 100;
+      const sx = img.naturalWidth * trim;
+      const sy = img.naturalHeight * trim;
+      const sw = img.naturalWidth - sx * 2;
+      const sh = img.naturalHeight - sy * 2;
+      const rotated = rotation % 180 !== 0;
+      const cw = rotated ? sh : sw;
+      const ch = rotated ? sw : sh;
+      const canvas = document.createElement("canvas");
+      canvas.width = cw; canvas.height = ch;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no-canvas");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.filter = filterCss;
+      ctx.translate(cw / 2, ch / 2);
+      ctx.rotate((rotation * Math.PI) / 180);
+      ctx.drawImage(img, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
+      const blob: Blob = await new Promise((res, rej) =>
+        canvas.toBlob((b) => (b ? res(b) : rej(new Error("no-blob"))), "image/jpeg", 0.92)
+      );
+      const out = new File([blob], realFile!.name.replace(/\.\w+$/, "") + "-edited.jpg", { type: "image/jpeg" });
+      onTransform(out);
+      // small tick so parent state updates before we advance
+      setTimeout(() => { setApplying(false); onConfirm(); }, 50);
+    } catch (e) {
+      console.error("[scanner] rasterize failed", e);
+      setApplying(false);
+      onConfirm();
+    }
+  };
+
+  const tools = [
+    { icon: <Sun size={18} />, label: "Brightness", active: brightness !== 100, onClick: () => setBrightness((v) => (v >= 140 ? 80 : v + 20)) },
+    { icon: <Contrast size={18} />, label: "Contrast", active: contrast !== 100, onClick: () => setContrast((v) => (v >= 140 ? 80 : v + 20)) },
+    { icon: <Crop size={18} />, label: "Crop", active: cropPct !== 0, onClick: () => setCropPct((v) => (v >= 20 ? 0 : v + 5)) },
+    { icon: <RotateCw size={18} />, label: "Rotate", active: rotation !== 0, onClick: () => setRotation((v) => (v + 90) % 360) },
+    { icon: <Palette size={18} />, label: "B&W", active: grayscale > 0, onClick: () => setGrayscale((v) => (v > 0 ? 0 : 100)) },
+  ];
 
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--scanner-bg)" }}>
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
-        {realFile ? (
+        {isPureImage ? (
+          <div className="w-full rounded-xl overflow-hidden flex items-center justify-center" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", maxHeight: 420 }}>
+            <div className="overflow-hidden" style={{ maxHeight: 420, padding: `${cropPct}%` }}>
+              <img
+                src={imageUrl!}
+                alt={file.name}
+                className="w-full object-contain transition-all"
+                style={{
+                  filter: filterCss,
+                  transform: `rotate(${rotation}deg)`,
+                  maxHeight: 380,
+                }}
+              />
+            </div>
+          </div>
+        ) : realFile ? (
           <div className="w-full">
             <FileUploadPreview file={realFile} lang="both" maxHeight={360} />
           </div>
@@ -431,12 +525,6 @@ const Step2Review = ({ file, realFile, onRetake, onConfirm }: { file: { name: st
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-6xl">📄</span>
             </div>
-            {[{ t: 8, l: 8 }, { t: 8, r: 8 }, { b: 8, l: 8 }, { b: 8, r: 8 }].map((pos, i) => (
-              <div key={i} className="absolute w-5 h-5 rounded-full" style={{
-                background: "var(--gold)", top: (pos as any).t, bottom: (pos as any).b, left: (pos as any).l, right: (pos as any).r,
-                boxShadow: "0 2px 8px rgba(197,150,90,0.4)",
-              }} />
-            ))}
             <p className="absolute bottom-3 left-0 right-0 text-center font-mono text-[10px]" style={{ color: "var(--gold)" }}>{file.name} · {file.size}</p>
           </div>
         ) : (
@@ -444,33 +532,52 @@ const Step2Review = ({ file, realFile, onRetake, onConfirm }: { file: { name: st
             <span className="text-6xl mb-4">📄</span>
             <p className="text-[14px] text-white font-semibold">{file.name}</p>
             <p className="font-mono text-[11px] mt-1" style={{ color: "var(--gold)" }}>{file.size}</p>
-            <p className="font-mono text-[9px] mt-3" style={{ color: "rgba(255,255,255,0.4)" }}>Page 1 of 1</p>
           </div>
         )}
       </div>
 
-      {isImage && (
-        <div className="flex justify-center gap-2 px-4 pb-3">
-          {[
-            { icon: <Sun size={18} />, label: "Brightness" },
-            { icon: <Contrast size={18} />, label: "Contrast" },
-            { icon: <Crop size={18} />, label: "Crop" },
-            { icon: <RotateCw size={18} />, label: "Rotate" },
-            { icon: <Palette size={18} />, label: "B&W" },
-          ].map((tool) => (
-            <button key={tool.label} className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.6)" }}>
-              {tool.icon}
-            </button>
-          ))}
-        </div>
+      {isPureImage && (
+        <>
+          <div className="flex justify-center gap-2 px-4 pb-1">
+            {tools.map((tool) => (
+              <button
+                key={tool.label}
+                onClick={tool.onClick}
+                aria-pressed={tool.active}
+                title={tool.label}
+                className="w-11 h-11 rounded-xl flex items-center justify-center transition-all btn-press"
+                style={{
+                  background: tool.active ? "var(--gold)" : "rgba(255,255,255,0.06)",
+                  color: tool.active ? "#fff" : "rgba(255,255,255,0.75)",
+                }}
+              >
+                {tool.icon}
+              </button>
+            ))}
+          </div>
+          {hasEdits && (
+            <div className="flex items-center justify-center gap-3 px-4 pb-2">
+              <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                Edits will be baked in when you continue
+              </p>
+              <button
+                onClick={() => { setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0); setCropPct(0); }}
+                className="text-[10px] font-bold btn-press"
+                style={{ color: "var(--gold)" }}
+              >
+                Reset
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       <div className="flex gap-3 px-5 pb-8 pt-3">
         <button onClick={onRetake} className="flex-1 py-3.5 rounded-xl text-[13px] font-medium btn-press" style={{ border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
           Retake · <span className="font-arabic">إعادة</span>
         </button>
-        <button onClick={onConfirm} className="flex-1 py-3.5 rounded-xl text-[13px] font-bold text-white btn-press" style={{ background: "var(--gold)" }}>
-          Use This · <span className="font-arabic">استخدم</span>
+        <button onClick={rasterizeAndConfirm} disabled={applying} className="flex-1 py-3.5 rounded-xl text-[13px] font-bold text-white btn-press" style={{ background: "var(--gold)", opacity: applying ? 0.6 : 1 }}>
+          {applying ? "Applying…" : <>Use This · <span className="font-arabic">استخدم</span></>}
         </button>
       </div>
     </div>
