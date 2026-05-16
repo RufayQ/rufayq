@@ -5,6 +5,7 @@ import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import MessageTicks from "./MessageTicks";
+import EmojiPicker from "./EmojiPicker";
 
 interface Props {
   threadId: string;
@@ -119,7 +120,8 @@ export default function HumanChatView({ threadId, title, subtitle, kind = "direc
       </div>
 
       {/* Composer */}
-      <div className="shrink-0 px-3 py-2.5 flex items-end gap-2" style={{ background: "var(--white)", borderTop: "1px solid var(--gray-light)" }}>
+      <div className="shrink-0 px-2 py-2.5 flex items-end gap-1.5" style={{ background: "var(--white)", borderTop: "1px solid var(--gray-light)" }}>
+        <EmojiPicker onSelect={(e) => setInput((cur) => cur + e)} />
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
