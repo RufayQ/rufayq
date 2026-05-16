@@ -271,6 +271,21 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
           {busy ? <Loader2 size={14} className="animate-spin" /> : "Search"}
         </button>
       </div>
+      <div className="mt-3 rounded-2xl p-3.5 flex gap-2.5" style={{ background: "rgba(93,164,156,0.08)", border: "1px solid rgba(93,164,156,0.20)" }}>
+        <Info size={16} className="shrink-0 mt-0.5" style={{ color: "var(--teal-deep)" }} />
+        <div>
+          <p className="text-[11px] font-bold leading-snug" style={{ color: "var(--teal-deep)" }}>
+            How to find each other
+          </p>
+          <p className="text-[11px] leading-snug mt-0.5" style={{ color: "var(--ink)" }}>
+            Open Settings → Chat Discovery, turn on "Discoverable by phone", then search again from the other account.
+          </p>
+          <p className="font-arabic text-[11px] leading-snug mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
+            افتح الإعدادات → اكتشاف الدردشة، فعّل "الاكتشاف عبر الهاتف"، ثم أعد البحث من الحساب الآخر.
+          </p>
+        </div>
+      </div>
+
       <div className="mt-3 space-y-1.5">
         {searched && !busy && results.length === 0 && (
           <p className="text-center text-[12px] py-4" style={{ color: "var(--gray)" }}>
