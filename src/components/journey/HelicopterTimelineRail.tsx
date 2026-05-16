@@ -264,35 +264,29 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
                   <button
                     data-mid={m.id}
                     onClick={() => onSelect(m.id)}
-                    className="flex w-[108px] flex-col items-center gap-1.5 rounded-2xl px-2 py-2.5 outline-none btn-press transition-transform"
-                    style={{
-                      background: selected ? "var(--white)" : "rgba(255,255,255,0.55)",
-                      boxShadow: selected ? "0 6px 18px rgba(0,77,91,0.18)" : "none",
-                      transform: selected ? "translateY(-2px)" : "none",
-                    }}
+                    className="flex w-[72px] flex-col items-center gap-1 bg-transparent border-0 p-0 outline-none btn-press transition-transform"
+                    style={{ transform: selected ? "translateY(-2px) scale(1.05)" : "none" }}
                     aria-pressed={selected}
                     aria-label={`${m.title} · ${m.titleAr} · ${m.state}`}
                   >
                     <span
-                      className="rounded-full px-1.5 py-[2px] text-[8px] font-bold tracking-wide uppercase"
-                      style={{ background: chip.color, color: "var(--white)" }}
+                      className="flex h-11 w-11 items-center justify-center rounded-full"
+                      style={{
+                        background: s.bg,
+                        border: `2px solid ${s.ring}`,
+                        boxShadow: selected ? `0 4px 14px ${s.ring}44` : "none",
+                      }}
                     >
-                      {chip.en} · {chip.ar}
+                      <Display size={20} style={{ color: s.ring }} aria-hidden="true" />
                     </span>
                     <span
-                      className="flex h-12 w-12 items-center justify-center rounded-full"
-                      style={{ background: s.bg, border: `2px solid ${s.ring}` }}
-                    >
-                      <Display size={22} style={{ color: s.ring }} aria-hidden="true" />
-                    </span>
-                    <span
-                      className="block w-full truncate text-center text-[11px] font-semibold"
+                      className="block w-full truncate text-center text-[10px] font-semibold"
                       style={{ color: "var(--navy)" }}
                       title={m.title}
                     >
                       {m.title}
                     </span>
-                    <span className="block text-[9px]" style={{ color: "var(--gray)" }}>
+                    <span className="block text-[8px]" style={{ color: chip.color }}>
                       {formatChipDate(m.date) || "—"}
                     </span>
                   </button>
