@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
-import { CreditCard, Wallet } from "lucide-react";
+import { CreditCard, Wallet, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 import { usePatientName } from "@/hooks/usePatientName";
