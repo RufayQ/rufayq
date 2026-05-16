@@ -14,6 +14,7 @@ import HumanChatView from "@/components/chat/HumanChatView";
 import ConversationProfile from "@/components/chat/ConversationProfile";
 import type { ChatThreadRow } from "@/hooks/useChatInbox";
 import { supabase } from "@/integrations/supabase/client";
+import { pinChatHead } from "@/hooks/useActiveChatHead";
 
 interface ChatMessage {
   id: number;
@@ -421,9 +422,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         onBack={() => { setHumanThread(null); setView("inbox"); }}
         onOpenProfile={() => setView("profile")}
         onMinimize={() => {
-          try {
-            window.dispatchEvent(new CustomEvent("rufayq:chathead-pin", { detail: humanThread.id }));
-          } catch { /* ignore */ }
+          pinChatHead(humanThread.id);
           setHumanThread(null);
           setView("inbox");
         }}

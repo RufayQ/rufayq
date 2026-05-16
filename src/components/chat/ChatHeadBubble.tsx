@@ -29,6 +29,19 @@ export default function ChatHeadBubble({ suppressThreadId, onOpenThread }: Props
   // Close menu when active thread changes
   useEffect(() => { setMenuOpen(false); }, [active?.id]);
 
+  // Broadcast bubble visibility so the heads-up overlay can suppress
+  // duplicate cards for the same thread (Option C coexistence).
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("rufayq:chathead-visible", {
+      detail: { threadId: active?.id ?? null },
+    }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("rufayq:chathead-visible", {
+        detail: { threadId: null },
+      }));
+    };
+  }, [active?.id]);
+
   if (!active) return null;
 
   const SIZE = 56;

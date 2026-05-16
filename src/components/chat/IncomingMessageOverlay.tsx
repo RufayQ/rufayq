@@ -26,19 +26,33 @@ export default function IncomingMessageOverlay({ onOpenThread }: Props) {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Thread currently represented by the floating chat-head bubble. We suppress
+  // heads-up cards for that exact thread so the user doesn't see two surfaces
+  // for the same unread message (Option C coexistence).
+  const visibleBubbleThreadId = useRef<string | null>(null);
 
   useEffect(() => {
+    const onBubble = (e: Event) => {
+      const detail = (e as CustomEvent<{ threadId: string | null }>).detail;
+      visibleBubbleThreadId.current = detail?.threadId ?? null;
+    };
     const handler = (e: Event) => {
       const ce = e as CustomEvent<IncomingChatDetail>;
       if (!ce.detail) return;
+      if (visibleBubbleThreadId.current && visibleBubbleThreadId.current === ce.detail.threadId) {
+        // Bubble already surfaces this thread — skip the duplicate card.
+        return;
+      }
       setCurrent(ce.detail);
       setReply("");
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
       dismissTimer.current = setTimeout(() => setCurrent(null), 6500);
     };
     window.addEventListener("rufayq:incoming-chat", handler);
+    window.addEventListener("rufayq:chathead-visible", onBubble);
     return () => {
       window.removeEventListener("rufayq:incoming-chat", handler);
+      window.removeEventListener("rufayq:chathead-visible", onBubble);
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
     };
   }, []);

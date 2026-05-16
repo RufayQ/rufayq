@@ -35,6 +35,18 @@ function writeDismissed(s: Set<string>) {
 }
 
 /**
+ * Typed helper to pin a thread to the floating chat-head bubble from any
+ * component without mounting the full `useActiveChatHead` hook (which would
+ * spin up a second `useChatInbox` subscription). The hook listens for the
+ * `rufayq:chathead-pin` event and updates its state.
+ */
+export function pinChatHead(threadId: string) {
+  try {
+    window.dispatchEvent(new CustomEvent("rufayq:chathead-pin", { detail: threadId }));
+  } catch { /* ignore */ }
+}
+
+/**
  * Picks the chat thread to surface as a floating chat-head bubble. Prefers a
  * thread the user explicitly minimized; otherwise the most recently active
  * human thread with unread messages. Suppressed if the user dismissed it.
