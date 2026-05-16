@@ -62,23 +62,23 @@ interface ScannerWizardProps {
 
 const categories = [
   { id: "flight", emoji: "✈️", en: "Flight Ticket", ar: "تذكرة طيران", color: "#004D5B", paleBg: "#E0F4F5",
-    subs: ["One Way", "Round Trip", "Connecting", "Transit Visa"] },
+    subs: ["One Way", "Round Trip", "Connecting", "Transit Visa", "Other"] },
   { id: "train", emoji: "🚄", en: "Train / Bus", ar: "تذكرة قطار / باص", color: "#1A3A4A", paleBg: "#E8EEF2",
     subs: ["Train", "Bus", "Ferry", "Other"] },
   { id: "hotel", emoji: "🏨", en: "Hotel / Stay", ar: "فندق / إقامة", color: "#2A1A35", paleBg: "#EEE8F2",
-    subs: ["Hotel", "Apartment", "Hospital", "Private House"] },
-  { id: "passport", emoji: "🛂", en: "Passport / ID", ar: "جواز سفر / هوية", color: "#1A3A1A", paleBg: "#E8F2E8",
-    subs: ["Passport", "National ID", "Visa", "Residency Permit", "Travel Insurance Card"] },
+    subs: ["Hotel", "Apartment", "Hospital", "Private House", "Other"] },
+  { id: "legal", emoji: "🛂", en: "Legal Document", ar: "وثيقة قانونية", color: "#1A3A1A", paleBg: "#E8F2E8",
+    subs: ["Passport", "National ID", "Visa", "Residency Permit", "Travel Insurance Card", "Other"] },
   { id: "lab", emoji: "🔬", en: "Lab Results", ar: "نتائج التحاليل", color: "#3DAA6E", paleBg: "#E8F5EE",
     subs: ["Blood Test", "Urine", "Pathology", "Microbiology", "Other"] },
   { id: "prescription", emoji: "💊", en: "Prescription", ar: "وصفة طبية", color: "#004D5B", paleBg: "#E0F4F5",
-    subs: ["Inpatient", "Outpatient", "Topical", "Injection", "Supplement"] },
+    subs: ["Inpatient", "Outpatient", "Topical", "Injection", "Supplement", "Other"] },
   { id: "discharge", emoji: "📋", en: "Discharge / Summary", ar: "ملخص الخروج", color: "#C5965A", paleBg: "#FBF3E8",
-    subs: ["Discharge Summary", "Clinical Letter", "Referral", "Follow-up Plan"] },
+    subs: ["Discharge Summary", "Clinical Letter", "Referral", "Follow-up Plan", "Other"] },
   { id: "imaging", emoji: "🩻", en: "Imaging / Radiology", ar: "أشعة وتصوير", color: "#6B7A8A", paleBg: "#F0F2F5",
-    subs: ["X-Ray", "MRI", "CT Scan", "Ultrasound", "PET Scan", "DEXA"] },
+    subs: ["X-Ray", "MRI", "CT Scan", "Ultrasound", "PET Scan", "DEXA", "Other"] },
   { id: "insurance", emoji: "🛡️", en: "Insurance / Billing", ar: "تأمين وفواتير", color: "#0D1B2A", paleBg: "#E8EAF0",
-    subs: ["Insurance Card", "Authorization", "Invoice", "Receipt", "Claim"] },
+    subs: ["Insurance Card", "Authorization", "Invoice", "Receipt", "Claim", "Other"] },
   { id: "other", emoji: "📄", en: "Other Medical", ar: "وثيقة طبية أخرى", color: "#6B7A8A", paleBg: "#F0F2F5",
     subs: ["Referral", "Consultation Note", "Surgical Report", "Consent Form", "Vaccination", "Medical Certificate", "Other"] },
 ];
@@ -714,13 +714,16 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
   onContinue: () => void;
 }) => {
   const selectedCat = categories.find((c) => c.id === selected);
-  const NON_MEDICAL = new Set(["flight", "train", "hotel", "passport", "insurance"]);
+  const NON_MEDICAL = new Set(["flight", "train", "hotel", "legal", "insurance"]);
   const detectedKind = selectedCat
     ? (NON_MEDICAL.has(selectedCat.id) ? { en: "travel document", ar: "وثيقة سفر" } : { en: "medical document", ar: "وثيقة طبية" })
     : null;
+  const isOtherSub = selectedSub?.startsWith("Other");
+  const customName = isOtherSub ? (selectedSub === "Other" ? "" : selectedSub!.slice("Other: ".length)) : "";
 
   return (
-    <div className="pb-8" style={{ background: "var(--off-white)" }}>
+    <div className="flex flex-col min-h-full" style={{ background: "var(--off-white)" }}>
+      <div className="flex-1 pb-4">
       <div className="px-5 py-4" style={{ background: "var(--white)", borderBottom: "1px solid var(--gray-light)" }}>
         <p className="text-[20px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>What type of document is this?</p>
         <p className="font-arabic text-[15px]" dir="rtl" style={{ color: "var(--gray)" }}>ما نوع هذه الوثيقة؟</p>
@@ -762,32 +765,65 @@ const Step3Category = ({ selected, selectedSub, onSelect, onSelectSub, onContinu
         <div className="px-4 mt-4">
           <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: selectedCat.color }}>SUB-CATEGORY</p>
           <div className="flex flex-wrap gap-2">
-            {selectedCat.subs.map((sub) => (
-              <button
-                key={sub}
-                onClick={() => onSelectSub(sub)}
-                className="text-[11px] px-3 py-1.5 rounded-full btn-press transition-all"
-                style={{
-                  background: selectedSub === sub ? selectedCat.color : "var(--white)",
-                  color: selectedSub === sub ? "#fff" : selectedCat.color,
-                  border: `1px solid ${selectedCat.color}`,
-                }}
-              >
-                {sub}
-              </button>
-            ))}
+            {selectedCat.subs.map((sub) => {
+              const active = sub === "Other" ? isOtherSub : selectedSub === sub;
+              return (
+                <button
+                  key={sub}
+                  onClick={() => onSelectSub(sub)}
+                  className="text-[11px] px-3 py-1.5 rounded-full btn-press transition-all"
+                  style={{
+                    background: active ? selectedCat.color : "var(--white)",
+                    color: active ? "#fff" : selectedCat.color,
+                    border: `1px solid ${selectedCat.color}`,
+                  }}
+                >
+                  {sub}
+                </button>
+              );
+            })}
           </div>
+          {isOtherSub && (
+            <div className="mt-3">
+              <label className="font-mono text-[9px] tracking-widest block mb-1.5" style={{ color: selectedCat.color }}>
+                NAME YOUR DOCUMENT
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={customName}
+                onChange={(e) => onSelectSub(e.target.value ? `Other: ${e.target.value}` : "Other")}
+                placeholder="e.g. School records, Pet vaccination…"
+                className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
+                style={{
+                  background: "var(--white)",
+                  border: `1px solid ${selectedCat.color}`,
+                  color: "var(--navy)",
+                }}
+              />
+              <p className="font-arabic text-[10px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
+                اكتب اسم الوثيقة كما تفضّل
+              </p>
+            </div>
+          )}
         </div>
       )}
+      </div>
 
-      <div className="px-4 mt-6">
+      <div
+        className="sticky bottom-0 px-4 pt-3"
+        style={{
+          background: "linear-gradient(to top, var(--off-white) 70%, rgba(0,0,0,0))",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+        }}
+      >
         <button
           onClick={onContinue}
-          disabled={!selected}
-          className="w-full py-3.5 rounded-2xl text-[16px] font-bold text-white btn-press transition-all"
+          disabled={!selected || (isOtherSub && !customName.trim())}
+          className="w-full py-3.5 rounded-2xl text-[16px] font-bold btn-press transition-all"
           style={{
-            background: selected ? "var(--gold)" : "var(--gray-light)",
-            color: selected ? "#fff" : "var(--gray)",
+            background: selected && !(isOtherSub && !customName.trim()) ? "var(--gold)" : "var(--gray-light)",
+            color: selected && !(isOtherSub && !customName.trim()) ? "#fff" : "var(--gray)",
             height: 52,
           }}
         >
