@@ -31,6 +31,8 @@ import { useFreshStart } from "@/hooks/useFreshStart";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { useTourSystem } from "@/hooks/useTourSystem";
 import { usePatientBootstrap } from "@/hooks/usePatientBootstrap";
+import { useGlobalChat } from "@/hooks/useGlobalChat";
+import NotificationBell from "@/components/NotificationBell";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
