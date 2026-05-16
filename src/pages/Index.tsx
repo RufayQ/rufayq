@@ -457,9 +457,28 @@ const Index = () => {
           {renderContent()}
         </div>
 
+        {/* Global notification bell — visible on every main tab except home (home has its own in the header). */}
+        {showNav && activeTab !== "home" && (
+          <div className="absolute top-2 right-3 z-40">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(6px)" }}
+            >
+              <NotificationBell color="#fff" />
+            </div>
+          </div>
+        )}
+
         {showNav && (
           <div className="absolute inset-x-0 bottom-0 z-30">
-            <BottomNav active={activeTab} onNavigate={handleTabNavigate} badges={badges} />
+            <BottomNav
+              active={activeTab}
+              onNavigate={handleTabNavigate}
+              badges={{
+                ...badges,
+                chat: activeTab === "chat" ? undefined : (chatUnread > 0 ? chatUnread : undefined),
+              }}
+            />
           </div>
         )}
 
