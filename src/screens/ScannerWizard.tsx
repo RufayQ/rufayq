@@ -428,6 +428,28 @@ const Step1Capture = ({ onCapture, uploadMode, onChangeMode }: { onCapture: (acc
       <h2 className="font-display text-[32px] text-white mt-5 text-center" style={{ fontWeight: 300 }}>Scan or Import</h2>
       <p className="font-arabic text-[18px] mt-2 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>امسح أو استورد وثيقتك</p>
 
+      {/* Upload-mode selector */}
+      <div className="w-full mt-5 rounded-2xl p-1 flex" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
+        {([
+          { id: "single" as const, en: "Single", ar: "مفرد", hint: "1 record · 1 page" },
+          { id: "multi-page" as const, en: "Multi-page", ar: "صفحات", hint: "1 record · many pages" },
+          { id: "multi-record" as const, en: "Multi-record", ar: "متعدد", hint: "Many records, named" },
+        ]).map((m) => {
+          const active = uploadMode === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => onChangeMode(m.id)}
+              className="flex-1 px-2 py-2 rounded-xl text-center btn-press transition-all"
+              style={{ background: active ? "var(--gold)" : "transparent", color: active ? "#fff" : "rgba(255,255,255,0.6)" }}
+            >
+              <p className="text-[11px] font-bold">{m.en}</p>
+              <p className="text-[8px] mt-0.5" style={{ opacity: 0.8 }}>{m.hint}</p>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="w-full space-y-3 mt-8">
         {[
           { emoji: "📷", en: "Scan with Camera", ar: "امسح بالكاميرا", gradient: "linear-gradient(135deg, var(--header-teal-from), var(--header-teal-to))", accept: "image/*;capture=camera" },
