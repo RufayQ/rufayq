@@ -209,3 +209,53 @@ describe("RelatedDocumentsCard — signed-in scope (userId set)", () => {
     expect(payload.segment_ref).toBe("seg-auth-1");
   });
 });
+
+describe("RelatedDocumentsCard — per-ticket isolation (three tickets)", () => {
+  it("issues separate ticket-scoped queries; no ticketId bleeds across cards", async () => {
+    const uid = "8ef2e1b9-6c8d-48d1-a6aa-8f5d618f9fb5";
+    const tickets = [
+      { segmentRef: "seg-flight-A", ticketId: "ticket-A" },
+      { segmentRef: "seg-flight-B", ticketId: "ticket-B" },
+      { segmentRef: "seg-flight-C", ticketId: "ticket-C" },
+    ];
+
+    render(
+      <>
+        {tickets.map((t) => (
+          <RelatedDocumentsCard
+            key={t.ticketId}
+            segmentRef={t.segmentRef}
+            ticketId={t.ticketId}
+            userId={uid}
+            compact
+          />
+        ))}
+      </>,
+    );
+
+    await waitFor(() => expect(orderSpy.mock.calls.length).toBeGreaterThanOrEqual(3));
+
+    // Each ticket must contribute its own segment_ref/ticket_id OR clause —
+    // and no card may include another ticket's id in its filter expression.
+    for (const t of tickets) {
+      expect(orSpy).toHaveBeenCalledWith(
+        `segment_ref.eq.${t.segmentRef},ticket_id.eq.${t.ticketId}`,
+      );
+    }
+
+    const refClauses = orSpy.mock.calls
+      .map((c) => String(c[0]))
+      .filter((s) => s.includes("ticket_id.eq."));
+    expect(refClauses).toHaveLength(3);
+
+    for (const clause of refClauses) {
+      const otherTickets = tickets.filter((t) => !clause.includes(`ticket_id.eq.${t.ticketId}`));
+      // Exactly one ticket id should match this clause; the other two must not appear.
+      expect(otherTickets).toHaveLength(2);
+      for (const other of otherTickets) {
+        expect(clause.includes(`ticket_id.eq.${other.ticketId}`)).toBe(false);
+        expect(clause.includes(`segment_ref.eq.${other.segmentRef}`)).toBe(false);
+      }
+    }
+  });
+});
