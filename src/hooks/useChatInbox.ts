@@ -80,7 +80,7 @@ export function useChatInbox() {
 
   useEffect(() => {
     const ch = supabase
-      .channel("chat-inbox")
+      .channel(`chat-inbox-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_threads" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, () => load())
