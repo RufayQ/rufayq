@@ -3,6 +3,7 @@ import { ChevronLeft, Stethoscope, User, BellOff, Trash2, Ban, Shield, Search } 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { useResolvedContact } from "@/hooks/useResolvedContact";
 
 interface Props {
   threadId: string;
