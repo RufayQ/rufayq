@@ -234,10 +234,19 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
       <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
         {step === 1 && <Step1Capture onCapture={handleFileCapture} />}
         {step === 2 && capturedFile && (
-          <Step2Review file={capturedFile} realFile={realFile} onRetake={() => { setStep(1); setRealFile(null); }} onConfirm={() => {
-            if (preselectedCategory) setSelectedCategory(preselectedCategory);
-            setStep(3);
-          }} />
+          <Step2Review
+            file={capturedFile}
+            realFile={realFile}
+            onRetake={() => { setStep(1); setRealFile(null); }}
+            onTransform={(next) => {
+              setRealFile(next);
+              setCapturedFile({ name: next.name, type: next.type, size: `${(next.size / 1024).toFixed(1)} KB` });
+            }}
+            onConfirm={() => {
+              if (preselectedCategory) setSelectedCategory(preselectedCategory);
+              setStep(3);
+            }}
+          />
         )}
         {step === 3 && (
           <Step3Category
