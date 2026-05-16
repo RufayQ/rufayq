@@ -185,7 +185,8 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         </div>
       </div>
 
-      {/* Filter Pills + Sort */}
+      {/* Filter Pills + Sort (Medical only) */}
+      {segment === "medical" && (
       <div className="shrink-0 px-4 py-2 flex items-center gap-2" style={{ background: "var(--off-white)" }}>
         <div className="flex-1 flex gap-2 overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
           {filterCategories.map((f) => (
