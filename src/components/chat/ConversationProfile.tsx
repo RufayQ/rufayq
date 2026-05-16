@@ -22,6 +22,13 @@ type ProfileData = {
 export default function ConversationProfile({ threadId, title, kind, onBack }: Props) {
   const [data, setData] = useState<ProfileData | null>(null);
   const me = getDeviceId();
+  const contact = useResolvedContact(threadId, kind === "provider" ? "direct" : kind);
+  // For provider threads keep the existing clinic look + thread title;
+  // for direct threads use the resolved real contact name.
+  const displayName = kind === "direct" ? (contact?.name ?? title) : title;
+  const displayNameAr = kind === "direct" ? (contact?.nameAr ?? null) : null;
+  const avatarUrl = kind === "direct" ? (contact?.avatarUrl ?? null) : null;
+  const initials = (contact?.initials ?? (displayName || "?").trim().slice(0, 1).toUpperCase()) || "?";
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +74,6 @@ export default function ConversationProfile({ threadId, title, kind, onBack }: P
     };
   }, [threadId, kind, me]);
 
-  const initials = (title || "?").trim().slice(0, 1).toUpperCase();
   const roleLabel =
     kind === "provider" ? "Care provider · مزود الرعاية" : "Direct message · رسالة مباشرة";
 
