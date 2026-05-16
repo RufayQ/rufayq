@@ -1,6 +1,7 @@
 import { Map, FileText, GraduationCap, MessageCircle } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { hapticTap } from "@/lib/native";
 
 type Tab = 'home' | 'journey' | 'records' | 'carehub' | 'chat';
 
@@ -46,7 +47,7 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
     return (
       <button
         key={id}
-        onClick={() => onNavigate(id)}
+        onClick={() => { hapticTap(); onNavigate(id); }}
         className="flex flex-col items-center gap-1 relative btn-press"
         style={{ flex: 1, padding: "10px 4px 8px", background: "none", border: "none", cursor: "pointer" }}
         aria-label={tabAriaLabel(labelEn, labelAr)}
@@ -171,7 +172,7 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
       {/* Center Home Button - raised, gold ring + teal core */}
       <div className="flex flex-col items-center" style={{ flex: 1 }}>
         <button
-          onClick={() => onNavigate("home")}
+          onClick={() => { hapticTap(); onNavigate("home"); }}
           className="flex items-center justify-center btn-press"
           style={{
             width: 54,
