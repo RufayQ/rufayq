@@ -2058,7 +2058,7 @@ const Step5Success = ({ category, payload, pendingSegmentRef, userId, onViewSect
   if (payload?.selectedDestinations && payload.selectedDestinations.length > 0) {
     payload.selectedDestinations.forEach(d => actionsTaken.push({ en: d.en, ar: d.ar }));
   } else {
-    const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
+    const dests = destinationsByCategory[category || ""] || MEDICAL_GENERIC_DESTS;
     dests.filter(d => d.checked).forEach(d => actionsTaken.push({ en: d.en, ar: d.ar }));
   }
 
