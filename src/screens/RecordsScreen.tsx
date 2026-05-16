@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { records as demoRecords, filterCategories, type DocRecord } from "@/constants/data";
-import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, RefreshCw, Stethoscope, Plane } from "lucide-react";
+import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, RefreshCw, Stethoscope, Plane, MoreVertical } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
@@ -9,6 +9,7 @@ import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { useAuthUserId } from "@/hooks/useAuthUserId";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
 import TravelRecordsList from "@/components/records/TravelRecordsList";
+import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
 
 type RecordsSegment = "medical" | "travel";
 
