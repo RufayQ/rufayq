@@ -45,6 +45,25 @@ export function useActiveChatHead(opts: { suppressThreadId?: string | null }) {
   const [dismissed, setDismissed] = useState<Set<string>>(() => readDismissed());
   const [pos, setPos] = useState<StoredPos>(() => readPos());
 
+  // External pin/dismiss via custom event so any screen can hand a thread off.
+  useEffect(() => {
+    const onPin = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (!id) return;
+      try { localStorage.setItem(PIN_KEY, id); } catch { /* ignore */ }
+      setPinnedId(id);
+      setDismissed((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        writeDismissed(next);
+        return next;
+      });
+    };
+    window.addEventListener("rufayq:chathead-pin", onPin);
+    return () => window.removeEventListener("rufayq:chathead-pin", onPin);
+  }, []);
+
   const pin = useCallback((threadId: string) => {
     try { localStorage.setItem(PIN_KEY, threadId); } catch { /* ignore */ }
     setPinnedId(threadId);
