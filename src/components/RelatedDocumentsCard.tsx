@@ -81,6 +81,7 @@ const RelatedDocumentsCard = ({
   const [pool, setPool] = useState<TransportAttachment[]>([]);
   const [poolLoading, setPoolLoading] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
 
