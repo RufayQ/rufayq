@@ -104,7 +104,9 @@ export default function ChatInbox({ onOpenThread, onNewAi }: Props) {
         {!loading && filtered.length === 0 && (
           <EmptyState onNewAi={onNewAi} onSearch={() => setNewSheet("people")} onCare={() => setNewSheet("care")} />
         )}
-        {filtered.map((t) => (
+        {filtered.map((t) => {
+          const unread = unreadByThread[t.id] ?? 0;
+          return (
           <button
             key={t.id}
             onClick={() => onOpenThread(t)}
@@ -114,16 +116,26 @@ export default function ChatInbox({ onOpenThread, onNewAi }: Props) {
             <ThreadAvatar kind={t.kind} persona={t.ai_persona} />
             <div className="flex-1 min-w-0">
               <p className="text-[14px] font-bold truncate" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{labelFor(t)}</p>
-              <p className="text-[11px] truncate" style={{ color: "var(--gray)" }} dir="auto">
+              <p className="text-[11px] truncate" style={{ color: unread > 0 ? "var(--navy)" : "var(--gray)", fontWeight: unread > 0 ? 600 : 400 }} dir="auto">
                 {t.last_message_preview ?? "New conversation"}
               </p>
             </div>
-            <div className="text-right shrink-0">
-              <p className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{timeLabel(t.last_message_at)}</p>
-              <ChevronRight size={14} className="ml-auto mt-1" style={{ color: "var(--teal-deep)" }} />
+            <div className="text-right shrink-0 flex flex-col items-end gap-1">
+              <p className="font-mono text-[9px]" style={{ color: unread > 0 ? "var(--teal-deep)" : "var(--gray)" }}>{timeLabel(t.last_message_at)}</p>
+              {unread > 0 ? (
+                <span
+                  className="min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center"
+                  style={{ background: "var(--teal-deep)", color: "#fff" }}
+                >
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              ) : (
+                <ChevronRight size={14} style={{ color: "var(--teal-deep)" }} />
+              )}
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {/* New chat sheet */}
