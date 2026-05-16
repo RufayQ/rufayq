@@ -548,6 +548,7 @@ const Index = () => {
         )}
 
         <div
+          ref={contentSwipeRef}
           className="flex-1 flex flex-col overflow-hidden min-h-0"
           style={{ background: "var(--off-white)", paddingBottom: showNav ? 64 : 0 }}
         >
