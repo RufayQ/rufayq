@@ -47,7 +47,7 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
     return (
       <button
         key={id}
-        onClick={() => onNavigate(id)}
+        onClick={() => { hapticTap(); onNavigate(id); }}
         className="flex flex-col items-center gap-1 relative btn-press"
         style={{ flex: 1, padding: "10px 4px 8px", background: "none", border: "none", cursor: "pointer" }}
         aria-label={tabAriaLabel(labelEn, labelAr)}
