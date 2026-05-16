@@ -422,9 +422,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         onBack={() => { setHumanThread(null); setView("inbox"); }}
         onOpenProfile={() => setView("profile")}
         onMinimize={() => {
-          try {
-            window.dispatchEvent(new CustomEvent("rufayq:chathead-pin", { detail: humanThread.id }));
-          } catch { /* ignore */ }
+          pinChatHead(humanThread.id);
           setHumanThread(null);
           setView("inbox");
         }}
