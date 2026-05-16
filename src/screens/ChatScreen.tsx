@@ -96,12 +96,15 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   }, [messages, isTyping]);
 
   // Handle incoming context from Records AI inquiry — route into medical AI.
+  // We pass the persona explicitly to sendMessage because `setPersona` is async
+  // and the stale closure would otherwise send `persona: null` to the gateway.
   useEffect(() => {
     if (initialContext && !contextProcessed) {
       setContextProcessed(true);
-      if (!persona) { setPersona("medical"); setMessages(makeGreeting("medical")); }
+      const targetPersona: ChatPersona = persona ?? "medical";
+      if (!persona) { setPersona(targetPersona); setMessages(makeGreeting(targetPersona)); }
       setView("ai");
-      sendMessage(initialContext);
+      sendMessage(initialContext, targetPersona);
       onClearContext?.();
     }
   }, [initialContext, contextProcessed, persona]);
