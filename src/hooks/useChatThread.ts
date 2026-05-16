@@ -32,7 +32,7 @@ export function useChatThread(threadId: string | null) {
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(500);
-    setMessages((data ?? []) as ChatMessageRow[]);
+    setMessages(((data ?? []) as ChatMessageRow[]).map((m) => ({ ...m, status: "sent" })));
     setLoading(false);
   }, [threadId]);
 
