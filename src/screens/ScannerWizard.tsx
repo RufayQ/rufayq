@@ -1294,12 +1294,20 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     return cities.join(" → ");
   };
 
-  const processingSteps = [
-    { emoji: "📤", en: "Uploading document securely", ar: "رفع الوثيقة بأمان" },
-    { emoji: "👁️", en: "Reading with AI Vision", ar: "القراءة باستخدام الذكاء البصري" },
-    { emoji: "🧠", en: "Extracting flight segments", ar: "استخراج تفاصيل الرحلات" },
-    { emoji: "📍", en: "Checking airports & dates", ar: "التحقق من المطارات والتواريخ" },
-  ];
+  const isFlightCat = category === "flight";
+  const processingSteps = isFlightCat
+    ? [
+        { emoji: "📤", en: "Uploading document securely", ar: "رفع الوثيقة بأمان" },
+        { emoji: "👁️", en: "Reading with AI Vision", ar: "القراءة باستخدام الذكاء البصري" },
+        { emoji: "🧠", en: "Extracting flight segments", ar: "استخراج تفاصيل الرحلات" },
+        { emoji: "📍", en: "Checking airports & dates", ar: "التحقق من المطارات والتواريخ" },
+      ]
+    : [
+        { emoji: "📤", en: "Uploading document securely", ar: "رفع الوثيقة بأمان" },
+        { emoji: "🔒", en: "Encrypting in your vault", ar: "تشفير في خزنتك" },
+        { emoji: "🗂️", en: `Preparing ${cat?.en || "document"} fields`, ar: "تجهيز الحقول" },
+        { emoji: "✨", en: "Ready for your review", ar: "جاهز للمراجعة" },
+      ];
 
   // PDF analysis spinner — short, lives between scanning category and pick-pages.
   if (ocrStatus === "analyzing-pdf") {
