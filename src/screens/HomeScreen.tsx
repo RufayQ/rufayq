@@ -94,20 +94,20 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
         className="flex-1 overflow-y-auto overflow-x-hidden px-4 -mt-8 pb-6 space-y-3 relative z-10"
         style={{ background: "transparent", WebkitOverflowScrolling: "touch" }}
       >
-        {!isGuest && <ProfileCompletionBanner onOpenProfile={onProfile} />}
-
-        <TodayCard
-          overview={overview}
-          onOpenJourney={() => onNavigate("journey", "view")}
-          onPlanFirstTrip={() => onNavigate("journey", "new-trip")}
-        />
-
         <HomeStatsGrid
           trips={stats.trips}
           reminders={stats.reminders}
           records={stats.records}
           plannedAhead={stats.plannedAhead}
           onNavigate={(tab) => onNavigate(tab)}
+        />
+
+        {!isGuest && <ProfileCompletionBanner onOpenProfile={onProfile} />}
+
+        <TodayCard
+          overview={overview}
+          onOpenJourney={() => onNavigate("journey", "view")}
+          onPlanFirstTrip={() => onNavigate("journey", "new-trip")}
         />
 
         {activeTrip && (
