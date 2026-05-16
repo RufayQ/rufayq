@@ -356,10 +356,18 @@ const RelatedDocumentsCard = ({
               className="w-full flex flex-col items-center gap-1 btn-press"
             >
               <div
-                className="w-full h-14 rounded-lg flex items-center justify-center"
+                className="w-full h-14 rounded-lg flex items-center justify-center overflow-hidden"
                 style={{ background: "var(--gold-pale)" }}
               >
-                {isImage(item.mime_type) ? (
+                {isImage(item.mime_type) && thumbs[item.id] ? (
+                  <img
+                    src={thumbs[item.id]}
+                    alt={item.label}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
+                ) : isImage(item.mime_type) ? (
                   <ImageIcon size={22} style={{ color: "var(--gold)" }} />
                 ) : (
                   <FileText size={22} style={{ color: "var(--gold)" }} />
