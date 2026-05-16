@@ -38,9 +38,15 @@ import ChatHeadBubble from "@/components/chat/ChatHeadBubble";
 import PushPermissionPrompt from "@/components/PushPermissionPrompt";
 import TabErrorBoundary from "@/components/TabErrorBoundary";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
+import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
+
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
+
+// Visual L→R order of the bottom nav: Journey, Records, Home (center), Care Hub, Chat.
+// Swiping left advances to the next tab; swiping right goes back.
+const TAB_ORDER: Tab[] = ["journey", "records", "home", "carehub", "chat"];
 
 const toastMessages: Record<string, { en: string; ar: string }> = {
   flight: { en: "✓ Flight added to your Transport Timeline", ar: "✓ أُضيفت الرحلة إلى جدول تنقلك" },
@@ -184,6 +190,24 @@ const Index = () => {
     activeTab === "chat" ? activeHumanThreadId : null,
   );
 
+  const contentSwipeRef = useRef<HTMLDivElement>(null);
+  const swipeToTab = useCallback(
+    (dir: 1 | -1) => {
+      setActiveTab((current) => {
+        const idx = TAB_ORDER.indexOf(current);
+        if (idx === -1) return current;
+        const nextIdx = idx + dir;
+        if (nextIdx < 0 || nextIdx >= TAB_ORDER.length) return current;
+        return TAB_ORDER[nextIdx];
+      });
+    },
+    [],
+  );
+  useSwipeNavigation(contentSwipeRef, {
+    enabled: appView === "main" && !showScanner,
+    onSwipeLeft: () => swipeToTab(1),
+    onSwipeRight: () => swipeToTab(-1),
+  });
   const handleOnboardingComplete = () => {
     localStorage.setItem("rufayq_onboarded", "true");
     // Route to role selector first; sign-in follows.
@@ -542,6 +566,7 @@ const Index = () => {
         )}
 
         <div
+          ref={contentSwipeRef}
           className="flex-1 flex flex-col overflow-hidden min-h-0"
           style={{ background: "var(--off-white)", paddingBottom: showNav ? 64 : 0 }}
         >
