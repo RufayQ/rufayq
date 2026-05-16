@@ -187,66 +187,30 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
               نظرة شاملة لمحطات الرحلة
             </p>
           </div>
-          <span
-            className="rounded-full px-2.5 py-1 text-[10px] font-bold"
-            style={{ background: "var(--white)", color: "var(--teal-deep)" }}
-          >
-            {doneCount}/{milestones.length}
-          </span>
-        </div>
-
-        {/* Phase filter chips — carried over from the previous Journey overview. */}
-        <div
-          role="tablist"
-          aria-label="Filter by phase · فلترة حسب المرحلة"
-          className="mb-2 flex gap-1.5 overflow-x-auto pb-1"
-        >
-          {PHASES.map((p) => {
-            const active = phaseFilter === p.key;
-            return (
-              <button
-                key={p.key}
-                role="tab"
-                aria-selected={active}
-                onClick={() => setPhaseFilter(p.key)}
-                className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold btn-press outline-none"
-                style={{
-                  background: active ? p.color : "var(--white)",
-                  color: active ? "var(--white)" : p.color,
-                  border: `1px solid ${p.color}`,
-                }}
-              >
-                {p.en} · <span className="font-arabic">{p.ar}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* State filter chips. */}
-        <div
-          role="tablist"
-          aria-label="Filter by state · فلترة حسب الحالة"
-          className="mb-3 flex gap-1.5 overflow-x-auto"
-        >
-          {STATES.map((s) => {
-            const active = stateFilter === s.key;
-            return (
-              <button
-                key={s.key}
-                role="tab"
-                aria-selected={active}
-                onClick={() => setStateFilter(s.key)}
-                className="shrink-0 rounded-full px-2.5 py-[3px] text-[10px] font-bold btn-press outline-none"
-                style={{
-                  background: active ? "var(--navy)" : "transparent",
-                  color: active ? "var(--white)" : "var(--navy)",
-                  border: "1px solid var(--navy)",
-                }}
-              >
-                {s.en} · <span className="font-arabic">{s.ar}</span>
-              </button>
-            );
-          })}
+          <div className="flex items-center gap-2">
+            <span
+              className="rounded-full px-2.5 py-1 text-[10px] font-bold"
+              style={{ background: "var(--white)", color: "var(--teal-deep)" }}
+            >
+              {doneCount}/{milestones.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => setFilterOpen(true)}
+              aria-label="Filter milestones · فلترة المحطات"
+              className="relative flex h-8 w-8 items-center justify-center rounded-full btn-press outline-none"
+              style={{
+                background: phaseFilter !== "all" || stateFilter !== "all" ? "var(--teal-deep)" : "var(--white)",
+                color: phaseFilter !== "all" || stateFilter !== "all" ? "var(--white)" : "var(--teal-deep)",
+                border: "1px solid rgba(0,77,91,0.18)",
+              }}
+            >
+              <SlidersHorizontal size={14} />
+              {(phaseFilter !== "all" || stateFilter !== "all") && (
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full" style={{ background: "var(--gold)" }} />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Rail + NOW marker. The marker is a sticky-left vertical line painted
