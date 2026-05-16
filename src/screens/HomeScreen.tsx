@@ -28,11 +28,20 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const { patientName, patientNameAr } = usePatientName();
   const { showEn, showAr } = useLanguage();
   const overview = useJourneyOverview({ isGuest });
+  const { journeys } = useJourneys(isGuest ? [] : []);
+  const { items: recordItems } = useMedicalRecords();
   const [notificationOpen, setNotificationOpen] = useState(false);
   const {
-    activeTrip, milestones, alerts, dayN, totalDays,
+    activeTrip, milestones, alerts, dayN, totalDays, upcomingAppointments,
   } = overview;
   const phase = activeTrip ? derivePhase(dayN, totalDays) : undefined;
+
+  const stats = useMemo(() => ({
+    trips: journeys.length || (activeTrip ? 1 : 0),
+    reminders: alerts.length,
+    records: recordItems.length,
+    plannedAhead: upcomingAppointments.length,
+  }), [journeys.length, activeTrip, alerts.length, recordItems.length, upcomingAppointments.length]);
 
   // Default selection: the "current" milestone (or first upcoming, then first).
   const defaultSelectedId = useMemo(() => {
