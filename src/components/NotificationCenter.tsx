@@ -189,9 +189,9 @@ const NotificationCenter = ({ color = "#fff", onNavigate, onOpenThread, open: op
                 </div>
                 <div className="flex-1 min-w-0">
                   {showEn && <p className="font-semibold text-sm" style={{ color: "var(--navy)" }}>{n.title}</p>}
-                  {showAr && n.title_ar && <p className="text-xs mt-0.5" dir="rtl" style={{ color: "var(--gold)" }}>{n.title_ar}</p>}
-                  {n.body && <p className="text-xs mt-1 opacity-70">{n.body}</p>}
-                  <p className="text-[10px] mt-1 opacity-50">{new Date(n.created_at).toLocaleString()}</p>
+                  {showAr && n.title_ar && <p className="text-xs mt-0.5 font-arabic" dir="rtl" style={{ color: "var(--gold)" }}>{n.title_ar}</p>}
+                  {n.body && <p className="text-xs mt-1" style={{ color: "var(--ink)", opacity: 0.75 }}>{n.body}</p>}
+                  <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>{new Date(n.created_at).toLocaleString()}</p>
                 </div>
               </button>
             ))}
