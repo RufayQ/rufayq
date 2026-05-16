@@ -229,6 +229,9 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
 
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
+        {segment === "travel" ? (
+          <TravelRecordsList userId={userId} searchQuery={searchQuery} />
+        ) : (<>
         {/* Featured Discharge Pack */}
         {activeFilter === "All" && !searchQuery && records.length > 0 && (
           <div className="relative rounded-2xl p-5 overflow-hidden" style={{ background: "linear-gradient(135deg, var(--header-dark-from), var(--header-dark-alt))" }}>
