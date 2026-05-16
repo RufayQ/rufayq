@@ -15,7 +15,7 @@ type ProfileData = {
   createdAt: string | null;
   messageCount: number;
   otherDeviceId: string | null;
-  org: { name: string | null; specialty: string | null; hours: string | null } | null;
+  org: { name: string | null; org_type: string | null; city: string | null; country: string | null } | null;
 };
 
 export default function ConversationProfile({ threadId, title, kind, onBack }: Props) {
@@ -45,7 +45,7 @@ export default function ConversationProfile({ threadId, title, kind, onBack }: P
       if (kind === "provider" && thread?.organization_id) {
         const { data: orgRow } = await supabase
           .from("organizations")
-          .select("name, specialty, hours")
+          .select("name, org_type, city, country")
           .eq("id", thread.organization_id)
           .maybeSingle();
         if (orgRow) org = orgRow as ProfileData["org"];
@@ -164,14 +164,14 @@ export default function ConversationProfile({ threadId, title, kind, onBack }: P
                   {data.org.name}
                 </p>
               )}
-              {data.org.specialty && (
-                <p className="text-[12px] mt-0.5" style={{ color: "var(--gray)" }}>
-                  {data.org.specialty}
+              {data.org.org_type && (
+                <p className="text-[12px] mt-0.5 capitalize" style={{ color: "var(--gray)" }}>
+                  {data.org.org_type.replace(/_/g, " ")}
                 </p>
               )}
-              {data.org.hours && (
+              {(data.org.city || data.org.country) && (
                 <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
-                  ⏰ {data.org.hours}
+                  📍 {[data.org.city, data.org.country].filter(Boolean).join(", ")}
                 </p>
               )}
             </div>
