@@ -96,6 +96,13 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  // Report which human thread (if any) is currently open so the parent can
+  // suppress its floating chat-head bubble for that thread.
+  useEffect(() => {
+    const id = (view === "human" || view === "profile") && humanThread ? humanThread.id : null;
+    onActiveHumanThreadChange?.(id);
+  }, [view, humanThread, onActiveHumanThreadChange]);
+
   // Handle incoming context from Records AI inquiry — route into medical AI.
   // We pass the persona explicitly to sendMessage because `setPersona` is async
   // and the stale closure would otherwise send `persona: null` to the gateway.
