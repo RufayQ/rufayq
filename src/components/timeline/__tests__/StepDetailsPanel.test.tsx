@@ -183,7 +183,7 @@ describe("StepDetailsPanel — signed-in scope", () => {
     await pickFile(container, "rehab.jpg", "image/jpeg");
     await waitFor(() => expect(insertSpy).toHaveBeenCalled());
 
-    const [, path] = uploadSpy.mock.calls[0];
+    const [path] = uploadSpy.mock.calls[0];
     expect(path).toMatch(/^user\/uid-1\/carehub%3Aexercise%3Aankle-pumps\//);
 
     const payload = insertSpy.mock.calls.find((c) => c[0] === "step_attachments")![1];
