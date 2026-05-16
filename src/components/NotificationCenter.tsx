@@ -57,8 +57,14 @@ const NotificationCenter = ({
   }, [open]);
 
   const overlay = open && typeof document !== "undefined" ? createPortal(
-    <div className="fixed inset-0 z-[1000] flex justify-center bg-background/80 backdrop-blur-xl sm:items-center sm:p-5">
-      <div className="flex h-[100dvh] w-full max-w-[390px] flex-col overflow-hidden bg-card text-card-foreground shadow-2xl sm:h-[min(844px,calc(100dvh-48px))] sm:rounded-[32px]">
+    <div
+      className="fixed inset-0 z-[1000] flex justify-center bg-background/80 backdrop-blur-xl sm:items-center sm:p-5"
+      onClick={() => setOpen(false)}
+    >
+      <div
+        className="flex h-[100dvh] w-full max-w-[390px] flex-col overflow-hidden bg-card text-card-foreground shadow-2xl sm:h-[min(844px,calc(100dvh-48px))] sm:rounded-[32px]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div
           className="relative overflow-hidden px-5 pb-4 pt-5"
           style={{ background: "linear-gradient(155deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 62%, hsl(var(--background)) 100%)" }}

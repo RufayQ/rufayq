@@ -160,6 +160,8 @@ const Index = () => {
   const openChatThread = useCallback((threadId: string) => {
     setPendingChatThreadId(threadId);
     setActiveTab("chat");
+    setAppView("main");
+    setShowScanner(false);
   }, []);
   const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | `phase:${string}` | null>(null);
   const [badges, setBadges] = useState<Partial<Record<Tab, boolean | number>>>({
@@ -391,6 +393,12 @@ const Index = () => {
   };
 
   const handleTabNavigate = (tab: Tab) => {
+    // Always return to the main shell when a bottom-nav tab is tapped, even if
+    // some lingering sub-view (medications, profile, settings, …) somehow
+    // remained active. This prevents the rare "blank screen" the user reports
+    // when switching between tabs from a non-home section.
+    setAppView("main");
+    setShowScanner(false);
     setActiveTab(tab);
     if (badges[tab]) {
       setBadges(prev => ({ ...prev, [tab]: false }));
@@ -432,7 +440,13 @@ const Index = () => {
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
           case "carehub": return <CareHubScreen />;
           case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} onUpgrade={() => setAppView("pricing")} initialThreadId={pendingChatThreadId} onThreadHandled={() => setPendingChatThreadId(null)} />;
+          default:
+            // Defensive: never render an empty main shell if activeTab somehow
+            // lands on an unknown value — fall back to Home.
+            return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} isGuest={isGuest} />;
         }
+      default:
+        return null;
     }
   };
 
