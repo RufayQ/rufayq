@@ -74,41 +74,72 @@ const CareHubScreen = () => {
           </div>
           <HeaderMenu items={careMenuItems} />
         </div>
-        {/* Patient status */}
-        <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
-          <span className="text-[14px]">🦽</span>
-          <div className="flex-1">
-            <p className="text-[11px] text-white font-medium">Post-Op Day 5 · Knee Replacement</p>
-            <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "rgba(255,255,255,0.4)" }}>اليوم الخامس بعد العملية<span className="font-arabic" dir="rtl"> · استبدال الركبة</span></p>
+        {/* Patient status — demo placeholder only shown to guests */}
+        {isGuest ? (
+          <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <span className="text-[14px]">🦽</span>
+            <div className="flex-1">
+              <p className="text-[11px] text-white font-medium">Post-Op Day 5 · Knee Replacement <span className="opacity-60">(demo)</span></p>
+              <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "rgba(255,255,255,0.4)" }}>اليوم الخامس بعد العملية<span className="font-arabic" dir="rtl"> · استبدال الركبة (عرض توضيحي)</span></p>
+            </div>
+            <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(61,170,110,0.2)", color: "#3DAA6E" }}>On Track</span>
           </div>
-          <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(61,170,110,0.2)", color: "#3DAA6E" }}>On Track</span>
+        ) : (
+          <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <span className="text-[14px]">🩺</span>
+            <div className="flex-1">
+              <p className="text-[11px] text-white font-medium">No active care plan yet</p>
+              <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "rgba(255,255,255,0.4)" }}>لا توجد خطة رعاية نشطة بعد</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {!isGuest ? (
+        <div className="flex-1 overflow-y-auto" style={{ background: "var(--off-white)" }}>
+          <div className="px-5 py-10 text-center max-w-sm mx-auto">
+            <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-4" style={{ background: "var(--teal-light)" }}>🩺</div>
+            <p className="text-[15px] font-bold mb-1" style={{ color: "var(--navy)" }}>Your recovery hub is ready</p>
+            <p className="font-arabic text-[12px] mb-4" dir="rtl" style={{ color: "var(--gray)" }}>مركز التعافي جاهز</p>
+            <p className="text-[12px] leading-relaxed mb-4" style={{ color: "var(--gray)" }}>
+              Your personalised care plan, education and exercises will appear here once your treating provider shares them, or after you complete an appointment.
+            </p>
+            <p className="font-arabic text-[11px] leading-relaxed" dir="rtl" style={{ color: "var(--gray)" }}>
+              ستظهر هنا خطة الرعاية والمحتوى التثقيفي والتمارين الخاصة بك بمجرد أن يشاركها الطبيب أو بعد إتمام موعدك.
+            </p>
+            <p className="text-[10px] mt-5" style={{ color: "var(--gray)" }}>
+              ⚠️ This app does not replace professional medical advice.
+            </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Sub-tabs */}
+          <div className="shrink-0 overflow-x-auto px-4 py-2 flex gap-2" style={{ background: "var(--white)", borderBottom: "1px solid var(--gray-light)", WebkitOverflowScrolling: "touch" }}>
+            {subTabs.map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)}
+                className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium btn-press transition-all whitespace-nowrap"
+                style={{
+                  background: activeTab === t.id ? "var(--teal-deep)" : "var(--white)",
+                  color: activeTab === t.id ? "#fff" : "var(--gray)",
+                  border: activeTab === t.id ? "none" : "1px solid var(--gray-light)",
+                }}>
+                {t.emoji} {t.en}
+              </button>
+            ))}
+          </div>
 
-      {/* Sub-tabs */}
-      <div className="shrink-0 overflow-x-auto px-4 py-2 flex gap-2" style={{ background: "var(--white)", borderBottom: "1px solid var(--gray-light)", WebkitOverflowScrolling: "touch" }}>
-        {subTabs.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)}
-            className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium btn-press transition-all whitespace-nowrap"
-            style={{
-              background: activeTab === t.id ? "var(--teal-deep)" : "var(--white)",
-              color: activeTab === t.id ? "#fff" : "var(--gray)",
-              border: activeTab === t.id ? "none" : "1px solid var(--gray-light)",
-            }}>
-            {t.emoji} {t.en}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-        {activeTab === "careplan" && <CarePlanTab />}
-        {activeTab === "videos" && <VideosTab />}
-        {activeTab === "education" && <EducationTab />}
-        {activeTab === "faqs" && <FAQsTab />}
-        {activeTab === "nutrition" && <NutritionTab />}
-        {activeTab === "exercises" && <ExercisesTab />}
-      </div>
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
+            {activeTab === "careplan" && <CarePlanTab />}
+            {activeTab === "videos" && <VideosTab />}
+            {activeTab === "education" && <EducationTab />}
+            {activeTab === "faqs" && <FAQsTab />}
+            {activeTab === "nutrition" && <NutritionTab />}
+            {activeTab === "exercises" && <ExercisesTab />}
+          </div>
+        </>
+      )}
     </div>
   );
 };
