@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Bell, X, MessageCircle, BellRing } from "lucide-react";
 import { usePatientNotifications } from "@/hooks/usePatientNotifications";
 import { useChatInbox } from "@/hooks/useChatInbox";
@@ -22,7 +23,7 @@ type Tab = "all" | "chats" | "alerts";
  *   2. Unread chat threads (from useChatInbox)
  * The bell badge shows the combined unread count.
  */
-const NotificationCenter = ({ color = "#fff", onNavigate, onOpenThread, open: openProp, onOpenChange }: Props) => {
+const NotificationCenter = ({ color = "hsl(var(--primary-foreground))", onNavigate, onOpenThread, open: openProp, onOpenChange }: Props) => {
   const [openInternal, setOpenInternal] = useState(false);
   const isControlled = openProp !== undefined;
   const open = isControlled ? !!openProp : openInternal;
@@ -41,6 +42,88 @@ const NotificationCenter = ({ color = "#fff", onNavigate, onOpenThread, open: op
   const unreadThreads = threads.filter((t) => (unreadByThread[t.id] ?? 0) > 0);
   const displayedAlerts = tab === "chats" ? [] : items;
   const displayedThreads = tab === "alerts" ? [] : unreadThreads;
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  const overlay = open ? createPortal(
+    <div className="fixed inset-0 z-[1000] flex justify-center bg-background/80 backdrop-blur-xl sm:items-center sm:p-5">
+      <div className="flex h-[100dvh] w-full max-w-[390px] flex-col overflow-hidden bg-card text-card-foreground shadow-2xl sm:h-[min(844px,calc(100dvh-48px))] sm:rounded-[32px]">
+        {/* Header */}
+        <div className="relative overflow-hidden px-5 pt-5 pb-4" style={{ background: "linear-gradient(155deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 62%, hsl(var(--background)) 100%)" }}>
+          <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full border border-accent/25" />
+          <div className="pointer-events-none absolute right-8 top-10 h-28 w-28 rounded-full border border-primary-foreground/10" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-primary-foreground/55">RufayQ inbox</p>
+              {showEn && <p className="font-display text-[30px] leading-none text-primary-foreground">Notifications</p>}
+              {showAr && <p className="mt-1 font-arabic text-[13px] text-accent" dir="rtl">مركز التنبيهات</p>}
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Close notifications"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary-foreground/15 bg-primary-foreground/10 text-primary-foreground"
+            >
+              <X size={21} />
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="relative mt-5 flex gap-2 overflow-x-auto no-scrollbar">
+            {(["all", "chats", "alerts"] as Tab[]).map((t) => {
+              const count = t === "all" ? totalUnread : t === "chats" ? chatUnread : alertUnread;
+              const labelEn = t === "all" ? "All" : t === "chats" ? "Messages" : "Alerts";
+              const labelAr = t === "all" ? "الكل" : t === "chats" ? "الرسائل" : "التنبيهات";
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className="flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-semibold transition"
+                  style={{
+                    background: tab === t ? "hsl(var(--primary-foreground))" : "hsl(var(--primary-foreground) / 0.12)",
+                    color: tab === t ? "hsl(var(--primary))" : "hsl(var(--primary-foreground))",
+                    borderColor: "hsl(var(--primary-foreground) / 0.2)",
+                  }}
+                >
+                  <span>{showAr && !showEn ? labelAr : labelEn}</span>
+                  {count > 0 && (
+                    <span className="min-w-4 rounded-full bg-destructive px-1.5 text-center text-[9px] font-bold text-destructive-foreground">
+                      {count > 9 ? "9+" : count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            {alertUnread > 0 && tab !== "chats" && (
+              <button onClick={markAllRead} className="ml-auto shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold text-primary-foreground/80 underline underline-offset-4">
+                {showAr && !showEn ? "تعليم الكل" : "Mark read"}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
+          {displayedThreads.length === 0 && displayedAlerts.length === 0 && (
+            <div className="flex min-h-[360px] flex-col items-center justify-center text-center text-muted-foreground">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-accent/30 bg-accent/10 text-accent">
+                <Bell size={30} />
+              </div>
+              {showEn && <p className="font-display text-[24px] leading-tight text-card-foreground">You're all caught up</p>}
+              {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد تنبيهات جديدة</p>}
+            </div>
+          )}
 
   return (
     <>
