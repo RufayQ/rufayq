@@ -81,6 +81,7 @@ const RelatedDocumentsCard = ({
   const [pool, setPool] = useState<TransportAttachment[]>([]);
   const [poolLoading, setPoolLoading] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
 
@@ -150,6 +151,31 @@ const RelatedDocumentsCard = ({
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segmentRef, ticketId, userId]);
+
+  // Resolve signed URLs for image attachments so tiles show real thumbnails.
+  useEffect(() => {
+    const pending = items.filter(
+      (it) => isImage(it.mime_type) && !thumbs[it.id] && it.file_path,
+    );
+    if (pending.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrls(pending.map((p) => p.file_path), 60 * 30);
+      if (cancelled || error || !data) return;
+      const next: Record<string, string> = {};
+      data.forEach((row, idx) => {
+        const id = pending[idx]?.id;
+        if (id && row.signedUrl) next[id] = row.signedUrl;
+      });
+      if (Object.keys(next).length > 0) {
+        setThumbs((prev) => ({ ...prev, ...next }));
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
 
   const onPickFile = (file: File) => {
     if (file.size > MAX_BYTES) {
@@ -330,10 +356,18 @@ const RelatedDocumentsCard = ({
               className="w-full flex flex-col items-center gap-1 btn-press"
             >
               <div
-                className="w-full h-14 rounded-lg flex items-center justify-center"
+                className="w-full h-14 rounded-lg flex items-center justify-center overflow-hidden"
                 style={{ background: "var(--gold-pale)" }}
               >
-                {isImage(item.mime_type) ? (
+                {isImage(item.mime_type) && thumbs[item.id] ? (
+                  <img
+                    src={thumbs[item.id]}
+                    alt={item.label}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
+                ) : isImage(item.mime_type) ? (
                   <ImageIcon size={22} style={{ color: "var(--gold)" }} />
                 ) : (
                   <FileText size={22} style={{ color: "var(--gold)" }} />
