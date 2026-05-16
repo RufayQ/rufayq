@@ -433,7 +433,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
 
       {/* Quick Prompts */}
       <div className="flex gap-2 px-3 py-2.5 overflow-x-auto shrink-0" style={{ background: "var(--off-white)" }}>
-        {promptPills.map((p) => (
+        {activePersona.pills.map((p) => (
           <button
             key={p.text}
             onClick={() => sendMessage(p.text)}
