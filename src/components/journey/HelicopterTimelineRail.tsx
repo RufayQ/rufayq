@@ -67,6 +67,7 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
   const [phaseFilter, setPhaseFilter] = useState<typeof PHASES[number]["key"]>("all");
   const [stateFilter, setStateFilter] = useState<typeof STATES[number]["key"]>("all");
   const [nearestId, setNearestId] = useState<string | null>(selectedId ?? null);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return milestones.filter((m) => {
