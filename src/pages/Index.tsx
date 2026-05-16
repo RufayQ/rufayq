@@ -35,6 +35,7 @@ import { useGlobalChat } from "@/hooks/useGlobalChat";
 import NotificationCenter from "@/components/NotificationCenter";
 import IncomingMessageOverlay from "@/components/chat/IncomingMessageOverlay";
 import PushPermissionPrompt from "@/components/PushPermissionPrompt";
+import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
@@ -437,6 +438,32 @@ const Index = () => {
 
   const showNav = appView === "main";
   const showStatusBar = appView !== "onboarding";
+
+  /**
+   * Hardware/browser back button handler.
+   * Pops the in-app stack in priority order. Returns false only when we're
+   * already at the true root (Home tab, no overlays) — at which point the
+   * hook will warn the user and require a second press to exit.
+   */
+  const handleHardwareBack = useCallback((): boolean => {
+    if (showScanner) { setShowScanner(false); return true; }
+    if (pendingChatThreadId) { setPendingChatThreadId(null); return true; }
+    if (appView !== "main" && appView !== "onboarding" && appView !== "login" && appView !== "role") {
+      setAppView("main");
+      return true;
+    }
+    if (appView === "main" && activeTab !== "home") {
+      setActiveTab("home");
+      return true;
+    }
+    return false;
+  }, [showScanner, pendingChatThreadId, appView, activeTab]);
+
+  useAndroidBackButton({
+    onBack: handleHardwareBack,
+    enabled: appView !== "onboarding" && appView !== "login" && appView !== "role",
+  });
+
 
   return (
     <div className="flex items-center justify-center min-h-[100dvh]" style={{ background: "var(--phone-frame)" }}>
