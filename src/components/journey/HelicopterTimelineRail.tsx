@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, BedDouble, FlaskConical, HeartPulse, Home, PlaneLanding, PlaneTakeoff, Stethoscope,
   type LucideIcon,
@@ -8,8 +8,9 @@ import { formatChipDate } from "@/lib/journeyOverview";
 
 /**
  * Horizontal "helicopter" timeline rail for the Journey → Map tab.
- * Replaces the 2D HelicopterCanvas with an elite scrollable rail that keeps
- * the same milestone semantics (kind, state, phase) and selection contract.
+ * - Smooth auto-scroll keeps the selected milestone centered.
+ * - A persistent vertical NOW marker pins the current milestone to the user's eye.
+ * - Phase + state filters carry over the chip semantics from the previous Journey overview.
  */
 interface Props {
   milestones: JourneyMilestone[];
@@ -27,14 +28,23 @@ const ICONS: Record<MilestoneSubKind, LucideIcon> = {
   followup: Home,
 };
 
-const phaseChip = (phase: JourneyMilestone["phase"]) => {
-  switch (phase) {
-    case "before": return { en: "Before", ar: "قبل", color: "var(--teal-deep)" };
-    case "travel": return { en: "Travel", ar: "السفر", color: "var(--teal-bright)" };
-    case "care":   return { en: "Care",   ar: "العلاج", color: "var(--gold)" };
-    case "after":  return { en: "After",  ar: "بعد",   color: "var(--success)" };
-  }
-};
+const PHASES: Array<{ key: "all" | JourneyMilestone["phase"]; en: string; ar: string; color: string }> = [
+  { key: "all",    en: "All",    ar: "الكل",   color: "var(--navy)" },
+  { key: "before", en: "Before", ar: "قبل",    color: "var(--teal-deep)" },
+  { key: "travel", en: "Travel", ar: "السفر",  color: "var(--teal-bright)" },
+  { key: "care",   en: "Care",   ar: "العلاج", color: "var(--gold)" },
+  { key: "after",  en: "After",  ar: "بعد",    color: "var(--success)" },
+];
+
+const STATES: Array<{ key: "all" | JourneyMilestone["state"]; en: string; ar: string }> = [
+  { key: "all",      en: "Any",      ar: "الكل" },
+  { key: "done",     en: "Done",     ar: "منجز" },
+  { key: "current",  en: "Now",      ar: "الآن" },
+  { key: "upcoming", en: "Upcoming", ar: "قادم" },
+];
+
+const phaseChip = (phase: JourneyMilestone["phase"]) =>
+  PHASES.find((p) => p.key === phase) ?? PHASES[0];
 
 const stateStyle = (state: JourneyMilestone["state"]) => {
   if (state === "done")    return { ring: "var(--success)",   bg: "rgba(16,185,129,0.10)" };
@@ -50,19 +60,32 @@ const connectorColor = (a: JourneyMilestone, b: JourneyMilestone) => {
 
 const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => {
   const railRef = useRef<HTMLDivElement>(null);
-  const ordered = useMemo(() => milestones, [milestones]);
+  const [phaseFilter, setPhaseFilter] = useState<typeof PHASES[number]["key"]>("all");
+  const [stateFilter, setStateFilter] = useState<typeof STATES[number]["key"]>("all");
 
-  // Auto-scroll the selected node into view (smooth, horizontal).
+  const filtered = useMemo(() => {
+    return milestones.filter((m) => {
+      if (phaseFilter !== "all" && m.phase !== phaseFilter) return false;
+      if (stateFilter !== "all" && m.state !== stateFilter) return false;
+      return true;
+    });
+  }, [milestones, phaseFilter, stateFilter]);
+
+  // Smooth auto-center on selection changes. Re-run when the filtered list
+  // changes too so the selected node stays centered after a filter toggle.
   useEffect(() => {
     if (!selectedId) return;
     const node = railRef.current?.querySelector<HTMLButtonElement>(`[data-mid="${selectedId}"]`);
-    node?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-  }, [selectedId]);
+    if (!node) return;
+    requestAnimationFrame(() => {
+      node.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    });
+  }, [selectedId, filtered.length, phaseFilter, stateFilter]);
 
-  if (ordered.length === 0) return null;
+  if (milestones.length === 0) return null;
 
-  const currentIdx = ordered.findIndex((m) => m.state === "current");
-  const doneCount = ordered.filter((m) => m.state === "done").length;
+  const doneCount = milestones.filter((m) => m.state === "done").length;
+  const hasCurrentInView = filtered.some((m) => m.state === "current");
 
   return (
     <section className="px-4 pt-3" aria-label="Helicopter timeline · الخط الزمني الشامل">
@@ -86,78 +109,161 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
             className="rounded-full px-2.5 py-1 text-[10px] font-bold"
             style={{ background: "var(--white)", color: "var(--teal-deep)" }}
           >
-            {doneCount}/{ordered.length}
+            {doneCount}/{milestones.length}
           </span>
         </div>
 
+        {/* Phase filter chips — carried over from the previous Journey overview. */}
         <div
-          ref={railRef}
-          role="list"
-          className="flex items-stretch overflow-x-auto overflow-y-hidden pb-2 -mx-1 px-1"
-          style={{ scrollSnapType: "x mandatory", scrollbarWidth: "thin" }}
+          role="tablist"
+          aria-label="Filter by phase · فلترة حسب المرحلة"
+          className="mb-2 flex gap-1.5 overflow-x-auto pb-1"
         >
-          {ordered.map((m, i) => {
-            const Icon = ICONS[m.subKind] ?? Stethoscope;
-            const chip = phaseChip(m.phase);
-            const s = stateStyle(m.state);
-            const selected = selectedId === m.id;
-            const last = i === ordered.length - 1;
-            const next = ordered[i + 1];
-            // Departure / return get their dedicated icons.
-            const Display = m.kind === "departure" ? PlaneTakeoff : m.kind === "return" ? PlaneLanding : Icon;
+          {PHASES.map((p) => {
+            const active = phaseFilter === p.key;
             return (
-              <div key={m.id} role="listitem" className="flex items-center" style={{ scrollSnapAlign: "center" }}>
-                <button
-                  data-mid={m.id}
-                  onClick={() => onSelect(m.id)}
-                  className="flex w-[108px] flex-col items-center gap-1.5 rounded-2xl px-2 py-2.5 outline-none btn-press transition-transform"
-                  style={{
-                    background: selected ? "var(--white)" : "rgba(255,255,255,0.55)",
-                    boxShadow: selected ? "0 6px 18px rgba(0,77,91,0.18)" : "none",
-                    transform: selected ? "translateY(-2px)" : "none",
-                  }}
-                  aria-pressed={selected}
-                  aria-label={`${m.title} · ${m.titleAr} · ${m.state}`}
-                >
-                  <span
-                    className="rounded-full px-1.5 py-[2px] text-[8px] font-bold tracking-wide uppercase"
-                    style={{ background: chip.color, color: "var(--white)" }}
-                  >
-                    {chip.en} · {chip.ar}
-                  </span>
-                  <span
-                    className="flex h-12 w-12 items-center justify-center rounded-full"
-                    style={{ background: s.bg, border: `2px solid ${s.ring}` }}
-                  >
-                    <Display size={22} style={{ color: s.ring }} aria-hidden="true" />
-                  </span>
-                  <span
-                    className="block w-full truncate text-center text-[11px] font-semibold"
-                    style={{ color: "var(--navy)" }}
-                    title={m.title}
-                  >
-                    {m.title}
-                  </span>
-                  <span className="block text-[9px]" style={{ color: "var(--gray)" }}>
-                    {formatChipDate(m.date) || "—"}
-                  </span>
-                  {m.state === "current" && (
-                    <span className="text-[9px] font-bold" style={{ color: "var(--gold)" }}>NOW · الآن</span>
-                  )}
-                </button>
-                {!last && next && (
-                  <div
-                    className="mx-1 h-[3px] w-8 shrink-0 rounded-full"
-                    style={{ background: connectorColor(m, next) }}
-                  />
-                )}
-              </div>
+              <button
+                key={p.key}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setPhaseFilter(p.key)}
+                className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold btn-press outline-none"
+                style={{
+                  background: active ? p.color : "var(--white)",
+                  color: active ? "var(--white)" : p.color,
+                  border: `1px solid ${p.color}`,
+                }}
+              >
+                {p.en} · <span className="font-arabic">{p.ar}</span>
+              </button>
             );
           })}
         </div>
 
-        {currentIdx >= 0 && (
-          <p className="mt-2 text-center text-[10px]" style={{ color: "var(--gray)" }}>
+        {/* State filter chips. */}
+        <div
+          role="tablist"
+          aria-label="Filter by state · فلترة حسب الحالة"
+          className="mb-3 flex gap-1.5 overflow-x-auto"
+        >
+          {STATES.map((s) => {
+            const active = stateFilter === s.key;
+            return (
+              <button
+                key={s.key}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setStateFilter(s.key)}
+                className="shrink-0 rounded-full px-2.5 py-[3px] text-[10px] font-bold btn-press outline-none"
+                style={{
+                  background: active ? "var(--navy)" : "transparent",
+                  color: active ? "var(--white)" : "var(--navy)",
+                  border: "1px solid var(--navy)",
+                }}
+              >
+                {s.en} · <span className="font-arabic">{s.ar}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Rail + NOW marker. The marker is a sticky-left vertical line painted
+            over the scroll container so the user's eye always knows where
+            "now" is, even when scrolled away. */}
+        <div className="relative">
+          {hasCurrentInView && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute top-0 bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center"
+            >
+              <span
+                className="rounded-full px-2 py-[2px] text-[9px] font-bold tracking-wider uppercase shadow"
+                style={{ background: "var(--gold)", color: "var(--white)" }}
+              >
+                NOW · الآن
+              </span>
+              <span
+                className="mt-1 flex-1 w-[2px] rounded-full"
+                style={{ background: "linear-gradient(180deg, var(--gold), rgba(197,150,90,0.15))" }}
+              />
+            </div>
+          )}
+
+          <div
+            ref={railRef}
+            role="list"
+            className="flex items-stretch overflow-x-auto overflow-y-hidden pb-2 -mx-1 px-1"
+            style={{ scrollSnapType: "x mandatory", scrollBehavior: "smooth", scrollbarWidth: "thin" }}
+          >
+            {/* Lead spacer so the first node can sit at the visual center. */}
+            <div aria-hidden="true" className="shrink-0" style={{ width: "40%" }} />
+
+            {filtered.map((m, i) => {
+              const Icon = ICONS[m.subKind] ?? Stethoscope;
+              const chip = phaseChip(m.phase);
+              const s = stateStyle(m.state);
+              const selected = selectedId === m.id;
+              const last = i === filtered.length - 1;
+              const next = filtered[i + 1];
+              const Display = m.kind === "departure" ? PlaneTakeoff : m.kind === "return" ? PlaneLanding : Icon;
+              return (
+                <div key={m.id} role="listitem" className="flex items-center" style={{ scrollSnapAlign: "center" }}>
+                  <button
+                    data-mid={m.id}
+                    onClick={() => onSelect(m.id)}
+                    className="flex w-[108px] flex-col items-center gap-1.5 rounded-2xl px-2 py-2.5 outline-none btn-press transition-transform"
+                    style={{
+                      background: selected ? "var(--white)" : "rgba(255,255,255,0.55)",
+                      boxShadow: selected ? "0 6px 18px rgba(0,77,91,0.18)" : "none",
+                      transform: selected ? "translateY(-2px)" : "none",
+                    }}
+                    aria-pressed={selected}
+                    aria-label={`${m.title} · ${m.titleAr} · ${m.state}`}
+                  >
+                    <span
+                      className="rounded-full px-1.5 py-[2px] text-[8px] font-bold tracking-wide uppercase"
+                      style={{ background: chip.color, color: "var(--white)" }}
+                    >
+                      {chip.en} · {chip.ar}
+                    </span>
+                    <span
+                      className="flex h-12 w-12 items-center justify-center rounded-full"
+                      style={{ background: s.bg, border: `2px solid ${s.ring}` }}
+                    >
+                      <Display size={22} style={{ color: s.ring }} aria-hidden="true" />
+                    </span>
+                    <span
+                      className="block w-full truncate text-center text-[11px] font-semibold"
+                      style={{ color: "var(--navy)" }}
+                      title={m.title}
+                    >
+                      {m.title}
+                    </span>
+                    <span className="block text-[9px]" style={{ color: "var(--gray)" }}>
+                      {formatChipDate(m.date) || "—"}
+                    </span>
+                  </button>
+                  {!last && next && (
+                    <div
+                      className="mx-1 h-[3px] w-8 shrink-0 rounded-full"
+                      style={{ background: connectorColor(m, next) }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Trail spacer so the last node can sit at the visual center. */}
+            <div aria-hidden="true" className="shrink-0" style={{ width: "40%" }} />
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <p className="mt-1 text-center text-[10px]" style={{ color: "var(--gray)" }}>
+            No milestones match these filters · لا توجد محطات مطابقة
+          </p>
+        ) : (
+          <p className="mt-1 text-center text-[10px]" style={{ color: "var(--gray)" }}>
             Tap any milestone to inspect · اضغط أي محطة لعرض التفاصيل
           </p>
         )}
