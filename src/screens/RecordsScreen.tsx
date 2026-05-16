@@ -123,6 +123,51 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         </div>
       </div>
 
+      {/* Segmented switcher: Medical | Travel */}
+      <div className="shrink-0 px-4 pt-3" style={{ background: "var(--off-white)" }}>
+        <div
+          role="tablist"
+          aria-label="Records segment"
+          className="flex p-1 rounded-xl"
+          style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+        >
+          {([
+            { key: "medical" as const, icon: <Stethoscope size={13} />, en: "Medical", ar: "طبية", count: totalFiles },
+            { key: "travel" as const, icon: <Plane size={13} />, en: "Travel", ar: "سفر", count: travelCount },
+          ]).map((s) => {
+            const active = segment === s.key;
+            return (
+              <button
+                key={s.key}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setSegment(s.key)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold btn-press transition-all"
+                style={{
+                  background: active ? "var(--teal-deep)" : "transparent",
+                  color: active ? "#fff" : "var(--gray)",
+                }}
+              >
+                {s.icon}
+                <span>{s.en}</span>
+                <span className="font-arabic text-[10px] opacity-80" dir="rtl">· {s.ar}</span>
+                <span
+                  className="font-mono text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: active ? "rgba(255,255,255,0.18)" : "var(--off-white)",
+                    color: active ? "#fff" : "var(--navy)",
+                    minWidth: 22,
+                    textAlign: "center",
+                  }}
+                >
+                  {s.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Search bar */}
       <div className="px-4 pt-3 pb-1 shrink-0" style={{ background: "var(--off-white)" }}>
         <div className="rounded-xl px-3 py-2.5 flex items-center gap-2" style={{ background: "var(--white)", border: searchQuery ? "1.5px solid var(--teal-deep)" : "1px solid var(--gray-light)", transition: "border 200ms" }}>
