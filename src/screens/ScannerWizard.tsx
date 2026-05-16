@@ -599,6 +599,22 @@ const emptyFlightFields = (): FlightFields => ({
   Airline: "", "Flight No.": "", From: "", To: "", Date: "", Time: "", PNR: "", Class: "",
 });
 
+// Per-category empty schemas for manual entry. NO fake demo values — only labels.
+// Used when AI auto-extraction isn't yet wired (everything except flight).
+const GENERIC_SCHEMA_BY_CATEGORY: Record<string, { label: string }[]> = {
+  lab: [{ label: "Test name" }, { label: "Date" }, { label: "Facility" }, { label: "Doctor" }, { label: "Key result" }, { label: "Reference range" }],
+  hotel: [{ label: "Hotel name" }, { label: "Check-in" }, { label: "Check-out" }, { label: "Booking ref" }, { label: "Room" }, { label: "Rate" }],
+  prescription: [{ label: "Medication" }, { label: "Dose" }, { label: "Frequency" }, { label: "Duration" }, { label: "Prescriber" }, { label: "Date" }],
+  discharge: [{ label: "Diagnosis" }, { label: "Procedure" }, { label: "Discharge date" }, { label: "Follow-up" }, { label: "Red flags" }, { label: "Physician" }],
+  passport: [{ label: "Full name" }, { label: "Document no." }, { label: "Nationality" }, { label: "Date of birth" }, { label: "Issue date" }, { label: "Expiry date" }],
+  imaging: [{ label: "Study type" }, { label: "Body part" }, { label: "Date" }, { label: "Facility" }, { label: "Radiologist" }, { label: "Findings" }],
+  insurance: [{ label: "Insurer" }, { label: "Policy no." }, { label: "Member ID" }, { label: "Valid until" }, { label: "Plan" }, { label: "Network" }],
+  train: [{ label: "Carrier" }, { label: "Service" }, { label: "From" }, { label: "To" }, { label: "Date" }, { label: "Time" }],
+  other: [{ label: "Title" }, { label: "Date" }, { label: "Source" }, { label: "Notes" }],
+};
+const emptyGenericFields = (category: string | null) =>
+  (GENERIC_SCHEMA_BY_CATEGORY[category || "other"] || GENERIC_SCHEMA_BY_CATEGORY.other).map((f) => ({ label: f.label, value: "" }));
+
 const fmtDateLite = (s: string) => {
   if (!s) return "";
   const d = new Date(s);
