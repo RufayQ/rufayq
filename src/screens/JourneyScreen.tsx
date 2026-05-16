@@ -1019,6 +1019,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
             onSaveAppointment={saveAppointment}
             openAddIntent={appointmentFormIntent}
             isGuest={isGuest}
+            scrollToAppointmentId={pendingAppointmentScrollId}
+            onScrollHandled={() => setPendingAppointmentScrollId(null)}
           />
         )}
         {activeSubTab === "steps" && (
