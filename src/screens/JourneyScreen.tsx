@@ -869,6 +869,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     { icon: <Wallet size={14} />, label: "Wallet & Refunds", labelAr: "المحفظة والاستردادات", onClick: () => onNavigate?.("wallet") },
     { icon: <SettingsIcon size={14} />, label: "Settings", labelAr: "الإعدادات", onClick: () => onNavigate?.("settings") },
     { icon: <HelpCircle size={14} />, label: "Help & Support", labelAr: "المساعدة", onClick: () => onNavigate?.("support") },
+    { icon: <LogOut size={14} />, label: "Log Out", labelAr: "تسجيل الخروج", onClick: () => onNavigate?.("logout") },
   ];
 
   return (
