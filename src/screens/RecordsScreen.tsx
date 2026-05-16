@@ -329,48 +329,77 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
           return (
             <div
               key={k}
-              className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left card-press"
+              className="w-full flex flex-col gap-2 p-3.5 rounded-xl text-left card-press"
               style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
             >
-              <button onClick={() => setSelectedDoc({ ...doc, titleEn: displayName })} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: doc.bgColor }}>
-                  {doc.emoji}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{displayName}</p>
-                    {doc.isNew && (
-                      <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "var(--gold)", color: "#fff" }}>NEW</span>
-                    )}
+              <div className="flex items-center gap-3">
+                <button onClick={() => setSelectedDoc({ ...doc, titleEn: displayName })} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: doc.bgColor }}>
+                    {doc.emoji}
                   </div>
-                  <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{doc.titleAr}</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: tb.bg, color: tb.color }}>{tb.label}</span>
-                    <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{doc.date}</span>
-                    {doc.pages && <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>· {doc.pages}p</span>}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{displayName}</p>
+                      {doc.isNew && (
+                        <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "var(--gold)", color: "#fff" }}>NEW</span>
+                      )}
+                    </div>
+                    <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{doc.titleAr}</p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: tb.bg, color: tb.color }}>{tb.label}</span>
+                      <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{doc.date}</span>
+                      {doc.pages && <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>· {doc.pages}p</span>}
+                    </div>
                   </div>
-                </div>
-              </button>
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNavigate?.("chat", `📄 اسأل عن: "${displayName}" — ${doc.titleAr}\n\nأريد معرفة تفاصيل هذا السجل الطبي. ما هي النتائج الرئيسية؟`);
-                  }}
-                  className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
-                  style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}
-                  title="Ask RufayQ about this record"
-                >
-                  <RufayQLogo size={13} variant="dark" />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); setMenuTarget({ doc, key: k }); }}
-                  className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
+                  className="w-7 h-7 rounded-full flex items-center justify-center btn-press shrink-0"
                   style={{ background: "var(--off-white)" }}
                   aria-label="More actions"
                 >
                   <MoreVertical size={14} style={{ color: "var(--gray)" }} />
                 </button>
+              </div>
+
+              {/* AI Buddy quick-ask row — opens RufayQ medical persona pre-loaded
+                  with this record as context. Three preset prompts cover the
+                  most common questions patients want answered on a card. */}
+              <div className="flex items-center gap-1.5 pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}
+                  aria-hidden
+                >
+                  <RufayQLogo size={11} variant="dark" />
+                </div>
+                <span className="text-[10px] font-bold tracking-wide shrink-0" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>AI Buddy</span>
+                <div className="flex-1 overflow-x-auto no-scrollbar flex items-center gap-1.5">
+                  {[
+                    { en: "Explain", ar: "اشرح",   prompt: `أريد شرحاً مبسطاً لهذا السجل الطبي:\n📄 "${displayName}" — ${doc.titleAr}\n(${doc.category}${doc.pages ? `, ${doc.pages} pages` : ""})\nاشرح النتائج الرئيسية ومعناها بلغة بسيطة.` },
+                    { en: "Key findings", ar: "أهم النتائج", prompt: `لخّص أهم النتائج والأرقام غير الطبيعية من هذا السجل:\n📄 "${displayName}" — ${doc.titleAr}\nاذكر التشخيصات والقيم الحرجة إن وُجدت.` },
+                    { en: "What to ask my doctor", ar: "أسئلة لطبيبي", prompt: `بناءً على هذا السجل:\n📄 "${displayName}" — ${doc.titleAr}\nاقترح 5 أسئلة مهمة يجب أن أطرحها على طبيبي في الزيارة القادمة.` },
+                  ].map((q) => (
+                    <button
+                      key={q.en}
+                      onClick={(e) => { e.stopPropagation(); onNavigate?.("chat", q.prompt); }}
+                      className="shrink-0 px-2.5 py-1 rounded-full text-[10.5px] font-semibold btn-press"
+                      style={{ background: "var(--teal-light)", color: "var(--teal-deep)", border: "1px solid rgba(15,181,201,0.25)" }}
+                    >
+                      {q.en}
+                    </button>
+                  ))}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onNavigate?.("chat", `📄 لدي سؤال عن: "${displayName}" — ${doc.titleAr}\n(${doc.category})\n\n`);
+                    }}
+                    className="shrink-0 px-2.5 py-1 rounded-full text-[10.5px] font-semibold btn-press flex items-center gap-1"
+                    style={{ background: "var(--gold)", color: "#fff" }}
+                  >
+                    Ask…
+                  </button>
+                </div>
               </div>
             </div>
           );

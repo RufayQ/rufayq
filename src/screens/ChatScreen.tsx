@@ -96,12 +96,15 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   }, [messages, isTyping]);
 
   // Handle incoming context from Records AI inquiry — route into medical AI.
+  // We pass the persona explicitly to sendMessage because `setPersona` is async
+  // and the stale closure would otherwise send `persona: null` to the gateway.
   useEffect(() => {
     if (initialContext && !contextProcessed) {
       setContextProcessed(true);
-      if (!persona) { setPersona("medical"); setMessages(makeGreeting("medical")); }
+      const targetPersona: ChatPersona = persona ?? "medical";
+      if (!persona) { setPersona(targetPersona); setMessages(makeGreeting(targetPersona)); }
       setView("ai");
-      sendMessage(initialContext);
+      sendMessage(initialContext, targetPersona);
       onClearContext?.();
     }
   }, [initialContext, contextProcessed, persona]);
@@ -147,8 +150,9 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
    */
   const MIN_TYPING_MS = 1800;
 
-  const sendMessage = async (text: string) => {
+  const sendMessage = async (text: string, personaOverride?: ChatPersona) => {
     if (!text.trim()) return;
+    const effectivePersona = personaOverride ?? persona;
 
     // ---- Guest mode: enforce 5/day locally before hitting the network ----
     if (isGuest) {
@@ -194,7 +198,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           "x-device-id": deviceId,
         },
-        body: JSON.stringify({ messages: apiMessages, persona }),
+        body: JSON.stringify({ messages: apiMessages, persona: effectivePersona }),
       });
 
       if (!resp.ok) {
