@@ -71,7 +71,7 @@ export function useGlobalChat(activeThreadId?: string | null) {
           // Suppress toast if user is actively reading this thread
           if (activeThreadId && activeThreadId === m.thread_id) return;
 
-          // Look up sender display name for a richer toast
+          // Look up sender display name for a richer overlay/toast
           const { data: senderRow } = await supabase
             .from("chat_participants")
             .select("display_name")
@@ -79,9 +79,17 @@ export function useGlobalChat(activeThreadId?: string | null) {
             .eq("device_id", m.sender_device_id ?? "")
             .maybeSingle();
           const who = senderRow?.display_name ?? "New message";
+
+          // Dispatch a global event consumed by <IncomingMessageOverlay/>.
+          // The overlay renders a WhatsApp-style heads-up card with quick reply.
+          window.dispatchEvent(new CustomEvent("rufayq:incoming-chat", {
+            detail: { threadId: m.thread_id, body: m.body, sender: who, messageId: m.id },
+          }));
+
+          // Fallback toast in case the overlay isn't mounted (defensive)
           toast.message(who, {
             description: m.body.length > 80 ? m.body.slice(0, 80) + "…" : m.body,
-            duration: 4500,
+            duration: 4000,
           });
         },
       )
