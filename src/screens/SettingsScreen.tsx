@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy, Sparkles, PlayCircle, CalendarClock, Plane, Hotel, Pill, Scan, FlaskConical, RotateCcw, Wallet } from "lucide-react";
+import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy, Sparkles, PlayCircle, CalendarClock, Plane, Hotel, Pill, Scan, FlaskConical, RotateCcw, Wallet, MessageSquare, AtSign, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage, type LangMode } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -91,6 +91,10 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const [autoBackup, setAutoBackup] = useState(stored.autoBackup ?? true);
   const [replayTourId, setReplayTourId] = useState<string | null>(null);
   const [currentUid, setCurrentUid] = useState<string | null>(null);
+  const [discoverByEmail, setDiscoverByEmail] = useState(false);
+  const [discoverByPhone, setDiscoverByPhone] = useState(false);
+  const [discoverEmail, setDiscoverEmail] = useState<string | null>(null);
+  const [discoverPhone, setDiscoverPhone] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -101,7 +105,33 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
       setBiometricAvailable(avail);
       setBiometricOn(enrolled);
     })();
+    (async () => {
+      const { data, error } = await supabase.rpc("get_chat_discovery");
+      if (!error && Array.isArray(data) && data[0]) {
+        setDiscoverByEmail(!!data[0].discoverable_by_email);
+        setDiscoverByPhone(!!data[0].discoverable_by_phone);
+        setDiscoverEmail(data[0].email ?? null);
+        setDiscoverPhone(data[0].phone ?? null);
+      }
+    })();
   }, []);
+
+  const toggleDiscovery = async (kind: "email" | "phone", next: boolean) => {
+    const byEmail = kind === "email" ? next : discoverByEmail;
+    const byPhone = kind === "phone" ? next : discoverByPhone;
+    if (kind === "email" && next && !discoverEmail) {
+      toast.error("Add an email to your profile first · أضف بريدك في الملف أولاً");
+      return;
+    }
+    if (kind === "phone" && next && !discoverPhone) {
+      toast.error("Add a phone to your profile first · أضف رقم هاتفك في الملف أولاً");
+      return;
+    }
+    const { error } = await supabase.rpc("set_chat_discovery", { _by_email: byEmail, _by_phone: byPhone });
+    if (error) { toast.error("Could not update · تعذر التحديث"); return; }
+    if (kind === "email") setDiscoverByEmail(next); else setDiscoverByPhone(next);
+    toast.success(next ? "Discoverable · مرئي" : "Hidden · مخفي");
+  };
 
   const toggleBiometric = async (next: boolean) => {
     if (!biometricAvailable) {
@@ -236,6 +266,32 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
               icon={<Moon size={15} style={{ color: "var(--gray)" }} />}
               label="Quiet Hours (10PM–7AM)" labelAr="ساعات الهدوء (١٠م–٧ص)"
               on={quietHours} onChange={update("quietHours", setQuietHours)}
+            />
+          </div>
+        </div>
+
+        {/* Chat Discovery */}
+        <div className="mx-4 mt-5">
+          <div className="flex items-center gap-2 mb-1.5 px-1">
+            <MessageSquare size={13} style={{ color: "var(--gold)" }} />
+            <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>CHAT DISCOVERY · اكتشاف الدردشة</p>
+          </div>
+          <p className="px-1 mb-2 text-[10px] leading-snug" style={{ color: "var(--gray)" }}>
+            Let other users find and message you by your exact email or phone.
+            <span className="font-arabic block" dir="rtl">السماح للآخرين بإيجادك ومراسلتك عبر بريدك أو هاتفك بالضبط.</span>
+          </p>
+          <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+            <ToggleRow
+              icon={<AtSign size={15} style={{ color: "var(--teal-deep)" }} />}
+              label={discoverEmail ? `Discoverable by email (${discoverEmail})` : "Discoverable by email"}
+              labelAr="مرئي عبر البريد"
+              on={discoverByEmail} onChange={(v) => toggleDiscovery("email", v)}
+            />
+            <ToggleRow
+              icon={<Phone size={15} style={{ color: "var(--gold)" }} />}
+              label={discoverPhone ? `Discoverable by phone (${discoverPhone})` : "Discoverable by phone"}
+              labelAr="مرئي عبر الهاتف"
+              on={discoverByPhone} onChange={(v) => toggleDiscovery("phone", v)} color="var(--gold)"
             />
           </div>
         </div>
