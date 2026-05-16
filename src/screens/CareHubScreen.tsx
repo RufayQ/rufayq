@@ -104,7 +104,43 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
         )}
       </div>
 
-      {!isGuest ? (
+      {/* Segmented switcher: Medical Care | Lifestyle */}
+      <div className="shrink-0 px-4 pt-3" style={{ background: "var(--off-white)" }}>
+        <div
+          role="tablist"
+          aria-label="Care Hub segment"
+          className="flex p-1 rounded-xl"
+          style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+        >
+          {([
+            { key: "medical" as const, icon: <Stethoscope size={13} />, en: "Medical Care", ar: "العناية الطبية" },
+            { key: "lifestyle" as const, icon: <HeartPulse size={13} />, en: "Lifestyle", ar: "أسلوب الحياة" },
+          ]).map((s) => {
+            const active = segment === s.key;
+            return (
+              <button
+                key={s.key}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setSegment(s.key)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold btn-press transition-all"
+                style={{
+                  background: active ? "var(--teal-deep)" : "transparent",
+                  color: active ? "#fff" : "var(--gray)",
+                }}
+              >
+                {s.icon}
+                <span>{s.en}</span>
+                <span className="font-arabic text-[10px] opacity-80" dir="rtl">· {s.ar}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {segment === "lifestyle" ? (
+        <LifestyleTabs onChat={handleBuddyChat} />
+      ) : !isGuest ? (
         <div className="flex-1 overflow-y-auto" style={{ background: "var(--off-white)" }}>
           <div className="px-5 py-10 text-center max-w-sm mx-auto">
             <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-4" style={{ background: "var(--teal-light)" }}>🩺</div>
