@@ -440,7 +440,13 @@ const Index = () => {
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
           case "carehub": return <CareHubScreen />;
           case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} onUpgrade={() => setAppView("pricing")} initialThreadId={pendingChatThreadId} onThreadHandled={() => setPendingChatThreadId(null)} />;
+          default:
+            // Defensive: never render an empty main shell if activeTab somehow
+            // lands on an unknown value — fall back to Home.
+            return <HomeScreen onNavigate={handleNavigate} onProfile={() => setAppView("profile")} isGuest={isGuest} />;
         }
+      default:
+        return null;
     }
   };
 
