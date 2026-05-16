@@ -467,10 +467,13 @@ const Index = () => {
         {/* Global notification center — visible on every main tab except home (home has its own in the header). */}
         {showNav && activeTab !== "home" && (
           <div className="absolute inset-0 pointer-events-none z-40">
-            <div className={`absolute top-2 pointer-events-auto ${activeTab === "chat" ? "right-16" : "right-3"}`}>
+            <div
+              className={`absolute pointer-events-auto ${activeTab === "chat" ? "right-16" : "right-3"}`}
+              style={{ top: 56 }}
+            >
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(6px)" }}
+                style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.22)", backdropFilter: "blur(6px)" }}
               >
                 <NotificationCenter
                   color="#fff"
