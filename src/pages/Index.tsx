@@ -32,7 +32,9 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import { useTourSystem } from "@/hooks/useTourSystem";
 import { usePatientBootstrap } from "@/hooks/usePatientBootstrap";
 import { useGlobalChat } from "@/hooks/useGlobalChat";
-import NotificationBell from "@/components/NotificationBell";
+import NotificationCenter from "@/components/NotificationCenter";
+import IncomingMessageOverlay from "@/components/chat/IncomingMessageOverlay";
+import PushPermissionPrompt from "@/components/PushPermissionPrompt";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
