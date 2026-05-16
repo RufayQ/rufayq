@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Star, Pin, Copy, Share2, Download, RefreshCw } from "lucide-react";
+import { ChevronDown, Star, Pin, Copy, Share2, Download, RefreshCw, Stethoscope, HeartPulse, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import StepDetailsPanel from "@/components/timeline/StepDetailsPanel";
@@ -11,8 +11,11 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import ProviderFeedCard from "@/components/ProviderFeedCard";
 import { useProviderFeed } from "@/hooks/useProviderFeed";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { useAppointments } from "@/hooks/useAppointments";
+import LifestyleTabs from "@/features/carehub/lifestyle/LifestyleTabs";
 
 type SubTab = "careplan" | "videos" | "education" | "faqs" | "nutrition" | "exercises";
+type Segment = "medical" | "lifestyle";
 
 const subTabs: { id: SubTab; emoji: string; en: string }[] = [
   { id: "careplan", emoji: "📋", en: "Care Plan" },
@@ -23,9 +26,15 @@ const subTabs: { id: SubTab; emoji: string; en: string }[] = [
   { id: "exercises", emoji: "🏃", en: "Exercises" },
 ];
 
-const CareHubScreen = () => {
+interface CareHubScreenProps {
+  onNavigate?: (tab: string, context?: string) => void;
+}
+
+const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
   const isGuest = useGuestMode();
+  const [segment, setSegment] = useState<Segment>("medical");
   const [activeTab, setActiveTab] = useState<SubTab>("careplan");
+  const handleBuddyChat = (context: string) => onNavigate?.("chat", context);
 
   const handleCopyCarePlan = () => {
     navigator.clipboard.writeText("Care Plan Summary\nPost-Op Day 5 · Knee Replacement\nStatus: On Track\n\nFollow your prescribed exercises, medications, and follow-up appointments.");
