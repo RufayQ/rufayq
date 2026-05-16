@@ -1,5 +1,5 @@
 import { useState } from "react";
-import RufayQLogo from "@/components/RufayQLogo";
+import RufayQWordmark from "@/components/RufayQWordmark";
 import RufayQWordmark from "@/components/RufayQWordmark";
 import BrandHero from "@/components/BrandHero";
 
