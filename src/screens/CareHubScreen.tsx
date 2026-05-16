@@ -690,6 +690,7 @@ const NutritionTab = () => {
 
 /* ─── EXERCISES ─── */
 const ExercisesTab = () => {
+  const authUserId = useAuthUserId();
   const [doneExercises, setDoneExercises] = useState<number[]>([]);
   const [expandedEx, setExpandedEx] = useState<number | null>(null);
 
