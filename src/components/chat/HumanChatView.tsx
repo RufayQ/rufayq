@@ -5,6 +5,7 @@ import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import MessageTicks from "./MessageTicks";
+import EmojiPicker from "./EmojiPicker";
 
 interface Props {
   threadId: string;
