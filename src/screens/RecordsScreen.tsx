@@ -225,6 +225,8 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
           )}
         </div>
       </div>
+      )}
+
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {/* Featured Discharge Pack */}
