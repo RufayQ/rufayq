@@ -18,6 +18,7 @@ import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { Share } from '@capacitor/share';
 import { Network } from '@capacitor/network';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 export const isNative = Capacitor.isNativePlatform();
 export const platform = Capacitor.getPlatform(); // 'web' | 'ios' | 'android'
