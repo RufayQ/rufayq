@@ -14,6 +14,7 @@ import HumanChatView from "@/components/chat/HumanChatView";
 import ConversationProfile from "@/components/chat/ConversationProfile";
 import type { ChatThreadRow } from "@/hooks/useChatInbox";
 import { supabase } from "@/integrations/supabase/client";
+import { pinChatHead } from "@/hooks/useActiveChatHead";
 
 interface ChatMessage {
   id: number;
