@@ -24,6 +24,7 @@ export type ParticipantRow = {
 export function useChatInbox() {
   const [threads, setThreads] = useState<ChatThreadRow[]>([]);
   const [participants, setParticipants] = useState<Record<string, ParticipantRow[]>>({});
+  const [unreadByThread, setUnreadByThread] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -33,9 +34,11 @@ export function useChatInbox() {
       .from("chat_participants")
       .select("thread_id, last_read_at")
       .eq("device_id", deviceId);
+    const lastReadByThread: Record<string, string | null> = {};
+    for (const p of myParts ?? []) lastReadByThread[p.thread_id] = p.last_read_at;
     const ids = (myParts ?? []).map((p) => p.thread_id);
     if (ids.length === 0) {
-      setThreads([]); setParticipants({}); setLoading(false); return;
+      setThreads([]); setParticipants({}); setUnreadByThread({}); setLoading(false); return;
     }
     const { data: tRows } = await supabase
       .from("chat_threads")
@@ -53,6 +56,23 @@ export function useChatInbox() {
       (byThread[p.thread_id] ||= []).push(p);
     }
     setParticipants(byThread);
+
+    // Compute unread counts per thread (messages from others after my last_read_at)
+    const unread: Record<string, number> = {};
+    await Promise.all(
+      ids.map(async (tid) => {
+        const since = lastReadByThread[tid] ?? new Date(0).toISOString();
+        const { count } = await supabase
+          .from("chat_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("thread_id", tid)
+          .is("deleted_at", null)
+          .neq("sender_device_id", deviceId)
+          .gt("created_at", since);
+        unread[tid] = count ?? 0;
+      }),
+    );
+    setUnreadByThread(unread);
     setLoading(false);
   }, []);
 
@@ -63,9 +83,12 @@ export function useChatInbox() {
       .channel("chat-inbox")
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_threads" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [load]);
 
-  return { threads, participants, loading, reload: load };
+  const totalUnread = Object.values(unreadByThread).reduce((a, b) => a + b, 0);
+
+  return { threads, participants, unreadByThread, totalUnread, loading, reload: load };
 }
