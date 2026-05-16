@@ -540,23 +540,21 @@ const Index = () => {
 
         {/* Global notification center — visible on every main tab except home (home has its own in the header). */}
         {showNav && activeTab !== "home" && (
-          <div className="absolute inset-0 pointer-events-none z-40">
-            <div
-              className={`absolute pointer-events-auto ${activeTab === "chat" ? "right-16" : "right-3"}`}
-              style={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
-            >
-              <NotificationCenter
-                color="hsl(var(--primary-foreground))"
-                onNavigate={(link) => {
-                  // Best-effort: route system-alert links via the existing deep-link parser
-                  try {
-                    const t = (window as unknown as { __rufayqRoute?: (l: string) => void }).__rufayqRoute;
-                    if (typeof t === "function") t(link);
-                  } catch { /* noop */ }
-                }}
-                onOpenThread={openChatThread}
-              />
-            </div>
+          <div
+            className={`absolute z-40 ${activeTab === "chat" ? "right-16" : "right-3"}`}
+            style={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+          >
+            <NotificationCenter
+              color="hsl(var(--primary-foreground))"
+              onNavigate={(link) => {
+                // Best-effort: route system-alert links via the existing deep-link parser
+                try {
+                  const t = (window as unknown as { __rufayqRoute?: (l: string) => void }).__rufayqRoute;
+                  if (typeof t === "function") t(link);
+                } catch { /* noop */ }
+              }}
+              onOpenThread={openChatThread}
+            />
           </div>
         )}
 
