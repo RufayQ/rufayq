@@ -2755,6 +2755,7 @@ export type Database = {
       profiles: {
         Row: {
           auth_providers: string[]
+          avatar_url: string | null
           contact_verification_status: string
           contact_verified: boolean
           created_at: string
@@ -2770,6 +2771,7 @@ export type Database = {
           gender: string | null
           google_email: string | null
           google_linked_at: string | null
+          google_picture_url: string | null
           google_sub: string | null
           id: string
           iqama_number: string | null
@@ -2786,6 +2788,7 @@ export type Database = {
         }
         Insert: {
           auth_providers?: string[]
+          avatar_url?: string | null
           contact_verification_status?: string
           contact_verified?: boolean
           created_at?: string
@@ -2801,6 +2804,7 @@ export type Database = {
           gender?: string | null
           google_email?: string | null
           google_linked_at?: string | null
+          google_picture_url?: string | null
           google_sub?: string | null
           id?: string
           iqama_number?: string | null
@@ -2817,6 +2821,7 @@ export type Database = {
         }
         Update: {
           auth_providers?: string[]
+          avatar_url?: string | null
           contact_verification_status?: string
           contact_verified?: boolean
           created_at?: string
@@ -2832,6 +2837,7 @@ export type Database = {
           gender?: string | null
           google_email?: string | null
           google_linked_at?: string | null
+          google_picture_url?: string | null
           google_sub?: string | null
           id?: string
           iqama_number?: string | null
