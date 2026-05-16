@@ -25,11 +25,11 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
       ? "رُفَيِّق الرئيسية"
       : "Home tab";
 
-  const sideTabs: { id: Tab; icon: typeof Map; labelEn: string; labelAr: string; isGold?: boolean }[] = [
+  const sideTabs: { id: Tab; icon: typeof Map; labelEn: string; labelAr: string }[] = [
     { id: "journey", icon: Map, labelEn: "Journey", labelAr: "رحلة" },
     { id: "records", icon: FileText, labelEn: "Records", labelAr: "السجلات" },
-    // center gap
-    { id: "carehub", icon: GraduationCap, labelEn: "Care Hub", labelAr: "العناية", isGold: true },
+    // center gap (raised Home button)
+    { id: "carehub", icon: GraduationCap, labelEn: "Care Hub", labelAr: "العناية" },
     { id: "chat", icon: MessageCircle, labelEn: "Chat", labelAr: "محادثة" },
   ];
 
@@ -37,10 +37,8 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
   const rightTabs = sideTabs.slice(2);
   const isHomeActive = active === "home";
 
-  const renderTab = ({ id, icon: Icon, labelEn, labelAr, isGold }: typeof sideTabs[0]) => {
+  const renderTab = ({ id, icon: Icon, labelEn, labelAr }: typeof sideTabs[0]) => {
     const isActive = active === id;
-    const activeColor = isGold && isActive ? "var(--gold)" : "var(--teal-deep)";
-    const indicatorColor = isGold ? "var(--gold)" : "var(--teal-deep)";
     const rawBadge = badges[id];
     const badgeCount = typeof rawBadge === "number" ? rawBadge : 0;
     const hasDot = rawBadge === true || badgeCount > 0;
@@ -49,20 +47,52 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
       <button
         key={id}
         onClick={() => onNavigate(id)}
-        className="flex flex-col items-center gap-0.5 relative btn-press"
+        className="flex flex-col items-center gap-1 relative btn-press"
         style={{ flex: 1, padding: "10px 4px 8px", background: "none", border: "none", cursor: "pointer" }}
         aria-label={tabAriaLabel(labelEn, labelAr)}
       >
-        <div className="absolute top-0 w-5 h-0.5 rounded-full transition-transform" style={{
-          background: indicatorColor,
-          transform: isActive ? "scaleX(1)" : "scaleX(0)",
-          transition: "transform 150ms ease-out",
-        }} />
-        <div className="relative">
-          <Icon size={22} strokeWidth={1.8} style={{ color: isActive ? activeColor : "var(--gray)" }} />
+        {/* Gold capsule indicator — premium brand accent, sits ABOVE the icon */}
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 rounded-full"
+          style={{
+            width: isActive ? 22 : 0,
+            height: 3,
+            background: "linear-gradient(90deg, var(--gold), #E8C078)",
+            boxShadow: isActive ? "0 0 8px rgba(197,150,90,0.55)" : "none",
+            opacity: isActive ? 1 : 0,
+            transition: "width 220ms ease-out, opacity 180ms ease-out",
+          }}
+        />
+
+        {/* Icon — active gets a teal medallion with gold ring; inactive is muted navy */}
+        <div
+          className="relative flex items-center justify-center"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 12,
+            background: isActive
+              ? "linear-gradient(135deg, var(--teal-deep), var(--navy))"
+              : "transparent",
+            boxShadow: isActive
+              ? "0 4px 12px rgba(0,77,91,0.28), inset 0 0 0 1.5px rgba(197,150,90,0.55)"
+              : "none",
+            transition: "background 220ms ease, box-shadow 220ms ease, transform 220ms ease",
+            transform: isActive ? "translateY(-2px)" : "translateY(0)",
+          }}
+        >
+          <Icon
+            size={isActive ? 19 : 21}
+            strokeWidth={isActive ? 2.2 : 1.7}
+            style={{
+              color: isActive ? "var(--gold)" : "var(--navy)",
+              opacity: isActive ? 1 : 0.55,
+              transition: "color 200ms ease, opacity 200ms ease",
+            }}
+          />
           {badgeCount > 0 ? (
             <div
-              className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold flex items-center justify-center"
+              className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold flex items-center justify-center"
               style={{
                 background: "var(--error)",
                 color: "#fff",
@@ -73,29 +103,35 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
               {badgeCount > 99 ? "99+" : badgeCount}
             </div>
           ) : hasDot ? (
-            <div className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full" style={{
-              background: "var(--error)",
+            <div className="absolute top-0 right-0 w-2 h-2 rounded-full" style={{
+              background: "var(--gold)",
               border: "1.5px solid var(--white)",
+              boxShadow: "0 0 4px rgba(197,150,90,0.6)",
             }} />
           ) : null}
         </div>
+
         {showEn && (
           <span className="font-medium" style={{
-            color: isActive ? activeColor : "var(--gray)",
-            letterSpacing: "0.5px",
+            color: isActive ? "var(--teal-deep)" : "var(--navy)",
+            opacity: isActive ? 1 : 0.55,
+            letterSpacing: "0.4px",
             fontSize: 9,
             fontFamily: "'DM Sans', sans-serif",
+            transition: "color 200ms ease, opacity 200ms ease",
           }}>
             {labelEn}
           </span>
         )}
         {showAr && (
           <span className="font-arabic" dir="rtl" style={{
-            color: isActive ? activeColor : "var(--gray)",
+            color: isActive ? "var(--teal-deep)" : "var(--navy)",
+            opacity: isActive ? 1 : 0.55,
             fontSize: 9,
             fontWeight: 500,
             fontFamily: "'Noto Naskh Arabic', serif",
             lineHeight: 1.1,
+            transition: "color 200ms ease, opacity 200ms ease",
           }}>
             {labelAr}
           </span>
@@ -105,44 +141,63 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
   };
 
   return (
-    <div className="relative flex items-end justify-around shrink-0" style={{
-      background: "var(--white)",
-      borderTop: "1px solid var(--gray-light)",
-      height: 64,
-      paddingBottom: "env(safe-area-inset-bottom, 0px)",
-      overflow: "visible",
-      zIndex: 20,
-    }}>
+    <div
+      className="relative flex items-end justify-around shrink-0"
+      style={{
+        // Soft cream → white wash so the gold/teal accents sit on warm paper, not stark white
+        background: "linear-gradient(180deg, var(--off-white) 0%, var(--white) 60%)",
+        borderTop: "1px solid rgba(197,150,90,0.25)",
+        boxShadow: "0 -8px 24px rgba(11,42,58,0.06)",
+        height: 64,
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        overflow: "visible",
+        zIndex: 20,
+      }}
+    >
+      {/* Hairline gold accent line — the brand "thread" across the nav */}
+      <div
+        className="absolute left-0 right-0"
+        style={{
+          top: 0,
+          height: 1,
+          background: "linear-gradient(90deg, transparent 0%, rgba(197,150,90,0.45) 50%, transparent 100%)",
+          pointerEvents: "none",
+        }}
+      />
+
       {/* Left tabs */}
       {leftTabs.map(renderTab)}
 
-      {/* Center Home Button - raised */}
+      {/* Center Home Button - raised, gold ring + teal core */}
       <div className="flex flex-col items-center" style={{ flex: 1 }}>
         <button
           onClick={() => onNavigate("home")}
           className="flex items-center justify-center btn-press"
           style={{
-            width: 50,
-            height: 50,
+            width: 54,
+            height: 54,
             borderRadius: "50%",
             background: isHomeActive
-              ? "linear-gradient(135deg, var(--teal-deep), var(--navy))"
-              : "var(--white)",
-            border: isHomeActive ? "2.5px solid var(--gold)" : "2px solid var(--gray-light)",
+              ? "linear-gradient(135deg, var(--teal-deep) 0%, var(--navy) 100%)"
+              : "linear-gradient(135deg, #FFFFFF 0%, var(--off-white) 100%)",
+            border: isHomeActive
+              ? "2.5px solid var(--gold)"
+              : "2px solid rgba(197,150,90,0.45)",
             boxShadow: isHomeActive
-              ? "0 4px 16px rgba(0,77,91,0.35), 0 0 0 3px rgba(197,150,90,0.15)"
-              : "0 2px 8px rgba(0,0,0,0.08)",
-            marginTop: -20,
+              ? "0 6px 20px rgba(0,77,91,0.4), 0 0 0 4px rgba(197,150,90,0.18), inset 0 1px 0 rgba(255,255,255,0.15)"
+              : "0 3px 10px rgba(11,42,58,0.12), inset 0 1px 0 rgba(255,255,255,0.8)",
+            marginTop: -22,
             marginBottom: 2,
-            transition: "all 200ms ease",
+            transition: "all 220ms ease",
           }}
           aria-label={homeAriaLabel}
         >
-          <RufayQLogo size={24} variant={isHomeActive ? "light" : "dark"} />
+          <RufayQLogo size={26} variant={isHomeActive ? "light" : "dark"} />
         </button>
         {showEn && (
           <span style={{
-            color: isHomeActive ? "var(--teal-deep)" : "var(--gray)",
+            color: isHomeActive ? "var(--teal-deep)" : "var(--navy)",
+            opacity: isHomeActive ? 1 : 0.6,
             fontSize: 9,
             fontWeight: 600,
             fontFamily: "'DM Sans', sans-serif",
@@ -153,7 +208,8 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
         )}
         {showAr && (
           <span className="font-arabic lang-keep" dir="rtl" style={{
-            color: isHomeActive ? "var(--teal-deep)" : "var(--gray)",
+            color: isHomeActive ? "var(--teal-deep)" : "var(--navy)",
+            opacity: isHomeActive ? 1 : 0.6,
             fontSize: 9,
             fontWeight: 600,
             fontFamily: "'Noto Naskh Arabic', serif",
