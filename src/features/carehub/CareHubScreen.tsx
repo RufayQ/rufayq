@@ -12,12 +12,12 @@ export type CareHubSubTab =
   | "careplan" | "videos" | "education" | "faqs" | "nutrition" | "exercises";
 
 export interface CareHubScreenProps {
-  /** Reserved for future cross-tab nav (e.g. open scanner from a card). */
+  /** Cross-tab navigation, e.g. AI Buddy deep-link into Chat with context. */
   onNavigate?: (tab: string, context?: string) => void;
 }
 
-const CareHubScreen = (_props: CareHubScreenProps = {}) => {
-  return <CareHubScreenInner />;
+const CareHubScreen = (props: CareHubScreenProps = {}) => {
+  return <CareHubScreenInner onNavigate={props.onNavigate} />;
 };
 
 export default CareHubScreen;
