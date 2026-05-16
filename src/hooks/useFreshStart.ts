@@ -114,7 +114,13 @@ export const useFreshStart = () => {
 
   const markTourDone = useCallback(() => {
     if (!userId) return;
-    try { localStorage.setItem(TOUR_PREFIX + userId, "1"); } catch { /* noop */ }
+    try {
+      localStorage.setItem(TOUR_PREFIX + userId, "1");
+      // Clear the "fresh" flag too — once the tour is done, this account is
+      // returning. The user can still replay the tour from Settings.
+      localStorage.removeItem(FRESH_PREFIX + userId);
+    } catch { /* noop */ }
+    setIsFresh(false);
     setTourPending(false);
   }, [userId]);
 
