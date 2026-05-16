@@ -774,6 +774,11 @@ const ExercisesTab = () => {
                   }}>
                   {isDone ? "✓ Done · تم" : "Mark as Done · تم"}
                 </button>
+                <StepDetailsPanel
+                  stepRef={`carehub:exercise:${slugify(ex.name)}`}
+                  timelineKind="carehub"
+                  userId={authUserId}
+                />
               </div>
             )}
           </div>
