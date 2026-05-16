@@ -406,6 +406,36 @@ const Index = () => {
     }
   };
 
+  /**
+   * Tab-failure safety net.
+   * We remember the last screen that rendered successfully and, if the active
+   * one throws, we restore the user there with a friendly bilingual toast so
+   * they never get stranded on a blank screen.
+   */
+  const lastGoodRef = useRef<{ appView: AppView; activeTab: Tab }>({
+    appView: "main",
+    activeTab: "home",
+  });
+  useEffect(() => {
+    lastGoodRef.current = { appView, activeTab };
+  }, [appView, activeTab]);
+
+  const handleTabRenderError = useCallback((key: string, error: Error) => {
+    console.error("[tab-fallback] render failed", key, error);
+    const prev = lastGoodRef.current;
+    const sameAsCurrent = `${prev.appView}:${prev.activeTab}` === key;
+    const fallbackView: AppView = sameAsCurrent ? "main" : prev.appView;
+    const fallbackTab: Tab = sameAsCurrent ? "home" : prev.activeTab;
+    setShowScanner(false);
+    setPendingChatThreadId(null);
+    setAppView(fallbackView);
+    setActiveTab(fallbackTab);
+    toast.error("We hit a snag loading that screen", {
+      description: "تعذّر فتح هذه الشاشة — أعدناك إلى آخر مكان عملت فيه",
+      duration: 4500,
+    });
+  }, []);
+
   const renderContent = () => {
     switch (appView) {
       case "onboarding":
