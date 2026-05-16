@@ -28,7 +28,7 @@ import { useAppointments } from "@/hooks/useAppointments";
 import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/useProviderAppointments";
 import UnifiedTimeline from "@/components/journey/UnifiedTimeline";
-import HelicopterCanvas from "@/components/journey/HelicopterCanvas";
+import HelicopterTimelineRail from "@/components/journey/HelicopterTimelineRail";
 import MilestoneSheet, { type SheetItem } from "@/components/journey/MilestoneSheet";
 import OtherJourneysList from "@/components/journey/OtherJourneysList";
 import EmptyJourneyCard from "@/components/journey/EmptyJourneyCard";
@@ -923,7 +923,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
           <>
             {activeTrip ? (
               <>
-                 <HelicopterCanvas
+                 <HelicopterTimelineRail
                   milestones={overview.milestones}
                   selectedId={selectedMilestoneId}
                   onSelect={handleMilestoneSelect}

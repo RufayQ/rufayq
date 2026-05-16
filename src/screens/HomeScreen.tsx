@@ -5,6 +5,8 @@ import { toast } from "sonner";
 
 import { usePatientName } from "@/hooks/usePatientName";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
+import { useJourneys } from "@/hooks/useJourneys";
+import { useMedicalRecords } from "@/hooks/useMedicalRecords";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
@@ -12,6 +14,7 @@ import TodayCard from "@/components/home/TodayCard";
 import JourneyConstellation from "@/components/home/JourneyConstellation";
 import AlertsStack from "@/components/home/AlertsStack";
 import QuickActionsGrid from "@/components/home/QuickActionsGrid";
+import HomeStatsGrid from "@/components/home/HomeStatsGrid";
 import { derivePhase } from "@/components/home/journeyPhase";
 import ProfileCompletionBanner from "@/components/ProfileCompletionBanner";
 
@@ -25,11 +28,20 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const { patientName, patientNameAr } = usePatientName();
   const { showEn, showAr } = useLanguage();
   const overview = useJourneyOverview({ isGuest });
+  const { journeys } = useJourneys(isGuest ? [] : []);
+  const { items: recordItems } = useMedicalRecords();
   const [notificationOpen, setNotificationOpen] = useState(false);
   const {
-    activeTrip, milestones, alerts, dayN, totalDays,
+    activeTrip, milestones, alerts, dayN, totalDays, upcomingAppointments,
   } = overview;
   const phase = activeTrip ? derivePhase(dayN, totalDays) : undefined;
+
+  const stats = useMemo(() => ({
+    trips: journeys.length || (activeTrip ? 1 : 0),
+    reminders: alerts.length,
+    records: recordItems.length,
+    plannedAhead: upcomingAppointments.length,
+  }), [journeys.length, activeTrip, alerts.length, recordItems.length, upcomingAppointments.length]);
 
   // Default selection: the "current" milestone (or first upcoming, then first).
   const defaultSelectedId = useMemo(() => {
@@ -88,6 +100,14 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
           overview={overview}
           onOpenJourney={() => onNavigate("journey", "view")}
           onPlanFirstTrip={() => onNavigate("journey", "new-trip")}
+        />
+
+        <HomeStatsGrid
+          trips={stats.trips}
+          reminders={stats.reminders}
+          records={stats.records}
+          plannedAhead={stats.plannedAhead}
+          onNavigate={(tab) => onNavigate(tab)}
         />
 
         {activeTrip && (
