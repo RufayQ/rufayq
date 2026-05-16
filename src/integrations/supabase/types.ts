@@ -7619,6 +7619,15 @@ export type Database = {
           rufayq_id: string
         }[]
       }
+      get_chat_discovery: {
+        Args: never
+        Returns: {
+          discoverable_by_email: boolean
+          discoverable_by_phone: boolean
+          email: string
+          phone: string
+        }[]
+      }
       get_or_create_wallet: {
         Args: { _currency?: string; _device_id: string; _user_id: string }
         Returns: string
@@ -7737,6 +7746,10 @@ export type Database = {
           checked: number
           flagged: number
         }[]
+      }
+      set_chat_discovery: {
+        Args: { _by_email: boolean; _by_phone: boolean }
+        Returns: undefined
       }
       start_ai_chat: {
         Args: { _force_new?: boolean; _persona: string }
