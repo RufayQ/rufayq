@@ -196,17 +196,26 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
    * the same UX guarantee without duplicating the branch.
    */
   function resolvePendingMilestone(id: string) {
-    const exists = overview.milestones.some((m) => m.id === id);
-    if (exists) {
+    const m = overview.milestones.find((x) => x.id === id);
+    if (m) {
       userSelectedRef.current = true;
       setSelectedMilestoneId(id);
+      // Route the deep-link to the milestone's natural detail surface so
+      // tapping a flight on Home opens its ticket, tapping an appointment
+      // opens that appointment row, etc. Mirrors MilestoneSheet.onOpenMilestone.
+      if (m.kind === "departure" || m.kind === "return") {
+        setActiveSubTab("tickets");
+      } else if (m.kind === "appointment" || m.kind === "treatment" || m.kind === "followup") {
+        setActiveSubTab("appointments");
+        setPendingAppointmentScrollId(m.refId);
+      } else {
+        setActiveSubTab("overview");
+      }
       return;
     }
     toast("Milestone not found · لم يتم العثور على المحطة", {
       description: "Showing your current step instead · يتم عرض خطوتك الحالية بدلاً من ذلك",
     });
-    // Mark as user-initiated so the default-selection effect's pick
-    // (current → upcoming → first) triggers scrollIntoView + sheet expansion.
     userSelectedRef.current = true;
     setSelectedMilestoneId(null);
   }
