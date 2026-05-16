@@ -1,6 +1,7 @@
 import { Map, FileText, GraduationCap, MessageCircle } from "lucide-react";
 import RufayQLogo from "@/components/RufayQLogo";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { hapticTap } from "@/lib/native";
 
 type Tab = 'home' | 'journey' | 'records' | 'carehub' | 'chat';
 
