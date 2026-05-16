@@ -190,6 +190,24 @@ const Index = () => {
     activeTab === "chat" ? activeHumanThreadId : null,
   );
 
+  const contentSwipeRef = useRef<HTMLDivElement>(null);
+  const swipeToTab = useCallback(
+    (dir: 1 | -1) => {
+      setActiveTab((current) => {
+        const idx = TAB_ORDER.indexOf(current);
+        if (idx === -1) return current;
+        const nextIdx = idx + dir;
+        if (nextIdx < 0 || nextIdx >= TAB_ORDER.length) return current;
+        return TAB_ORDER[nextIdx];
+      });
+    },
+    [],
+  );
+  useSwipeNavigation(contentSwipeRef, {
+    enabled: appView === "main" && !showScanner,
+    onSwipeLeft: () => swipeToTab(1),
+    onSwipeRight: () => swipeToTab(-1),
+  });
   const handleOnboardingComplete = () => {
     localStorage.setItem("rufayq_onboarded", "true");
     // Route to role selector first; sign-in follows.
