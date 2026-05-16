@@ -409,15 +409,21 @@ const Index = () => {
   const showStatusBar = appView !== "onboarding";
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--phone-frame)" }}>
+    <div className="flex items-center justify-center" style={{ background: "var(--phone-frame)", minHeight: "100dvh" }}>
       <div
-        className="relative flex flex-col overflow-hidden max-[500px]:!w-full max-[500px]:!h-screen max-[500px]:!rounded-none max-[500px]:!shadow-none"
+        className="relative flex flex-col overflow-hidden max-[500px]:!w-full max-[500px]:!rounded-none max-[500px]:!shadow-none"
         style={{
           width: 390,
-          height: "min(844px, calc(100vh - 48px))",
+          height: "min(844px, calc(100dvh - 48px))",
           borderRadius: 44,
           background: "#000",
           boxShadow: "0 40px 120px rgba(0,0,0,0.7), 0 0 0 8px var(--phone-ring), 0 0 0 10px var(--phone-frame)",
+        }}
+        ref={(el) => {
+          if (el && window.matchMedia("(max-width: 500px)").matches) {
+            el.style.height = "100dvh";
+            el.style.width = "100%";
+          }
         }}
       >
         {showStatusBar && (
