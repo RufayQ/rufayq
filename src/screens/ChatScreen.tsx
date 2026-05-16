@@ -9,6 +9,9 @@ import { quickPrompts } from "@/constants/data";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { useGuestCredits } from "@/hooks/useGuestCredits";
+import ChatInbox from "@/components/chat/ChatInbox";
+import HumanChatView from "@/components/chat/HumanChatView";
+import type { ChatThreadRow } from "@/hooks/useChatInbox";
 
 interface ChatMessage {
   id: number;
