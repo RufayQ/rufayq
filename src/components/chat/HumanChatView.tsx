@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { useResolvedContact } from "@/hooks/useResolvedContact";
 import MessageTicks from "./MessageTicks";
 import EmojiPicker from "./EmojiPicker";
 
