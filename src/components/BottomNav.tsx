@@ -7,7 +7,8 @@ type Tab = 'home' | 'journey' | 'records' | 'carehub' | 'chat';
 interface BottomNavProps {
   active: Tab;
   onNavigate: (tab: Tab) => void;
-  badges?: Partial<Record<Tab, boolean>>;
+  /** `true` shows a small dot; a number shows a count pill (WhatsApp style). */
+  badges?: Partial<Record<Tab, boolean | number>>;
 }
 
 const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
