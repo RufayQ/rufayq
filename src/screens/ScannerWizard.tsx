@@ -1398,14 +1398,33 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-              {(genericFields ?? []).map((f, i) => (
-                <div key={i}>
-                  <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{f.label}</p>
-                  <p className="text-[13px] font-bold" style={{ color: "var(--navy)" }}>{f.value}</p>
+            <>
+              <div className="mb-3 rounded-lg px-3 py-2 flex items-start gap-2" style={{ background: "var(--gold-pale, #FBF3E8)", border: "1px solid rgba(197,150,90,0.3)" }}>
+                <span className="text-[13px] leading-none mt-0.5">ℹ️</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>
+                    AI auto-extraction is optimized for flight tickets only right now.
+                  </p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>
+                    الاستخراج التلقائي متاح حاليًا لتذاكر الطيران فقط — يرجى إدخال التفاصيل يدويًا أدناه.
+                  </p>
                 </div>
-              ))}
-            </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                {(genericFields ?? []).map((f, i) => (
+                  <EditableField
+                    key={`${category}-${i}-${f.label}`}
+                    label={f.label}
+                    value={f.value}
+                    onChange={(v) => {
+                      setGenericFields((prev) =>
+                        (prev ?? []).map((field, idx) => (idx === i ? { ...field, value: v } : field))
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -1428,6 +1447,32 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
           />
         );
       })()}
+
+      {/* Clear & enter manually — always available so users can flush AI output */}
+      {(ocrStatus === "success" || ocrStatus === "failed") && (
+        <div className="px-5 mt-3">
+          <button
+            onClick={() => {
+              // Wipe every AI-derived field across both flight + generic schemas.
+              setOutboundFields(emptyFlightFields());
+              setReturnFields(null);
+              setOutboundSegs([]);
+              setReturnSegs([]);
+              setActiveLeg("outbound");
+              setGenericFields(emptyGenericFields(category));
+              setSaveError(null);
+              emitParsed(null);
+              if (category === "flight") {
+                setShowManualSheet(true);
+              }
+            }}
+            className="w-full py-2.5 rounded-xl text-[12px] font-bold btn-press flex items-center justify-center gap-2"
+            style={{ background: "var(--white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+          >
+            🧹 Clear & enter manually · <span className="font-arabic">امسح وأدخل يدويًا</span>
+          </button>
+        </div>
+      )}
 
       {/* Edit note */}
       <div className="flex items-center gap-2 px-5 mt-3">
