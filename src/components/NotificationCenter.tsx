@@ -158,9 +158,9 @@ const NotificationCenter = ({ color = "#fff", onNavigate, onOpenThread, open: op
                       </span>
                     </div>
                     {t.last_message_preview && (
-                      <p className="text-xs opacity-70 truncate mt-0.5">{t.last_message_preview}</p>
+                      <p className="text-xs truncate mt-0.5" style={{ color: "var(--ink)", opacity: 0.7 }}>{t.last_message_preview}</p>
                     )}
-                    <p className="text-[10px] mt-1 opacity-50">{new Date(t.last_message_at).toLocaleString()}</p>
+                    <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>{new Date(t.last_message_at).toLocaleString()}</p>
                   </div>
                 </button>
               );
