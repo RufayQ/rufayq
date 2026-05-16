@@ -146,7 +146,7 @@ const HeaderMenu = ({ items, title = "Menu", titleAr = "القائمة" }: Heade
                 )}
               </div>
               <button
-                onClick={() => setOpen(false)}
+                onClick={close}
                 className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
                 style={{ background: "var(--off-white)" }}
                 aria-label="Close"
@@ -163,7 +163,7 @@ const HeaderMenu = ({ items, title = "Menu", titleAr = "القائمة" }: Heade
               {items.map((item, i) => (
                 <button
                   key={i}
-                  onClick={() => { item.onClick(); setOpen(false); }}
+                  onClick={() => { haptic(8); item.onClick(); close(); }}
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left btn-press"
                   style={{
                     color: item.danger ? "var(--error)" : "var(--navy)",
