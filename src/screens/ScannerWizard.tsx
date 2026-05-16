@@ -817,19 +817,21 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
     emitParsed(null);
 
     async function run() {
-      // Non-flight: keep the existing fake animated flow
+      // Non-flight: we don't yet have category-specific AI extractors, so
+      // produce an EMPTY editable schema (no fake "Saudia / CBC / Ibuprofen"
+      // placeholder data) and let the user fill or clear it manually.
       if (!realFile || category !== "flight") {
         setOcrStatus("scanning");
         const t = [
-          setTimeout(() => !cancelRef.current && setProcessStep(1), 700),
-          setTimeout(() => !cancelRef.current && setProcessStep(2), 1500),
-          setTimeout(() => !cancelRef.current && setProcessStep(3), 2400),
-          setTimeout(() => !cancelRef.current && setProcessStep(4), 3200),
+          setTimeout(() => !cancelRef.current && setProcessStep(1), 350),
+          setTimeout(() => !cancelRef.current && setProcessStep(2), 700),
+          setTimeout(() => !cancelRef.current && setProcessStep(3), 1100),
+          setTimeout(() => !cancelRef.current && setProcessStep(4), 1500),
           setTimeout(() => {
             if (cancelRef.current || runRef.current !== myRun) return;
-            setGenericFields(extractedFieldsByCategory[category || ""] ?? null);
+            setGenericFields(emptyGenericFields(category));
             setOcrStatus("success");
-          }, 4000),
+          }, 1800),
         ];
         return () => t.forEach(clearTimeout);
       }
