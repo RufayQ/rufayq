@@ -112,12 +112,12 @@ const NotificationCenter = ({ color = "#fff", onNavigate, onOpenThread, open: op
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2" style={{ color: "var(--ink)" }}>
             {displayedThreads.length === 0 && displayedAlerts.length === 0 && (
-              <div className="text-center py-16">
-                <Bell size={32} className="mx-auto opacity-30 mb-3" />
-                {showEn && <p className="text-sm opacity-60">You're all caught up</p>}
-                {showAr && <p className="text-xs opacity-40 mt-1" dir="rtl">لا توجد تنبيهات جديدة</p>}
+              <div className="text-center py-16" style={{ color: "var(--gray)" }}>
+                <Bell size={32} className="mx-auto mb-3" style={{ color: "var(--teal-deep)", opacity: 0.55 }} />
+                {showEn && <p className="text-sm font-semibold" style={{ color: "var(--navy)" }}>You're all caught up</p>}
+                {showAr && <p className="text-xs mt-1 font-arabic" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد تنبيهات جديدة</p>}
               </div>
             )}
 
