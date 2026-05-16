@@ -63,6 +63,9 @@ const MilestoneSheet = ({
   onReschedule,
   onOpenMilestone,
   onShowAll,
+  flightTicketId,
+  flightSegmentRef,
+  userId,
 }: MilestoneSheetProps) => {
   if (!milestone) return null;
   const visible = items.slice(0, 4);
