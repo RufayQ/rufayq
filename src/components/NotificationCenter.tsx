@@ -112,12 +112,12 @@ const NotificationCenter = ({ color = "#fff", onNavigate, onOpenThread, open: op
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2" style={{ color: "var(--ink)" }}>
             {displayedThreads.length === 0 && displayedAlerts.length === 0 && (
-              <div className="text-center py-16">
-                <Bell size={32} className="mx-auto opacity-30 mb-3" />
-                {showEn && <p className="text-sm opacity-60">You're all caught up</p>}
-                {showAr && <p className="text-xs opacity-40 mt-1" dir="rtl">لا توجد تنبيهات جديدة</p>}
+              <div className="text-center py-16" style={{ color: "var(--gray)" }}>
+                <Bell size={32} className="mx-auto mb-3" style={{ color: "var(--teal-deep)", opacity: 0.55 }} />
+                {showEn && <p className="text-sm font-semibold" style={{ color: "var(--navy)" }}>You're all caught up</p>}
+                {showAr && <p className="text-xs mt-1 font-arabic" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد تنبيهات جديدة</p>}
               </div>
             )}
 
@@ -158,9 +158,9 @@ const NotificationCenter = ({ color = "#fff", onNavigate, onOpenThread, open: op
                       </span>
                     </div>
                     {t.last_message_preview && (
-                      <p className="text-xs opacity-70 truncate mt-0.5">{t.last_message_preview}</p>
+                      <p className="text-xs truncate mt-0.5" style={{ color: "var(--ink)", opacity: 0.7 }}>{t.last_message_preview}</p>
                     )}
-                    <p className="text-[10px] mt-1 opacity-50">{new Date(t.last_message_at).toLocaleString()}</p>
+                    <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>{new Date(t.last_message_at).toLocaleString()}</p>
                   </div>
                 </button>
               );
@@ -189,9 +189,9 @@ const NotificationCenter = ({ color = "#fff", onNavigate, onOpenThread, open: op
                 </div>
                 <div className="flex-1 min-w-0">
                   {showEn && <p className="font-semibold text-sm" style={{ color: "var(--navy)" }}>{n.title}</p>}
-                  {showAr && n.title_ar && <p className="text-xs mt-0.5" dir="rtl" style={{ color: "var(--gold)" }}>{n.title_ar}</p>}
-                  {n.body && <p className="text-xs mt-1 opacity-70">{n.body}</p>}
-                  <p className="text-[10px] mt-1 opacity-50">{new Date(n.created_at).toLocaleString()}</p>
+                  {showAr && n.title_ar && <p className="text-xs mt-0.5 font-arabic" dir="rtl" style={{ color: "var(--gold)" }}>{n.title_ar}</p>}
+                  {n.body && <p className="text-xs mt-1" style={{ color: "var(--ink)", opacity: 0.75 }}>{n.body}</p>}
+                  <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>{new Date(n.created_at).toLocaleString()}</p>
                 </div>
               </button>
             ))}
