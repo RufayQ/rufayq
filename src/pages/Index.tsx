@@ -35,6 +35,7 @@ import { useGlobalChat } from "@/hooks/useGlobalChat";
 import NotificationCenter from "@/components/NotificationCenter";
 import IncomingMessageOverlay from "@/components/chat/IncomingMessageOverlay";
 import PushPermissionPrompt from "@/components/PushPermissionPrompt";
+import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
