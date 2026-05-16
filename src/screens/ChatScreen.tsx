@@ -11,6 +11,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import { useGuestCredits } from "@/hooks/useGuestCredits";
 import ChatInbox from "@/components/chat/ChatInbox";
 import HumanChatView from "@/components/chat/HumanChatView";
+import ConversationProfile from "@/components/chat/ConversationProfile";
 import type { ChatThreadRow } from "@/hooks/useChatInbox";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -68,12 +69,12 @@ const makeGreeting = (persona: ChatPersona): ChatMessage[] => [
   { id: 1, text: PERSONAS[persona].greeting, sender: "ai", time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) },
 ];
 
-const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, initialThreadId, onThreadHandled }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void; onUpgrade?: () => void; initialThreadId?: string | null; onThreadHandled?: () => void }) => {
+const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, initialThreadId, onThreadHandled, onActiveHumanThreadChange }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void; onUpgrade?: () => void; initialThreadId?: string | null; onThreadHandled?: () => void; onActiveHumanThreadChange?: (threadId: string | null) => void }) => {
   const isGuest = useGuestMode();
   const { remaining: guestRemaining, limit: guestLimit, isExhausted: guestExhausted, resetsAt: guestResetsAt, consume: consumeGuestCredit } = useGuestCredits();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeCtx, setUpgradeCtx] = useState<{ variant: "guest" | "subscriber"; plan?: string; resetsAt?: Date | string | null }>({ variant: "guest", resetsAt: null });
-  const [view, setView] = useState<"inbox" | "ai" | "human">("inbox");
+  const [view, setView] = useState<"inbox" | "ai" | "human" | "profile">("inbox");
   const [humanThread, setHumanThread] = useState<ChatThreadRow | null>(null);
   const [persona, setPersona] = useState<ChatPersona | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -94,6 +95,13 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  // Report which human thread (if any) is currently open so the parent can
+  // suppress its floating chat-head bubble for that thread.
+  useEffect(() => {
+    const id = (view === "human" || view === "profile") && humanThread ? humanThread.id : null;
+    onActiveHumanThreadChange?.(id);
+  }, [view, humanThread, onActiveHumanThreadChange]);
 
   // Handle incoming context from Records AI inquiry — route into medical AI.
   // We pass the persona explicitly to sendMessage because `setPersona` is async
@@ -411,6 +419,26 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         subtitle={subtitle}
         kind={humanThread.kind === "provider" ? "provider" : "direct"}
         onBack={() => { setHumanThread(null); setView("inbox"); }}
+        onOpenProfile={() => setView("profile")}
+        onMinimize={() => {
+          try {
+            window.dispatchEvent(new CustomEvent("rufayq:chathead-pin", { detail: humanThread.id }));
+          } catch { /* ignore */ }
+          setHumanThread(null);
+          setView("inbox");
+        }}
+      />
+    );
+  }
+
+  // Conversation profile (contact info) overlay.
+  if (view === "profile" && humanThread) {
+    return (
+      <ConversationProfile
+        threadId={humanThread.id}
+        title={humanThread.title ?? "Conversation"}
+        kind={humanThread.kind === "provider" ? "provider" : "direct"}
+        onBack={() => setView("human")}
       />
     );
   }

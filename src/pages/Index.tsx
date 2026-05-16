@@ -34,6 +34,7 @@ import { usePatientBootstrap } from "@/hooks/usePatientBootstrap";
 import { useGlobalChat } from "@/hooks/useGlobalChat";
 
 import IncomingMessageOverlay from "@/components/chat/IncomingMessageOverlay";
+import ChatHeadBubble from "@/components/chat/ChatHeadBubble";
 import PushPermissionPrompt from "@/components/PushPermissionPrompt";
 import TabErrorBoundary from "@/components/TabErrorBoundary";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
@@ -158,6 +159,7 @@ const Index = () => {
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
   const [pendingChatThreadId, setPendingChatThreadId] = useState<string | null>(null);
+  const [activeHumanThreadId, setActiveHumanThreadId] = useState<string | null>(null);
   const openChatThread = useCallback((threadId: string) => {
     setPendingChatThreadId(threadId);
     setActiveTab("chat");
@@ -470,7 +472,7 @@ const Index = () => {
           );
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
           case "carehub": return <CareHubScreen />;
-          case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} onUpgrade={() => setAppView("pricing")} initialThreadId={pendingChatThreadId} onThreadHandled={() => setPendingChatThreadId(null)} />;
+          case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} onUpgrade={() => setAppView("pricing")} initialThreadId={pendingChatThreadId} onThreadHandled={() => setPendingChatThreadId(null)} onActiveHumanThreadChange={setActiveHumanThreadId} />;
           default:
             // Defensive: never render an empty main shell if activeTab somehow
             // lands on an unknown value — fall back to Home.
@@ -566,6 +568,14 @@ const Index = () => {
         {/* Heads-up incoming chat card (WhatsApp-style) with quick reply. */}
         {appView === "main" && (
           <IncomingMessageOverlay onOpenThread={openChatThread} />
+        )}
+
+        {/* Messenger-style floating chat-head bubble (in-app shell only). */}
+        {appView === "main" && (
+          <ChatHeadBubble
+            suppressThreadId={activeTab === "chat" ? activeHumanThreadId : null}
+            onOpenThread={openChatThread}
+          />
         )}
 
         {/* One-time native push permission prompt (native shells only). */}

@@ -440,6 +440,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           metadata: Json
+          reply_to_id: string | null
           sender_device_id: string | null
           sender_kind: Database["public"]["Enums"]["chat_sender_kind"]
           sender_org_id: string | null
@@ -452,6 +453,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           metadata?: Json
+          reply_to_id?: string | null
           sender_device_id?: string | null
           sender_kind: Database["public"]["Enums"]["chat_sender_kind"]
           sender_org_id?: string | null
@@ -464,6 +466,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           metadata?: Json
+          reply_to_id?: string | null
           sender_device_id?: string | null
           sender_kind?: Database["public"]["Enums"]["chat_sender_kind"]
           sender_org_id?: string | null
@@ -471,6 +474,13 @@ export type Database = {
           thread_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "chat_messages_sender_org_id_fkey"
             columns: ["sender_org_id"]
