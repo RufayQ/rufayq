@@ -160,16 +160,19 @@ const HeaderMenu = ({ items, title = "Menu", titleAr = "القائمة" }: Heade
                   )}
                   {showAr && (
                     <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>{titleAr}</p>
-                )}
+                  )}
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); close(); }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
+                  style={{ background: "var(--off-white)" }}
+                  aria-label="Close"
+                >
+                  <X size={16} style={{ color: "var(--navy)" }} />
+                </button>
               </div>
-              <button
-                onClick={close}
-                className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
-                style={{ background: "var(--off-white)" }}
-                aria-label="Close"
-              >
-                <X size={16} style={{ color: "var(--navy)" }} />
-              </button>
             </div>
 
             {/* Items (scrollable) */}
