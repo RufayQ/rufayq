@@ -12,6 +12,7 @@ import { useGuestCredits } from "@/hooks/useGuestCredits";
 import ChatInbox from "@/components/chat/ChatInbox";
 import HumanChatView from "@/components/chat/HumanChatView";
 import type { ChatThreadRow } from "@/hooks/useChatInbox";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatMessage {
   id: number;
