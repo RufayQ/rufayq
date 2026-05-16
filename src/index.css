@@ -285,6 +285,18 @@
   animation: logo-pulse 1.5s ease-in-out infinite;
 }
 
+/* Brand hero — soft halo + slow conic ring used on the onboarding splash */
+@keyframes brand-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+.animate-brand-pulse { animation: brand-pulse 3.4s ease-in-out infinite; }
+
+@keyframes brand-spin {
+  to { transform: rotate(360deg); }
+}
+.animate-brand-spin { animation: brand-spin 14s linear infinite; transform-origin: center; }
+
 @keyframes slide-in-right {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }

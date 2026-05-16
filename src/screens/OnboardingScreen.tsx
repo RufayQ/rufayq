@@ -1,6 +1,6 @@
 import { useState } from "react";
-import RufayQLogo from "@/components/RufayQLogo";
 import RufayQWordmark from "@/components/RufayQWordmark";
+import BrandHero from "@/components/BrandHero";
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -15,9 +15,22 @@ const slides = [
   {
     bg: "linear-gradient(165deg, #0D1B2A 0%, #1a2d42 60%, #004D5B 100%)",
     content: (
-      <div className="flex-1 flex flex-col items-center justify-center px-8">
-        <RufayQLogo size={84} variant="gold" />
-        <h1 className="font-display text-4xl text-white mt-8 text-center" style={{ fontWeight: 300 }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-8 relative overflow-hidden">
+        {/* Ambient brand glow */}
+        <div
+          className="absolute -top-20 -right-16 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(197,150,90,0.22) 0%, transparent 70%)", filter: "blur(8px)" }}
+          aria-hidden
+        />
+        <div
+          className="absolute -bottom-24 -left-20 w-80 h-80 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(15,181,201,0.18) 0%, transparent 70%)", filter: "blur(10px)" }}
+          aria-hidden
+        />
+
+        <BrandHero size="full" />
+
+        <h1 className="font-display text-4xl text-white mt-7 text-center" style={{ fontWeight: 300 }}>
           You're Never Alone Abroad
         </h1>
         <p className="font-arabic text-2xl mt-3 text-center" dir="rtl" style={{ color: "var(--gold-light)" }}>
@@ -177,26 +190,38 @@ const OnboardingScreen = ({ onComplete }: OnboardingScreenProps) => {
 
   if (showCTA) {
     return (
-      <div className="flex flex-col h-full items-center justify-center px-8" style={{ background: "var(--navy)" }}>
-        <RufayQLogo size={84} variant="gold" />
-        <div className="mt-4"><RufayQWordmark size="lg" variant="light" showArabic /></div>
-        <p className="text-base mt-6 text-center font-display" style={{ color: "rgba(255,255,255,0.85)", fontWeight: 300 }}>
+      <div className="flex flex-col h-full items-center justify-center px-8 relative overflow-hidden" style={{ background: "linear-gradient(180deg, #06121F 0%, var(--navy) 55%, #06302F 100%)" }}>
+        {/* Decorative brand orbs */}
+        <div
+          className="absolute -top-24 -left-16 w-80 h-80 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(197,150,90,0.28) 0%, transparent 70%)", filter: "blur(10px)" }}
+          aria-hidden
+        />
+        <div
+          className="absolute -bottom-24 -right-20 w-96 h-96 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(15,181,201,0.22) 0%, transparent 70%)", filter: "blur(12px)" }}
+          aria-hidden
+        />
+
+        <BrandHero size="full" />
+
+        <p className="text-base mt-6 text-center font-display" style={{ color: "rgba(255,255,255,0.88)", fontWeight: 300 }}>
           Welcome — let's walk this journey together.
         </p>
-        <p className="font-arabic text-sm mt-2 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>
+        <p className="font-arabic text-sm mt-2 text-center" dir="rtl" style={{ color: "rgba(255,255,255,0.6)" }}>
           أهلاً بك — سنمشي هذه الرحلة معاً
         </p>
         <button
           onClick={onComplete}
-          className="w-full mt-10 py-3.5 rounded-xl font-semibold text-white btn-press"
-          style={{ background: "var(--gold)", height: 52 }}
+          className="w-full mt-9 py-3.5 rounded-xl font-semibold text-white btn-press relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, var(--gold) 0%, #d8a866 100%)", height: 52, boxShadow: "0 14px 32px rgba(197,150,90,0.35)" }}
         >
           Get Started<span className="font-arabic" dir="rtl"> · ابدأ الآن</span>
         </button>
         <button
           onClick={onComplete}
           className="w-full mt-3 py-3 rounded-xl text-sm btn-press"
-          style={{ border: "1px solid var(--teal-mid)", color: "var(--teal-bright)" }}
+          style={{ border: "1px solid rgba(197,150,90,0.35)", color: "var(--gold-light)", background: "rgba(255,255,255,0.02)" }}
         >
           I already have an account<span className="font-arabic" dir="rtl"> · لدي حساب بالفعل</span>
         </button>
