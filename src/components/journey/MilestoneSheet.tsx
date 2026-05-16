@@ -199,6 +199,19 @@ const MilestoneSheet = ({
         </button>
       )}
 
+      {/* Per-ticket attachments (flight milestones only). Each ticket id keeps
+       *  its own document scope so a user with 3 tickets sees 3 distinct sets. */}
+      {flightTicketId && (
+        <div className="mt-3 -mx-2">
+          <RelatedDocumentsCard
+            segmentRef={flightSegmentRef || `flight-${flightTicketId}`}
+            ticketId={flightTicketId}
+            userId={userId ?? null}
+            compact
+          />
+        </div>
+      )}
+
       {/* CTAs */}
       <div className="flex gap-1.5 mt-3">
         <button
