@@ -1,6 +1,7 @@
 import { ArrowUpRight, CalendarClock, FlaskConical, Home, MoreHorizontal, Pill, PlaneTakeoff, Stethoscope, Activity } from "lucide-react";
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
 import { formatChipDate } from "@/lib/journeyOverview";
+import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 
 export type SheetItemKind = "lab" | "rad" | "med" | "visit" | "flight";
 export type SheetItemTone = "now" | "active" | "soon" | "done" | "muted";
@@ -23,6 +24,14 @@ interface MilestoneSheetProps {
   onReschedule?: () => void;
   onOpenMilestone?: () => void;
   onShowAll?: () => void;
+  /** Flight ticket id for the milestone (departure/return) — when provided,
+   *  the sheet renders an inline per-ticket attachments panel so each ticket
+   *  keeps its own documents without leaving the sheet. */
+  flightTicketId?: string | null;
+  /** Optional segment ref backing the ticket — falls back to `flight-<ticketId>`. */
+  flightSegmentRef?: string | null;
+  /** Current signed-in user id (null/undefined ⇒ device-scoped). */
+  userId?: string | null;
 }
 
 const KIND_BG: Record<SheetItemKind, { bg: string; fg: string; Icon: any }> = {
@@ -54,6 +63,9 @@ const MilestoneSheet = ({
   onReschedule,
   onOpenMilestone,
   onShowAll,
+  flightTicketId,
+  flightSegmentRef,
+  userId,
 }: MilestoneSheetProps) => {
   if (!milestone) return null;
   const visible = items.slice(0, 4);
@@ -185,6 +197,19 @@ const MilestoneSheet = ({
         >
           <MoreHorizontal size={12} /> +{overflow} more
         </button>
+      )}
+
+      {/* Per-ticket attachments (flight milestones only). Each ticket id keeps
+       *  its own document scope so a user with 3 tickets sees 3 distinct sets. */}
+      {flightTicketId && (
+        <div className="mt-3 -mx-2">
+          <RelatedDocumentsCard
+            segmentRef={flightSegmentRef || `flight-${flightTicketId}`}
+            ticketId={flightTicketId}
+            userId={userId ?? null}
+            compact
+          />
+        </div>
       )}
 
       {/* CTAs */}

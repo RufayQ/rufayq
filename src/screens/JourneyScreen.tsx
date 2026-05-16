@@ -28,9 +28,7 @@ import { useAppointments } from "@/hooks/useAppointments";
 import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/useProviderAppointments";
 import UnifiedTimeline from "@/components/journey/UnifiedTimeline";
-import JourneyHero from "@/components/journey/JourneyHero";
 import HelicopterCanvas from "@/components/journey/HelicopterCanvas";
-import PhaseRibbon5 from "@/components/journey/PhaseRibbon5";
 import MilestoneSheet, { type SheetItem } from "@/components/journey/MilestoneSheet";
 import OtherJourneysList from "@/components/journey/OtherJourneysList";
 import EmptyJourneyCard from "@/components/journey/EmptyJourneyCard";
@@ -165,6 +163,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const userSelectedRef = useRef(false);
   const pendingMilestoneIdRef = useRef<string | null>(null);
   const [pendingMilestoneToken, setPendingMilestoneToken] = useState(0);
+  // When Home deep-links to an appointment milestone, store the appointment
+  // id here so the Appointments tab can scroll to and briefly highlight it.
+  const [pendingAppointmentScrollId, setPendingAppointmentScrollId] = useState<string | null>(null);
   const handleMilestoneSelect = (id: string) => {
     userSelectedRef.current = true;
     setSelectedMilestoneId(id);
@@ -198,17 +199,26 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
    * the same UX guarantee without duplicating the branch.
    */
   function resolvePendingMilestone(id: string) {
-    const exists = overview.milestones.some((m) => m.id === id);
-    if (exists) {
+    const m = overview.milestones.find((x) => x.id === id);
+    if (m) {
       userSelectedRef.current = true;
       setSelectedMilestoneId(id);
+      // Route the deep-link to the milestone's natural detail surface so
+      // tapping a flight on Home opens its ticket, tapping an appointment
+      // opens that appointment row, etc. Mirrors MilestoneSheet.onOpenMilestone.
+      if (m.kind === "departure" || m.kind === "return") {
+        setActiveSubTab("tickets");
+      } else if (m.kind === "appointment" || m.kind === "treatment" || m.kind === "followup") {
+        setActiveSubTab("appointments");
+        setPendingAppointmentScrollId(m.refId);
+      } else {
+        setActiveSubTab("overview");
+      }
       return;
     }
     toast("Milestone not found · لم يتم العثور على المحطة", {
       description: "Showing your current step instead · يتم عرض خطوتك الحالية بدلاً من ذلك",
     });
-    // Mark as user-initiated so the default-selection effect's pick
-    // (current → upcoming → first) triggers scrollIntoView + sheet expansion.
     userSelectedRef.current = true;
     setSelectedMilestoneId(null);
   }
@@ -913,14 +923,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
           <>
             {activeTrip ? (
               <>
-                <JourneyHero
-                  trip={activeTrip}
-                  daysLeft={overview.daysLeft}
-                  progressPct={overview.progressPct}
-                  formattedDepartureDate={overview.formattedDepartureDate}
-                  formattedReturnDate={overview.formattedReturnDate}
-                />
-                <PhaseRibbon5 dayN={overview.dayN} totalDays={overview.totalDays} />
                  <HelicopterCanvas
                   milestones={overview.milestones}
                   selectedId={selectedMilestoneId}
@@ -930,8 +932,17 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                   const m = selectedMilestone;
                   const items: SheetItem[] = [];
                   let location: string | undefined;
+                  let flightTicketId: string | null = null;
                   if (m.kind === "departure" || m.kind === "return") {
                     const flight = m.kind === "departure" ? activeTrip.outboundFlight : activeTrip.returnFlight;
+                    // Resolve the per-ticket id from the matching transport
+                    // segment so MilestoneSheet can render that ticket's own
+                    // attachments. Three tickets → three distinct scopes.
+                    const dir: "outbound" | "return" = m.kind === "departure" ? "outbound" : "return";
+                    const matchingSeg = transportSegments.find(
+                      (s) => s.type === "flight" && s.direction === dir && !!s.groupId,
+                    );
+                    flightTicketId = matchingSeg?.groupId ?? null;
                     if (flight) {
                       items.push({
                         id: `${m.id}-flight`,
@@ -978,6 +989,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                         milestone={m}
                         items={items}
                         location={location || activeTrip.hospital}
+                        flightTicketId={flightTicketId}
+                        userId={authUserId}
                         onReschedule={apptForReschedule ? () => { setActiveSubTab("appointments"); setAppointmentFormIntent((v) => v + 1); } : undefined}
                         onOpenMilestone={() => {
                           if (m.kind === "departure" || m.kind === "return") setActiveSubTab("tickets");
@@ -1017,6 +1030,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
             onSaveAppointment={saveAppointment}
             openAddIntent={appointmentFormIntent}
             isGuest={isGuest}
+            scrollToAppointmentId={pendingAppointmentScrollId}
+            onScrollHandled={() => setPendingAppointmentScrollId(null)}
           />
         )}
         {activeSubTab === "steps" && (
@@ -1987,14 +2002,21 @@ const AppointmentsTab = ({
   onSaveAppointment,
   openAddIntent,
   isGuest,
+  scrollToAppointmentId,
+  onScrollHandled,
 }: {
   onOpenScanner?: (cat?: string) => void;
   appointments: Appointment[];
   onSaveAppointment: (input: Partial<AppointmentRow> & { id?: string }) => Promise<AppointmentRow>;
   openAddIntent: number;
   isGuest: boolean;
+  /** When set, the matching appointment row scrolls into view and briefly highlights. */
+  scrollToAppointmentId?: string | null;
+  /** Called once the scroll/highlight has been applied. */
+  onScrollHandled?: () => void;
 }) => {
   const [showAddAppt, setShowAddAppt] = useState(false);
+  const [highlightApptId, setHighlightApptId] = useState<string | null>(null);
   const [guestAppts, setGuestAppts] = useState<Appointment[]>(appointmentItems);
   const displayedAppts = isGuest ? guestAppts : appointmentItems;
   const upcomingAppts = displayedAppts.filter(a => a.status === "upcoming");
@@ -2007,6 +2029,22 @@ const AppointmentsTab = ({
   useEffect(() => {
     if (isGuest) setGuestAppts(appointmentItems);
   }, [appointmentItems, isGuest]);
+
+  // Deep-link from Home: scroll to the requested appointment and pulse its
+  // border for ~1.6s so the user can see exactly which row they landed on.
+  useEffect(() => {
+    if (!scrollToAppointmentId) return;
+    const id = scrollToAppointmentId;
+    requestAnimationFrame(() => {
+      const node = document.querySelector(`[data-appointment-id="${id}"]`) as HTMLElement | null;
+      if (node) {
+        node.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightApptId(id);
+        setTimeout(() => setHighlightApptId((curr) => (curr === id ? null : curr)), 1600);
+      }
+      onScrollHandled?.();
+    });
+  }, [scrollToAppointmentId, onScrollHandled]);
 
   const typeIcon = (type: Appointment["type"]) => {
     if (type === "telemedicine") return <Video size={14} style={{ color: "var(--teal-deep)" }} />;
@@ -2063,7 +2101,19 @@ const AppointmentsTab = ({
   const renderApptCard = (apt: AppointmentCardModel) => {
     const sb = statusBadge(apt.status);
     return (
-      <div key={apt.id} className="rounded-xl p-4 card-press" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+      <div
+        key={apt.id}
+        data-appointment-id={apt.id}
+        className="rounded-xl p-4 card-press"
+        style={{
+          background: "var(--white)",
+          border: "1px solid var(--gray-light)",
+          boxShadow: highlightApptId === apt.id
+            ? "0 0 0 2px var(--gold), 0 1px 6px rgba(0,0,0,0.04)"
+            : "0 1px 6px rgba(0,0,0,0.04)",
+          transition: "box-shadow 300ms ease",
+        }}
+      >
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: apt.type === "telemedicine" ? "var(--teal-light)" : apt.type === "clinic" ? "var(--gold-pale)" : "rgba(61,170,110,0.1)" }}>
             {typeIcon(apt.type)}

@@ -17,21 +17,51 @@ interface ChatMessage {
   time: string;
 }
 
+type ChatPersona = "medical" | "shopping" | "tour";
+
+const PERSONAS: Record<ChatPersona, {
+  en: string; ar: string; emoji: string; tagline: string; taglineAr: string;
+  greeting: string; pills: { emoji: string; text: string }[];
+}> = {
+  medical: {
+    en: "Medical AI", ar: "الذكاء الطبي", emoji: "🩺",
+    tagline: "Medications, reports & care", taglineAr: "الأدوية والتقارير والرعاية",
+    greeting: "مرحباً 👋 أنا رُفَيِّق الطبي. اسألني عن أدويتك أو تقاريرك أو خطوات التعافي.",
+    pills: [
+      { emoji: "📋", text: "فسّر نتائجي" },
+      { emoji: "💊", text: "اشرح وصفتي" },
+      { emoji: "🩻", text: "اشرح الأشعة" },
+      { emoji: "⚠️", text: "أعراض الخطر" },
+    ],
+  },
+  shopping: {
+    en: "Shopping AI", ar: "ذكاء التسوق", emoji: "🛍️",
+    tagline: "Compare, deals & sizing", taglineAr: "المقارنة والعروض والمقاسات",
+    greeting: "أهلاً 👋 أنا رفيقك للتسوق. اسألني عن أفضل العروض، المقارنات، المقاسات، أو الجمارك.",
+    pills: [
+      { emoji: "💰", text: "أفضل سعر؟" },
+      { emoji: "📏", text: "حوّل المقاس" },
+      { emoji: "🛒", text: "قارن منتجين" },
+      { emoji: "🛃", text: "الجمارك السعودية" },
+    ],
+  },
+  tour: {
+    en: "Tour Guide AI", ar: "المرشد السياحي", emoji: "🗺️",
+    tagline: "Places, history & logistics", taglineAr: "الأماكن والتاريخ والتنقل",
+    greeting: "مرحباً 👋 أنا مرشدك السياحي. اسألني عن المعالم القريبة، التاريخ، أو التنقل والمطاعم الحلال.",
+    pills: [
+      { emoji: "📍", text: "أماكن قريبة" },
+      { emoji: "🕌", text: "مطاعم حلال" },
+      { emoji: "🚇", text: "كيف أصل؟" },
+      { emoji: "🏛️", text: "تاريخ المدينة" },
+    ],
+  },
+};
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-const promptPills = [
-  { emoji: "📎", text: "ارفع وثيقة" },
-  { emoji: "📋", text: "فسّر نتائجي" },
-  { emoji: "💊", text: "اشرح وصفتي" },
-  { emoji: "🩻", text: "اشرح الأشعة" },
-  { emoji: "🗺️", text: "الخطوة القادمة؟" },
-  { emoji: "📤", text: "أرسل تقريري" },
-  { emoji: "🇸🇦", text: "احجز متابعة" },
-  { emoji: "⚠️", text: "أعراض الخطر" },
-];
-
-const initialMessages: ChatMessage[] = [
-  { id: 1, text: "مرحباً محمد 👋 أنا رُفَيِّق، رفيقك الذكي في رحلتك العلاجية.\n\nكيف يمكنني مساعدتك اليوم؟ يمكنني:\n• شرح أدويتك ونتائج تحاليلك\n• مساعدتك في فهم تقارير الخروج\n• الإجابة على أسئلتك الطبية\n• تنظيم مواعيدك ومتابعاتك", sender: "ai", time: "2:14 PM" },
+const makeGreeting = (persona: ChatPersona): ChatMessage[] => [
+  { id: 1, text: PERSONAS[persona].greeting, sender: "ai", time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) },
 ];
 
 const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void; onUpgrade?: () => void }) => {
@@ -39,7 +69,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
   const { remaining: guestRemaining, limit: guestLimit, isExhausted: guestExhausted, resetsAt: guestResetsAt, consume: consumeGuestCredit } = useGuestCredits();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeCtx, setUpgradeCtx] = useState<{ variant: "guest" | "subscriber"; plan?: string; resetsAt?: Date | string | null }>({ variant: "guest", resetsAt: null });
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [persona, setPersona] = useState<ChatPersona | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [contextProcessed, setContextProcessed] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -300,15 +331,60 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
   };
 
   const handleClearChat = () => {
-    setMessages(initialMessages);
+    setMessages(persona ? makeGreeting(persona) : []);
     toast.success("Chat cleared · تم مسح المحادثة", { duration: 2000 });
   };
 
+  const handleNewChat = () => {
+    setPersona(null);
+    setMessages([]);
+  };
+
   const chatMenuItems: HeaderMenuItem[] = [
+    { icon: <Sparkles size={14} />, label: "New Chat", labelAr: "محادثة جديدة", onClick: handleNewChat },
     { icon: <Copy size={14} />, label: "Copy Chat", labelAr: "نسخ المحادثة", onClick: handleCopyChat },
     { icon: <Share2 size={14} />, label: "Export Chat", labelAr: "تصدير المحادثة", onClick: handleExportChat },
     { icon: <Trash2 size={14} />, label: "Clear Chat", labelAr: "مسح المحادثة", onClick: handleClearChat, danger: true },
   ];
+
+  // Persona picker — shown before any conversation starts (and after "New chat").
+  if (!persona) {
+    return (
+      <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden", background: "var(--off-white)" }}>
+        <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(160deg, var(--header-dark-from), var(--header-teal-from))" }}>
+          <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>04 — AI COMPANION</p>
+          <p className="text-white text-[18px] font-bold" style={{ fontFamily: "'DM Sans'" }}>Choose your AI</p>
+          <p className="font-arabic text-[13px]" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>اختر مساعدك الذكي</p>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+          {(Object.keys(PERSONAS) as ChatPersona[]).map((key) => {
+            const p = PERSONAS[key];
+            return (
+              <button
+                key={key}
+                onClick={() => { setPersona(key); setMessages(makeGreeting(key)); }}
+                className="text-left rounded-2xl p-4 btn-press flex items-start gap-3"
+                style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+              >
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: "var(--off-white)" }}>{p.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{p.en}</p>
+                  <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>{p.ar}</p>
+                  <p className="text-[11px] mt-1" style={{ color: "var(--gray)" }}>{p.tagline}</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{p.taglineAr}</p>
+                </div>
+                <ChevronRight size={16} style={{ color: "var(--teal-deep)", flexShrink: 0, marginTop: 4 }} />
+              </button>
+            );
+          })}
+          <p className="text-[10px] mt-2 text-center" style={{ color: "var(--gray)" }}>
+            AI responses are informational only — not professional advice. · المعلومات للاستئناس فقط وليست استشارة مهنية.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  const activePersona = PERSONAS[persona];
 
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
@@ -357,7 +433,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
 
       {/* Quick Prompts */}
       <div className="flex gap-2 px-3 py-2.5 overflow-x-auto shrink-0" style={{ background: "var(--off-white)" }}>
-        {promptPills.map((p) => (
+        {activePersona.pills.map((p) => (
           <button
             key={p.text}
             onClick={() => sendMessage(p.text)}
