@@ -12,6 +12,7 @@ import { useGuestCredits } from "@/hooks/useGuestCredits";
 import ChatInbox from "@/components/chat/ChatInbox";
 import HumanChatView from "@/components/chat/HumanChatView";
 import type { ChatThreadRow } from "@/hooks/useChatInbox";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatMessage {
   id: number;
@@ -67,7 +68,7 @@ const makeGreeting = (persona: ChatPersona): ChatMessage[] => [
   { id: 1, text: PERSONAS[persona].greeting, sender: "ai", time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) },
 ];
 
-const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void; onUpgrade?: () => void }) => {
+const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, initialThreadId, onThreadHandled }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void; onUpgrade?: () => void; initialThreadId?: string | null; onThreadHandled?: () => void }) => {
   const isGuest = useGuestMode();
   const { remaining: guestRemaining, limit: guestLimit, isExhausted: guestExhausted, resetsAt: guestResetsAt, consume: consumeGuestCredit } = useGuestCredits();
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -359,6 +360,25 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
       setView("human");
     }
   };
+
+  // Auto-open a thread when the parent passes `initialThreadId`
+  // (e.g. user tapped a message in the notification center or overlay).
+  useEffect(() => {
+    if (!initialThreadId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("chat_threads")
+        .select("id, kind, title, ai_persona, organization_id, last_message_at, last_message_preview")
+        .eq("id", initialThreadId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      handleOpenThread(data as ChatThreadRow);
+      onThreadHandled?.();
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialThreadId]);
 
   const chatMenuItems: HeaderMenuItem[] = [
     { icon: <Sparkles size={14} />, label: "New Chat", labelAr: "محادثة جديدة", onClick: handleNewChat },

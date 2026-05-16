@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 
+export type ChatMessageStatus = "sending" | "sent" | "failed";
+
 export type ChatMessageRow = {
   id: string;
   thread_id: string;
@@ -11,6 +13,8 @@ export type ChatMessageRow = {
   body: string;
   metadata: Record<string, unknown>;
   created_at: string;
+  /** Client-side delivery status. Server rows default to "sent". */
+  status?: ChatMessageStatus;
 };
 
 /** Loads messages for a single thread and subscribes to new ones in realtime. */
@@ -28,7 +32,7 @@ export function useChatThread(threadId: string | null) {
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(500);
-    setMessages((data ?? []) as ChatMessageRow[]);
+    setMessages(((data ?? []) as ChatMessageRow[]).map((m) => ({ ...m, status: "sent" })));
     setLoading(false);
   }, [threadId]);
 
@@ -42,7 +46,8 @@ export function useChatThread(threadId: string | null) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },
         (payload) => {
-          const m = payload.new as ChatMessageRow;
+          const raw = payload.new as ChatMessageRow;
+          const m: ChatMessageRow = { ...raw, status: "sent" };
           setMessages((prev) => {
             if (prev.some((x) => x.id === m.id)) return prev;
             // Replace optimistic temp message with same body from same device
@@ -80,6 +85,7 @@ export function useChatThread(threadId: string | null) {
         body: trimmed,
         metadata: {},
         created_at: new Date().toISOString(),
+        status: "sending",
       };
       setMessages((prev) => [...prev, optimistic]);
       const { data, error } = await supabase
@@ -93,20 +99,31 @@ export function useChatThread(threadId: string | null) {
         .select("id, thread_id, sender_kind, sender_device_id, sender_org_id, body, metadata, created_at")
         .single();
       if (error) {
-        // Roll back optimistic message on failure
-        setMessages((prev) => prev.filter((x) => x.id !== tempId));
+        // Mark optimistic message as failed so the UI shows a red ! tick + retry
+        setMessages((prev) => prev.map((x) => (x.id === tempId ? { ...x, status: "failed" } : x)));
         throw error;
       }
       if (data) {
+        const sent: ChatMessageRow = { ...(data as ChatMessageRow), status: "sent" };
         setMessages((prev) => {
-          if (prev.some((x) => x.id === (data as ChatMessageRow).id)) {
+          if (prev.some((x) => x.id === sent.id)) {
             return prev.filter((x) => x.id !== tempId);
           }
-          return prev.map((x) => (x.id === tempId ? (data as ChatMessageRow) : x));
+          return prev.map((x) => (x.id === tempId ? sent : x));
         });
       }
     },
     [threadId],
+  );
+
+  const retry = useCallback(
+    async (failedId: string) => {
+      const msg = messages.find((m) => m.id === failedId);
+      if (!msg || msg.status !== "failed") return;
+      setMessages((prev) => prev.filter((x) => x.id !== failedId));
+      await send(msg.body);
+    },
+    [messages, send],
   );
 
   const markRead = useCallback(async () => {
@@ -119,5 +136,5 @@ export function useChatThread(threadId: string | null) {
       .eq("device_id", deviceId);
   }, [threadId]);
 
-  return { messages, loading, send, markRead, reload: load };
+  return { messages, loading, send, retry, markRead, reload: load };
 }

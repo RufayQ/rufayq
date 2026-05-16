@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Send, Stethoscope, User } from "lucide-react";
+import { ChevronLeft, Send, Stethoscope, User, RotateCw } from "lucide-react";
+import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
+import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import MessageTicks from "./MessageTicks";
 
 interface Props {
   threadId: string;
@@ -18,7 +21,8 @@ interface Props {
  * kinds. Realtime updates come from useChatThread.
  */
 export default function HumanChatView({ threadId, title, subtitle, kind = "direct", onBack }: Props) {
-  const { messages, send, markRead } = useChatThread(threadId);
+  const { messages, send, retry, markRead } = useChatThread(threadId);
+  const { othersLastReadAt } = useThreadReadReceipts(threadId);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -31,6 +35,7 @@ export default function HumanChatView({ threadId, title, subtitle, kind = "direc
     if (!input.trim() || sending) return;
     setSending(true);
     try { await send(input); setInput(""); }
+    catch { toast.error("Couldn't send message · لم تُرسل الرسالة"); }
     finally { setSending(false); }
   };
 
@@ -75,6 +80,7 @@ export default function HumanChatView({ threadId, title, subtitle, kind = "direc
         {messages.map((m: ChatMessageRow) => {
           const mine = m.sender_device_id === me;
           const time = new Date(m.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+          const seen = mine && !!othersLastReadAt && othersLastReadAt >= m.created_at && m.status !== "sending" && m.status !== "failed";
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"} animate-fade-in-up`}>
               <div
@@ -86,10 +92,25 @@ export default function HumanChatView({ threadId, title, subtitle, kind = "direc
                   borderRadius: mine ? "14px 3px 14px 14px" : "3px 14px 14px 14px",
                   boxShadow: mine ? "0 3px 12px rgba(0,77,91,0.20)" : "0 2px 8px rgba(0,0,0,0.05)",
                   whiteSpace: "pre-wrap",
+                  opacity: m.status === "sending" ? 0.85 : 1,
                 }}
               >
                 {m.body}
-                <span className="block font-mono text-[9px] mt-1" style={{ opacity: 0.55, direction: "ltr", textAlign: mine ? "right" : "left" }}>{time}</span>
+                <span className="flex items-center gap-1 font-mono text-[9px] mt-1" style={{ opacity: 0.7, direction: "ltr", justifyContent: mine ? "flex-end" : "flex-start" }}>
+                  <span>{time}</span>
+                  {mine && <MessageTicks status={m.status} seen={seen} />}
+                  {mine && m.status === "failed" && (
+                    <button
+                      onClick={() => retry(m.id)}
+                      className="ml-1 inline-flex items-center gap-0.5 px-1 py-0.5 rounded"
+                      style={{ background: "rgba(255,107,107,0.15)", color: "#ff6b6b" }}
+                      aria-label="Retry"
+                    >
+                      <RotateCw size={9} strokeWidth={2.5} />
+                      <span>retry</span>
+                    </button>
+                  )}
+                </span>
               </div>
             </div>
           );

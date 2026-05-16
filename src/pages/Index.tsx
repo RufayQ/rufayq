@@ -32,7 +32,9 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import { useTourSystem } from "@/hooks/useTourSystem";
 import { usePatientBootstrap } from "@/hooks/usePatientBootstrap";
 import { useGlobalChat } from "@/hooks/useGlobalChat";
-import NotificationBell from "@/components/NotificationBell";
+import NotificationCenter from "@/components/NotificationCenter";
+import IncomingMessageOverlay from "@/components/chat/IncomingMessageOverlay";
+import PushPermissionPrompt from "@/components/PushPermissionPrompt";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
@@ -153,6 +155,11 @@ const Index = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
+  const [pendingChatThreadId, setPendingChatThreadId] = useState<string | null>(null);
+  const openChatThread = useCallback((threadId: string) => {
+    setPendingChatThreadId(threadId);
+    setActiveTab("chat");
+  }, []);
   const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | `phase:${string}` | null>(null);
   const [badges, setBadges] = useState<Partial<Record<Tab, boolean | number>>>({
     carehub: true,
@@ -423,7 +430,7 @@ const Index = () => {
           );
           case "records": return <RecordsScreen onOpenScanner={() => openScanner()} onNavigate={handleNavigate} />;
           case "carehub": return <CareHubScreen />;
-          case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} onUpgrade={() => setAppView("pricing")} />;
+          case "chat": return <ChatScreen onOpenScanner={() => openScanner()} initialContext={chatContext} onClearContext={() => setChatContext(null)} onUpgrade={() => setAppView("pricing")} initialThreadId={pendingChatThreadId} onThreadHandled={() => setPendingChatThreadId(null)} />;
         }
     }
   };
@@ -457,7 +464,7 @@ const Index = () => {
           {renderContent()}
         </div>
 
-        {/* Global notification bell — visible on every main tab except home (home has its own in the header). */}
+        {/* Global notification center — visible on every main tab except home (home has its own in the header). */}
         {showNav && activeTab !== "home" && (
           <div className="absolute inset-0 pointer-events-none z-40">
             <div className={`absolute top-2 pointer-events-auto ${activeTab === "chat" ? "right-16" : "right-3"}`}>
@@ -465,7 +472,17 @@ const Index = () => {
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(6px)" }}
               >
-                <NotificationBell color="#fff" />
+                <NotificationCenter
+                  color="#fff"
+                  onNavigate={(link) => {
+                    // Best-effort: route system-alert links via the existing deep-link parser
+                    try {
+                      const t = (window as unknown as { __rufayqRoute?: (l: string) => void }).__rufayqRoute;
+                      if (typeof t === "function") t(link);
+                    } catch { /* noop */ }
+                  }}
+                  onOpenThread={openChatThread}
+                />
               </div>
             </div>
           </div>
@@ -490,6 +507,16 @@ const Index = () => {
             preselectedCategory={scannerCategory}
             onSave={handleScannerSave}
           />
+        )}
+
+        {/* Heads-up incoming chat card (WhatsApp-style) with quick reply. */}
+        {appView === "main" && (
+          <IncomingMessageOverlay onOpenThread={openChatThread} />
+        )}
+
+        {/* One-time native push permission prompt (native shells only). */}
+        {appView === "main" && (
+          <PushPermissionPrompt onDeepLink={routeDeepLink} />
         )}
 
         {/* First-launch tour for newly registered users */}
