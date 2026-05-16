@@ -138,11 +138,11 @@ const ProfileCompletionBanner = ({ onOpenProfile }: Props) => {
         <button
           type="button"
           onClick={dismiss}
-          className="p-1 rounded-md"
+          className="p-2 rounded-full btn-press"
           aria-label={t("Dismiss", "إغلاق")}
-          style={{ color: "var(--gray)" }}
+          style={{ color: "var(--navy)", background: "rgba(0,0,0,0.05)" }}
         >
-          <X size={14} />
+          <X size={16} />
         </button>
       </div>
 
