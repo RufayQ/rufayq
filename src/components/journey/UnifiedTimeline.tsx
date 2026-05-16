@@ -292,8 +292,5 @@ function TimelineRow({ it, isExpanded, onTapRow, onToggle, stepRef, userId }: Ro
     </div>
   );
 }
-    </div>
-  );
-};
 
 export default UnifiedTimeline;
