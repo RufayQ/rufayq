@@ -177,6 +177,41 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     await fetchAll();
   };
 
+  const chipStrip = (
+    <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 mt-1" style={{ WebkitOverflowScrolling: "touch" }}>
+      {CAT_DEFS.map((c) => {
+        const active = cat === c.key;
+        const n = counts[c.key];
+        return (
+          <button
+            key={c.key}
+            onClick={() => setCat(c.key)}
+            className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-semibold btn-press transition-all"
+            style={{
+              background: active ? "var(--teal-deep)" : "var(--white)",
+              color: active ? "#fff" : "var(--gray)",
+              border: active ? "none" : "1px solid var(--gray-light)",
+              opacity: !active && n === 0 ? 0.5 : 1,
+            }}
+          >
+            <span>{c.en}</span>
+            <span
+              className="font-mono text-[9px] px-1 rounded-full"
+              style={{
+                background: active ? "rgba(255,255,255,0.18)" : "var(--off-white)",
+                color: active ? "#fff" : "var(--navy)",
+                minWidth: 16,
+                textAlign: "center",
+              }}
+            >
+              {n}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-10" style={{ color: "var(--gray)" }}>
@@ -188,28 +223,41 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
 
   if (filtered.length === 0) {
     return (
-      <div className="text-center py-10">
-        <span className="text-4xl">✈️</span>
-        <p className="text-[14px] font-semibold mt-3" style={{ color: "var(--navy)" }}>
-          {searchQuery ? "No travel documents found" : "No travel documents yet"}
-        </p>
-        <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>
-          {searchQuery ? "لا توجد مستندات سفر مطابقة" : "لا توجد مستندات سفر بعد"}
-        </p>
-        {!searchQuery && (
-          <p className="text-[11px] mt-2 px-6" style={{ color: "var(--gray)" }}>
-            Attach passports, visas, hotel bookings or insurance from any ticket in the Journey section.
+      <>
+        {items.length > 0 && chipStrip}
+        <div className="text-center py-10">
+          <span className="text-4xl">✈️</span>
+          <p className="text-[14px] font-semibold mt-3" style={{ color: "var(--navy)" }}>
+            {searchQuery || cat !== "all" ? "No travel documents found" : "No travel documents yet"}
           </p>
-        )}
-      </div>
+          <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>
+            {searchQuery || cat !== "all" ? "لا توجد مستندات سفر مطابقة" : "لا توجد مستندات سفر بعد"}
+          </p>
+          {!searchQuery && cat === "all" && (
+            <p className="text-[11px] mt-2 px-6" style={{ color: "var(--gray)" }}>
+              Attach passports, visas, hotel bookings or insurance from any ticket in the Journey section.
+            </p>
+          )}
+          {(searchQuery || cat !== "all") && (
+            <button
+              onClick={() => setCat("all")}
+              className="mt-3 px-3 py-1.5 rounded-full text-[11px] font-semibold btn-press"
+              style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}
+            >
+              Clear filter · إزالة الفلتر
+            </button>
+          )}
+        </div>
+      </>
     );
   }
 
   return (
     <>
+      {chipStrip}
       <div className="flex items-center justify-between mt-1">
         <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>
-          {searchQuery ? `SEARCH RESULTS — ${filtered.length}` : `TRAVEL DOCUMENTS — ${filtered.length} FILES`}
+          {searchQuery || cat !== "all" ? `RESULTS — ${filtered.length}` : `TRAVEL DOCUMENTS — ${filtered.length} FILES`}
         </p>
       </div>
 
@@ -229,8 +277,12 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{item.label}</p>
-                <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>{item.file_name}</p>
+                <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
+                  <Highlight text={item.label} query={searchQuery} />
+                </p>
+                <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
+                  <Highlight text={item.file_name} query={searchQuery} />
+                </p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(197,150,90,0.12)", color: "var(--gold)" }}>
                     <Plane size={9} /> Travel
