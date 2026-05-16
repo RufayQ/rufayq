@@ -35,7 +35,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [segment, setSegment] = useState<RecordsSegment>("medical");
+  const [segment, setSegment] = useState<RecordsSegment>("travel");
   const userId = useAuthUserId();
   const travelCount = useArtifactCount({ userId });
 
