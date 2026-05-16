@@ -42,19 +42,34 @@ const NotificationCenter = ({
   const displayedAlerts = tab === "chats" ? [] : items;
   const displayedThreads = tab === "alerts" ? [] : unreadThreads;
 
+  // Keyboard escape only. We intentionally do NOT lock `document.body.style.overflow`
+  // here — doing so previously left the underlying shell in a non-interactive
+  // state for a frame after close, which made it feel like the overlay was
+  // still blocking bottom-nav taps. The portal already covers the viewport
+  // visually, so locking body scroll adds no value on this 390px shell.
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
+
+  // Safety net: if this NotificationCenter unmounts while still open (e.g. the
+  // parent swaps it when the user changes tabs), guarantee the body scroll
+  // lock is cleared in case any older build or sibling component left one
+  // behind. Without this, switching tabs immediately after closing the panel
+  // could appear to "freeze" the underlying shell.
+  useEffect(() => {
+    return () => {
+      if (document.body.style.overflow === "hidden") {
+        document.body.style.overflow = "";
+      }
+    };
+  }, []);
 
   const overlay = open && typeof document !== "undefined" ? createPortal(
     <div
