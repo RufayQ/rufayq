@@ -932,8 +932,17 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                   const m = selectedMilestone;
                   const items: SheetItem[] = [];
                   let location: string | undefined;
+                  let flightTicketId: string | null = null;
                   if (m.kind === "departure" || m.kind === "return") {
                     const flight = m.kind === "departure" ? activeTrip.outboundFlight : activeTrip.returnFlight;
+                    // Resolve the per-ticket id from the matching transport
+                    // segment so MilestoneSheet can render that ticket's own
+                    // attachments. Three tickets → three distinct scopes.
+                    const dir: "outbound" | "return" = m.kind === "departure" ? "outbound" : "return";
+                    const matchingSeg = transportSegments.find(
+                      (s) => s.type === "flight" && s.direction === dir && !!s.groupId,
+                    );
+                    flightTicketId = matchingSeg?.groupId ?? null;
                     if (flight) {
                       items.push({
                         id: `${m.id}-flight`,
@@ -980,6 +989,8 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                         milestone={m}
                         items={items}
                         location={location || activeTrip.hospital}
+                        flightTicketId={flightTicketId}
+                        userId={authUserId}
                         onReschedule={apptForReschedule ? () => { setActiveSubTab("appointments"); setAppointmentFormIntent((v) => v + 1); } : undefined}
                         onOpenMilestone={() => {
                           if (m.kind === "departure" || m.kind === "return") setActiveSubTab("tickets");
