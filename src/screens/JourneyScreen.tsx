@@ -137,6 +137,7 @@ const stayTypeOptions = [
 type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | `phase:${string}` | null;
 
 const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
+  const authUserId = useAuthUserId();
   const isGuest = useGuestMode();
   const { categories: guestCats } = useGuestCategories();
   const { items: appointmentRows, save: saveAppointment } = useAppointments();
