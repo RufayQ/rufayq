@@ -273,7 +273,7 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
             ref={railRef}
             role="list"
             className="flex items-stretch overflow-x-auto overflow-y-hidden pb-2 -mx-1 px-1"
-            style={{ scrollSnapType: "x mandatory", scrollBehavior: "smooth", scrollbarWidth: "thin" }}
+            style={{ scrollSnapType: "x proximity", scrollBehavior: "smooth", scrollbarWidth: "thin" }}
           >
             {/* Lead spacer so the first node can sit at the visual center. */}
             <div aria-hidden="true" className="shrink-0" style={{ width: "40%" }} />
