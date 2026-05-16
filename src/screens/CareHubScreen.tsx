@@ -248,6 +248,35 @@ const CarePlanTab = () => {
         </div>
       )}
 
+      {/* Post-Travel Follow-Ups */}
+      {followUps.length > 0 && (
+        <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+          <div className="flex items-center gap-1.5 mb-3">
+            <CalendarClock size={12} style={{ color: "var(--gold)" }} />
+            <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+              POST-TRAVEL FOLLOW-UPS · <span className="font-arabic">متابعة بعد السفر</span>
+            </p>
+          </div>
+          <div className="space-y-2">
+            {followUps.map((a) => (
+              <div key={a.id} className="rounded-xl px-3 py-2.5" style={{ background: "var(--off-white)" }}>
+                <div className="flex items-center justify-between">
+                  <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>{a.title}</p>
+                  <span className="text-[10px] font-mono" style={{ color: "var(--gold)" }}>
+                    {a.start_at ? new Date(a.start_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""}
+                  </span>
+                </div>
+                {(a.doctor_name || a.facility_name) && (
+                  <p className="text-[10px]" style={{ color: "var(--gray)" }}>
+                    {[a.doctor_name, a.facility_name].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Daily Tasks */}
       <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between mb-3">
