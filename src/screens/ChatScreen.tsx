@@ -186,7 +186,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           "x-device-id": deviceId,
         },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, persona }),
       });
 
       if (!resp.ok) {
