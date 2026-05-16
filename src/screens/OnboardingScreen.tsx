@@ -16,9 +16,22 @@ const slides = [
   {
     bg: "linear-gradient(165deg, #0D1B2A 0%, #1a2d42 60%, #004D5B 100%)",
     content: (
-      <div className="flex-1 flex flex-col items-center justify-center px-8">
-        <RufayQLogo size={84} variant="gold" />
-        <h1 className="font-display text-4xl text-white mt-8 text-center" style={{ fontWeight: 300 }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-8 relative overflow-hidden">
+        {/* Ambient brand glow */}
+        <div
+          className="absolute -top-20 -right-16 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(197,150,90,0.22) 0%, transparent 70%)", filter: "blur(8px)" }}
+          aria-hidden
+        />
+        <div
+          className="absolute -bottom-24 -left-20 w-80 h-80 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(15,181,201,0.18) 0%, transparent 70%)", filter: "blur(10px)" }}
+          aria-hidden
+        />
+
+        <BrandHero size="full" />
+
+        <h1 className="font-display text-4xl text-white mt-7 text-center" style={{ fontWeight: 300 }}>
           You're Never Alone Abroad
         </h1>
         <p className="font-arabic text-2xl mt-3 text-center" dir="rtl" style={{ color: "var(--gold-light)" }}>
