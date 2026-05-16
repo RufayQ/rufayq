@@ -22,6 +22,7 @@ import {
  * 47 kB lucide chunk + 17 kB helmet chunk never enter the critical path.
  */
 const LandingBelow = lazy(() => import("./LandingBelow"));
+const InstallAppPrompt = lazy(() => import("@/components/InstallAppPrompt"));
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -301,6 +302,9 @@ const Landing = () => {
           </Suspense>
         </LazyOnView>
         </main>
+        <Suspense fallback={null}>
+          <InstallAppPrompt isAr={isAr} />
+        </Suspense>
       </div>
     </>
   );
