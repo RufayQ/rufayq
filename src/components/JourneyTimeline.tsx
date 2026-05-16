@@ -172,6 +172,18 @@ const JourneyTimeline = ({ journey, now = Date.now(), compact, onLegClick }: Pro
                   <DetailRow k="Seat" v={leg.seatNumber || "—"} />
                   <DetailRow k="Departs" v={`${fmtDate(leg.departureDateTime)} ${fmtTime(leg.departureDateTime)}`.trim()} />
                   <DetailRow k="Arrives" v={`${fmtDate(leg.arrivalDateTime)} ${fmtTime(leg.arrivalDateTime)}`.trim()} />
+                  {directionChange && (
+                    <div className="col-span-2 mt-1 pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
+                      <DetailRow
+                        k="Stay before return"
+                        v={
+                          stay
+                            ? `${stay.durationLabel} in ${stay.city} (${stay.code})`
+                            : `Stay in ${leg.to.city || leg.to.code || "—"} · duration unavailable`
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               {layover && (
