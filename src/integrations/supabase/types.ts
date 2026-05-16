@@ -433,6 +433,149 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          body: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          metadata: Json
+          sender_device_id: string | null
+          sender_kind: Database["public"]["Enums"]["chat_sender_kind"]
+          sender_org_id: string | null
+          sender_user_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          metadata?: Json
+          sender_device_id?: string | null
+          sender_kind: Database["public"]["Enums"]["chat_sender_kind"]
+          sender_org_id?: string | null
+          sender_user_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          metadata?: Json
+          sender_device_id?: string | null
+          sender_kind?: Database["public"]["Enums"]["chat_sender_kind"]
+          sender_org_id?: string | null
+          sender_user_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_sender_org_id_fkey"
+            columns: ["sender_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_participants: {
+        Row: {
+          archived: boolean
+          created_at: string
+          device_id: string | null
+          display_name: string | null
+          id: string
+          last_read_at: string | null
+          organization_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          device_id?: string | null
+          display_name?: string | null
+          id?: string
+          last_read_at?: string | null
+          organization_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          device_id?: string | null
+          display_name?: string | null
+          id?: string
+          last_read_at?: string | null
+          organization_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_participants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_participants_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_threads: {
+        Row: {
+          ai_persona: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["chat_thread_kind"]
+          last_message_at: string
+          last_message_preview: string | null
+          organization_id: string | null
+          title: string | null
+        }
+        Insert: {
+          ai_persona?: string | null
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["chat_thread_kind"]
+          last_message_at?: string
+          last_message_preview?: string | null
+          organization_id?: string | null
+          title?: string | null
+        }
+        Update: {
+          ai_persona?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["chat_thread_kind"]
+          last_message_at?: string
+          last_message_preview?: string | null
+          organization_id?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_threads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cms_footer_items: {
         Row: {
           column_key: string
@@ -2609,6 +2752,8 @@ export type Database = {
           deleted_at: string | null
           deleted_reason: string | null
           device_id: string
+          discoverable_by_email: boolean
+          discoverable_by_phone: boolean
           email: string | null
           full_name_ar: string | null
           full_name_en: string | null
@@ -2638,6 +2783,8 @@ export type Database = {
           deleted_at?: string | null
           deleted_reason?: string | null
           device_id: string
+          discoverable_by_email?: boolean
+          discoverable_by_phone?: boolean
           email?: string | null
           full_name_ar?: string | null
           full_name_en?: string | null
@@ -2667,6 +2814,8 @@ export type Database = {
           deleted_at?: string | null
           deleted_reason?: string | null
           device_id?: string
+          discoverable_by_email?: boolean
+          discoverable_by_phone?: boolean
           email?: string | null
           full_name_ar?: string | null
           full_name_en?: string | null
@@ -7411,6 +7560,10 @@ export type Database = {
           total: number
         }[]
       }
+      chat_caller_participates: {
+        Args: { _thread_id: string }
+        Returns: boolean
+      }
       claim_guest_patient_data: { Args: { _device_id: string }; Returns: Json }
       compute_refund_tier: {
         Args: {
@@ -7458,6 +7611,14 @@ export type Database = {
         Returns: string
       }
       ensure_patient: { Args: { _device_id: string }; Returns: string }
+      find_chat_user: {
+        Args: { _email?: string; _phone?: string }
+        Returns: {
+          device_id: string
+          display_name: string
+          rufayq_id: string
+        }[]
+      }
       get_or_create_wallet: {
         Args: { _currency?: string; _device_id: string; _user_id: string }
         Returns: string
@@ -7577,6 +7738,12 @@ export type Database = {
           flagged: number
         }[]
       }
+      start_ai_chat: {
+        Args: { _force_new?: boolean; _persona: string }
+        Returns: string
+      }
+      start_direct_chat: { Args: { _other_device_id: string }; Returns: string }
+      start_provider_chat: { Args: { _org_id: string }; Returns: string }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
@@ -7590,6 +7757,8 @@ export type Database = {
       addon_status: "pending_admin" | "active" | "canceled" | "expired"
       app_role: "admin" | "moderator" | "user"
       billing_cycle: "monthly" | "annual"
+      chat_sender_kind: "patient" | "org_member" | "ai" | "system"
+      chat_thread_kind: "ai" | "direct" | "provider"
       claim_status:
         | "pending_admin"
         | "pending_patient"
@@ -8013,6 +8182,8 @@ export const Constants = {
       addon_status: ["pending_admin", "active", "canceled", "expired"],
       app_role: ["admin", "moderator", "user"],
       billing_cycle: ["monthly", "annual"],
+      chat_sender_kind: ["patient", "org_member", "ai", "system"],
+      chat_thread_kind: ["ai", "direct", "provider"],
       claim_status: [
         "pending_admin",
         "pending_patient",

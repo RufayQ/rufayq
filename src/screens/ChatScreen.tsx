@@ -9,6 +9,9 @@ import { quickPrompts } from "@/constants/data";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { useGuestCredits } from "@/hooks/useGuestCredits";
+import ChatInbox from "@/components/chat/ChatInbox";
+import HumanChatView from "@/components/chat/HumanChatView";
+import type { ChatThreadRow } from "@/hooks/useChatInbox";
 
 interface ChatMessage {
   id: number;
@@ -69,6 +72,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
   const { remaining: guestRemaining, limit: guestLimit, isExhausted: guestExhausted, resetsAt: guestResetsAt, consume: consumeGuestCredit } = useGuestCredits();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeCtx, setUpgradeCtx] = useState<{ variant: "guest" | "subscriber"; plan?: string; resetsAt?: Date | string | null }>({ variant: "guest", resetsAt: null });
+  const [view, setView] = useState<"inbox" | "ai" | "human">("inbox");
+  const [humanThread, setHumanThread] = useState<ChatThreadRow | null>(null);
   const [persona, setPersona] = useState<ChatPersona | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -89,14 +94,16 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Handle incoming context from Records AI inquiry
+  // Handle incoming context from Records AI inquiry — route into medical AI.
   useEffect(() => {
     if (initialContext && !contextProcessed) {
       setContextProcessed(true);
+      if (!persona) { setPersona("medical"); setMessages(makeGreeting("medical")); }
+      setView("ai");
       sendMessage(initialContext);
       onClearContext?.();
     }
-  }, [initialContext, contextProcessed]);
+  }, [initialContext, contextProcessed, persona]);
 
   useEffect(() => {
     return () => { if (recordingTimerRef.current) clearInterval(recordingTimerRef.current); };
@@ -338,6 +345,19 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
   const handleNewChat = () => {
     setPersona(null);
     setMessages([]);
+    setView("inbox");
+  };
+
+  const handleOpenThread = (t: ChatThreadRow) => {
+    if (t.kind === "ai") {
+      const p = (t.ai_persona as ChatPersona) || "medical";
+      setPersona(p);
+      setMessages(makeGreeting(p));
+      setView("ai");
+    } else {
+      setHumanThread(t);
+      setView("human");
+    }
   };
 
   const chatMenuItems: HeaderMenuItem[] = [
@@ -347,11 +367,35 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
     { icon: <Trash2 size={14} />, label: "Clear Chat", labelAr: "مسح المحادثة", onClick: handleClearChat, danger: true },
   ];
 
-  // Persona picker — shown before any conversation starts (and after "New chat").
+  // Inbox view — main entry for the Chat tab.
+  if (view === "inbox") {
+    return (
+      <ChatInbox
+        onOpenThread={handleOpenThread}
+        onNewAi={() => { setPersona(null); setMessages([]); setView("ai"); }}
+      />
+    );
+  }
+
+  // Human (direct or provider) thread view.
+  if (view === "human" && humanThread) {
+    const subtitle = humanThread.kind === "provider" ? "Care provider · مزود الرعاية" : "Direct message · رسالة مباشرة";
+    return (
+      <HumanChatView
+        threadId={humanThread.id}
+        title={humanThread.title ?? "Conversation"}
+        subtitle={subtitle}
+        onBack={() => { setHumanThread(null); setView("inbox"); }}
+      />
+    );
+  }
+
+  // AI persona picker — shown before any AI conversation starts.
   if (!persona) {
     return (
       <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden", background: "var(--off-white)" }}>
         <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(160deg, var(--header-dark-from), var(--header-teal-from))" }}>
+          <button onClick={() => setView("inbox")} className="text-[11px] mb-1 btn-press" style={{ color: "rgba(255,255,255,0.7)" }}>← Inbox</button>
           <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>04 — AI COMPANION</p>
           <p className="text-white text-[18px] font-bold" style={{ fontFamily: "'DM Sans'" }}>Choose your AI</p>
           <p className="font-arabic text-[13px]" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>اختر مساعدك الذكي</p>
