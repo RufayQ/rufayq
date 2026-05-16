@@ -311,8 +311,14 @@ const Index = () => {
       setAppView("medications");
     } else if (category === "discharge") {
       setBadges(prev => ({ ...prev, carehub: true }));
+      try { sessionStorage.setItem("rufayq_records_segment", "medical"); } catch { /* noop */ }
+      window.dispatchEvent(new CustomEvent("rufayq:records-segment", { detail: "medical" }));
       setActiveTab("records");
     } else {
+      if (isMedicalCategory(category)) {
+        try { sessionStorage.setItem("rufayq_records_segment", "medical"); } catch { /* noop */ }
+        window.dispatchEvent(new CustomEvent("rufayq:records-segment", { detail: "medical" }));
+      }
       setActiveTab("records");
     }
     setAppView("main");
