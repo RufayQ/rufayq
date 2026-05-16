@@ -145,8 +145,8 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
           style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
         >
           {([
-            { key: "medical" as const, icon: <Stethoscope size={13} />, en: "Medical", ar: "طبية", count: totalFiles },
             { key: "travel" as const, icon: <Plane size={13} />, en: "Travel", ar: "سفر", count: travelCount },
+            { key: "medical" as const, icon: <Stethoscope size={13} />, en: "Medical", ar: "طبية", count: totalFiles },
           ]).map((s) => {
             const active = segment === s.key;
             return (
