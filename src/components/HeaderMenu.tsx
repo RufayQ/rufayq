@@ -111,9 +111,6 @@ const HeaderMenu = ({ items, title = "Menu", titleAr = "القائمة" }: Heade
           <div
             ref={sheetRef}
             onClick={(e) => e.stopPropagation()}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
             className="w-full max-w-[420px] rounded-t-3xl pt-2 pb-3"
             style={{
               background: "var(--white)",
@@ -128,31 +125,54 @@ const HeaderMenu = ({ items, title = "Menu", titleAr = "القائمة" }: Heade
                 ? "transform 200ms cubic-bezier(0.4,0,1,1)"
                 : (dragStartY.current == null ? "transform 260ms cubic-bezier(0.22,0.61,0.36,1)" : "none"),
               animation: !closing && dragStartY.current == null && dragY === 0 ? "slide-up 280ms cubic-bezier(0.22,0.61,0.36,1)" : undefined,
-              touchAction: "pan-y",
             }}
           >
-            {/* Grab handle */}
-            <div className="mx-auto mb-2 mt-1 h-1.5 w-12 rounded-full" style={{ background: "var(--gray-light)" }} />
+            {/* Drag zone: handle + header (swipe down anywhere here to dismiss) */}
+            <div
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onPointerDown={(e) => {
+                if (e.pointerType === "mouse") {
+                  dragStartY.current = e.clientY;
+                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                }
+              }}
+              onPointerMove={(e) => {
+                if (e.pointerType !== "mouse" || dragStartY.current == null) return;
+                const dy = e.clientY - dragStartY.current;
+                if (dy > 0) setDragY(dy);
+              }}
+              onPointerUp={(e) => {
+                if (e.pointerType !== "mouse") return;
+                onTouchEnd();
+              }}
+              style={{ touchAction: "none", cursor: "grab" }}
+            >
+              {/* Grab handle */}
+              <div className="mx-auto mb-2 mt-1 h-1.5 w-12 rounded-full" style={{ background: "var(--gray-light)" }} />
 
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pb-2 shrink-0">
-              <div>
-                {showEn && (
-                  <p className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{title}</p>
-                )}
-                {showAr && (
-                  <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>{titleAr}</p>
-                )}
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pb-2 shrink-0">
+                <div>
+                  {showEn && (
+                    <p className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{title}</p>
+                  )}
+                  {showAr && (
+                    <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>{titleAr}</p>
+                  )}
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); close(); }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
+                  style={{ background: "var(--off-white)" }}
+                  aria-label="Close"
+                >
+                  <X size={16} style={{ color: "var(--navy)" }} />
+                </button>
               </div>
-              <button
-                onClick={close}
-                className="w-8 h-8 rounded-full flex items-center justify-center btn-press"
-                style={{ background: "var(--off-white)" }}
-                aria-label="Close"
-              >
-                <X size={16} style={{ color: "var(--navy)" }} />
-              </button>
             </div>
 
             {/* Items (scrollable) */}
