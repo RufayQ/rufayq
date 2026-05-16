@@ -1,44 +1,43 @@
-## 1. CareHub — restore full content for signed-in users
-`src/screens/CareHubScreen.tsx` currently renders only an empty placeholder when `!isGuest` (lines 57–80). Remove that early return so signed-in users see the same Care Plan / Videos / Education / FAQs / Nutrition / Exercises tabs guests see. Provider-feed content stays inside `CarePlanTab` (already wired via `useProviderFeed`).
+# Use your own Google OAuth credentials (BYOK)
 
-## 2. Journey overview — remove JourneyHero + PhaseRibbon5
-In `src/screens/JourneyScreen.tsx` overview block (lines 912–998):
-- Remove `<JourneyHero />` and `<PhaseRibbon5 />` renders.
-- Keep `HelicopterCanvas`, `MilestoneSheet`, `UnifiedTimeline`, `OtherJourneysList`.
-- Restore the filter/sub-tab bar exactly as it was before the dashboard hero was added (the existing `activeSubTab` pills around lines 880–908 stay — the segmented filter is already present; only the hero/ribbon block goes).
-- Drop now-unused imports.
+Good news: this is a **configuration-only** change. No code in the app has to change — `lovable.auth.signInWithOAuth("google", ...)` keeps working exactly the same; it just starts using your client ID/secret instead of Lovable's shared ones.
 
-## 3. Milestone deep-link from Home → Journey opens its detail view
-Home already sends `onNavigate("journey", \`milestone:${id}\`)`. JourneyScreen currently lands on the overview tab and selects the milestone in the canvas. Upgrade `resolvePendingMilestone` (JourneyScreen ~line 200) to also auto-open the milestone's natural section, mirroring `MilestoneSheet.onOpenMilestone`:
-- `departure`/`return` → switch `activeSubTab` to `tickets` and scroll to the matching ticket card (use existing `seg.groupId === flight.ticketId`).
-- `appointment`/`treatment` → switch to `appointments` and scroll to that appointment row.
-- Other → stay on overview, open the milestone sheet.
+## What you'll need from Google Cloud Console
 
-Add `data-milestone-id` anchors on ticket cards in `TicketsTab` and appointment rows in `AppointmentsTab` for scrollIntoView.
+1. A project in [Google Cloud Console](https://console.cloud.google.com/).
+2. **OAuth consent screen** configured:
+   - User type: External (or Internal if Workspace-only).
+   - Add your domains under **Authorized domains**:
+     - `lovable.app`
+     - `rufayq.com` (your custom domain)
+   - Scopes: `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`.
+   - Add your branding (app name, logo, support email) — this is what users will see on the Google consent screen instead of Lovable's.
+3. **Credentials → Create credentials → OAuth client ID**
+   - Application type: **Web application**.
+   - Authorized redirect URI: the **callback URL** shown in Lovable Cloud → Users → Authentication Settings → Google (we'll grab it in step 1 below).
+4. After creation, copy the **Client ID** and **Client Secret**.
 
-## 4. Per-ticket attachments — verify isolation + add to milestone sheet
-- **TicketsTab**: already renders `<RelatedDocumentsCard ticketId={seg.groupId} …>` per segment (line 1447). Add a Vitest case in `src/components/__tests__/RelatedDocumentsCard.scope.test.tsx` proving three tickets with different `ticketId`s issue three distinct scoped queries and never share results.
-- **Milestone sheet on Home open**: when the deep-linked milestone is a flight, the sheet currently only shows a summary row. Add a small inline `<RelatedDocumentsCard ticketId={flight.ticketId} …>` (when a `ticketId` exists) inside `MilestoneSheet` so the user can see/upload that flight's docs without leaving the sheet. For appointments, no change (appointments already have their own attachments flow elsewhere).
+## Steps in Lovable
 
-## 5. AI Chat — persona picker (Medical, Shopping, Tour)
-**UI (`src/screens/ChatScreen.tsx`)**:
-- Add a `ChatPersona` type: `"medical" | "shopping" | "tour"`.
-- Show a full-screen picker card on entry (and via a header "New chat" action) listing the 3 personas with icon, name (EN/AR), one-line description. Selection locks the persona for that conversation.
-- Header subtitle reflects the active persona ("Medical AI", "Shopping AI", "Tour Guide AI") with matching bilingual line.
-- Seed `initialMessages` and `quickPrompts` per persona.
-- Send `persona` in the request body to the chat edge function.
-- "New chat" resets messages and returns to the picker.
+1. Open **Cloud → Users → Authentication Settings → Sign‑in methods → Google**, expand the Google provider, and copy the **Callback URL** shown there.
+2. Paste that callback URL into your Google OAuth client's **Authorized redirect URIs** and save in Google Cloud.
+3. Back in the same Lovable Google provider panel, switch from **Managed credentials** to **Custom credentials** and paste your **Client ID** and **Client Secret**, then save.
+4. Test: sign out, click **Continue with Google**, confirm the consent screen now shows **your** app name and logo instead of Lovable's.
 
-**Backend (`supabase/functions/chat/index.ts`)**:
-- Accept `persona` in the request payload; select system prompt from a map:
-  - `medical` → current `SYSTEM_PROMPT` (RufayQ medical companion).
-  - `shopping` → "Shopping AI" expert in product comparison, deals, Saudi/abroad shopping etiquette, sizing, currency, customs.
-  - `tour` → "Tour Guide AI" expert in destination history, must-see sights near the treatment hospital, halal-friendly logistics, transit.
-- Keep medical disclaimer block only for `medical`. Smart-scan mode still overlays as today.
+## Notes
 
-No DB migration; persona lives in the request only. Conversations remain session-scoped (matches existing chat behavior; per the chat-agent contract this is "one conversation, no persistence" — unchanged from current product).
+- Custom domain (`rufayq.com`) keeps working — OAuth still flows through Lovable's `/~oauth/...` proxy, which honors custom domains.
+- No `.env`, no edge function changes, no code edits in this repo.
+- If you want SAML SSO later (Okta / Entra / Workspace SAML for company employees), that's a separate flow and I can wire it via `configure_saml_sso`.
 
-## Technical notes
-- No new tables; reuse existing `step_attachments` + `RelatedDocumentsCard` scoping.
-- Files touched: `src/screens/CareHubScreen.tsx`, `src/screens/JourneyScreen.tsx`, `src/screens/HomeScreen.tsx` (no change unless needed), `src/components/journey/MilestoneSheet.tsx`, `src/components/__tests__/RelatedDocumentsCard.scope.test.tsx`, `src/screens/ChatScreen.tsx`, `supabase/functions/chat/index.ts`.
-- Bilingual EN/AR labels throughout, RTL preserved.
+```text
+Browser  ─►  rufayq.com /~oauth/initiate
+         ─►  Lovable OAuth broker
+         ─►  Google consent (YOUR client_id, YOUR branding)
+         ─►  Lovable callback
+         ─►  Session set in app
+```
+
+<presentation-actions>
+<presentation-open-backend>Open Authentication Settings</presentation-open-backend>
+</presentation-actions>
