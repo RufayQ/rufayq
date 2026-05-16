@@ -60,7 +60,9 @@ const ProfileCompletionBanner = ({ onOpenProfile }: Props) => {
       setDeviceId(id);
 
       try {
-        const dismissedFlag = sessionStorage.getItem(`${DISMISS_KEY_PREFIX}:${id}`) === "1";
+        const dismissedFlag =
+          localStorage.getItem(`${DISMISS_KEY_PREFIX}:${id}`) === "1" ||
+          sessionStorage.getItem(`${DISMISS_KEY_PREFIX}:${id}`) === "1";
         if (dismissedFlag) { setDismissed(true); return; }
       } catch { /* noop */ }
 
