@@ -135,5 +135,5 @@ export function useChatThread(threadId: string | null) {
       .eq("device_id", deviceId);
   }, [threadId]);
 
-  return { messages, loading, send, markRead, reload: load };
+  return { messages, loading, send, retry, markRead, reload: load };
 }
