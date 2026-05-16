@@ -40,7 +40,24 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [segment, setSegment] = useState<RecordsSegment>("travel");
+  const [segment, setSegment] = useState<RecordsSegment>(() => {
+    try {
+      const pending = sessionStorage.getItem("rufayq_records_segment");
+      if (pending === "medical" || pending === "travel") {
+        sessionStorage.removeItem("rufayq_records_segment");
+        return pending;
+      }
+    } catch { /* noop */ }
+    return "travel";
+  });
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail === "medical" || detail === "travel") setSegment(detail);
+    };
+    window.addEventListener("rufayq:records-segment", handler);
+    return () => window.removeEventListener("rufayq:records-segment", handler);
+  }, []);
   const userId = useAuthUserId();
   const travelCount = useArtifactCount({ userId });
 
