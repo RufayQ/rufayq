@@ -538,25 +538,9 @@ const Index = () => {
           </TabErrorBoundary>
         </div>
 
-        {/* Global notification center — visible on every main tab except home (home has its own in the header). */}
-        {showNav && activeTab !== "home" && (
-          <div
-            className={`absolute z-40 ${activeTab === "chat" ? "right-16" : "right-3"}`}
-            style={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
-          >
-            <NotificationCenter
-              color="hsl(var(--primary-foreground))"
-              onNavigate={(link) => {
-                // Best-effort: route system-alert links via the existing deep-link parser
-                try {
-                  const t = (window as unknown as { __rufayqRoute?: (l: string) => void }).__rufayqRoute;
-                  if (typeof t === "function") t(link);
-                } catch { /* noop */ }
-              }}
-              onOpenThread={openChatThread}
-            />
-          </div>
-        )}
+        {/* Notification center lives inside each screen's own header (HomeHeader, section headers).
+            The global overlay was removed because it collided with section HeaderMenu buttons,
+            causing a duplicated bell and a UI glitch on Journey/Records/Care/Meds screens. */}
 
         {showNav && (
           <div className="absolute inset-x-0 bottom-0 z-30">
