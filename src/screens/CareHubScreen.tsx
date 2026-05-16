@@ -8,6 +8,7 @@ import { useAuthUserId } from "@/hooks/useAuthUserId";
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
+import NotificationBell from "@/components/NotificationBell";
 import ProviderFeedCard from "@/components/ProviderFeedCard";
 import { useProviderFeed } from "@/hooks/useProviderFeed";
 import { useGuestMode } from "@/hooks/useGuestMode";
@@ -81,7 +82,10 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
             <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Your Recovery Hub</p>
             <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>مركز التعافي الخاص بك</p>
           </div>
-          <HeaderMenu items={careMenuItems} />
+          <div className="flex items-center gap-2">
+            <NotificationBell color="#fff" />
+            <HeaderMenu items={careMenuItems} />
+          </div>
         </div>
         {/* Patient status — demo placeholder only shown to guests */}
         {isGuest ? (
