@@ -911,14 +911,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
           <>
             {activeTrip ? (
               <>
-                <JourneyHero
-                  trip={activeTrip}
-                  daysLeft={overview.daysLeft}
-                  progressPct={overview.progressPct}
-                  formattedDepartureDate={overview.formattedDepartureDate}
-                  formattedReturnDate={overview.formattedReturnDate}
-                />
-                <PhaseRibbon5 dayN={overview.dayN} totalDays={overview.totalDays} />
                  <HelicopterCanvas
                   milestones={overview.milestones}
                   selectedId={selectedMilestoneId}
