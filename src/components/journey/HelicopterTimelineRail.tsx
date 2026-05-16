@@ -60,8 +60,12 @@ const connectorColor = (a: JourneyMilestone, b: JourneyMilestone) => {
 
 const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => {
   const railRef = useRef<HTMLDivElement>(null);
+  const markerRef = useRef<HTMLDivElement>(null);
+  const programmaticRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
   const [phaseFilter, setPhaseFilter] = useState<typeof PHASES[number]["key"]>("all");
   const [stateFilter, setStateFilter] = useState<typeof STATES[number]["key"]>("all");
+  const [nearestId, setNearestId] = useState<string | null>(selectedId ?? null);
 
   const filtered = useMemo(() => {
     return milestones.filter((m) => {
@@ -71,21 +75,90 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
     });
   }, [milestones, phaseFilter, stateFilter]);
 
-  // Smooth auto-center on selection changes. Re-run when the filtered list
-  // changes too so the selected node stays centered after a filter toggle.
+  // Re-position the NOW marker to sit over a given milestone node, with a
+  // smooth CSS transition. Also runs after scroll so the marker tracks the
+  // milestone nearest to the viewport center in real time.
+  const positionMarker = (id: string | null) => {
+    const rail = railRef.current;
+    const marker = markerRef.current;
+    if (!rail || !marker || !id) return;
+    const node = rail.querySelector<HTMLButtonElement>(`[data-mid="${id}"]`);
+    if (!node) return;
+    const railRect = rail.getBoundingClientRect();
+    const nodeRect = node.getBoundingClientRect();
+    const centerX = nodeRect.left + nodeRect.width / 2 - railRect.left;
+    marker.style.transform = `translateX(${centerX}px) translateX(-50%)`;
+    marker.style.opacity = "1";
+  };
+
+  // Find milestone whose centre is closest to the rail's viewport centre.
+  const computeNearest = (): string | null => {
+    const rail = railRef.current;
+    if (!rail) return null;
+    const rect = rail.getBoundingClientRect();
+    const target = rect.left + rect.width / 2;
+    let bestId: string | null = null;
+    let bestDist = Infinity;
+    rail.querySelectorAll<HTMLButtonElement>("[data-mid]").forEach((node) => {
+      const r = node.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const d = Math.abs(cx - target);
+      if (d < bestDist) { bestDist = d; bestId = node.dataset.mid ?? null; }
+    });
+    return bestId;
+  };
+
+  // Smooth auto-center on EXTERNAL selection changes (deep-link / parent).
   useEffect(() => {
     if (!selectedId) return;
     const node = railRef.current?.querySelector<HTMLButtonElement>(`[data-mid="${selectedId}"]`);
     if (!node) return;
+    programmaticRef.current = true;
     requestAnimationFrame(() => {
       node.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      // Reposition marker immediately; final position is corrected by the scroll listener.
+      positionMarker(selectedId);
+      // Clear the programmatic flag after the scroll settles.
+      window.setTimeout(() => { programmaticRef.current = false; }, 500);
     });
   }, [selectedId, filtered.length, phaseFilter, stateFilter]);
+
+  // Track nearest-to-center as the user scrolls the rail, and slide the
+  // NOW marker to follow. Emits onSelect when the nearest milestone changes
+  // so the parent (MilestoneSheet, etc.) updates without taps.
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const handle = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        const id = computeNearest();
+        if (id) {
+          positionMarker(id);
+          setNearestId((prev) => {
+            if (prev === id) return prev;
+            // Don't echo the parent's own programmatic scrolls back as user input.
+            if (!programmaticRef.current && id !== selectedId) onSelect(id);
+            return id;
+          });
+        }
+      });
+    };
+    handle(); // initial pass
+    rail.addEventListener("scroll", handle, { passive: true });
+    window.addEventListener("resize", handle);
+    return () => {
+      rail.removeEventListener("scroll", handle);
+      window.removeEventListener("resize", handle);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered.length, selectedId]);
 
   if (milestones.length === 0) return null;
 
   const doneCount = milestones.filter((m) => m.state === "done").length;
-  const hasCurrentInView = filtered.some((m) => m.state === "current");
+  const activeId = nearestId ?? selectedId ?? null;
 
   return (
     <section className="px-4 pt-3" aria-label="Helicopter timeline · الخط الزمني الشامل">
@@ -171,10 +244,17 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
             over the scroll container so the user's eye always knows where
             "now" is, even when scrolled away. */}
         <div className="relative">
-          {hasCurrentInView && (
+          {activeId && (
             <div
+              ref={markerRef}
               aria-hidden="true"
-              className="pointer-events-none absolute top-0 bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center"
+              className="pointer-events-none absolute top-0 bottom-2 left-0 flex flex-col items-center"
+              style={{
+                transform: "translateX(0) translateX(-50%)",
+                transition: "transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 200ms ease",
+                opacity: 0,
+                willChange: "transform",
+              }}
             >
               <span
                 className="rounded-full px-2 py-[2px] text-[9px] font-bold tracking-wider uppercase shadow"

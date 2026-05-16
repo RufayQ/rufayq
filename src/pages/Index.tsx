@@ -306,6 +306,10 @@ const Index = () => {
   }, []);
 
   const handleNavigate = (tab: string, context?: string) => {
+    if (tab === "logout") {
+      handleLogout();
+      return;
+    }
     if (tab === "medications") {
       setAppView("medications");
     } else if (tab === "scanner") {
