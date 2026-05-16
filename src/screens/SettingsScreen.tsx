@@ -270,6 +270,32 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           </div>
         </div>
 
+        {/* Chat Discovery */}
+        <div className="mx-4 mt-5">
+          <div className="flex items-center gap-2 mb-1.5 px-1">
+            <MessageSquare size={13} style={{ color: "var(--gold)" }} />
+            <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>CHAT DISCOVERY · اكتشاف الدردشة</p>
+          </div>
+          <p className="px-1 mb-2 text-[10px] leading-snug" style={{ color: "var(--gray)" }}>
+            Let other users find and message you by your exact email or phone.
+            <span className="font-arabic block" dir="rtl">السماح للآخرين بإيجادك ومراسلتك عبر بريدك أو هاتفك بالضبط.</span>
+          </p>
+          <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+            <ToggleRow
+              icon={<AtSign size={15} style={{ color: "var(--teal-deep)" }} />}
+              label={discoverEmail ? `Discoverable by email (${discoverEmail})` : "Discoverable by email"}
+              labelAr="مرئي عبر البريد"
+              on={discoverByEmail} onChange={(v) => toggleDiscovery("email", v)}
+            />
+            <ToggleRow
+              icon={<Phone size={15} style={{ color: "var(--gold)" }} />}
+              label={discoverPhone ? `Discoverable by phone (${discoverPhone})` : "Discoverable by phone"}
+              labelAr="مرئي عبر الهاتف"
+              on={discoverByPhone} onChange={(v) => toggleDiscovery("phone", v)} color="var(--gold)"
+            />
+          </div>
+        </div>
+
         {/* Theme / Appearance */}
         <div className="mx-4 mt-5">
           <div className="flex items-center gap-2 mb-1.5 px-1">
