@@ -244,10 +244,17 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
             over the scroll container so the user's eye always knows where
             "now" is, even when scrolled away. */}
         <div className="relative">
-          {hasCurrentInView && (
+          {activeId && (
             <div
+              ref={markerRef}
               aria-hidden="true"
-              className="pointer-events-none absolute top-0 bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center"
+              className="pointer-events-none absolute top-0 bottom-2 left-0 flex flex-col items-center"
+              style={{
+                transform: "translateX(0) translateX(-50%)",
+                transition: "transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 200ms ease",
+                opacity: 0,
+                willChange: "transform",
+              }}
             >
               <span
                 className="rounded-full px-2 py-[2px] text-[9px] font-bold tracking-wider uppercase shadow"
