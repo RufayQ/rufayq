@@ -1991,14 +1991,21 @@ const AppointmentsTab = ({
   onSaveAppointment,
   openAddIntent,
   isGuest,
+  scrollToAppointmentId,
+  onScrollHandled,
 }: {
   onOpenScanner?: (cat?: string) => void;
   appointments: Appointment[];
   onSaveAppointment: (input: Partial<AppointmentRow> & { id?: string }) => Promise<AppointmentRow>;
   openAddIntent: number;
   isGuest: boolean;
+  /** When set, the matching appointment row scrolls into view and briefly highlights. */
+  scrollToAppointmentId?: string | null;
+  /** Called once the scroll/highlight has been applied. */
+  onScrollHandled?: () => void;
 }) => {
   const [showAddAppt, setShowAddAppt] = useState(false);
+  const [highlightApptId, setHighlightApptId] = useState<string | null>(null);
   const [guestAppts, setGuestAppts] = useState<Appointment[]>(appointmentItems);
   const displayedAppts = isGuest ? guestAppts : appointmentItems;
   const upcomingAppts = displayedAppts.filter(a => a.status === "upcoming");
