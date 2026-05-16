@@ -496,24 +496,19 @@ const Index = () => {
           <div className="absolute inset-0 pointer-events-none z-40">
             <div
               className={`absolute pointer-events-auto ${activeTab === "chat" ? "right-16" : "right-3"}`}
-              style={{ top: 56 }}
+              style={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
             >
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.22)", backdropFilter: "blur(6px)" }}
-              >
-                <NotificationCenter
-                  color="#fff"
-                  onNavigate={(link) => {
-                    // Best-effort: route system-alert links via the existing deep-link parser
-                    try {
-                      const t = (window as unknown as { __rufayqRoute?: (l: string) => void }).__rufayqRoute;
-                      if (typeof t === "function") t(link);
-                    } catch { /* noop */ }
-                  }}
-                  onOpenThread={openChatThread}
-                />
-              </div>
+              <NotificationCenter
+                color="hsl(var(--primary-foreground))"
+                onNavigate={(link) => {
+                  // Best-effort: route system-alert links via the existing deep-link parser
+                  try {
+                    const t = (window as unknown as { __rufayqRoute?: (l: string) => void }).__rufayqRoute;
+                    if (typeof t === "function") t(link);
+                  } catch { /* noop */ }
+                }}
+                onOpenThread={openChatThread}
+              />
             </div>
           </div>
         )}
