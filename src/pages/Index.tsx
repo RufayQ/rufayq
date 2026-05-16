@@ -31,6 +31,8 @@ import { useFreshStart } from "@/hooks/useFreshStart";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { useTourSystem } from "@/hooks/useTourSystem";
 import { usePatientBootstrap } from "@/hooks/usePatientBootstrap";
+import { useGlobalChat } from "@/hooks/useGlobalChat";
+import NotificationBell from "@/components/NotificationBell";
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
@@ -152,9 +154,11 @@ const Index = () => {
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
   const [journeyIntent, setJourneyIntent] = useState<"new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | `phase:${string}` | null>(null);
-  const [badges, setBadges] = useState<Partial<Record<Tab, boolean>>>({
+  const [badges, setBadges] = useState<Partial<Record<Tab, boolean | number>>>({
     carehub: true,
   });
+  // Global chat awareness: drives the bottom-nav badge AND in-app toasts.
+  const { totalUnread: chatUnread } = useGlobalChat();
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("rufayq_onboarded", "true");
@@ -453,9 +457,30 @@ const Index = () => {
           {renderContent()}
         </div>
 
+        {/* Global notification bell — visible on every main tab except home (home has its own in the header). */}
+        {showNav && activeTab !== "home" && (
+          <div className="absolute inset-0 pointer-events-none z-40">
+            <div className={`absolute top-2 pointer-events-auto ${activeTab === "chat" ? "right-16" : "right-3"}`}>
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(6px)" }}
+              >
+                <NotificationBell color="#fff" />
+              </div>
+            </div>
+          </div>
+        )}
+
         {showNav && (
           <div className="absolute inset-x-0 bottom-0 z-30">
-            <BottomNav active={activeTab} onNavigate={handleTabNavigate} badges={badges} />
+            <BottomNav
+              active={activeTab}
+              onNavigate={handleTabNavigate}
+              badges={{
+                ...badges,
+                chat: activeTab === "chat" ? undefined : (chatUnread > 0 ? chatUnread : undefined),
+              }}
+            />
           </div>
         )}
 

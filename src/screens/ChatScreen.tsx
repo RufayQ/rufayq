@@ -385,6 +385,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
         threadId={humanThread.id}
         title={humanThread.title ?? "Conversation"}
         subtitle={subtitle}
+        kind={humanThread.kind === "provider" ? "provider" : "direct"}
         onBack={() => { setHumanThread(null); setView("inbox"); }}
       />
     );

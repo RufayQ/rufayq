@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Send } from "lucide-react";
+import { ChevronLeft, Send, Stethoscope, User } from "lucide-react";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { getDeviceId } from "@/hooks/useDeviceId";
 
@@ -7,6 +7,8 @@ interface Props {
   threadId: string;
   title: string;
   subtitle?: string;
+  /** Conversation kind drives the avatar icon and label tone. */
+  kind?: "direct" | "provider";
   onBack: () => void;
 }
 
@@ -15,7 +17,7 @@ interface Props {
  * bubble styling so the inbox feels cohesive across all three conversation
  * kinds. Realtime updates come from useChatThread.
  */
-export default function HumanChatView({ threadId, title, subtitle, onBack }: Props) {
+export default function HumanChatView({ threadId, title, subtitle, kind = "direct", onBack }: Props) {
   const { messages, send, markRead } = useChatThread(threadId);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -32,6 +34,9 @@ export default function HumanChatView({ threadId, title, subtitle, onBack }: Pro
     finally { setSending(false); }
   };
 
+  const initials = (title || "?").trim().slice(0, 1).toUpperCase();
+  const roleLabel = kind === "provider" ? "Care provider · مزود الرعاية" : "Direct message · رسالة مباشرة";
+
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden", background: "var(--off-white)" }}>
       {/* Header */}
@@ -39,9 +44,24 @@ export default function HumanChatView({ threadId, title, subtitle, onBack }: Pro
         <button onClick={onBack} className="p-1 rounded-full btn-press" aria-label="Back">
           <ChevronLeft size={22} color="#fff" />
         </button>
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+          style={{
+            background: kind === "provider" ? "var(--teal-deep)" : "rgba(255,255,255,0.18)",
+            color: "#fff",
+            border: "1.5px solid rgba(255,255,255,0.25)",
+            fontFamily: "'DM Sans'",
+            fontWeight: 700,
+          }}
+        >
+          {kind === "provider" ? <Stethoscope size={18} /> : (initials || <User size={18} />)}
+        </div>
         <div className="flex-1 min-w-0">
           <p className="text-white text-[15px] font-bold truncate" style={{ fontFamily: "'DM Sans'" }}>{title}</p>
-          {subtitle && <p className="text-[11px] truncate" style={{ color: "rgba(255,255,255,0.55)" }}>{subtitle}</p>}
+          <p className="text-[10.5px] truncate font-mono tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>{roleLabel}</p>
+          {subtitle && subtitle !== roleLabel && (
+            <p className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.45)" }}>{subtitle}</p>
+          )}
         </div>
       </div>
 

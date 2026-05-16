@@ -43,7 +43,22 @@ export function useChatThread(threadId: string | null) {
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },
         (payload) => {
           const m = payload.new as ChatMessageRow;
-          setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+          setMessages((prev) => {
+            if (prev.some((x) => x.id === m.id)) return prev;
+            // Replace optimistic temp message with same body from same device
+            const me = getDeviceId();
+            if (m.sender_device_id === me) {
+              const tempIdx = prev.findIndex(
+                (x) => x.id.startsWith("temp-") && x.body === m.body,
+              );
+              if (tempIdx >= 0) {
+                const next = prev.slice();
+                next[tempIdx] = m;
+                return next;
+              }
+            }
+            return [...prev, m];
+          });
         },
       )
       .subscribe();
@@ -52,15 +67,44 @@ export function useChatThread(threadId: string | null) {
 
   const send = useCallback(
     async (body: string) => {
-      if (!threadId || !body.trim()) return;
+      const trimmed = body.trim();
+      if (!threadId || !trimmed) return;
       const deviceId = getDeviceId();
-      const { error } = await supabase.from("chat_messages").insert({
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const optimistic: ChatMessageRow = {
+        id: tempId,
         thread_id: threadId,
         sender_kind: "patient",
         sender_device_id: deviceId,
-        body: body.trim(),
-      });
-      if (error) throw error;
+        sender_org_id: null,
+        body: trimmed,
+        metadata: {},
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimistic]);
+      const { data, error } = await supabase
+        .from("chat_messages")
+        .insert({
+          thread_id: threadId,
+          sender_kind: "patient",
+          sender_device_id: deviceId,
+          body: trimmed,
+        })
+        .select("id, thread_id, sender_kind, sender_device_id, sender_org_id, body, metadata, created_at")
+        .single();
+      if (error) {
+        // Roll back optimistic message on failure
+        setMessages((prev) => prev.filter((x) => x.id !== tempId));
+        throw error;
+      }
+      if (data) {
+        setMessages((prev) => {
+          if (prev.some((x) => x.id === (data as ChatMessageRow).id)) {
+            return prev.filter((x) => x.id !== tempId);
+          }
+          return prev.map((x) => (x.id === tempId ? (data as ChatMessageRow) : x));
+        });
+      }
     },
     [threadId],
   );
