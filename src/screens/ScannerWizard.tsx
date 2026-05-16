@@ -955,7 +955,7 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
   const [analyzedImages, setAnalyzedImages] = useState<string[]>([]);
 
   const cat = categories.find(c => c.id === category);
-  const dests = destinationsByCategory[category || ""] || destinationsByCategory["flight"];
+  const dests = destinationsByCategory[category || ""] || MEDICAL_GENERIC_DESTS;
 
   useEffect(() => {
     setDestinations(dests.map(d => d.checked));
