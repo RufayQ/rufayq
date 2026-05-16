@@ -379,3 +379,7 @@ html.admin-light .admin-shell textarea { background-color: #ffffff !important; c
 @media (prefers-reduced-motion: reduce) {
   .helicopter-pulse { animation: none; opacity: 0.35; }
 }
+
+/* Hide native scrollbars on horizontal pill rows (AI Buddy quick-ask chips). */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
