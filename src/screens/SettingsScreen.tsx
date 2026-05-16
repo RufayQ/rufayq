@@ -91,6 +91,10 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const [autoBackup, setAutoBackup] = useState(stored.autoBackup ?? true);
   const [replayTourId, setReplayTourId] = useState<string | null>(null);
   const [currentUid, setCurrentUid] = useState<string | null>(null);
+  const [discoverByEmail, setDiscoverByEmail] = useState(false);
+  const [discoverByPhone, setDiscoverByPhone] = useState(false);
+  const [discoverEmail, setDiscoverEmail] = useState<string | null>(null);
+  const [discoverPhone, setDiscoverPhone] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -101,7 +105,33 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
       setBiometricAvailable(avail);
       setBiometricOn(enrolled);
     })();
+    (async () => {
+      const { data, error } = await supabase.rpc("get_chat_discovery");
+      if (!error && Array.isArray(data) && data[0]) {
+        setDiscoverByEmail(!!data[0].discoverable_by_email);
+        setDiscoverByPhone(!!data[0].discoverable_by_phone);
+        setDiscoverEmail(data[0].email ?? null);
+        setDiscoverPhone(data[0].phone ?? null);
+      }
+    })();
   }, []);
+
+  const toggleDiscovery = async (kind: "email" | "phone", next: boolean) => {
+    const byEmail = kind === "email" ? next : discoverByEmail;
+    const byPhone = kind === "phone" ? next : discoverByPhone;
+    if (kind === "email" && next && !discoverEmail) {
+      toast.error("Add an email to your profile first · أضف بريدك في الملف أولاً");
+      return;
+    }
+    if (kind === "phone" && next && !discoverPhone) {
+      toast.error("Add a phone to your profile first · أضف رقم هاتفك في الملف أولاً");
+      return;
+    }
+    const { error } = await supabase.rpc("set_chat_discovery", { _by_email: byEmail, _by_phone: byPhone });
+    if (error) { toast.error("Could not update · تعذر التحديث"); return; }
+    if (kind === "email") setDiscoverByEmail(next); else setDiscoverByPhone(next);
+    toast.success(next ? "Discoverable · مرئي" : "Hidden · مخفي");
+  };
 
   const toggleBiometric = async (next: boolean) => {
     if (!biometricAvailable) {
