@@ -150,8 +150,9 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
    */
   const MIN_TYPING_MS = 1800;
 
-  const sendMessage = async (text: string) => {
+  const sendMessage = async (text: string, personaOverride?: ChatPersona) => {
     if (!text.trim()) return;
+    const effectivePersona = personaOverride ?? persona;
 
     // ---- Guest mode: enforce 5/day locally before hitting the network ----
     if (isGuest) {
@@ -197,7 +198,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           "x-device-id": deviceId,
         },
-        body: JSON.stringify({ messages: apiMessages, persona }),
+        body: JSON.stringify({ messages: apiMessages, persona: effectivePersona }),
       });
 
       if (!resp.ok) {
