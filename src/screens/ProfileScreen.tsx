@@ -114,9 +114,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
       <div className="flex flex-col h-full">
         <div className="relative px-5 pt-3 pb-6 text-center" style={{ background: "var(--navy)" }}>
           <button onClick={onBack} className="absolute left-4 top-3 btn-press"><ArrowLeft size={20} color="white" /></button>
-          <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center" style={{ border: "2px solid var(--gold)", background: "rgba(197,150,90,0.15)", color: "var(--gold)" }}>
-            <LogoMark size={28} />
-          </div>
+          <AvatarUploader />
           <p className="font-display text-xl text-white mt-2">Your Profile</p>
           <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>ملفك الشخصي</p>
         </div>
