@@ -381,6 +381,21 @@ const RelatedDocumentsCard = ({
           <span className="text-[10px] font-bold">Attach</span>
           <span className="font-arabic text-[9px]">إرفاق</span>
         </button>
+        <button
+          onClick={openFromRecords}
+          className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 btn-press"
+          style={{
+            width: 110,
+            height: 92,
+            border: "1.5px dashed var(--teal-deep)",
+            background: "rgba(0,77,91,0.06)",
+            color: "var(--teal-deep)",
+          }}
+        >
+          <FolderOpen size={20} />
+          <span className="text-[10px] font-bold">From Records</span>
+          <span className="font-arabic text-[9px]">من السجلات</span>
+        </button>
         <input
           ref={fileInputRef}
           type="file"
