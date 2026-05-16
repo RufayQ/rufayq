@@ -1,6 +1,6 @@
 import RufayQWordmark from "@/components/RufayQWordmark";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
-import NotificationBell from "@/components/NotificationBell";
+import NotificationCenter from "@/components/NotificationCenter";
 import PhaseRibbon from "@/components/home/PhaseRibbon";
 import { type Phase } from "@/components/home/journeyPhase";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -67,7 +67,7 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase, n
         <div className="flex items-center justify-between mb-3">
           <RufayQWordmark size="sm" variant="light" />
           <div className="flex items-center gap-2">
-            <NotificationBell
+            <NotificationCenter
               color="#fff"
               open={notificationOpen}
               onOpenChange={onNotificationOpenChange}
