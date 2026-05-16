@@ -97,7 +97,13 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, deviceId]);
 
+  const counts = items.reduce<Record<TravelCat, number>>(
+    (acc, it) => { acc.all += 1; acc[classify(it)] += 1; return acc; },
+    { all: 0, passport: 0, visa: 0, booking: 0, insurance: 0, other: 0 },
+  );
+
   const filtered = items.filter((it) => {
+    if (cat !== "all" && classify(it) !== cat) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return it.label.toLowerCase().includes(q) || it.file_name.toLowerCase().includes(q);
