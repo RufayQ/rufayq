@@ -152,6 +152,31 @@ const RelatedDocumentsCard = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segmentRef, ticketId, userId]);
 
+  // Resolve signed URLs for image attachments so tiles show real thumbnails.
+  useEffect(() => {
+    const pending = items.filter(
+      (it) => isImage(it.mime_type) && !thumbs[it.id] && it.file_path,
+    );
+    if (pending.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrls(pending.map((p) => p.file_path), 60 * 30);
+      if (cancelled || error || !data) return;
+      const next: Record<string, string> = {};
+      data.forEach((row, idx) => {
+        const id = pending[idx]?.id;
+        if (id && row.signedUrl) next[id] = row.signedUrl;
+      });
+      if (Object.keys(next).length > 0) {
+        setThumbs((prev) => ({ ...prev, ...next }));
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
   const onPickFile = (file: File) => {
     if (file.size > MAX_BYTES) {
       toast.error("File is too large", { description: "Max 10 MB per attachment." });
