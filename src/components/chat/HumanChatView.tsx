@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Send } from "lucide-react";
+import { ChevronLeft, Send, Stethoscope, User } from "lucide-react";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { getDeviceId } from "@/hooks/useDeviceId";
 
