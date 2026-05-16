@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { records as demoRecords, filterCategories, type DocRecord } from "@/constants/data";
-import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, RefreshCw, Stethoscope, Plane } from "lucide-react";
+import { Share2, Download, ChevronDown, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, RefreshCw, Stethoscope, Plane, MoreVertical } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
@@ -9,6 +9,7 @@ import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { useAuthUserId } from "@/hooks/useAuthUserId";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
 import TravelRecordsList from "@/components/records/TravelRecordsList";
+import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
 
 type RecordsSegment = "medical" | "travel";
 
@@ -37,6 +38,13 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const [segment, setSegment] = useState<RecordsSegment>("medical");
   const userId = useAuthUserId();
   const travelCount = useArtifactCount({ userId });
+
+  // Local-only edits for demo (medical) records — they don't live in DB yet.
+  const [renames, setRenames] = useState<Record<string, string>>({});
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [menuTarget, setMenuTarget] = useState<{ doc: DocRecord; key: string } | null>(null);
+
+  const keyFor = (d: DocRecord, i: number) => `${d.titleEn}-${i}`;
 
   // Dynamic stats
   const totalFiles = records.length;
@@ -287,37 +295,40 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         )}
 
         {/* Documents List */}
-        {filtered.map((doc, i) => {
+        {filtered.filter((d, i) => !hidden.has(keyFor(d, i))).map((doc, i) => {
           const tb = translationBadge(doc.translationStatus);
+          const k = keyFor(doc, i);
+          const displayName = renames[k] ?? doc.titleEn;
           return (
-            <button
-              key={`${doc.titleEn}-${i}`}
-              onClick={() => setSelectedDoc(doc)}
+            <div
+              key={k}
               className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left card-press"
               style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
             >
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: doc.bgColor }}>
-                {doc.emoji}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{doc.titleEn}</p>
-                  {doc.isNew && (
-                    <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "var(--gold)", color: "#fff" }}>NEW</span>
-                  )}
+              <button onClick={() => setSelectedDoc({ ...doc, titleEn: displayName })} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: doc.bgColor }}>
+                  {doc.emoji}
                 </div>
-                <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{doc.titleAr}</p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: tb.bg, color: tb.color }}>{tb.label}</span>
-                  <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{doc.date}</span>
-                  {doc.pages && <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>· {doc.pages}p</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{displayName}</p>
+                    {doc.isNew && (
+                      <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "var(--gold)", color: "#fff" }}>NEW</span>
+                    )}
+                  </div>
+                  <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{doc.titleAr}</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: tb.bg, color: tb.color }}>{tb.label}</span>
+                    <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>{doc.date}</span>
+                    {doc.pages && <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>· {doc.pages}p</span>}
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+              </button>
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onNavigate?.("chat", `📄 اسأل عن: "${doc.titleEn}" — ${doc.titleAr}\n\nأريد معرفة تفاصيل هذا السجل الطبي. ما هي النتائج الرئيسية؟`);
+                    onNavigate?.("chat", `📄 اسأل عن: "${displayName}" — ${doc.titleAr}\n\nأريد معرفة تفاصيل هذا السجل الطبي. ما هي النتائج الرئيسية؟`);
                   }}
                   className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
                   style={{ background: "linear-gradient(135deg, var(--navy), var(--teal-deep))" }}
@@ -325,9 +336,16 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
                 >
                   <RufayQLogo size={13} variant="dark" />
                 </button>
-                <ChevronDown size={16} className="-rotate-90" style={{ color: doc.accentColor }} />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenuTarget({ doc, key: k }); }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
+                  style={{ background: "var(--off-white)" }}
+                  aria-label="More actions"
+                >
+                  <MoreVertical size={14} style={{ color: "var(--gray)" }} />
+                </button>
               </div>
-            </button>
+            </div>
           );
         })}
 
@@ -479,6 +497,34 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
           </div>
         </div>
       )}
+
+      <RecordActionsSheet
+        open={!!menuTarget}
+        target={menuTarget ? { id: menuTarget.key, name: renames[menuTarget.key] ?? menuTarget.doc.titleEn, subtitle: menuTarget.doc.category, mutable: true } : null}
+        onClose={() => setMenuTarget(null)}
+        onPreview={() => menuTarget && setSelectedDoc({ ...menuTarget.doc, titleEn: renames[menuTarget.key] ?? menuTarget.doc.titleEn })}
+        onRename={(newName) => {
+          if (!menuTarget) return;
+          setRenames((r) => ({ ...r, [menuTarget.key]: newName }));
+        }}
+        onShare={() => {
+          if (!menuTarget) return;
+          const name = renames[menuTarget.key] ?? menuTarget.doc.titleEn;
+          const text = `📄 ${name} — ${menuTarget.doc.category} — ${menuTarget.doc.date}`;
+          if (navigator.share) {
+            navigator.share({ title: name, text }).catch(() => {});
+          } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+          }
+        }}
+        onApplyToMilestone={(m) => {
+          toast.success(`Linked to ${m.title}`, { description: "Stored for this session · محفوظ مؤقتًا", duration: 2200 });
+        }}
+        onDelete={() => {
+          if (!menuTarget) return;
+          setHidden((s) => new Set(s).add(menuTarget.key));
+        }}
+      />
     </div>
   );
 };

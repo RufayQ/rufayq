@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, FileText, Image as ImageIcon, X, Eye, Loader2 } from "lucide-react";
+import { Plus, FileText, Image as ImageIcon, X, Eye, Loader2, FolderOpen, Pencil, Share2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
@@ -75,6 +75,12 @@ const RelatedDocumentsCard = ({
   const [labelDraft, setLabelDraft] = useState("VISA");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [renameDraft, setRenameDraft] = useState("");
+  const [fromRecordsOpen, setFromRecordsOpen] = useState(false);
+  const [pool, setPool] = useState<TransportAttachment[]>([]);
+  const [poolLoading, setPoolLoading] = useState(false);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
 
@@ -224,6 +230,70 @@ const RelatedDocumentsCard = ({
     refresh();
   };
 
+  const renameItem = async () => {
+    if (!previewItem) return;
+    const name = renameDraft.trim();
+    if (!name || name === previewItem.label) { setRenaming(false); return; }
+    const { error } = await supabase
+      .from("transport_attachments")
+      .update({ label: name })
+      .eq("id", previewItem.id);
+    if (error) { toast.error("Could not rename", { description: error.message }); return; }
+    toast.success("Renamed · تم التغيير");
+    setPreviewItem({ ...previewItem, label: name });
+    setRenaming(false);
+    refresh();
+  };
+
+  const shareItem = async (item: TransportAttachment) => {
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(item.file_path, 60 * 60);
+    const url = data?.signedUrl;
+    const text = `📄 ${item.label} — ${item.file_name}${url ? `\n${url}` : ""}`;
+    if (navigator.share) {
+      await navigator.share({ title: item.label, text, url }).catch(() => {});
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    }
+  };
+
+  const openFromRecords = async () => {
+    setFromRecordsOpen(true);
+    setPoolLoading(true);
+    let q = supabase
+      .from("transport_attachments")
+      .select("*")
+      .is("deleted_at", null);
+    if (userId) q = q.or(`user_id.eq.${userId},device_id.eq.${deviceId}`);
+    else q = q.eq("device_id", deviceId);
+    const { data, error } = await q.order("created_at", { ascending: false }).limit(200);
+    if (error) toast.error("Could not load records", { description: error.message });
+    // Exclude rows already linked to this exact segment/ticket (by file_path).
+    const linkedPaths = new Set(items.map((i) => i.file_path));
+    setPool(((data as TransportAttachment[]) ?? []).filter((r) => !linkedPaths.has(r.file_path)));
+    setPoolLoading(false);
+  };
+
+  const linkExisting = async (src: TransportAttachment) => {
+    setLinkingId(src.id);
+    const { error } = await supabase.from("transport_attachments").insert({
+      device_id: deviceId,
+      user_id: userId ?? null,
+      ticket_id: ticketId ?? null,
+      source_document_id: sourceDocumentId ?? null,
+      segment_ref: segmentRef,
+      label: src.label,
+      file_name: src.file_name,
+      file_path: src.file_path, // share the same underlying storage object
+      mime_type: src.mime_type,
+      size_bytes: src.size_bytes,
+    });
+    setLinkingId(null);
+    if (error) { toast.error("Could not link", { description: error.message }); return; }
+    toast.success(`${src.label} attached`);
+    setFromRecordsOpen(false);
+    refresh();
+  };
+
   return (
     <div
       className={`mx-4 ${compact ? "mb-2" : "mb-3.5"} rounded-2xl px-4 py-3`}
@@ -310,6 +380,21 @@ const RelatedDocumentsCard = ({
           <Plus size={20} />
           <span className="text-[10px] font-bold">Attach</span>
           <span className="font-arabic text-[9px]">إرفاق</span>
+        </button>
+        <button
+          onClick={openFromRecords}
+          className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 btn-press"
+          style={{
+            width: 110,
+            height: 92,
+            border: "1.5px dashed var(--teal-deep)",
+            background: "rgba(0,77,91,0.06)",
+            color: "var(--teal-deep)",
+          }}
+        >
+          <FolderOpen size={20} />
+          <span className="text-[10px] font-bold">From Records</span>
+          <span className="font-arabic text-[9px]">من السجلات</span>
         </button>
         <input
           ref={fileInputRef}
@@ -428,16 +513,135 @@ const RelatedDocumentsCard = ({
               />
             )}
           </div>
-          <div className="px-4 pb-4">
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold text-white"
-              style={{ background: "var(--gold)" }}
+          <div className="px-4 pb-4 space-y-2">
+            {renaming ? (
+              <div className="flex gap-2">
+                <input
+                  autoFocus
+                  value={renameDraft}
+                  onChange={(e) => setRenameDraft(e.target.value)}
+                  className="flex-1 px-3 py-2.5 rounded-xl text-[13px] outline-none"
+                  style={{ background: "var(--white)", color: "var(--navy)" }}
+                />
+                <button
+                  onClick={renameItem}
+                  className="px-3 rounded-xl text-white font-bold flex items-center gap-1"
+                  style={{ background: "var(--teal-deep)" }}
+                >
+                  <Check size={14} /> Save
+                </button>
+                <button
+                  onClick={() => setRenaming(false)}
+                  className="px-3 rounded-xl font-bold"
+                  style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => { setRenameDraft(previewItem.label); setRenaming(true); }}
+                  className="py-3 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5"
+                  style={{ background: "rgba(255,255,255,0.14)", color: "white" }}
+                >
+                  <Pencil size={13} /> Rename
+                </button>
+                <button
+                  onClick={() => shareItem(previewItem)}
+                  className="py-3 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5"
+                  style={{ background: "rgba(255,255,255,0.14)", color: "white" }}
+                >
+                  <Share2 size={13} /> Share
+                </button>
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-3 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 text-white"
+                  style={{ background: "var(--gold)" }}
+                >
+                  <Eye size={13} /> Open
+                </a>
+              </div>
+            )}
+            <button
+              onClick={() => { void removeItem(previewItem); setPreviewUrl(null); setPreviewItem(null); }}
+              className="w-full py-2.5 rounded-xl text-[12px] font-semibold flex items-center justify-center gap-1.5"
+              style={{ background: "rgba(192,57,43,0.18)", color: "white" }}
             >
-              <Eye size={14} /> Open in new tab
-            </a>
+              <X size={13} /> Delete attachment
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* From Records picker */}
+      {fromRecordsOpen && (
+        <div
+          className="fixed inset-0 z-[115] flex items-end justify-center"
+          style={{ background: "rgba(0,0,0,0.55)" }}
+          onClick={() => setFromRecordsOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[420px] rounded-t-3xl pb-5"
+            style={{ background: "var(--white)", maxHeight: "80%" }}
+          >
+            <div className="flex justify-center pt-3 pb-2">
+              <div style={{ width: 36, height: 4, background: "#DEE4E9", borderRadius: 2 }} />
+            </div>
+            <div className="px-5 pb-2 flex items-center justify-between">
+              <div>
+                <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Attach from Records</p>
+                <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>إرفاق من السجلات</p>
+              </div>
+              <button
+                onClick={() => setFromRecordsOpen(false)}
+                className="w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ background: "var(--off-white)" }}
+              >
+                <X size={14} style={{ color: "var(--gray)" }} />
+              </button>
+            </div>
+            <div className="px-3 overflow-y-auto" style={{ maxHeight: "60vh" }}>
+              {poolLoading ? (
+                <div className="flex items-center justify-center gap-2 py-8" style={{ color: "var(--gray)" }}>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="text-[12px]">Loading…</span>
+                </div>
+              ) : pool.length === 0 ? (
+                <p className="text-[12px] text-center py-8" style={{ color: "var(--gray)" }}>
+                  No other records available · لا توجد سجلات أخرى
+                </p>
+              ) : (
+                <ul className="space-y-1.5 pb-3">
+                  {pool.map((p) => (
+                    <li key={p.id}>
+                      <button
+                        onClick={() => linkExisting(p)}
+                        disabled={linkingId === p.id}
+                        className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left btn-press"
+                        style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+                      >
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--gold-pale)" }}>
+                          {isImage(p.mime_type) ? <ImageIcon size={16} style={{ color: "var(--gold)" }} /> : <FileText size={16} style={{ color: "var(--gold)" }} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{p.label}</p>
+                          <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>{p.file_name}</p>
+                        </div>
+                        {linkingId === p.id ? (
+                          <Loader2 size={14} className="animate-spin" style={{ color: "var(--teal-deep)" }} />
+                        ) : (
+                          <Plus size={14} style={{ color: "var(--teal-deep)" }} />
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
       )}
