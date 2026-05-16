@@ -2,9 +2,10 @@
  * Empty-state Home for newly registered patients (no demo data).
  * Encourages first actions: add trip, scan document, ask AI, complete profile.
  */
+import { useState } from "react";
 import RufayQWordmark from "@/components/RufayQWordmark";
 import HeaderMenu, { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
-import NotificationBell from "@/components/NotificationBell";
+import NotificationCenter from "@/components/NotificationCenter";
 import { CreditCard, Plus, ScanLine, MessageCircle, FileText, Map, Sparkles, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,13 +15,14 @@ interface Props {
 }
 
 const HomeScreenEmpty = ({ onNavigate, onProfile }: Props) => {
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const dateStr = new Date().toLocaleDateString("en-US", {
     weekday: "short", month: "short", day: "numeric", year: "numeric",
   }).toUpperCase();
 
   const menuItems = [
     { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: () => window.location.reload() },
-    { icon: <Bell size={14} />, label: "Notifications", labelAr: "الإشعارات", onClick: () => toast("All caught up · لا توجد إشعارات") },
+    { icon: <Bell size={14} />, label: "Notifications", labelAr: "الإشعارات", onClick: () => setNotificationOpen(true) },
     { icon: <Copy size={14} />, label: "Copy welcome", labelAr: "نسخ الترحيب", onClick: () => { navigator.clipboard.writeText("Welcome to RufayQ"); toast("Copied · تم النسخ"); } },
     { icon: <Share2 size={14} />, label: "Share App", labelAr: "مشاركة التطبيق", onClick: () => { const url = window.location.origin; window.open(`https://wa.me/?text=${encodeURIComponent("Try RufayQ · جرّب رُفَيِّق " + url)}`, "_blank"); } },
     { icon: <CreditCard size={14} />, label: "Subscriptions", labelAr: "الاشتراكات", onClick: () => onNavigate("pricing") },
@@ -39,7 +41,7 @@ const HomeScreenEmpty = ({ onNavigate, onProfile }: Props) => {
           <div className="flex items-center justify-between mb-3">
             <RufayQWordmark size="sm" variant="light" />
             <div className="flex items-center gap-2">
-              <NotificationBell color="#fff" />
+              <NotificationCenter color="#fff" open={notificationOpen} onOpenChange={setNotificationOpen} onNavigate={(link) => onNavigate(link)} />
               <HeaderMenu items={menuItems} />
               <button
                 onClick={onProfile}
