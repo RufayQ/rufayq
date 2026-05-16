@@ -1,6 +1,7 @@
 import { useState } from "react";
 import RufayQLogo from "@/components/RufayQLogo";
 import RufayQWordmark from "@/components/RufayQWordmark";
+import BrandHero from "@/components/BrandHero";
 
 interface OnboardingScreenProps {
   onComplete: () => void;
