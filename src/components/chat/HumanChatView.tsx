@@ -7,6 +7,8 @@ interface Props {
   threadId: string;
   title: string;
   subtitle?: string;
+  /** Conversation kind drives the avatar icon and label tone. */
+  kind?: "direct" | "provider";
   onBack: () => void;
 }
 
