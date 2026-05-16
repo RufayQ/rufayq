@@ -94,14 +94,16 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Handle incoming context from Records AI inquiry
+  // Handle incoming context from Records AI inquiry — route into medical AI.
   useEffect(() => {
     if (initialContext && !contextProcessed) {
       setContextProcessed(true);
+      if (!persona) { setPersona("medical"); setMessages(makeGreeting("medical")); }
+      setView("ai");
       sendMessage(initialContext);
       onClearContext?.();
     }
-  }, [initialContext, contextProcessed]);
+  }, [initialContext, contextProcessed, persona]);
 
   useEffect(() => {
     return () => { if (recordingTimerRef.current) clearInterval(recordingTimerRef.current); };
