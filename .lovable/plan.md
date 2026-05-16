@@ -1,50 +1,35 @@
-## Fix: pull-to-refresh kicks user back to Home
+## Image thumbnails for milestone attachments
 
-### What's happening
+In the Journey milestone sheet, attachments render through `RelatedDocumentsCard`. Today every tile shows a generic icon — `ImageIcon` for images, `FileText` for everything else. The user wants the image tiles to show **actual thumbnails** of the attached file. 【F:src/components/RelatedDocumentsCard.tsx†L335-L347】
 
-There is no in-app pull-to-refresh widget. What the user is feeling is the browser/WebView's native pull-to-refresh, which reloads the page. On reload, `Index.tsx` starts with:
+### Change
 
-```ts
-const [activeTab, setActiveTab] = useState<Tab>("home");
-```
+Only `src/components/RelatedDocumentsCard.tsx`. No DB, no storage, no schema change — files already live in the `transport-attachments` private bucket; we just need signed URLs.
 
-…so the user always lands on Home regardless of which section they were on. That's the "shift to home" they're describing.
-
-### Fix
-
-Persist `activeTab` so a refresh keeps the user on the same section.
-
-In `src/pages/Index.tsx`:
-
-1. Initialize `activeTab` from `sessionStorage` (falling back to `"home"`):
-  ```ts
-   const [activeTab, setActiveTab] = useState<Tab>(() => {
-     if (typeof window === "undefined") return "home";
-     const saved = sessionStorage.getItem("rufayq_active_tab") as Tab | null;
-     return saved && ["home","journey","records","carehub","chat"].includes(saved) ? saved : "home";
-   });
-  ```
-2. Write it back whenever it changes:
-  ```ts
-   useEffect(() => { sessionStorage.setItem("rufayq_active_tab", activeTab); }, [activeTab]);
-  ```
-
-`sessionStorage` (not `localStorage`) so a fresh app launch still opens on Home — only mid-session refreshes preserve the section, which matches the user's request.
-
-### Scope
-
-- Only `src/pages/Index.tsx` is touched.
-- Hardware back button still routes to Home as before (unchanged).
-- No new dependencies, no pull-to-refresh component added.
-
-### **Summary**
-
-- Implemented the proposed fix: the patient app now initializes activeTab from sessionStorage, validates it against the known tab list, and falls back to "home" when missing or invalid. This keeps pull-to-refresh/page reloads on the current section during the same browser/WebView session. 【F:src/pages/Index.tsx†L45-L52】【F:src/pages/Index.tsx†L166-L170】
-- Used sessionStorage rather than localStorage, so tab persistence is session-scoped and a fresh app session can still naturally start from Home. 【F:src/pages/Index.tsx†L45-L50】
-- Committed the change with commit d384191 and created the PR.
-
-&nbsp;
+1. Add a `thumbs` state: `Record<string /*item.id*/, string /*signedUrl*/>`.
+2. After `refresh()` resolves, kick off a single batch:
+   - Filter `items` to image mime types we haven't resolved yet.
+   - Call `supabase.storage.from(BUCKET).createSignedUrls(paths, 60 * 30)` (30-min TTL, well above the time the sheet stays mounted).
+   - Merge results into `thumbs`. Failures fall back to the icon — never blank the tile.
+3. In the tile's preview box, when `isImage(item.mime_type)` and `thumbs[item.id]` is set, render:
+   ```tsx
+   <img
+     src={thumbs[item.id]}
+     alt={item.label}
+     loading="lazy"
+     decoding="async"
+     className="w-full h-full object-cover rounded-lg"
+   />
+   ```
+   Otherwise keep the current `ImageIcon` / `FileText` placeholder. The 14-unit (h-14) box keeps current sizing.
+4. Re-resolve when `items` changes (new upload, link-from-records, rename). Tear-down isn't needed — signed URLs are short-lived and the component holds them only in memory.
 
 ### Out of scope
 
-Wiring a true in-section pull-to-refresh gesture (so each screen can refresh its own data without a full page reload) is a larger feature and not what was asked. If you'd like that later, say the word.
+- PDF thumbnails (no pdf.js dependency — would inflate the bundle).
+- Server-side resized thumbnails. Image attachments here are capped at 10MB and rendered at 110×56; browser-side downscale is fine for this card.
+- Touching the non-flight milestones. Today only flight milestones embed `RelatedDocumentsCard`; expanding which milestones get attachments is a separate request.
+
+### Files touched
+
+- `src/components/RelatedDocumentsCard.tsx`
