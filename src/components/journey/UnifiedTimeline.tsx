@@ -9,7 +9,7 @@
  * preserved: tapping the row body still fires onItemTap; the chevron is a
  * separate control that only toggles expansion.
  */
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { TripData, FlightInfo } from "@/components/AddTripSheet";
 import StepDetailsPanel from "@/components/timeline/StepDetailsPanel";
@@ -161,77 +161,136 @@ const UnifiedTimeline = ({ activeTrip, appointments, onItemTap, userId }: Unifie
         const isExpanded = expandedId === it.id;
         const stepRef = buildStepRef(it, activeTrip?.id);
         return (
-          <div
+          <TimelineRow
             key={it.id}
-            className="rounded-2xl"
-            style={{
-              background: "var(--white)",
-              border: "1px solid var(--gray-light)",
-              boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-            }}
-          >
-            <div className="flex items-center gap-2 px-4 py-3">
-              <button
-                type="button"
-                onClick={() => onItemTap?.(it)}
-                className="flex items-center gap-3 flex-1 min-w-0 text-left card-press rounded-xl"
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
-                  style={{ background: "var(--off-white)", color: it.accent }}
-                >
-                  {it.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
-                      {it.title}
-                    </p>
-                    {it.source === "provider" && (
-                      <span
-                        className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0"
-                        style={{ background: "var(--gold-pale)", color: "var(--gold)" }}
-                      >
-                        FROM PROVIDER
-                      </span>
-                    )}
-                  </div>
-                  {it.subtitle && (
-                    <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>
-                      {it.subtitle}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-mono text-[10px]" style={{ color: it.accent }}>
-                    {fmtDate(it.when)}
-                  </p>
-                  <p className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
-                    {fmtTime(it.when)}
-                  </p>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setExpandedId(isExpanded ? null : it.id)}
-                aria-label={isExpanded ? "Collapse step details" : "Expand step details"}
-                aria-expanded={isExpanded}
-                className="p-1.5 rounded-lg shrink-0"
-                style={{ color: "var(--teal-deep)" }}
-              >
-                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-            </div>
-            {isExpanded && (
-              <div className="px-3 pb-3">
-                <StepDetailsPanel stepRef={stepRef} timelineKind="journey" userId={userId} />
-              </div>
-            )}
-          </div>
+            it={it}
+            isExpanded={isExpanded}
+            onTapRow={() => onItemTap?.(it)}
+            onToggle={() => setExpandedId(isExpanded ? null : it.id)}
+            stepRef={stepRef}
+            userId={userId}
+          />
         );
       })}
     </div>
   );
 };
+
+interface RowProps {
+  it: TimelineItem;
+  isExpanded: boolean;
+  onTapRow: () => void;
+  onToggle: () => void;
+  stepRef: ReturnType<typeof buildStepRef>;
+  userId?: string;
+}
+
+function TimelineRow({ it, isExpanded, onTapRow, onToggle, stepRef, userId }: RowProps) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [maxH, setMaxH] = useState<number>(0);
+
+  // Animate content height
+  useEffect(() => {
+    if (isExpanded && innerRef.current) {
+      setMaxH(innerRef.current.scrollHeight);
+    } else {
+      setMaxH(0);
+    }
+  }, [isExpanded]);
+
+  // Scroll the expanded card nicely into view
+  useEffect(() => {
+    if (!isExpanded || !wrapRef.current) return;
+    const node = wrapRef.current;
+    const id = window.setTimeout(() => {
+      node.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 280);
+    return () => window.clearTimeout(id);
+  }, [isExpanded]);
+
+  return (
+    <div
+      ref={wrapRef}
+      className="rounded-2xl overflow-hidden transition-shadow duration-300"
+      style={{
+        background: "var(--white)",
+        border: "1px solid var(--gray-light)",
+        boxShadow: isExpanded
+          ? "0 10px 30px rgba(0,0,0,0.10)"
+          : "0 2px 10px rgba(0,0,0,0.04)",
+      }}
+    >
+      <div className="flex items-center gap-2 px-4 py-3">
+        <button
+          type="button"
+          onClick={onTapRow}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left card-press rounded-xl"
+        >
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
+            style={{ background: "var(--off-white)", color: it.accent }}
+          >
+            {it.icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
+                {it.title}
+              </p>
+              {it.source === "provider" && (
+                <span
+                  className="font-mono text-[8px] px-1.5 py-0.5 rounded-full shrink-0"
+                  style={{ background: "var(--gold-pale)", color: "var(--gold)" }}
+                >
+                  FROM PROVIDER
+                </span>
+              )}
+            </div>
+            {it.subtitle && (
+              <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>
+                {it.subtitle}
+              </p>
+            )}
+          </div>
+          <div className="text-right shrink-0">
+            <p className="font-mono text-[10px]" style={{ color: it.accent }}>
+              {fmtDate(it.when)}
+            </p>
+            <p className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
+              {fmtTime(it.when)}
+            </p>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={isExpanded ? "Collapse step details" : "Expand step details"}
+          aria-expanded={isExpanded}
+          className="p-1.5 rounded-lg shrink-0 transition-transform duration-300"
+          style={{
+            color: "var(--teal-deep)",
+            transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        >
+          <ChevronDown size={16} />
+        </button>
+      </div>
+      <div
+        style={{
+          maxHeight: maxH,
+          opacity: isExpanded ? 1 : 0,
+          transition: "max-height 320ms cubic-bezier(0.22,0.61,0.36,1), opacity 220ms ease",
+          overflow: "hidden",
+        }}
+        aria-hidden={!isExpanded}
+      >
+        <div ref={innerRef} className="px-3 pb-3">
+          <StepDetailsPanel stepRef={stepRef} timelineKind="journey" userId={userId} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default UnifiedTimeline;
