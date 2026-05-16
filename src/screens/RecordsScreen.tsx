@@ -34,6 +34,9 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [segment, setSegment] = useState<RecordsSegment>("medical");
+  const userId = useAuthUserId();
+  const travelCount = useArtifactCount({ userId });
 
   // Dynamic stats
   const totalFiles = records.length;
