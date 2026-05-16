@@ -230,7 +230,70 @@ const RelatedDocumentsCard = ({
     refresh();
   };
 
-  return (
+  const renameItem = async () => {
+    if (!previewItem) return;
+    const name = renameDraft.trim();
+    if (!name || name === previewItem.label) { setRenaming(false); return; }
+    const { error } = await supabase
+      .from("transport_attachments")
+      .update({ label: name })
+      .eq("id", previewItem.id);
+    if (error) { toast.error("Could not rename", { description: error.message }); return; }
+    toast.success("Renamed · تم التغيير");
+    setPreviewItem({ ...previewItem, label: name });
+    setRenaming(false);
+    refresh();
+  };
+
+  const shareItem = async (item: TransportAttachment) => {
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(item.file_path, 60 * 60);
+    const url = data?.signedUrl;
+    const text = `📄 ${item.label} — ${item.file_name}${url ? `\n${url}` : ""}`;
+    if (navigator.share) {
+      await navigator.share({ title: item.label, text, url }).catch(() => {});
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    }
+  };
+
+  const openFromRecords = async () => {
+    setFromRecordsOpen(true);
+    setPoolLoading(true);
+    let q = supabase
+      .from("transport_attachments")
+      .select("*")
+      .is("deleted_at", null);
+    if (userId) q = q.or(`user_id.eq.${userId},device_id.eq.${deviceId}`);
+    else q = q.eq("device_id", deviceId);
+    const { data, error } = await q.order("created_at", { ascending: false }).limit(200);
+    if (error) toast.error("Could not load records", { description: error.message });
+    // Exclude rows already linked to this exact segment/ticket (by file_path).
+    const linkedPaths = new Set(items.map((i) => i.file_path));
+    setPool(((data as TransportAttachment[]) ?? []).filter((r) => !linkedPaths.has(r.file_path)));
+    setPoolLoading(false);
+  };
+
+  const linkExisting = async (src: TransportAttachment) => {
+    setLinkingId(src.id);
+    const { error } = await supabase.from("transport_attachments").insert({
+      device_id: deviceId,
+      user_id: userId ?? null,
+      ticket_id: ticketId ?? null,
+      source_document_id: sourceDocumentId ?? null,
+      segment_ref: segmentRef,
+      label: src.label,
+      file_name: src.file_name,
+      file_path: src.file_path, // share the same underlying storage object
+      mime_type: src.mime_type,
+      size_bytes: src.size_bytes,
+    });
+    setLinkingId(null);
+    if (error) { toast.error("Could not link", { description: error.message }); return; }
+    toast.success(`${src.label} attached`);
+    setFromRecordsOpen(false);
+    refresh();
+  };
+
     <div
       className={`mx-4 ${compact ? "mb-2" : "mb-3.5"} rounded-2xl px-4 py-3`}
       style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}
