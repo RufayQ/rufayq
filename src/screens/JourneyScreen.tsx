@@ -27,7 +27,6 @@ import { useAuthUserId } from "@/hooks/useAuthUserId";
 import { useAppointments } from "@/hooks/useAppointments";
 import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/useProviderAppointments";
-import UnifiedTimeline from "@/components/journey/UnifiedTimeline";
 import HelicopterTimelineRail from "@/components/journey/HelicopterTimelineRail";
 import MilestoneSheet, { type SheetItem } from "@/components/journey/MilestoneSheet";
 import OtherJourneysList from "@/components/journey/OtherJourneysList";
@@ -1002,9 +1001,6 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                     </div>
                   );
                 })()}
-                <div className="px-4 pt-3">
-                  <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} userId={authUserId} />
-                </div>
                 <div className="px-4 pt-3">
                   <OtherJourneysList trips={overview.otherTrips} onSelect={() => setActiveSubTab("steps")} />
                 </div>
