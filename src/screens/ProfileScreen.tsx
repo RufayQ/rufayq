@@ -9,6 +9,7 @@ import EmergencyContactsSheet, { loadEmergencyContacts, CATEGORY_META, type Emer
 import { usePendingClaimsCount } from "@/hooks/usePendingClaimsCount";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import ConnectedAccountsCard from "@/components/profile/ConnectedAccountsCard";
+import AvatarUploader from "@/components/profile/AvatarUploader";
 
 interface ProfileScreenProps {
   onBack: () => void;
