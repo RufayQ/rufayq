@@ -154,7 +154,14 @@ const Index = () => {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    if (typeof window === "undefined") return "home";
+    const saved = sessionStorage.getItem("rufayq_active_tab") as Tab | null;
+    return saved && ["home", "journey", "records", "carehub", "chat"].includes(saved) ? saved : "home";
+  });
+  useEffect(() => {
+    sessionStorage.setItem("rufayq_active_tab", activeTab);
+  }, [activeTab]);
   const [showScanner, setShowScanner] = useState(false);
   const [scannerCategory, setScannerCategory] = useState<string | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
