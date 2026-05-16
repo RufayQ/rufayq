@@ -7,6 +7,8 @@ import { usePatientName } from "@/hooks/usePatientName";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
 import { useJourneys } from "@/hooks/useJourneys";
 import { useMedicalRecords } from "@/hooks/useMedicalRecords";
+import { useArtifactCount } from "@/hooks/useArtifactCount";
+import { useAuthUserId } from "@/hooks/useAuthUserId";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
@@ -30,6 +32,8 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const overview = useJourneyOverview({ isGuest });
   const { journeys } = useJourneys(isGuest ? [] : []);
   const { items: recordItems } = useMedicalRecords();
+  const authUserId = useAuthUserId();
+  const attachmentCount = useArtifactCount({ userId: authUserId });
   const [notificationOpen, setNotificationOpen] = useState(false);
   const {
     activeTrip, milestones, alerts, dayN, totalDays, upcomingAppointments,
@@ -39,9 +43,9 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const stats = useMemo(() => ({
     trips: journeys.length || (activeTrip ? 1 : 0),
     reminders: alerts.length,
-    records: recordItems.length,
+    records: recordItems.length + attachmentCount,
     plannedAhead: upcomingAppointments.length,
-  }), [journeys.length, activeTrip, alerts.length, recordItems.length, upcomingAppointments.length]);
+  }), [journeys.length, activeTrip, alerts.length, recordItems.length, attachmentCount, upcomingAppointments.length]);
 
   // Default selection: the "current" milestone (or first upcoming, then first).
   const defaultSelectedId = useMemo(() => {
