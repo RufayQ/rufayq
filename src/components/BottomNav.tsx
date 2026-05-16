@@ -41,7 +41,9 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
     const isActive = active === id;
     const activeColor = isGold && isActive ? "var(--gold)" : "var(--teal-deep)";
     const indicatorColor = isGold ? "var(--gold)" : "var(--teal-deep)";
-    const hasBadge = badges[id];
+    const rawBadge = badges[id];
+    const badgeCount = typeof rawBadge === "number" ? rawBadge : 0;
+    const hasDot = rawBadge === true || badgeCount > 0;
 
     return (
       <button
@@ -58,12 +60,24 @@ const BottomNav = ({ active, onNavigate, badges = {} }: BottomNavProps) => {
         }} />
         <div className="relative">
           <Icon size={22} strokeWidth={1.8} style={{ color: isActive ? activeColor : "var(--gray)" }} />
-          {hasBadge && (
+          {badgeCount > 0 ? (
+            <div
+              className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold flex items-center justify-center"
+              style={{
+                background: "var(--error)",
+                color: "#fff",
+                border: "1.5px solid var(--white)",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              {badgeCount > 99 ? "99+" : badgeCount}
+            </div>
+          ) : hasDot ? (
             <div className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full" style={{
               background: "var(--error)",
               border: "1.5px solid var(--white)",
             }} />
-          )}
+          ) : null}
         </div>
         {showEn && (
           <span className="font-medium" style={{
