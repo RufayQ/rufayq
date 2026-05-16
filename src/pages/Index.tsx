@@ -40,12 +40,13 @@ import TabErrorBoundary from "@/components/TabErrorBoundary";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 
-// Visual L→R order of the bottom nav: Journey, Records, Home (center), Care Hub, Chat.
-// Swiping left advances to the next tab; swiping right goes back.
-const TAB_ORDER: Tab[] = ["journey", "records", "home", "carehub", "chat"];
 
 type Tab = "home" | "journey" | "records" | "carehub" | "chat";
 type AppView = "onboarding" | "login" | "role" | "main" | "medications" | "profile" | "settings" | "pricing" | "support" | "emr";
+
+// Visual L→R order of the bottom nav: Journey, Records, Home (center), Care Hub, Chat.
+// Swiping left advances to the next tab; swiping right goes back.
+const TAB_ORDER: Tab[] = ["journey", "records", "home", "carehub", "chat"];
 
 const toastMessages: Record<string, { en: string; ar: string }> = {
   flight: { en: "✓ Flight added to your Transport Timeline", ar: "✓ أُضيفت الرحلة إلى جدول تنقلك" },
