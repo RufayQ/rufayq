@@ -124,7 +124,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages, mode } = await req.json();
+    const { messages, mode, persona } = await req.json();
 
     // ---- Payload size guard (prevent oversized requests) ----
     if (!Array.isArray(messages) || messages.length === 0) {
