@@ -67,7 +67,7 @@ const makeGreeting = (persona: ChatPersona): ChatMessage[] => [
   { id: 1, text: PERSONAS[persona].greeting, sender: "ai", time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) },
 ];
 
-const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void; onUpgrade?: () => void }) => {
+const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, initialThreadId, onThreadHandled }: { onOpenScanner?: () => void; initialContext?: string | null; onClearContext?: () => void; onUpgrade?: () => void; initialThreadId?: string | null; onThreadHandled?: () => void }) => {
   const isGuest = useGuestMode();
   const { remaining: guestRemaining, limit: guestLimit, isExhausted: guestExhausted, resetsAt: guestResetsAt, consume: consumeGuestCredit } = useGuestCredits();
   const [showUpgrade, setShowUpgrade] = useState(false);
