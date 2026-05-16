@@ -11,7 +11,7 @@
  */
 import { useMemo, useState } from "react";
 import type { FlightJourney, JourneyLeg } from "@/lib/flightJourney";
-import { computeLayover } from "@/lib/flightJourney";
+import { computeLayover, computeDestinationStay } from "@/lib/flightJourney";
 
 export type LegStatus = "done" | "active" | "pending";
 
@@ -81,7 +81,11 @@ const JourneyTimeline = ({ journey, now = Date.now(), compact, onLegClick }: Pro
         {items.map(({ leg, status, index }, i) => {
           const isLast = i === items.length - 1;
           const isOpen = expanded === index;
-          const layover = !isLast ? computeLayover(leg, items[i + 1].leg) : null;
+          const nextLeg = !isLast ? items[i + 1].leg : null;
+          const layover = nextLeg ? computeLayover(leg, nextLeg) : null;
+          const stay = nextLeg ? computeDestinationStay(leg, nextLeg) : null;
+          const directionChange =
+            nextLeg && leg.direction !== nextLeg.direction;
           return (
             <div key={`${leg.flightNumber}-${leg.departureDateTime}-${i}`} className="relative pl-8 pb-4">
               {/* connector line */}
@@ -182,6 +186,28 @@ const JourneyTimeline = ({ journey, now = Date.now(), compact, onLegClick }: Pro
                   </p>
                   <span className="font-arabic text-[9px] ml-auto" dir="rtl" style={{ color: "var(--gray)" }}>
                     توقف {layover.durationLabel}
+                  </span>
+                </div>
+              )}
+              {directionChange && (
+                <div
+                  className="mt-2 ml-[-2rem] flex items-center gap-2 pl-8 pr-2 py-2 rounded-lg"
+                  style={{ background: "var(--teal-pale, #E0F4F5)", border: "1px solid var(--teal-deep)" }}
+                  data-testid={`journey-stay-${index}`}
+                >
+                  <span aria-hidden>🏨</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>
+                      {stay
+                        ? `${stay.durationLabel} stay in ${stay.city}`
+                        : `Stay in ${leg.to.city || leg.to.code}`}
+                    </p>
+                    <p className="text-[9px]" style={{ color: "var(--gray)" }}>
+                      Return journey begins next
+                    </p>
+                  </div>
+                  <span className="font-arabic text-[9px]" dir="rtl" style={{ color: "var(--gray)" }}>
+                    {stay ? `إقامة ${stay.durationLabel}` : "إقامة"} · رحلة العودة
                   </span>
                 </div>
               )}

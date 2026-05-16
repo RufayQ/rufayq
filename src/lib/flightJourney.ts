@@ -18,6 +18,8 @@ export interface JourneyAirportRef {
   fullName?: string;
 }
 
+export type LegDirection = "outbound" | "return";
+
 export interface JourneyLeg {
   airline: string;
   flightNumber: string;
@@ -28,6 +30,8 @@ export interface JourneyLeg {
   arrivalDateTime: string;   // ISO or empty
   seatClass: string;
   seatNumber: string;
+  /** Outbound = travel to destination (treatment) city. Return = trip back home / onward after the journey. */
+  direction: LegDirection;
 }
 
 export interface JourneyPassenger {
@@ -69,7 +73,7 @@ const toAirportRef = (code: string, city: string, full: string): JourneyAirportR
 const isFlightInfoShape = (v: any): v is FlightInfo =>
   v && typeof v === "object" && "fromAirport" in v && "toAirport" in v;
 
-const toJourneyLeg = (info: FlightInfo): JourneyLeg => ({
+const toJourneyLeg = (info: FlightInfo, direction: LegDirection): JourneyLeg => ({
   airline: (info.airline || "").trim(),
   flightNumber: (info.flightNumber || "").trim().toUpperCase().replace(/\s+/g, ""),
   bookingRef: (info.bookingRef || "").trim().toUpperCase(),
@@ -79,6 +83,7 @@ const toJourneyLeg = (info: FlightInfo): JourneyLeg => ({
   arrivalDateTime: info.arrivalDateTime || "",
   seatClass: (info.seatClass || "").trim(),
   seatNumber: (info.seatNumber || "").trim().toUpperCase(),
+  direction,
 });
 
 const isLegValid = (l: JourneyLeg) => !!(l.from.code && l.to.code && l.from.code !== l.to.code);
@@ -140,6 +145,10 @@ const fmtDur = (mins: number) => formatDuration(mins);
 
 export function computeLayover(prev: JourneyLeg, next: JourneyLeg): ComputedLayover | null {
   if (!prev || !next) return null;
+  // Layovers only exist between consecutive flights in the SAME direction
+  // (i.e. connecting flights). The gap between the last outbound and the
+  // first return flight is the stay at the destination, not a layover.
+  if (prev.direction !== next.direction) return null;
   if (!prev.to.code || !next.from.code) return null;
   if (prev.to.code !== next.from.code) return null;
   const arr = Date.parse(prev.arrivalDateTime);
@@ -154,6 +163,29 @@ export function computeLayover(prev: JourneyLeg, next: JourneyLeg): ComputedLayo
   };
 }
 
+/** Gap between the last outbound leg and the first return leg — the "stay" abroad. */
+export interface DestinationStay {
+  durationMinutes: number;
+  durationLabel: string;
+  city: string;
+  code: string;
+}
+
+export function computeDestinationStay(prev: JourneyLeg, next: JourneyLeg): DestinationStay | null {
+  if (!prev || !next) return null;
+  if (prev.direction !== "outbound" || next.direction !== "return") return null;
+  const arr = Date.parse(prev.arrivalDateTime);
+  const dep = Date.parse(next.departureDateTime);
+  if (isNaN(arr) || isNaN(dep) || dep <= arr) return null;
+  const mins = Math.round((dep - arr) / 60000);
+  return {
+    durationMinutes: mins,
+    durationLabel: fmtDur(mins),
+    city: prev.to.city || prev.to.code,
+    code: prev.to.code,
+  };
+}
+
 /**
  * Parse a scanner OCR payload (or manual entry payload) into a normalized
  * FlightJourney. Invalid/incomplete legs are surfaced via `dropped` rather
@@ -164,25 +196,30 @@ export function parseFlightJourney(
   source: JourneySource,
 ): FlightJourney {
   const dropped: DroppedLeg[] = [];
-  const collected: FlightInfo[] = [];
+  const collected: Array<{ info: FlightInfo; direction: LegDirection }> = [];
 
-  const ingest = (raw: FlightInfo | any | null | undefined) => {
+  const ingest = (raw: FlightInfo | any | null | undefined, direction: LegDirection) => {
     if (!raw) return;
     const info = isFlightInfoShape(raw) ? raw : normalizeParsedLeg(raw);
-    collected.push(info);
+    // Honor an explicit direction on the raw payload (e.g. manual segments).
+    const dir: LegDirection =
+      raw && typeof raw === "object" && (raw.direction === "outbound" || raw.direction === "return")
+        ? raw.direction
+        : direction;
+    collected.push({ info, direction: dir });
   };
 
   if (input) {
-    ingest(input.outbound);
-    ingest(input.return);
-    if (Array.isArray(input.legs)) input.legs.forEach(ingest);
+    ingest(input.outbound, "outbound");
+    ingest(input.return, "return");
+    if (Array.isArray(input.legs)) input.legs.forEach((l) => ingest(l, "outbound"));
   }
 
   // Normalize, validate, dedupe
   const seen = new Set<string>();
   const legs: JourneyLeg[] = [];
-  for (const info of collected) {
-    const leg = toJourneyLeg(info);
+  for (const { info, direction } of collected) {
+    const leg = toJourneyLeg(info, direction);
     if (!isLegValid(leg)) {
       dropped.push({ reason: "missing-route", raw: info });
       continue;
