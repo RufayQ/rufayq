@@ -35,33 +35,21 @@ export const markUserFresh = (userId: string) => {
 };
 
 /**
- * Look up the user's profile row and decide whether this is a brand-new
- * account that should see the empty state + tour. Mutates localStorage so
- * subsequent renders are synchronous.
+ * Decide whether to surface the welcome tour on a returning session.
+ *
+ * Strict rule (since the user can replay the tour from Settings):
+ *   The tour is shown ONLY when `markUserFresh()` has set the explicit
+ *   localStorage flag — i.e. immediately after the signup/OTP flow on this
+ *   device. We no longer re-detect "fresh" from profile age, which used to
+ *   re-trigger the tour on every login during the first 24h after signup.
+ *
+ * If the flag isn't there, the user is treated as returning and the tour
+ * stays dormant until they manually replay it from Settings.
  */
 const detectFreshFromProfile = async (userId: string): Promise<boolean> => {
-  // If tour was already marked done on this device, never re-fresh.
   const tourDone = localStorage.getItem(TOUR_PREFIX + userId) === "1";
   if (tourDone) return false;
-  // If we already have the flag, no need to query.
-  if (localStorage.getItem(FRESH_PREFIX + userId) === "1") return true;
-
-  try {
-    const deviceId = `auth_${userId}`;
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("created_at")
-      .eq("device_id", deviceId)
-      .maybeSingle();
-    if (error || !data?.created_at) return false;
-    const ageMs = Date.now() - new Date(data.created_at).getTime();
-    if (ageMs <= FRESH_WINDOW_MS) {
-      console.log(`[TourDebug] Auto-marking user ${userId} as fresh (profile age ${Math.round(ageMs / 1000)}s)`);
-      localStorage.setItem(FRESH_PREFIX + userId, "1");
-      return true;
-    }
-  } catch { /* noop */ }
-  return false;
+  return localStorage.getItem(FRESH_PREFIX + userId) === "1";
 };
 
 export const useFreshStart = () => {
