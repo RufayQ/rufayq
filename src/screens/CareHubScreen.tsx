@@ -2,6 +2,11 @@ import { useState } from "react";
 import { ChevronDown, Star, Pin, Copy, Share2, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
+import StepDetailsPanel from "@/components/timeline/StepDetailsPanel";
+import { useAuthUserId } from "@/hooks/useAuthUserId";
+
+const slugify = (s: string) =>
+  s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import ProviderFeedCard from "@/components/ProviderFeedCard";
 import { useProviderFeed } from "@/hooks/useProviderFeed";
