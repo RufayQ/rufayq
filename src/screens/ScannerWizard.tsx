@@ -887,7 +887,7 @@ const GENERIC_SCHEMA_BY_CATEGORY: Record<string, { label: string }[]> = {
   hotel: [{ label: "Hotel name" }, { label: "Check-in" }, { label: "Check-out" }, { label: "Booking ref" }, { label: "Room" }, { label: "Rate" }],
   prescription: [{ label: "Medication" }, { label: "Dose" }, { label: "Frequency" }, { label: "Duration" }, { label: "Prescriber" }, { label: "Date" }],
   discharge: [{ label: "Diagnosis" }, { label: "Procedure" }, { label: "Discharge date" }, { label: "Follow-up" }, { label: "Red flags" }, { label: "Physician" }],
-  passport: [{ label: "Full name" }, { label: "Document no." }, { label: "Nationality" }, { label: "Date of birth" }, { label: "Issue date" }, { label: "Expiry date" }],
+  legal: [{ label: "Full name" }, { label: "Document no." }, { label: "Nationality" }, { label: "Date of birth" }, { label: "Issue date" }, { label: "Expiry date" }],
   imaging: [{ label: "Study type" }, { label: "Body part" }, { label: "Date" }, { label: "Facility" }, { label: "Radiologist" }, { label: "Findings" }],
   insurance: [{ label: "Insurer" }, { label: "Policy no." }, { label: "Member ID" }, { label: "Valid until" }, { label: "Plan" }, { label: "Network" }],
   train: [{ label: "Carrier" }, { label: "Service" }, { label: "From" }, { label: "To" }, { label: "Date" }, { label: "Time" }],
