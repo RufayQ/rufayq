@@ -137,6 +137,7 @@ const stayTypeOptions = [
 type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | `milestone:${string}` | `phase:${string}` | null;
 
 const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
+  const authUserId = useAuthUserId();
   const isGuest = useGuestMode();
   const { categories: guestCats } = useGuestCategories();
   const { items: appointmentRows, save: saveAppointment } = useAppointments();
@@ -989,7 +990,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                   );
                 })()}
                 <div className="px-4 pt-3">
-                  <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} />
+                  <UnifiedTimeline activeTrip={activeTrip} appointments={visibleAppointments.map((a) => ({ id: a.id, kind: "appointment", whenIso: `${a.date} ${a.time}`, title: a.doctorName || "Appointment", subtitle: a.location, source: "self" }))} userId={authUserId} />
                 </div>
                 <div className="px-4 pt-3">
                   <OtherJourneysList trips={overview.otherTrips} onSelect={() => setActiveSubTab("steps")} />

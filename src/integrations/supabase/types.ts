@@ -6238,6 +6238,87 @@ export type Database = {
         }
         Relationships: []
       }
+      step_attachments: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          device_id: string | null
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          step_ref: string
+          timeline_kind: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          step_ref: string
+          timeline_kind: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          step_ref?: string
+          timeline_kind?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      step_notes: {
+        Row: {
+          body: string
+          created_at: string
+          deleted_at: string | null
+          device_id: string | null
+          id: string
+          step_ref: string
+          timeline_kind: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          id?: string
+          step_ref: string
+          timeline_kind: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          id?: string
+          step_ref?: string
+          timeline_kind?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscription_addons: {
         Row: {
           activated_at: string | null
