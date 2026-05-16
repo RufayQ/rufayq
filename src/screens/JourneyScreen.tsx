@@ -1390,7 +1390,7 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
         filteredCount={filteredSegments.length}
         onClear={() => setFilters(defaultTicketsFilterState)}
       />
-      {filteredSegments.length === 0 && (
+      <LoungeAccessSection segments={segments} />
         <div className="mx-4 my-4 rounded-2xl p-5 text-center" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
           <p className="font-display text-lg" style={{ color: "var(--navy)" }}>No tickets match these filters</p>
           <p className="font-arabic text-sm" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد تذاكر مطابقة للفلاتر</p>
