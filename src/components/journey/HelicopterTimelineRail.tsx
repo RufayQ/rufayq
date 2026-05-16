@@ -315,6 +315,103 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
           </p>
         )}
       </div>
+
+      {filterOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: "rgba(15,23,42,0.45)" }}
+          onClick={() => setFilterOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-label="Filter milestones"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[420px] rounded-t-3xl p-5"
+            style={{
+              background: "var(--white)",
+              boxShadow: "0 -8px 32px rgba(0,0,0,0.18)",
+              animation: "slide-up 240ms cubic-bezier(0.22, 0.61, 0.36, 1)",
+            }}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--gray-light)" }} />
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Filters</p>
+                <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>الفلاتر</p>
+              </div>
+              <button
+                onClick={() => setFilterOpen(false)}
+                aria-label="Close"
+                className="flex h-7 w-7 items-center justify-center rounded-full"
+                style={{ background: "var(--off-white)", color: "var(--navy)" }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>PHASE · المرحلة</p>
+            <div className="mb-4 flex flex-wrap gap-1.5">
+              {PHASES.map((p) => {
+                const active = phaseFilter === p.key;
+                return (
+                  <button
+                    key={p.key}
+                    onClick={() => setPhaseFilter(p.key)}
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press outline-none"
+                    style={{
+                      background: active ? p.color : "var(--white)",
+                      color: active ? "var(--white)" : p.color,
+                      border: `1px solid ${p.color}`,
+                    }}
+                  >
+                    {active && <Check size={12} />}
+                    {p.en} · <span className="font-arabic">{p.ar}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>STATE · الحالة</p>
+            <div className="mb-5 flex flex-wrap gap-1.5">
+              {STATES.map((st) => {
+                const active = stateFilter === st.key;
+                return (
+                  <button
+                    key={st.key}
+                    onClick={() => setStateFilter(st.key)}
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press outline-none"
+                    style={{
+                      background: active ? "var(--navy)" : "transparent",
+                      color: active ? "var(--white)" : "var(--navy)",
+                      border: "1px solid var(--navy)",
+                    }}
+                  >
+                    {active && <Check size={12} />}
+                    {st.en} · <span className="font-arabic">{st.ar}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setPhaseFilter("all"); setStateFilter("all"); }}
+                className="flex-1 rounded-full py-2.5 text-[12px] font-bold btn-press"
+                style={{ background: "var(--off-white)", color: "var(--navy)" }}
+              >
+                Reset · إعادة
+              </button>
+              <button
+                onClick={() => setFilterOpen(false)}
+                className="flex-1 rounded-full py-2.5 text-[12px] font-bold btn-press"
+                style={{ background: "var(--teal-deep)", color: "var(--white)" }}
+              >
+                Apply · تطبيق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
