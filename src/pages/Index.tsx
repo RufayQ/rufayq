@@ -393,6 +393,12 @@ const Index = () => {
   };
 
   const handleTabNavigate = (tab: Tab) => {
+    // Always return to the main shell when a bottom-nav tab is tapped, even if
+    // some lingering sub-view (medications, profile, settings, …) somehow
+    // remained active. This prevents the rare "blank screen" the user reports
+    // when switching between tabs from a non-home section.
+    setAppView("main");
+    setShowScanner(false);
     setActiveTab(tab);
     if (badges[tab]) {
       setBadges(prev => ({ ...prev, [tab]: false }));
