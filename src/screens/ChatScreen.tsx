@@ -331,15 +331,60 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade }
   };
 
   const handleClearChat = () => {
-    setMessages(initialMessages);
+    setMessages(persona ? makeGreeting(persona) : []);
     toast.success("Chat cleared · تم مسح المحادثة", { duration: 2000 });
   };
 
+  const handleNewChat = () => {
+    setPersona(null);
+    setMessages([]);
+  };
+
   const chatMenuItems: HeaderMenuItem[] = [
+    { icon: <Sparkles size={14} />, label: "New Chat", labelAr: "محادثة جديدة", onClick: handleNewChat },
     { icon: <Copy size={14} />, label: "Copy Chat", labelAr: "نسخ المحادثة", onClick: handleCopyChat },
     { icon: <Share2 size={14} />, label: "Export Chat", labelAr: "تصدير المحادثة", onClick: handleExportChat },
     { icon: <Trash2 size={14} />, label: "Clear Chat", labelAr: "مسح المحادثة", onClick: handleClearChat, danger: true },
   ];
+
+  // Persona picker — shown before any conversation starts (and after "New chat").
+  if (!persona) {
+    return (
+      <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden", background: "var(--off-white)" }}>
+        <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(160deg, var(--header-dark-from), var(--header-teal-from))" }}>
+          <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>04 — AI COMPANION</p>
+          <p className="text-white text-[18px] font-bold" style={{ fontFamily: "'DM Sans'" }}>Choose your AI</p>
+          <p className="font-arabic text-[13px]" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>اختر مساعدك الذكي</p>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+          {(Object.keys(PERSONAS) as ChatPersona[]).map((key) => {
+            const p = PERSONAS[key];
+            return (
+              <button
+                key={key}
+                onClick={() => { setPersona(key); setMessages(makeGreeting(key)); }}
+                className="text-left rounded-2xl p-4 btn-press flex items-start gap-3"
+                style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+              >
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: "var(--off-white)" }}>{p.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{p.en}</p>
+                  <p className="font-arabic text-[12px]" dir="rtl" style={{ color: "var(--gray)" }}>{p.ar}</p>
+                  <p className="text-[11px] mt-1" style={{ color: "var(--gray)" }}>{p.tagline}</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{p.taglineAr}</p>
+                </div>
+                <ChevronRight size={16} style={{ color: "var(--teal-deep)", flexShrink: 0, marginTop: 4 }} />
+              </button>
+            );
+          })}
+          <p className="text-[10px] mt-2 text-center" style={{ color: "var(--gray)" }}>
+            AI responses are informational only — not professional advice. · المعلومات للاستئناس فقط وليست استشارة مهنية.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  const activePersona = PERSONAS[persona];
 
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
