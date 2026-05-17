@@ -297,6 +297,11 @@ const Admin = () => {
               case "cms_blog_cats": return gate(isAdmin, "Blog Categories") ?? <AdminCmsBlogCategories />;
               case "audit": return <AdminAuditLog />;
               case "wallet_audit": return gate(isAdmin, "Wallet Audit") ?? <AdminWalletAudit />;
+              case "qc_runs": return <AdminQcRuns />;
+              case "qc_smoke": return <AdminQcSmoke />;
+              case "qc_bugs": return <AdminQcBugs />;
+              case "qc_validations": return <AdminQcValidations />;
+              case "qc_crash_events": return <AdminQcCrashEvents />;
               default: return <ComingSoon title="Coming soon" />;
             }
           })()}
