@@ -330,7 +330,7 @@ const LoungeQrSheet = ({
           <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>{membership.cardholderName}</p>
           <div className="mt-2 flex gap-3 text-[10px]" style={{ color: "var(--gray)" }}>
             {membership.cardLast4 && <span>Linked card •••• {membership.cardLast4}</span>}
-            {membership.expiresOn && <span>Exp {membership.expiresOn}</span>}
+            {formatExpMMYY(membership.expiresOn) && <span>Exp {formatExpMMYY(membership.expiresOn)}</span>}
           </div>
         </div>
 
