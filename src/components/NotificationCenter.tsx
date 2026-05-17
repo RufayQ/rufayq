@@ -152,13 +152,24 @@ const NotificationCenter = ({
               {showEn && <p className="font-display text-[30px] leading-none text-primary-foreground">Notifications</p>}
               {showAr && <p className="mt-1 font-arabic text-[13px] text-accent" dir="rtl">مركز التنبيهات</p>}
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Close notifications"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary-foreground/15 bg-primary-foreground/10 text-primary-foreground"
-            >
-              <X size={21} />
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                onClick={() => setPrefsOpen((v) => !v)}
+                aria-label={showAr && !showEn ? "تفضيلات الإشعارات" : "Notification preferences"}
+                aria-pressed={prefsOpen}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-primary-foreground/15 bg-primary-foreground/10 text-primary-foreground"
+                style={{ background: prefsOpen ? "hsl(var(--primary-foreground) / 0.25)" : undefined }}
+              >
+                <Settings2 size={18} />
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Close notifications"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-primary-foreground/15 bg-primary-foreground/10 text-primary-foreground"
+              >
+                <X size={21} />
+              </button>
+            </div>
           </div>
 
           <div className="relative mt-5 flex gap-2 overflow-x-auto no-scrollbar">
