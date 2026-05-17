@@ -20,78 +20,21 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -uo pipefail
 
-PKG="com.rufayq.app"
-LAUNCH_ACT="$PKG/.MainActivity"     # Capacitor default; override if renamed
-SPLASH_HEX="0B2A3A"                  # navy splash colour, no '#'
-BLACK_HEX="000000"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/smoke-lib.sh"
+
+# PKG, SPLASH_HEX, BLACK_HEX, log/warn/err/ok, screenshot, start_logcat,
+# stop_logcat, has_marker, is_blank_or_splash, classify_case, device_summary,
+# local_capacitor_mode all come from smoke-lib.sh.
+LAUNCH_ACT="$PKG/.MainActivity"     # Capacitor default; resolved below
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="qa-artifacts/$TIMESTAMP"
 REPORT="$OUT_DIR/report.md"
 VERBOSE="${VERBOSE:-0}"
 APK="${APK:-}"
 
-# ── helpers ─────────────────────────────────────────────────────────────────
-log()  { printf '\033[36m[smoke]\033[0m %s\n' "$*"; }
-warn() { printf '\033[33m[warn]\033[0m  %s\n' "$*"; }
-err()  { printf '\033[31m[fail]\033[0m  %s\n' "$*"; }
-ok()   { printf '\033[32m[pass]\033[0m  %s\n' "$*"; }
-
-require() {
-  command -v "$1" >/dev/null 2>&1 || { err "missing required tool: $1"; exit 2; }
-}
-
-require adb
-
-DEVICES=$(adb devices | awk 'NR>1 && $2=="device" {print $1}' | wc -l | tr -d ' ')
-if [ "$DEVICES" -eq 0 ]; then
-  err "no authorised device/emulator detected. Run 'adb devices' to debug."
-  exit 2
-fi
-if [ "$DEVICES" -gt 1 ]; then
-  warn "multiple devices detected — adb will pick one. Set ANDROID_SERIAL to pin."
-fi
-
-mkdir -p "$OUT_DIR"
-: > "$REPORT"
-
-# Resolve actual launcher activity (more reliable than guessing .MainActivity).
-RESOLVED_ACT=$(adb shell cmd package resolve-activity --brief "$PKG" 2>/dev/null \
-  | tail -n1 | tr -d '\r')
-if [ -n "$RESOLVED_ACT" ] && [[ "$RESOLVED_ACT" == *"/"* ]]; then
-  LAUNCH_ACT="$RESOLVED_ACT"
-fi
-log "using launcher activity: $LAUNCH_ACT"
-
-hex_luma() {
-  local hex="${1:0:6}"
-  local r=$((16#${hex:0:2})) g=$((16#${hex:2:2})) b=$((16#${hex:4:2}))
-  echo $(((r * 299 + g * 587 + b * 114) / 1000))
-}
-
-# Pixel-sampling: capture a screenshot and check whether the average screen is
-# still solid navy/black. Returns 0 if blank/splash, 1 if handed off.
-is_blank_or_splash() {
-  local png="$1"
-  if command -v magick >/dev/null 2>&1; then
-    local hex
-    hex=$(magick "$png" -resize 1x1\! -format '%[hex:p{0,0}]' info: 2>/dev/null | tr 'a-f' 'A-F')
-    [ "$VERBOSE" = "1" ] && log "  average pixel = $hex (splash = $SPLASH_HEX, black = $BLACK_HEX)"
-    [ "${hex:0:6}" = "$SPLASH_HEX" ] || [ "$(hex_luma "$hex")" -lt 16 ]
-    return $?
-  elif command -v convert >/dev/null 2>&1; then
-    local hex
-    hex=$(convert "$png" -resize 1x1\! -format '%[hex:p{0,0}]' info: 2>/dev/null | tr 'a-f' 'A-F')
-    [ "${hex:0:6}" = "$SPLASH_HEX" ] || [ "$(hex_luma "$hex")" -lt 16 ]
-    return $?
-  else
-    warn "ImageMagick not found — falling back to size heuristic (less precise)"
-    # Pure-bash heuristic: a solid-colour PNG compresses to a tiny file.
-    local size
-    size=$(stat -c%s "$png" 2>/dev/null || stat -f%z "$png")
-    [ "$size" -lt 25000 ]
-    return $?
-  fi
-}
+require_tool adb
 
 screenshot() {
   local path="$1"
