@@ -1,53 +1,313 @@
-# Persist Lounge Cards & Surface in Travel Records
+Please implement the Android splash-handoff / blackout fix based on the investigation below. Do not add unrelated features or redesign existing UI.
 
-## Problem
+Context:
 
-- Lounge cards are stored in `localStorage` only (`src/lib/loungeMemberships.ts`, key `rufayq_lounge_memberships_v1`). They vanish on storage clear, sign-out flows, browser switch, or new device — which is why a previously-added card is no longer visible.
-- `TravelRecordsList.tsx` already merges lounge memberships into the Travel list and counts them under the **Lounge** chip (lines 162–180). The merge code works — there is simply no data in the store right now.
-- Because storage is local, multi-device users will never see their lounge cards consistently, and the Lounge filter count will be unreliable.
+The issue is likely not primarily “excessive memory.” It is more likely a native WebView startup / splash-handoff problem because:
 
-## Goal
+- `capacitor.config.ts` points to `https://rufayq.com`, but `scripts/build-android.sh` removes the entire `server` block before `npx cap sync android`.
 
-Lounge cards survive logout, reinstall, and device changes; show up automatically in **Records → Travel** under the **Lounge** chip with correct counts; and remain pin-able.
+- APKs/AABs built with that script therefore use bundled `dist/` assets, not `https://rufayq.com`.
 
-## Approach
+- The React app has dark/blank fallbacks such as route fallback/auth fallback that can look like a black screen if auth, session, chunks, or network stalls.
 
-Move lounge memberships to a Lovable Cloud table with RLS, keep the existing `loungeMemberships.ts` API surface (same function names + subscribe pattern) so neither the form nor the Records list need structural changes — just swap the storage backend and add a one-time localStorage migration for any cards still cached on this device.
+- There is no explicit `SplashScreen.hide()` call from the React boot path, so the app depends on Capacitor defaults instead of a controlled “React is alive” signal.
 
-## Steps
+- Memory remains possible only if logs show `OutOfMemoryError`, `Renderer process gone`, `Low memory killer`, WebView renderer crashes, or similar indicators.
 
-1. **DB migration** — create `public.lounge_memberships`:
-   - Columns: `id uuid pk`, `user_id uuid not null` (= `auth.uid()`), `device_id text` (for guest mode parity with `transport_attachments`), `program text`, `membership_number text`, `cardholder_name text`, `card_last4 text`, `expires_on date`, `linked_segment_id text`, `notes text`, `pinned boolean default false`, `created_at`, `updated_at`, `deleted_at`.
-   - Enable RLS. Policies: owner can `select/insert/update/delete` where `auth.uid() = user_id`; guest fallback `select/insert/update` where `user_id is null and device_id = current device header` (mirroring `transport_attachments` pattern).
-   - `updated_at` trigger.
+Goal:
 
-2. **Rewrite `src/lib/loungeMemberships.ts`** keeping the same exports (`listLoungeMemberships`, `saveLoungeMembership`, `deleteLoungeMembership`, `subscribeLoungeMemberships`, `LoungeMembership` type):
-   - Back it with an in-memory cache + Supabase fetch on first call, similar to `useDomainData` pattern.
-   - `subscribeLoungeMemberships` becomes a Supabase realtime channel subscription on `lounge_memberships` plus local listeners for optimistic writes.
-   - Add `fetchLoungeMemberships()` async helper used on app mount.
-   - One-shot migration: on first load, if `localStorage[rufayq_lounge_memberships_v1]` has rows, insert them into Supabase (skipping duplicates by `membership_number`), then clear the key.
+Make Android startup deterministic and debuggable. The app should never silently appear as a black/navy screen after the native splash. It should either:
 
-3. **Wire fetch on mount** — call `fetchLoungeMemberships()` in `LoungeAccessSection.tsx` `useEffect` and inside `TravelRecordsList.tsx` so both screens hydrate from DB on cold start. No UI changes needed; existing render code already handles the merged rows.
+1. hand off into the app,
 
-4. **Pin parity** — `TravelRecordsList` already pins by synthetic id `lounge:<uuid>` in localStorage `PIN_KEY`. Leave pin storage local (it's UI state) — works automatically once cards persist.
+2. show a branded RufayQ loading/auth/offline/error state, or
 
-5. **Smoke check** — add a lounge card, hard refresh, confirm it appears under **Records → Travel → Lounge** chip and on the **Journey → Tickets → Lounge Access** section.
+3. produce a smoke-test report that clearly categorizes the likely failure.
 
-## Technical Notes
+Please make the following changes.
 
-- **No client.ts / types.ts edits** — Supabase types regenerate.
-- Keep `LoungeMembership.createdAt` as ISO string in the TS type (map `created_at` → `createdAt` in the adapter) so existing components (`LoungeAccessSection`, `TravelRecordsList`) don't change.
-- `expiresOn` stays `YYYY-MM-DD`; map to/from `date` column.
-- Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE public.lounge_memberships;` so other tabs/devices update live.
-- Guest mode: use `getDeviceId()` from `useDeviceId.ts` for `device_id` column, same as transport attachments.
+---
 
-## Files
+## 1. Add explicit Capacitor splash handoff
 
-- **new**: `supabase/migrations/<ts>_lounge_memberships.sql`
-- **rewritten**: `src/lib/loungeMemberships.ts`
-- **tiny edits**: `src/components/lounge/LoungeAccessSection.tsx` (call fetch on mount), `src/components/records/TravelRecordsList.tsx` (call fetch on mount)
+Add a small native-safe startup helper that hides the Capacitor native splash screen after the first React paint.
 
-## Out of Scope
+Requirements:
 
-- No design changes — Lounge card visuals, chip styling, and Records row layout stay exactly as they are now.
-- No changes to pin storage location.
+- Use `@capacitor/splash-screen`.
+
+- Only run inside native Capacitor, not normal web preview/browser.
+
+- Do not throw if Capacitor plugins are unavailable.
+
+- Schedule hide after React has mounted/painted, for example using `requestAnimationFrame`.
+
+- Add a short fallback timeout so the native splash cannot stay forever if a route chunk, auth check, or network call stalls.
+
+- Keep the helper small and reusable, for example:
+
+  - `src/lib/native/splashHandoff.ts`
+
+  - or a similarly appropriate location.
+
+Suggested behavior:
+
+- On app boot, once React is alive, call `SplashScreen.hide()`.
+
+- Also set a fallback timer around 1500–3000ms to call hide if the first paint path stalls.
+
+- Guard this with `Capacitor.isNativePlatform()` or equivalent.
+
+- Catch and log errors non-fatally.
+
+Then wire this helper into the main app bootstrap path, such as `src/App.tsx`, `src/main.tsx`, or the existing top-level app shell.
+
+Important:
+
+- Do not wrap imports in try/catch.
+
+- Avoid changing unrelated app behavior.
+
+- The purpose is a controlled “React is alive, hide native splash” signal.
+
+---
+
+## 2. Replace silent black fallbacks with branded visible loading UI
+
+Find the app’s dark/blank loading fallbacks, especially:
+
+- route-level fallback in `App.tsx` / router lazy loading,
+
+- auth/session fallback such as `AppAuthGuard`,
+
+- any full-screen fallback that currently renders a plain dark or empty screen.
+
+Replace them with a branded RufayQ startup/loading screen.
+
+Requirements:
+
+- The screen should make it clear the app is loading, not blacked out.
+
+- It should use existing project styling/design tokens where possible.
+
+- Include simple branding text such as “RufayQ” and a loading message like:
+
+  - “Preparing your care experience…”
+
+  - “Loading securely…”
+
+- Keep it lightweight and safe for initial boot.
+
+- Avoid network-dependent images.
+
+- Reuse one shared component if practical, for example:
+
+  - `src/components/common/AppStartupFallback.tsx`
+
+  - `src/components/AppStartupFallback.tsx`
+
+  - or an existing shared UI location.
+
+Use this same branded fallback for:
+
+- lazy route fallback,
+
+- auth guard loading,
+
+- any current blank/dark full-screen loading state that can appear during startup.
+
+Do not introduce a heavy dependency just for this screen.
+
+---
+
+## 3. Clarify Android build modes
+
+Update the Android build/run documentation and scripts so it is obvious whether a build is:
+
+### Remote URL mode
+
+- Loads `https://rufayq.com`
+
+- Requires network
+
+- Uses the `server.url` block in `capacitor.config.ts`
+
+### Bundled mode
+
+- Loads local `dist/`
+
+- Should work offline
+
+- Removes or omits the `server` block before Capacitor sync/build
+
+Specifically:
+
+- Inspect `scripts/build-android.sh`.
+
+- If it removes the `server` block, make its output/logging explicitly say that the resulting Android build is “bundled/offline mode.”
+
+- If there is a separate workflow for remote URL mode, document it.
+
+- If no remote build script exists, add clear comments/docs explaining how to run each mode without accidentally confusing them.
+
+- Update relevant docs, for example existing Android/QA docs or create a small `docs/android-build-modes.md` if no suitable doc exists.
+
+Do not silently change build mode behavior unless needed. The main fix is clarity and startup handling.
+
+---
+
+## 4. Upgrade the Android splash smoke report diagnostics
+
+Update `scripts/qa/android-splash-smoke.sh` so the generated report helps distinguish memory problems from loading/startup problems.
+
+Extend log capture/filtering to flag these categories:
+
+### Network/WebView load failures
+
+Look for indicators such as:
+
+- `ERR_NAME_NOT_RESOLVED`
+
+- `ERR_INTERNET_DISCONNECTED`
+
+- `ERR_CONNECTION`
+
+- `net::ERR`
+
+- WebView page load failures
+
+### JS/chunk/load failures
+
+Look for:
+
+- failed dynamic imports,
+
+- chunk load errors,
+
+- missing asset errors,
+
+- JavaScript exceptions during startup.
+
+### Native crashes
+
+Look for:
+
+- `FATAL EXCEPTION`
+
+- `AndroidRuntime`
+
+- process crash messages.
+
+### WebView renderer crashes
+
+Look for:
+
+- `Renderer process gone`
+
+- `RenderProcessGone`
+
+- WebView renderer crash messages.
+
+### Memory pressure indicators
+
+Look for:
+
+- `OutOfMemoryError`
+
+- `Low memory`
+
+- `lowmemorykiller`
+
+- `LMKD`
+
+- `Trim memory`
+
+- `onTrimMemory`
+
+The report should include a “Likely failure category” or similar summary, for example:
+
+- `PASS: splash handed off`
+
+- `LIKELY NETWORK / REMOTE URL LOAD FAILURE`
+
+- `LIKELY JS / CHUNK LOAD FAILURE`
+
+- `LIKELY NATIVE CRASH`
+
+- `LIKELY WEBVIEW RENDERER CRASH`
+
+- `POSSIBLE MEMORY PRESSURE`
+
+- `UNKNOWN: no clear indicator found`
+
+Also add a preflight/report line showing whether the installed app/test target appears to be:
+
+- Remote URL mode,
+
+- Bundled mode,
+
+- or Unknown.
+
+If it is not possible to reliably inspect the installed app mode from adb, then report “Unknown” and include the local `capacitor.config.ts` mode as a hint. Do not make the script brittle.
+
+Keep the script POSIX/bash-safe and avoid requiring optional tools unless gracefully checked.
+
+---
+
+## 5. Validation
+
+After making changes, run the checks that are available in this project.
+
+At minimum:
+
+- Syntax-check changed shell scripts:
+
+  - `bash -n scripts/qa/android-splash-smoke.sh`
+
+  - `bash -n scripts/build-android.sh` if modified
+
+- Run TypeScript/build checks if available:
+
+  - `npm run typecheck`
+
+  - or the project’s equivalent
+
+- Run lint/build/test only if dependencies are available.
+
+If some commands cannot run because dependencies or Android device/emulator are unavailable, clearly state that as an environment limitation.
+
+The final proof should be a fresh install on a physical Android device/emulator using the updated smoke script.
+
+---
+
+## Acceptance criteria
+
+This fix is complete when:
+
+1. The app explicitly calls `SplashScreen.hide()` from the React/native boot path after React is alive.
+
+2. The native splash has a fallback hide timeout so it cannot hang indefinitely.  
+  
+3. Web preview/browser behavior is unaffected.
+
+4. Startup/auth/route loading states are visibly branded and no longer look like a black screen.
+
+5. Android build mode docs/script output clearly distinguish remote URL mode from bundled/offline mode.
+
+6. The Android smoke script report flags likely causes including:
+
+   - network failure,
+
+   - JS/chunk failure,
+
+   - native crash,
+
+   - WebView renderer crash,
+
+   - memory pressure.
+
+7. Existing app behavior is not otherwise changed.
+
+8. The final response lists changed files and exact validation commands/results.
+
+&nbsp;
