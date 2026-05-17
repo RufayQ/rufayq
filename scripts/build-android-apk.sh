@@ -68,9 +68,47 @@ echo "▶ gradle assemble$VARIANT"
 
 LOWER_VARIANT=$(echo "$VARIANT" | tr '[:upper:]' '[:lower:]')
 OUT="android/app/build/outputs/apk/$LOWER_VARIANT/app-$LOWER_VARIANT.apk"
-[ -f "$OUT" ] || { echo "✗ APK not produced at $OUT"; exit 1; }
+
+# ── Preflight: did Gradle actually produce the APK at the expected path? ──
+# Gradle can exit 0 without emitting the APK we expect (wrong variant name,
+# cached no-op task, build-type rename, multi-module flavor, cleaned output
+# dir). A bare `[ -f ]` check leaves the user staring at one cryptic line,
+# so dump enough context to act on.
+echo "▶ preflight: APK artifact"
+echo "  expected: $OUT"
+if [ ! -f "$OUT" ]; then
+  echo ""
+  echo "✗ APK PREFLIGHT FAILED"
+  echo "  Gradle finished but no APK was produced at the expected path:"
+  echo "    $OUT"
+  echo ""
+  echo "  Contents of android/app/build/outputs/apk/ (what Gradle DID emit):"
+  if [ -d android/app/build/outputs/apk ]; then
+    ( cd android/app/build/outputs/apk && find . -maxdepth 3 -type f -name '*.apk' -printf '    %p  (%s bytes)\n' 2>/dev/null \
+      || find . -maxdepth 3 -type f -name '*.apk' -exec ls -l {} \; | sed 's/^/    /' )
+  else
+    echo "    (directory does not exist — Gradle never wrote any APK output)"
+  fi
+  echo ""
+  echo "  Common causes & fixes:"
+  echo "    • VARIANT='$VARIANT' does not match a build type in android/app/build.gradle."
+  echo "      → Re-run with VARIANT=Debug (default) or VARIANT=Release."
+  echo "    • A productFlavor is configured — APK lands under apk/<flavor>/<variant>/."
+  echo "      → Inspect android/app/build.gradle for 'productFlavors { … }'."
+  echo "    • android/ was wiped between sync and assemble."
+  echo "      → Re-run this script from a clean checkout."
+  exit 2
+fi
+if [ ! -s "$OUT" ]; then
+  echo "✗ APK PREFLIGHT FAILED: $OUT exists but is empty (0 bytes)."
+  echo "  Delete it and re-run: rm '$OUT' && ./scripts/build-android-apk.sh"
+  exit 2
+fi
 
 SIZE=$(du -h "$OUT" | cut -f1)
+SHA=$(shasum -a 256 "$OUT" 2>/dev/null | awk '{print $1}')
+[ -n "$SHA" ] || SHA=$(sha256sum "$OUT" 2>/dev/null | awk '{print $1}')
+echo "  ✓ found, size=$SIZE sha256=${SHA:-unavailable}"
 echo ""
 echo "✓ APK ready"
 echo "  path : $OUT"
