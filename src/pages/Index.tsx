@@ -23,7 +23,6 @@ import { EmrScreen } from "@/features/emr";
 import RoleSelectorScreen, { getStoredRole, clearStoredRole, type AppRolePref } from "@/screens/RoleSelectorScreen";
 import { validateLoginRole } from "@/lib/roleValidation";
 import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
-import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
 import TourGuide from "@/components/TourGuide";
 import TourRunner from "@/components/TourRunner";
@@ -61,6 +60,7 @@ const toastMessages: Record<string, { en: string; ar: string }> = {
 };
 
 const Index = () => {
+  console.info("[RufayqStartup] Index render start");
   const { refresh: refreshTheme } = useTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -264,10 +264,11 @@ const Index = () => {
         finishPatientEntryNavigation();
         break;
     }
-    registerPush({
-      rolePref: stored,
-      onDeepLink: routeDeepLink,
-    }).catch((e) => console.warn("[push] register skipped", e));
+    // Note: native push registration is intentionally NOT triggered here.
+    // It now happens ONLY via an explicit user tap on <PushPermissionPrompt/>
+    // so a misconfigured Firebase / missing google-services.json can never
+    // crash app startup. See src/lib/native/push.ts.
+    console.info("[RufayqStartup] Login finalize complete; push registration deferred to user action");
   };
 
   const handleRolePicked = (role: AppRolePref) => {
@@ -299,8 +300,11 @@ const Index = () => {
 
   // Subscribe to deep-link events once on mount.
   useEffect(() => {
+    console.info("[RufayqStartup] Deep link listener setup start");
     let unsub: (() => void) | undefined;
-    onDeepLink((t) => routeDeepLink(t)).then((u) => { unsub = u; });
+    onDeepLink((t) => routeDeepLink(t))
+      .then((u) => { unsub = u; console.info("[RufayqStartup] Deep link listener setup success"); })
+      .catch((e) => console.warn("[RufayqStartup] Deep link listener setup failed", e));
     return () => { unsub?.(); };
   }, [routeDeepLink]);
 

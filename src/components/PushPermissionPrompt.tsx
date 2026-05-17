@@ -24,9 +24,9 @@ export default function PushPermissionPrompt({ onDeepLink }: Props) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    console.info("[RufayqStartup] Push prompt mounted");
     if (!isNative) return;
     if (localStorage.getItem(FLAG)) return;
-    // Slight delay so the prompt doesn't fight with first-paint animations
     const t = setTimeout(() => setShow(true), 1500);
     return () => clearTimeout(t);
   }, []);
@@ -41,17 +41,18 @@ export default function PushPermissionPrompt({ onDeepLink }: Props) {
   const enable = async () => {
     const role = (getStoredRole() ?? "patient") as "patient" | "doctor";
     const res = await registerPush({ rolePref: role, onDeepLink });
-    if (res.ok) {
+    if (res.ok === true) {
       toast.success("Notifications enabled · تم تفعيل التنبيهات");
       dismiss(true);
-    } else if (res.reason === "denied") {
+      return;
+    }
+    const reason: string = (res as { reason: string }).reason;
+    if (reason === "permission_denied") {
       toast.error("Permission denied · تم رفض الإذن", {
         description: "You can enable it later from your device settings.",
       });
-      dismiss(false);
-    } else {
-      dismiss(false);
     }
+    dismiss(false);
   };
 
   return (

@@ -9,12 +9,35 @@ import { getDeviceId } from "@/hooks/useDeviceId";
  * - shows an in-app toast when an incoming message arrives from another user,
  *   unless the user is actively viewing that thread (controlled via `activeThreadId`).
  *
- * Designed to be mounted once at the shell level (Index.tsx).
+ * Gated: when there is no signed-in user AND no guest flag, we skip all
+ * protected queries / realtime subscriptions to avoid noisy 401s and
+ * startup-time auth pressure.
  */
 export function useGlobalChat(activeThreadId?: string | null) {
   const [totalUnread, setTotalUnread] = useState(0);
+  const [enabled, setEnabled] = useState<boolean>(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const evaluate = (hasSession: boolean) => {
+      if (cancelled) return;
+      let guestOk = false;
+      try { guestOk = localStorage.getItem("rufayq_guest_ok") === "1"; } catch { /* noop */ }
+      const next = hasSession || guestOk;
+      setEnabled(next);
+      if (!next) {
+        console.info("[RufayqStartup] Global chat skipped: unauthenticated");
+      } else {
+        console.info("[RufayqStartup] Global chat setup start");
+      }
+    };
+    supabase.auth.getSession().then(({ data: { session } }) => evaluate(!!session?.user)).catch(() => evaluate(false));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => evaluate(!!session?.user));
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+  }, []);
 
   const recompute = useCallback(async () => {
+    if (!enabled) { setTotalUnread(0); return; }
     const deviceId = getDeviceId();
     const { data: myParts } = await supabase
       .from("chat_participants")
@@ -37,11 +60,12 @@ export function useGlobalChat(activeThreadId?: string | null) {
       }),
     );
     setTotalUnread(total);
-  }, []);
+  }, [enabled]);
 
   useEffect(() => { recompute(); }, [recompute]);
 
   useEffect(() => {
+    if (!enabled) return;
     const deviceId = getDeviceId();
     const ch = supabase
       .channel("global-chat-awareness")
@@ -93,7 +117,7 @@ export function useGlobalChat(activeThreadId?: string | null) {
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, () => recompute())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [recompute, activeThreadId]);
+  }, [recompute, activeThreadId, enabled]);
 
   return { totalUnread, refresh: recompute };
 }

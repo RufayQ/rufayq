@@ -117,7 +117,9 @@ start_logcat() {
   adb logcat \
       Capacitor:* CapacitorPlugins:* chromium:* \
       AndroidRuntime:E ActivityManager:W WebViewChromium:W \
-      lowmemorykiller:* lmkd:* art:E *:F \
+      lowmemorykiller:* lmkd:* art:E \
+      FirebaseApp:* FirebaseMessaging:* FirebaseInstanceId:* FA:* GoogleApiManager:* \
+      PushNotifications:* *:F \
     > "$path" 2>/dev/null &
   echo $!
 }
@@ -139,9 +141,15 @@ classify_logcat() {
   if   ! has_marker '[RufayqStartup] React mounted' "$lc"; then
     echo "JS DID NOT REACH REACT BOOT"
   elif grep -qiE 'ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION|net::ERR_|net::ERR_FAILED|WebViewClient.*error' "$lc"; then
-    echo "LIKELY NETWORK / REMOTE URL LOAD FAILURE"
+    echo "LIKELY REMOTE URL / NETWORK FAILURE"
   elif grep -qiE 'ChunkLoadError|Loading chunk [0-9]+ failed|Failed to fetch dynamically imported module|Unexpected token|SyntaxError|ReferenceError' "$lc"; then
     echo "LIKELY JS / CHUNK LOAD FAILURE"
+  elif has_marker '[RufayqStartup] ErrorBoundary rendered' "$lc"; then
+    if grep -qiE 'FirebaseApp|FirebaseMessaging|google-services|FCM|PushNotifications' "$lc"; then
+      echo "LIKELY PUSH / FIREBASE STARTUP FAILURE"
+    else
+      echo "REACT STARTED THEN STARTUP ERROR BOUNDARY"
+    fi
   elif grep -qiE 'FATAL EXCEPTION|AndroidRuntime: FATAL' "$lc"; then
     echo "LIKELY NATIVE CRASH"
   elif grep -qiE 'Renderer process .*gone|RenderProcessGone|render process .*killed|WebView .*crashed' "$lc"; then
@@ -185,10 +193,12 @@ run_row() {
   local pre_splash=0 post_splash=0
   is_blank_or_splash "$OUT_DIR/row-$n-pre.png"  && pre_splash=1
   is_blank_or_splash "$OUT_DIR/row-$n-post.png" && post_splash=1
-  local react_marker="no" hide_marker="no" timeout_marker="no"
+  local react_marker="no" hide_marker="no" timeout_marker="no" boundary_marker="no" push_attempt="no"
   has_marker '[RufayqStartup] React mounted' "$lc_path" && react_marker="yes"
   has_marker '[RufayqStartup] SplashScreen.hide requested' "$lc_path" && hide_marker="yes"
   has_marker '[RufayqStartup] Splash fallback timeout fired' "$lc_path" && timeout_marker="yes"
+  has_marker '[RufayqStartup] ErrorBoundary rendered' "$lc_path" && boundary_marker="yes"
+  has_marker '[RufayqStartup] Push registration attempt' "$lc_path" && push_attempt="yes"
 
   local status="PASS" reason=""
   if [ "$require_handoff" = "1" ] && [ "$post_splash" = "1" ]; then

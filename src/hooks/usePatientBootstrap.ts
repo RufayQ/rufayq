@@ -15,28 +15,25 @@ export function usePatientBootstrap() {
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
+      console.info("[RufayqStartup] Patient bootstrap start");
       try {
         const ctx = await bootstrap();
         if (cancelled) return;
         setState(ctx);
         setActivePatientKey(ctx.patientId);
-        // Clear any stale cache for previous user/device when userId changed.
-        // Best-effort; failures must not block.
         try {
-          if (ctx.userId) {
-            // when signing in we want to clear any guest/device-only cache
-            clearAllForPatient(ctx.deviceId);
-          }
+          if (ctx.userId) clearAllForPatient(ctx.deviceId);
         } catch (e) {
           console.warn("[usePatientBootstrap] clear cache failed", e);
         }
-        // Best-effort backfill; failures must not block the UI.
         void backfillLegacyLocalStorage(ctx).catch((e) =>
           console.warn("[usePatientBootstrap] backfill failed", e),
         );
+        console.info("[RufayqStartup] Patient bootstrap success");
       } catch (e: any) {
-        console.error("[usePatientBootstrap] failed", e);
-        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+        const err = e instanceof Error ? e : new Error(String(e));
+        console.error(`[RufayqStartup] Patient bootstrap failed: ${err.name} ${err.message}`);
+        if (!cancelled) setError(err);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
