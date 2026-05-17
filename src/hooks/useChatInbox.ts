@@ -80,6 +80,7 @@ export function useChatInbox() {
   const [threads, setThreads] = useState<ChatThreadRow[]>([]);
   const [participants, setParticipants] = useState<Record<string, ParticipantRow[]>>({});
   const [unreadByThread, setUnreadByThread] = useState<Record<string, number>>({});
+  const [mutedByThread, setMutedByThread] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -93,12 +94,18 @@ export function useChatInbox() {
     // Threads where this device OR this user participates
     let partsQuery = supabase
       .from("chat_participants")
-      .select("thread_id, last_read_at, user_id, device_id");
+      .select("thread_id, last_read_at, user_id, device_id, muted");
     partsQuery = userId
       ? partsQuery.or(`device_id.eq.${deviceId},user_id.eq.${userId}`)
       : partsQuery.eq("device_id", deviceId);
     const { data: myParts } = await partsQuery;
     const ids = Array.from(new Set((myParts ?? []).map((p) => p.thread_id)));
+    // A thread is "muted for me" if ANY of my participant rows for it is muted.
+    const muted: Record<string, boolean> = {};
+    for (const p of (myParts ?? []) as Array<{ thread_id: string; muted?: boolean | null }>) {
+      if (p.muted) muted[p.thread_id] = true;
+    }
+    setMutedByThread(muted);
     if (ids.length === 0) {
       setThreads([]); setParticipants({}); setUnreadByThread({}); setLoading(false); return;
     }
@@ -111,7 +118,7 @@ export function useChatInbox() {
 
     const { data: allParts } = await supabase
       .from("chat_participants")
-      .select("thread_id, device_id, organization_id, display_name, last_read_at")
+      .select("thread_id, device_id, organization_id, display_name, last_read_at, muted")
       .in("thread_id", ids);
     const byThread: Record<string, ParticipantRow[]> = {};
     for (const p of (allParts ?? []) as ParticipantRow[]) {
@@ -150,7 +157,57 @@ export function useChatInbox() {
     };
   }, [load]);
 
-  const totalUnread = Object.values(unreadByThread).reduce((a, b) => a + b, 0);
+  const totalUnread = Object.values(unreadByThread).reduce(
+    (a, [tid, b]: [string, number] | any) => a + b,
+    0,
+  );
 
-  return { threads, participants, unreadByThread, totalUnread, loading, reload: load };
+  // Actions ----------------------------------------------------------------
+
+  const setThreadMuted = useCallback(async (threadId: string, next: boolean) => {
+    const deviceId = getDeviceId();
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id ?? null;
+    // Optimistic UI
+    setMutedByThread((prev) => ({ ...prev, [threadId]: next }));
+    const { error } = await supabase.rpc("chat_set_thread_muted", {
+      _thread_id: threadId,
+      _device_id: deviceId,
+      _muted: next,
+      _user_id: userId,
+    });
+    if (error) {
+      // Revert on failure
+      setMutedByThread((prev) => ({ ...prev, [threadId]: !next }));
+      throw error;
+    }
+  }, []);
+
+  const markThreadUnread = useCallback(async (threadId: string) => {
+    const deviceId = getDeviceId();
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id ?? null;
+    // Optimistic: show at least 1 unread immediately.
+    setUnreadByThread((prev) => ({ ...prev, [threadId]: Math.max(1, prev[threadId] ?? 0) }));
+    const { error } = await supabase.rpc("chat_mark_thread_unread", {
+      _thread_id: threadId,
+      _device_id: deviceId,
+      _user_id: userId,
+    });
+    if (error) throw error;
+    // Reload to get accurate count from server.
+    load();
+  }, [load]);
+
+  return {
+    threads,
+    participants,
+    unreadByThread,
+    mutedByThread,
+    totalUnread,
+    loading,
+    reload: load,
+    setThreadMuted,
+    markThreadUnread,
+  };
 }
