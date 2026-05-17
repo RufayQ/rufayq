@@ -1,353 +1,237 @@
-# Plan — Journey notification icon + Notification history
+Please finish Admin.tsx wiring for the QC module, but first verify prerequisites.
 
-## Please implement the Journey notification icon + Notification history enhancement.
+This task is only valid if the following already exist:
 
-Scope:
+- QC leaf keys in `src/components/admin/shell/adminNav.ts`
 
-- UI/UX only.
+- QC module in `NAV_MODULES`
 
-- No schema changes.
+- QC components:
 
-- No new hooks.
+  - `AdminQcRuns`
 
-- No push delivery changes.
+  - `AdminQcSmoke`
 
-- No RLS changes.
+  - `AdminQcBugs`
 
-- No notification creation changes.
+  - `AdminQcValidations`
 
-- Reuse existing `NotificationCenter`, `usePatientNotifications`, and `useChatInbox`.
+  - `AdminQcCrashEvents`
 
-Files to touch:
+- role type support for `qc_tester`
 
-1. `src/screens/JourneyScreen.tsx`
+- AdminLogin already accepts `qc_tester`
 
-2. `src/components/NotificationCenter.tsx`
+If any prerequisite is missing, stop and report the missing prerequisite instead of adding broken imports/switch cases.
 
 ---
 
-## Part A — Add notification bell to Journey header
+## Scope
 
-Journey currently renders only the header kebab menu. Add the shared notification bell next to it.
+Preferred scope:
 
-In `src/screens/JourneyScreen.tsx`:
+- `src/pages/Admin.tsx` only
 
-1. Import:
+But if `AdminLogin.tsx` still does not accept `qc_tester`, call that out as a required prerequisite/follow-up. Do not claim qc_tester access works unless login accepts it.
+
+---
+
+## 1. Add QC component imports
+
+In `src/pages/Admin.tsx`, import:
 
 ```ts
 
-import NotificationCenter from "@/components/NotificationCenter";
+import AdminQcRuns from "@/components/admin/qc/AdminQcRuns";
 
-In the Journey header right side, replace:
+import AdminQcSmoke from "@/components/admin/qc/AdminQcSmoke";
+
+import AdminQcBugs from "@/components/admin/qc/AdminQcBugs";
+
+import AdminQcValidations from "@/components/admin/qc/AdminQcValidations";
+
+import AdminQcCrashEvents from "@/components/admin/qc/AdminQcCrashEvents";
+
+Only add these if the files exist.
+
+2. Update Admin role type
+
+Current role state must support qc_tester:
+
+ts
+
+const [role, setRole] = useState<"admin" | "moderator" | "qc_tester" | null>(null);
+
+Update the auth role check:
+
+ts
+
+if ([res.data](http://res.data).roles.includes("admin")) setRole("admin");
+
+else if ([res.data](http://res.data).roles.includes("moderator")) setRole("moderator");
+
+else if ([res.data](http://res.data).roles.includes("qc_tester")) setRole("qc_tester");
+
+Do not change server-side RLS assumptions; this is only UI routing.
+
+3. Restrict qc_tester to the QC module only
+
+Update visibleModules:
+
+ts
+
+const visibleModules = useMemo(
+
+  () => NAV_MODULES
+
+    .filter((g) => role !== "qc_tester" || g.key === "qc")
+
+    .map((g) => ({
+
+      ...g,
+
+      leaves: g.leaves.filter((l) => role === "admin" || !l.adminOnly),
+
+    }))
+
+    .filter((g) => g.leaves.length > 0),
+
+  [role],
+
+);
+
+QC leaves should not be marked adminOnly, so all QC leaves remain visible to admin, moderator, and qc_tester.
+
+4. Snap qc_tester away from stale non-QC leaves
+
+Add a type-safe helper near the top of Admin.tsx:
+
+ts
+
+const QC_LEAVES: LeafKey[] = [
+
+  "qc_runs",
+
+  "qc_smoke",
+
+  "qc_bugs",
+
+  "qc_validations",
+
+  "qc_crash_events",
+
+];
+
+const isQcLeaf = (value: LeafKey) => QC_LEAVES.includes(value);
+
+Then add an effect after role is resolved:
+
+ts
+
+useEffect(() => {
+
+  if (role === "qc_tester" && !isQcLeaf(leaf)) {
+
+    setLeaf("qc_runs");
+
+  }
+
+}, [role, leaf]);
+
+Do not use [role] only, because the effect reads leaf.
+
+5. Add switch cases for all QC leaves
+
+In the main render switch, add:
 
 tsx
 
-<HeaderMenu items={journeyMenuItems} />
+case "qc_runs": return <AdminQcRuns />;
 
-with:
+case "qc_smoke": return <AdminQcSmoke />;
 
-tsx
+case "qc_bugs": return <AdminQcBugs />;
 
-<div className="flex items-center gap-2">
+case "qc_validations": return <AdminQcValidations />;
 
-  <NotificationCenter color="#fff" onNavigate={onNavigate} />
+case "qc_crash_events": return <AdminQcCrashEvents />;
 
-  <HeaderMenu items={journeyMenuItems} />
+Do not wrap these in gate(isAdmin, ...).
 
-</div>
+QC leaves should be accessible to:
 
-Requirements:
+admin
 
-Bell should sit to the left of the kebab.
+moderator
 
-Keep existing header layout and spacing otherwise unchanged.
+qc_tester
 
-Do not change journeyMenuItems.
+Server RLS remains the source of truth.
 
-Do not change HeaderMenu.
+6. Optional but recommended: hide non-QC topbar actions for qc_tester
 
-Use the same onNavigate prop already available to Journey if present.
+If QuickCreateMenu, global search, or permissions debug expose non-QC actions to qc_tester, hide or limit them.
 
-If JourneyScreen’s prop type does not currently expose onNavigate, use the existing navigation callback already used by Journey menu items. Do not introduce a new navigation system.
+At minimum:
 
-Part B — Add History tab to NotificationCenter
+qc_tester should not see quick-create actions that route to non-QC leaves.
 
-Edit src/components/NotificationCenter.tsx.
+qc_tester should not be able to use global search to navigate to hidden non-QC modules.
 
-1. Extend tab type
+If those components already respect visible leaves/roles, no extra change is needed.
 
-Change:
+7. Acceptance criteria
 
-ts
+Admin and moderator can see the QC module plus their normal allowed modules.
 
-type Tab = "all" | "chats" | "alerts";
+qc_tester can enter /admin.
 
-to:
+qc_tester sees only the Quality Control module.
 
-ts
+If qc_tester has stale admin.leaf=dashboard, they are redirected to qc_runs.
 
-type Tab = "all" | "chats" | "alerts" | "history";
+All five QC leaves render:
 
-2. Add tab pill
+qc_runs
 
-Update tab order to:
+qc_smoke
 
-ts
+qc_bugs
 
-["all", "chats", "alerts", "history"]
+qc_validations
 
-Labels:
+qc_crash_events
 
-all: All / الكل
+No QC leaf is wrapped in admin-only gate.
 
-chats: Messages / الرسائل
+npm run typecheck passes.
 
-alerts: Alerts / التنبيهات
-
-history: History / السجل
-
-Important:
-
-Keep existing pill styling.
-
-The History tab should not show an unread count badge.
-
-3. Preserve existing tab behavior
-
-Keep current unread-first behavior for:
-
-All
-
-Chats
-
-Alerts
-
-Existing behavior should remain:
-
-Chats tab: unread chat threads only.
-
-Alerts tab: alerts list as currently implemented.
-
-All tab: current mix of unread chats + alerts.
-
-Do not regress existing unread count behavior.
-
-4. Add history behavior
-
-When tab === "history":
-
-Alerts history
-
-Show read alerts only:
-
-ts
-
-items
-
-  .filter((notification) => [notification.is](http://notification.is)_read)
-
-  .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
-
-  .slice(0, 50)
-
-If the existing usePatientNotifications already returns a pre-sorted list, still sort defensively.
-
-Chat history
-
-Show all chat threads, read + unread:
-
-ts
-
-threads
-
-  .sort((a, b) => Date.parse(b.last_message_at) - Date.parse(a.last_message_at))
-
-  .slice(0, 30)
-
-Use the same chat row rendering as the existing chat list, but in History mode:
-
-do not render the unread count pill/dot,
-
-keep last message preview,
-
-keep timestamp,
-
-still allow tapping the row to open the chat thread if onOpenThread exists.
-
-5. Mark all read behavior
-
-Current Mark read button should not appear in History.
-
-Update condition from:
-
-tsx
-
-alertUnread > 0 && tab !== "chats"
-
-to something like:
-
-tsx
-
-alertUnread > 0 && tab !== "chats" && tab !== "history"
-
-6. Category chips / filters
-
-If NotificationCenter currently has category chips for alerts in this branch, keep them visible in History and have them filter read alerts by category.
-
-If this branch does not currently have category chips, do not add a new filtering system as part of this change. Just make sure the History tab works with the existing UI.
-
-7. Empty state
-
-When tab === "history" and both history lists are empty, show:
-
-English:
-
-text
-
-No past notifications yet
-
-Arabic:
-
-text
-
-لا توجد إشعارات سابقة
-
-Use the same empty-state visual style as the current notification center.
-
-For other tabs, keep the existing empty state:
-
-text
-
-You're all caught up
-
-لا توجد تنبيهات جديدة
-
-8. Avoid mutation
-
-When sorting threads or items, do not mutate arrays returned by hooks.
-
-Use copies:
-
-ts
-
-[...threads].sort(...)
-
-[...items].sort(...)
-
-9. Recommended implementation structure
-
-Add derived arrays near the existing display logic:
-
-ts
-
-const unreadThreads = threads.filter((thread) => (unreadByThread[[thread.id](http://thread.id)] ?? 0) > 0);
-
-const historyThreads = [...threads]
-
-  .sort((a, b) => Date.parse(b.last_message_at) - Date.parse(a.last_message_at))
-
-  .slice(0, 30);
-
-const historyAlerts = [...items]
-
-  .filter((notification) => [notification.is](http://notification.is)_read)
-
-  .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
-
-  .slice(0, 50);
-
-const displayedAlerts =
-
-  tab === "chats"
-
-    ? []
-
-    : tab === "history"
-
-      ? historyAlerts
-
-      : items;
-
-const displayedThreads =
-
-  tab === "alerts"
-
-    ? []
-
-    : tab === "history"
-
-      ? historyThreads
-
-      : unreadThreads;
-
-When rendering chat rows:
-
-ts
-
-const isHistory = tab === "history";
-
-const count = unreadByThread[[thread.id](http://thread.id)] ?? 0;
-
-Only show unread badge if:
-
-tsx
-
-!isHistory && count > 0
-
-10. Acceptance criteria
-
-Journey header shows notification bell to the left of the kebab.
-
-Bell opens the existing NotificationCenter.
-
-Bell uses white icon color in Journey header.
-
-NotificationCenter has four tabs:
-
-All
-
-Messages
-
-Alerts
-
-History
-
-Existing All/Chats/Alerts behavior is unchanged.
-
-History tab shows read alerts, newest first, max 50.
-
-History tab shows all chat threads, newest first, max 30.
-
-History chat rows do not show unread badge/dot.
-
-Mark read button is hidden in History.
-
-History empty state says:
-
-No past notifications yet · لا توجد إشعارات سابقة
-
-No schema changes.
-
-No push/RLS/business-logic changes.
-
-Run npm run typecheck.
+If AdminLogin.tsx is not already updated for qc_tester, explicitly report that as a blocker/follow-up.
 
 ---
 
-## One caveat
+## My recommendation
 
-If the product intent is truly “Records, Care Hub, and Home all render NotificationCenter,” then Care Hub may also need a bell in this repo, because its current header appears to render only `HeaderMenu`. 【F:src/screens/CareHubScreen.tsx†L74-L81】
+Do **not** let Lovable implement “three small edits to `Admin.tsx`” unless they confirm the rest of the QC module already exists.
 
-But your enhancement specifically scopes Part A to **Journey**, so I would keep Care Hub out of this change unless you explicitly want all main headers normalized.
+For the current repo state, the right sequence is:
+
+1. Add database/RLS + `qc_tester` role.
+
+2. Add `adminNav.ts` QC leaves/module.
+
+3. Add QC components.
+
+4. Update `AdminLogin.tsx` to allow `qc_tester`.
+
+5. Then apply this `Admin.tsx` wiring.
+
+This proposed enhancement is step 5, not step 1.
 
 ---
 
 ## Checks I ran
 
-* ✅ `git status --short; nl -ba src/screens/JourneyScreen.tsx | sed -n '1,80p'; rg -n "NotificationCenter|HeaderMenu|journeyMenuItems|Header" src/screens/JourneyScreen.tsx src/screens/HomeScreen.tsx src/screens/CareHubScreen.tsx src/screens/RecordsScreen.tsx -S; nl -ba src/screens/JourneyScreen.tsx | sed -n '820,930p'; nl -ba src/components/NotificationCenter.tsx | sed -n '1,260p'`
-
-* ✅ `nl -ba src/components/NotificationCenter.tsx | sed -n '1,150p'; nl -ba src/screens/JourneyScreen.tsx | sed -n '860,910p'; nl -ba src/screens/RecordsScreen.tsx | sed -n '140,154p'; nl -ba src/screens/HomeScreen.tsx | sed -n '1,80p'; rg -n "NotificationCenter" src/screens/HomeScreen.tsx src/screens/CareHubScreen.tsx src/screens/RecordsScreen.tsx src/screens/JourneyScreen.tsx -n`
-
-* ✅ `nl -ba src/screens/JourneyScreen.tsx | sed -n '880,910p'; nl -ba src/screens/CareHubScreen.tsx | sed -n '70,85p'; nl -ba src/components/NotificationCenter.tsx | sed -n '104,150p'`
+* ✅ `git status --short; nl -ba src/pages/Admin.tsx | sed -n '1,120p;120,310p'; rg -n "qc_runs|qc_smoke|qc_bugs|qc_validations|qc_crash_events|AdminQc|qc_tester|Quality Control" src/pages/Admin.tsx src/components/admin/shell/adminNav.ts src/components/admin -S`
 
 &nbsp;

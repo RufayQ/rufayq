@@ -51,6 +51,9 @@ import AdminPermissionsDebug from "@/components/admin/shell/AdminPermissionsDebu
 const LS_LEAF = "admin.leaf";
 const LS_COLLAPSED = "admin.submenu.collapsed";
 
+const QC_LEAVES: LeafKey[] = ["qc_runs", "qc_smoke", "qc_bugs", "qc_validations", "qc_crash_events"];
+const isQcLeaf = (value: LeafKey) => QC_LEAVES.includes(value);
+
 const Admin = () => {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
