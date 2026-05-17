@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useChatInbox, type ChatThreadRow } from "@/hooks/useChatInbox";
+import { useResolvedContact } from "@/hooks/useResolvedContact";
 
 type Tab = "all" | "ai" | "care" | "people";
 
@@ -113,7 +114,7 @@ export default function ChatInbox({ onOpenThread, onNewAi }: Props) {
             className="w-full text-left rounded-2xl px-3 py-3 flex items-center gap-3 btn-press"
             style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
           >
-            <ThreadAvatar kind={t.kind} persona={t.ai_persona} />
+            <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
             <div className="flex-1 min-w-0">
               <p className="text-[14px] font-bold truncate" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{labelFor(t)}</p>
               <p className="text-[11px] truncate" style={{ color: unread > 0 ? "var(--navy)" : "var(--gray)", fontWeight: unread > 0 ? 600 : 400 }} dir="auto">
@@ -160,13 +161,23 @@ function timeLabel(iso: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function ThreadAvatar({ kind, persona }: { kind: ChatThreadRow["kind"]; persona: string | null }) {
+function ThreadAvatar({ threadId, kind, persona }: { threadId: string; kind: ChatThreadRow["kind"]; persona: string | null }) {
+  const contact = useResolvedContact(kind === "direct" ? threadId : null, "direct");
   const bg = kind === "ai" ? "var(--navy)" : kind === "provider" ? "var(--teal-deep)" : "var(--teal-light)";
   const fg = kind === "direct" ? "var(--teal-deep)" : "#fff";
   const emoji = kind === "ai" ? (persona === "shopping" ? "🛍️" : persona === "tour" ? "🗺️" : "🩺") : null;
+  const renderDirect = () => {
+    if (contact?.avatarUrl) {
+      return <img src={contact.avatarUrl} alt={contact.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />;
+    }
+    if (contact?.initials) {
+      return <span className="text-[15px] font-bold" style={{ fontFamily: "'DM Sans'" }}>{contact.initials}</span>;
+    }
+    return <User size={18} />;
+  };
   return (
-    <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: bg, color: fg, border: kind === "ai" ? "2px solid var(--gold)" : "none" }}>
-      {kind === "ai" ? <span className="text-lg">{emoji}</span> : kind === "provider" ? <Stethoscope size={18} /> : <User size={18} />}
+    <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 overflow-hidden" style={{ background: bg, color: fg, border: kind === "ai" ? "2px solid var(--gold)" : "none" }}>
+      {kind === "ai" ? <span className="text-lg">{emoji}</span> : kind === "provider" ? <Stethoscope size={18} /> : renderDirect()}
     </div>
   );
 }
@@ -306,7 +317,9 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
         )}
         {results.map((r) => (
           <button key={r.device_id} onClick={() => start(r.device_id)} className="w-full rounded-2xl px-3 py-2.5 flex items-center gap-3 btn-press" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-            <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}><User size={16} /></div>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
+              {r.display_name ? <span className="text-[13px] font-bold" style={{ fontFamily: "'DM Sans'" }}>{r.display_name.trim().slice(0, 1).toUpperCase()}</span> : <User size={16} />}
+            </div>
             <div className="flex-1 text-left min-w-0">
               <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{r.display_name ?? "User"}</p>
               {r.rufayq_id && <p className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{r.rufayq_id}</p>}
