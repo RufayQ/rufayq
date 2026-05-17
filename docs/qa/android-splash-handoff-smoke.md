@@ -13,6 +13,46 @@ Run on a **physical Android device or emulator** after every change to:
 
 ---
 
+## One-command device QA
+
+For local device QA, use the wrapper script — it handles uninstall, build,
+install, smoke test, and report summary in a single step:
+
+```bash
+./scripts/qa/android-device-qa.sh
+```
+
+Env overrides (all optional):
+
+- `MODE=bundled` (default) | `remote`
+- `VARIANT=Debug` (default) | `Release`
+- `VERBOSE=1` to surface smoke-script details
+- `APP_ID=com.rufayq.app` (default)
+
+Examples:
+
+```bash
+MODE=remote ./scripts/qa/android-device-qa.sh
+VARIANT=Release VERBOSE=1 ./scripts/qa/android-device-qa.sh
+```
+
+The wrapper:
+
+1. verifies `adb` and exactly one authorised device,
+2. uninstalls `com.rufayq.app`,
+3. builds the APK via `scripts/build-android-apk.sh`,
+4. installs the APK,
+5. runs `scripts/qa/android-splash-smoke.sh`,
+6. prints the newest `qa-artifacts/<timestamp>/report.md` absolute path, byte
+   size, and final classification line.
+
+If the smoke test fails, the wrapper still prints the report path before
+exiting non-zero.
+
+The manual step-by-step instructions below remain available for advanced use.
+
+---
+
 ## Pre-flight (one-time per machine)
 
 ```bash
