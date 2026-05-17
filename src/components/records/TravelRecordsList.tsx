@@ -270,7 +270,91 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     );
   }
 
-  if (filtered.length === 0) {
+  const renderRow = (item: TransportAttachment, isPinned: boolean) => {
+    const itemCat = classify(item);
+    const isLounge = itemCat === "lounge";
+    return (
+      <div
+        key={item.id}
+        className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left card-press relative"
+        style={{
+          background: "var(--white)",
+          border: isPinned ? "1.5px solid rgba(197,150,90,0.55)" : "1px solid var(--gray-light)",
+          boxShadow: isPinned ? "0 4px 14px rgba(197,150,90,0.18)" : "0 1px 6px rgba(0,0,0,0.04)",
+        }}
+      >
+        <button onClick={() => openPreview(item)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+          <div
+            className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: isLounge ? "rgba(45,138,158,0.12)" : "var(--gold-pale)" }}
+          >
+            {isLounge ? (
+              <Sofa size={20} style={{ color: "var(--teal-deep)" }} />
+            ) : isImage(item.mime_type) ? (
+              <ImageIcon size={20} style={{ color: "var(--gold)" }} />
+            ) : (
+              <FileText size={20} style={{ color: "var(--gold)" }} />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
+              <Highlight text={item.label} query={searchQuery} />
+            </p>
+            <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
+              <Highlight text={item.file_name} query={searchQuery} />
+            </p>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              {isLounge ? (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(45,138,158,0.14)", color: "var(--teal-deep)" }}>
+                  <Sofa size={9} /> Lounge
+                </span>
+              ) : (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(197,150,90,0.12)", color: "var(--gold)" }}>
+                  <Plane size={9} /> Travel
+                </span>
+              )}
+              <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
+                {new Date(item.created_at).toLocaleDateString()}
+              </span>
+              {item.size_bytes && (
+                <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
+                  · {(item.size_bytes / 1024).toFixed(0)} KB
+                </span>
+              )}
+            </div>
+          </div>
+        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => togglePin(item.id)}
+            className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
+            style={{ background: isPinned ? "rgba(197,150,90,0.18)" : "var(--off-white)" }}
+            aria-label={isPinned ? "Unpin" : "Pin to top"}
+            title={isPinned ? "Unpin" : `Pin to top (max ${MAX_PINS})`}
+          >
+            {isPinned ? (
+              <Pin size={13} fill="var(--gold)" style={{ color: "var(--gold)" }} />
+            ) : (
+              <Pin size={13} style={{ color: "var(--gray)" }} />
+            )}
+          </button>
+          <Eye size={16} style={{ color: "var(--gold)" }} />
+          <button
+            onClick={() => setMenuItem(item)}
+            className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
+            style={{ background: "var(--off-white)" }}
+            aria-label="More actions"
+          >
+            <MoreVertical size={14} style={{ color: "var(--gray)" }} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const nothingToShow = filtered.length === 0 && pinnedItems.length === 0;
+
+  if (nothingToShow) {
     return (
       <>
         {items.length > 0 && chipStrip}
@@ -284,7 +368,7 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
           </p>
           {!searchQuery && cat === "all" && (
             <p className="text-[11px] mt-2 px-6" style={{ color: "var(--gray)" }}>
-              Attach passports, visas, hotel bookings or insurance from any ticket in the Journey section.
+              Attach passports, visas, hotel bookings, lounge passes or insurance from any ticket in the Journey section.
             </p>
           )}
           {(searchQuery || cat !== "all") && (
@@ -304,62 +388,25 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
   return (
     <>
       {chipStrip}
-      <div className="flex items-center justify-between mt-1">
+
+      {pinnedItems.length > 0 && (
+        <div className="mt-2">
+          <p className="font-mono text-[10px] tracking-widest mb-1.5 flex items-center gap-1" style={{ color: "var(--gold)" }}>
+            <Pin size={9} fill="var(--gold)" style={{ color: "var(--gold)" }} /> PINNED · <span className="font-arabic">مثبتة</span>
+            <span className="opacity-60">({pinnedItems.length}/{MAX_PINS})</span>
+          </p>
+          <div className="space-y-2">{pinnedItems.map((it) => renderRow(it, true))}</div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mt-3">
         <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>
           {searchQuery || cat !== "all" ? `RESULTS — ${filtered.length}` : `TRAVEL DOCUMENTS — ${filtered.length} FILES`}
         </p>
       </div>
 
       <div className="space-y-3 mt-2">
-        {filtered.map((item) => (
-          <div
-            key={item.id}
-            className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left card-press"
-            style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
-          >
-            <button onClick={() => openPreview(item)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--gold-pale)" }}>
-                {isImage(item.mime_type) ? (
-                  <ImageIcon size={20} style={{ color: "var(--gold)" }} />
-                ) : (
-                  <FileText size={20} style={{ color: "var(--gold)" }} />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
-                  <Highlight text={item.label} query={searchQuery} />
-                </p>
-                <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
-                  <Highlight text={item.file_name} query={searchQuery} />
-                </p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(197,150,90,0.12)", color: "var(--gold)" }}>
-                    <Plane size={9} /> Travel
-                  </span>
-                  <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </span>
-                  {item.size_bytes && (
-                    <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
-                      · {(item.size_bytes / 1024).toFixed(0)} KB
-                    </span>
-                  )}
-                </div>
-              </div>
-            </button>
-            <div className="flex items-center gap-1 shrink-0">
-              <Eye size={16} style={{ color: "var(--gold)" }} />
-              <button
-                onClick={() => setMenuItem(item)}
-                className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
-                style={{ background: "var(--off-white)" }}
-                aria-label="More actions"
-              >
-                <MoreVertical size={14} style={{ color: "var(--gray)" }} />
-              </button>
-            </div>
-          </div>
-        ))}
+        {filtered.map((item) => renderRow(item, false))}
       </div>
 
       {previewUrl && previewItem && (
