@@ -300,8 +300,11 @@ const Index = () => {
 
   // Subscribe to deep-link events once on mount.
   useEffect(() => {
+    console.info("[RufayqStartup] Deep link listener setup start");
     let unsub: (() => void) | undefined;
-    onDeepLink((t) => routeDeepLink(t)).then((u) => { unsub = u; });
+    onDeepLink((t) => routeDeepLink(t))
+      .then((u) => { unsub = u; console.info("[RufayqStartup] Deep link listener setup success"); })
+      .catch((e) => console.warn("[RufayqStartup] Deep link listener setup failed", e));
     return () => { unsub?.(); };
   }, [routeDeepLink]);
 
