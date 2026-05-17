@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { onThreadReadOptimistic } from "@/lib/chat/activeThread";
 
 /**
  * App-wide chat awareness:
@@ -82,10 +83,12 @@ export function useGlobalChat(activeThreadId?: string | null) {
             .maybeSingle();
           if (!part) return;
 
-          recompute();
-
-          // Suppress toast if user is actively reading this thread
+          // If the user is actively reading this thread, skip the recompute —
+          // markRead() will fire and keep the badge at 0. This is what
+          // prevents the temporary +1 bump for on-screen threads.
           if (activeThreadId && activeThreadId === m.thread_id) return;
+
+          recompute();
 
           // Look up sender display name for a richer overlay/toast
           const { data: senderRow } = await supabase
@@ -108,7 +111,10 @@ export function useGlobalChat(activeThreadId?: string | null) {
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, () => recompute())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // Optimistic clears: when the user marks a thread read, immediately
+    // refresh the total so the badge doesn't lag behind the DB round-trip.
+    const off = onThreadReadOptimistic(() => { recompute(); });
+    return () => { supabase.removeChannel(ch); off(); };
   }, [recompute, activeThreadId, enabled]);
 
   return { totalUnread, refresh: recompute };

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { markThreadReadOptimistic } from "@/lib/chat/activeThread";
 
 export type ChatMessageStatus = "sending" | "sent" | "failed";
 
@@ -180,6 +181,9 @@ export function useChatThread(threadId: string | null) {
   const markRead = useCallback(async () => {
     if (!threadId) return;
     const deviceId = getDeviceId();
+    // Optimistic: zero the badge for this thread instantly so the inbox UI
+    // doesn't flash a +1 between message-arrival and the DB update returning.
+    markThreadReadOptimistic(threadId);
     await supabase
       .from("chat_participants")
       .update({ last_read_at: new Date().toISOString() })

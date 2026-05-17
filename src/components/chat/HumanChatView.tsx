@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { setActiveThread } from "@/lib/chat/activeThread";
 import { useResolvedContact } from "@/hooks/useResolvedContact";
 import MessageTicks from "./MessageTicks";
 import EmojiPicker from "./EmojiPicker";
@@ -52,6 +53,12 @@ export default function HumanChatView({
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
   useEffect(() => { markRead(); }, [messages.length, markRead]);
+  // Tell the inbox hooks which thread is on-screen so incoming messages for
+  // it don't temporarily bump the unread badge between arrival and markRead.
+  useEffect(() => {
+    setActiveThread(threadId);
+    return () => { setActiveThread(null); };
+  }, [threadId]);
 
   const handleSend = async () => {
     if (!input.trim() || sending) return;

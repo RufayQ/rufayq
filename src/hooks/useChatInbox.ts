@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import {
+  getActiveThread,
+  markThreadReadOptimistic,
+  onThreadReadOptimistic,
+} from "@/lib/chat/activeThread";
 
 export type ChatThreadRow = {
   id: string;
@@ -38,12 +43,26 @@ function scheduleReloadAll() {
   }, 120);
 }
 
+function handleMessageChange(payload: { eventType?: string; new?: { thread_id?: string } }) {
+  // If a new message lands in the thread the user is actively reading, don't
+  // schedule a reload — the badge is already 0 optimistically and the
+  // upcoming markRead() will keep it that way. Also re-emit an optimistic
+  // read event so any inbox already showing this thread keeps it at 0.
+  const active = getActiveThread();
+  const tid = payload?.new?.thread_id;
+  if (payload?.eventType === "INSERT" && tid && active && tid === active) {
+    markThreadReadOptimistic(tid);
+    return;
+  }
+  scheduleReloadAll();
+}
+
 function ensureSharedChannel() {
   if (sharedChannel) return;
   sharedChannel = supabase
     .channel("chat-inbox-shared")
     .on("postgres_changes", { event: "*", schema: "public", table: "chat_threads" }, scheduleReloadAll)
-    .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, scheduleReloadAll)
+    .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, handleMessageChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, scheduleReloadAll)
     .subscribe();
 }
@@ -119,8 +138,13 @@ export function useChatInbox() {
   useEffect(() => {
     reloaders.add(load);
     ensureSharedChannel();
+    const off = onThreadReadOptimistic((tid) => {
+      // Zero this thread instantly; the eventual reload will reconcile.
+      setUnreadByThread((prev) => (prev[tid] === 0 ? prev : { ...prev, [tid]: 0 }));
+    });
     return () => {
       reloaders.delete(load);
+      off();
       teardownSharedChannel();
     };
   }, [load]);
