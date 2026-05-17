@@ -22,34 +22,72 @@ type Entry = { contact: ResolvedContact; fetchedAt: number };
 
 const TTL_MS = 5 * 60 * 1000; // 5 minutes
 const cache = new Map<string, Entry>();
-const subscribers = new Set<() => void>();
-let realtimeStarted = false;
 
-function notify() {
-  subscribers.forEach((cb) => cb());
+// Per-key subscribers so an avatar update for ONE contact only re-renders the
+// hooks watching that contact — not every mounted inbox row. A small "*"
+// bucket handles global invalidations.
+const keySubs = new Map<string, Set<() => void>>();
+const GLOBAL = "*";
+let realtimeStarted = false;
+let notifyScheduled = false;
+const pendingKeys = new Set<string>();
+
+function scheduleNotify(key: string) {
+  pendingKeys.add(key);
+  if (notifyScheduled) return;
+  notifyScheduled = true;
+  // Coalesce bursts of cache mutations (e.g. realtime UPDATE + manual
+  // invalidate) into a single render pass per affected key.
+  queueMicrotask(() => {
+    notifyScheduled = false;
+    const keys = Array.from(pendingKeys);
+    pendingKeys.clear();
+    const fired = new Set<() => void>();
+    for (const k of keys) {
+      const subs = keySubs.get(k);
+      if (subs) for (const cb of subs) fired.add(cb);
+    }
+    // Global subscribers always get notified once per flush.
+    const globals = keySubs.get(GLOBAL);
+    if (globals) for (const cb of globals) fired.add(cb);
+    fired.forEach((cb) => cb());
+  });
+}
+
+function subscribeKey(key: string, cb: () => void): () => void {
+  let set = keySubs.get(key);
+  if (!set) { set = new Set(); keySubs.set(key, set); }
+  set.add(cb);
+  return () => {
+    const s = keySubs.get(key);
+    if (!s) return;
+    s.delete(cb);
+    if (s.size === 0) keySubs.delete(key);
+  };
 }
 
 /** Drop one or all entries from the cache and re-render every active hook. */
 export function invalidateContactCache(threadId?: string) {
   if (!threadId) {
     cache.clear();
+    scheduleNotify(GLOBAL);
   } else {
     for (const key of cache.keys()) {
-      if (key.endsWith(`:${threadId}`)) cache.delete(key);
+      if (key.endsWith(`:${threadId}`)) {
+        cache.delete(key);
+        scheduleNotify(key);
+      }
     }
   }
-  notify();
 }
 
 function dropByDeviceId(deviceId: string) {
-  let changed = false;
   for (const [key, entry] of cache) {
     if (entry.contact.otherDeviceId === deviceId) {
       cache.delete(key);
-      changed = true;
+      scheduleNotify(key);
     }
   }
-  if (changed) notify();
 }
 
 function ensureRealtime() {
@@ -111,12 +149,13 @@ export function useResolvedContactState(
 
   useEffect(() => {
     ensureRealtime();
+    // Only subscribe to this hook's own key (plus the global bucket for
+    // wholesale clears) so unrelated invalidations don't trigger renders.
     const cb = () => setVersion((v) => v + 1);
-    subscribers.add(cb);
-    return () => {
-      subscribers.delete(cb);
-    };
-  }, []);
+    const unsubKey = cacheKey ? subscribeKey(cacheKey, cb) : () => {};
+    const unsubGlobal = subscribeKey(GLOBAL, cb);
+    return () => { unsubKey(); unsubGlobal(); };
+  }, [cacheKey]);
 
   useEffect(() => {
     if (!threadId || kind !== "direct") {
