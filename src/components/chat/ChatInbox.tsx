@@ -401,13 +401,22 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
             deviceId: r.device_id,
           });
           return (
-          <button key={r.device_id} onClick={() => start(r.device_id)} className="w-full rounded-2xl px-3 py-2.5 flex items-center gap-3 btn-press" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+          <button
+            key={r.device_id}
+            onClick={() => start(r.device_id)}
+            // Row pinned LTR so avatar → name → chevron never mirrors.
+            // The name <p> uses dir="auto" so Arabic names still read RTL
+            // inside their truncation box.
+            dir="ltr"
+            className="w-full rounded-2xl px-3 py-2.5 flex items-center gap-3 btn-press"
+            style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+          >
             <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
               <span className="text-[13px] font-bold" style={{ fontFamily: "'DM Sans'" }}>{letter}</span>
             </div>
-            <div className="flex-1 text-left min-w-0">
+            <div className="flex-1 text-left min-w-0" dir="ltr">
               <p className="text-[13px] font-bold truncate" dir="auto" style={{ color: "var(--navy)" }}>{fallbackName}</p>
-              {r.rufayq_id && <p className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{r.rufayq_id}</p>}
+              {r.rufayq_id && <p className="font-mono text-[10px]" dir="ltr" style={{ color: "var(--gray)" }}>{r.rufayq_id}</p>}
             </div>
             <ChevronRight size={14} style={{ color: "var(--teal-deep)" }} />
           </button>
