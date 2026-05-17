@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Users, Building2, Briefcase, Activity, Shield, FileText,
   CreditCard, MessageSquare, Star, UserPlus, Globe, Settings, Sparkles, Headphones, Bell,
+  ShieldCheck, Bug, ClipboardCheck, FileSearch, AlertTriangle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -14,14 +15,15 @@ export type LeafKey =
   | "news" | "pages" | "website_cms"
   | "cms_seo" | "cms_media" | "cms_blog_cats"
   | "audit" | "wallet_audit"
-  | "settings_general" | "settings_team";
+  | "settings_general" | "settings_team"
+  | "qc_runs" | "qc_smoke" | "qc_bugs" | "qc_validations" | "qc_crash_events";
 
 export interface NavLeaf {
   key: LeafKey;
   label: string;
   icon?: LucideIcon;
   /** Counts shown as a numeric badge (action queues). */
-  badgeKey?: "open_tickets" | "pending_receipts" | "pending_apps" | "pending_claims";
+  badgeKey?: "open_tickets" | "pending_receipts" | "pending_apps" | "pending_claims" | "open_qc_bugs" | "new_qc_crash_events";
   /** Static dot indicator (e.g. NEW / BETA). */
   pillTone?: "new" | "beta" | "live";
   /** Optional section grouping inside a module (renders an expandable header). */
@@ -107,6 +109,18 @@ export const NAV_MODULES: NavGroup[] = [
       { key: "cms_blog_cats", label: "Blog Categories",     icon: FileText, adminOnly: true, section: "Editorial", pillTone: "new" },
       { key: "pages",         label: "Site Pages (legacy)", icon: FileText, section: "Editorial" },
       { key: "cms_media",     label: "Media Library",       icon: FileText, adminOnly: true, section: "Assets",    pillTone: "new" },
+    ],
+  },
+  {
+    key: "qc", label: "Quality Control", icon: ShieldCheck,
+    hint: "Testing, bugs, crash triage",
+    sections: ["Testing", "Bugs", "Automation"],
+    leaves: [
+      { key: "qc_runs",         label: "Test Runs",         icon: ClipboardCheck, section: "Testing" },
+      { key: "qc_smoke",        label: "Smoke Reports",     icon: FileSearch,     section: "Testing", pillTone: "new" },
+      { key: "qc_bugs",         label: "Bug Tracker",       icon: Bug,            section: "Bugs", badgeKey: "open_qc_bugs" },
+      { key: "qc_validations",  label: "Fix Validation",    icon: Shield,         section: "Bugs" },
+      { key: "qc_crash_events", label: "Automated Events",  icon: AlertTriangle,  section: "Automation", badgeKey: "new_qc_crash_events", pillTone: "new" },
     ],
   },
   {

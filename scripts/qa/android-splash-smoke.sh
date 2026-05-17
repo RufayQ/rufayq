@@ -20,83 +20,21 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -uo pipefail
 
-PKG="com.rufayq.app"
-LAUNCH_ACT="$PKG/.MainActivity"     # Capacitor default; override if renamed
-SPLASH_HEX="0B2A3A"                  # navy splash colour, no '#'
-BLACK_HEX="000000"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/smoke-lib.sh"
+
+# PKG, SPLASH_HEX, BLACK_HEX, log/warn/err/ok, screenshot, start_logcat,
+# stop_logcat, has_marker, is_blank_or_splash, classify_case, device_summary,
+# local_capacitor_mode all come from smoke-lib.sh.
+LAUNCH_ACT="$PKG/.MainActivity"     # Capacitor default; resolved below
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="qa-artifacts/$TIMESTAMP"
 REPORT="$OUT_DIR/report.md"
 VERBOSE="${VERBOSE:-0}"
 APK="${APK:-}"
 
-# ── helpers ─────────────────────────────────────────────────────────────────
-log()  { printf '\033[36m[smoke]\033[0m %s\n' "$*"; }
-warn() { printf '\033[33m[warn]\033[0m  %s\n' "$*"; }
-err()  { printf '\033[31m[fail]\033[0m  %s\n' "$*"; }
-ok()   { printf '\033[32m[pass]\033[0m  %s\n' "$*"; }
-
-require() {
-  command -v "$1" >/dev/null 2>&1 || { err "missing required tool: $1"; exit 2; }
-}
-
-require adb
-
-DEVICES=$(adb devices | awk 'NR>1 && $2=="device" {print $1}' | wc -l | tr -d ' ')
-if [ "$DEVICES" -eq 0 ]; then
-  err "no authorised device/emulator detected. Run 'adb devices' to debug."
-  exit 2
-fi
-if [ "$DEVICES" -gt 1 ]; then
-  warn "multiple devices detected — adb will pick one. Set ANDROID_SERIAL to pin."
-fi
-
-mkdir -p "$OUT_DIR"
-: > "$REPORT"
-
-# Resolve actual launcher activity (more reliable than guessing .MainActivity).
-RESOLVED_ACT=$(adb shell cmd package resolve-activity --brief "$PKG" 2>/dev/null \
-  | tail -n1 | tr -d '\r')
-if [ -n "$RESOLVED_ACT" ] && [[ "$RESOLVED_ACT" == *"/"* ]]; then
-  LAUNCH_ACT="$RESOLVED_ACT"
-fi
-log "using launcher activity: $LAUNCH_ACT"
-
-hex_luma() {
-  local hex="${1:0:6}"
-  local r=$((16#${hex:0:2})) g=$((16#${hex:2:2})) b=$((16#${hex:4:2}))
-  echo $(((r * 299 + g * 587 + b * 114) / 1000))
-}
-
-# Pixel-sampling: capture a screenshot and check whether the average screen is
-# still solid navy/black. Returns 0 if blank/splash, 1 if handed off.
-is_blank_or_splash() {
-  local png="$1"
-  if command -v magick >/dev/null 2>&1; then
-    local hex
-    hex=$(magick "$png" -resize 1x1\! -format '%[hex:p{0,0}]' info: 2>/dev/null | tr 'a-f' 'A-F')
-    [ "$VERBOSE" = "1" ] && log "  average pixel = $hex (splash = $SPLASH_HEX, black = $BLACK_HEX)"
-    [ "${hex:0:6}" = "$SPLASH_HEX" ] || [ "$(hex_luma "$hex")" -lt 16 ]
-    return $?
-  elif command -v convert >/dev/null 2>&1; then
-    local hex
-    hex=$(convert "$png" -resize 1x1\! -format '%[hex:p{0,0}]' info: 2>/dev/null | tr 'a-f' 'A-F')
-    [ "${hex:0:6}" = "$SPLASH_HEX" ] || [ "$(hex_luma "$hex")" -lt 16 ]
-    return $?
-  else
-    warn "ImageMagick not found — falling back to size heuristic (less precise)"
-    # Pure-bash heuristic: a solid-colour PNG compresses to a tiny file.
-    local size
-    size=$(stat -c%s "$png" 2>/dev/null || stat -f%z "$png")
-    [ "$size" -lt 25000 ]
-    return $?
-  fi
-}
-
-screenshot() {
-  local path="$1"
-  adb exec-out screencap -p > "$path" 2>/dev/null
-}
+require_tool adb
 
 cold_launch() {
   adb shell am force-stop "$PKG" >/dev/null
@@ -107,58 +45,6 @@ cold_launch() {
 warm_launch() {
   adb shell am force-stop "$PKG" >/dev/null
   adb shell am start -W -n "$LAUNCH_ACT" >/dev/null
-}
-
-start_logcat() {
-  local path="$1"
-  adb logcat -c
-  # Cast a wider net so we can categorise failures (network, JS, native crash,
-  # renderer crash, memory pressure) — not just Capacitor/chromium chatter.
-  adb logcat \
-      Capacitor:* CapacitorPlugins:* chromium:* \
-      AndroidRuntime:E ActivityManager:W WebViewChromium:W \
-      lowmemorykiller:* lmkd:* art:E \
-      FirebaseApp:* FirebaseMessaging:* FirebaseInstanceId:* FA:* GoogleApiManager:* \
-      PushNotifications:* *:F \
-    > "$path" 2>/dev/null &
-  echo $!
-}
-
-stop_logcat() {
-  kill "$1" 2>/dev/null || true
-  wait "$1" 2>/dev/null || true
-}
-
-# Inspect RufayQ startup markers emitted by the React boot path.
-has_marker() {
-  local marker="$1" lc="$2"
-  grep -qF "$marker" "$lc"
-}
-
-# Inspect a logcat slice and emit a single likely-cause category.
-classify_logcat() {
-  local lc="$1"
-  if   ! has_marker '[RufayqStartup] React mounted' "$lc"; then
-    echo "JS DID NOT REACH REACT BOOT"
-  elif grep -qiE 'ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION|net::ERR_|net::ERR_FAILED|WebViewClient.*error' "$lc"; then
-    echo "LIKELY REMOTE URL / NETWORK FAILURE"
-  elif grep -qiE 'ChunkLoadError|Loading chunk [0-9]+ failed|Failed to fetch dynamically imported module|Unexpected token|SyntaxError|ReferenceError' "$lc"; then
-    echo "LIKELY JS / CHUNK LOAD FAILURE"
-  elif has_marker '[RufayqStartup] ErrorBoundary rendered' "$lc"; then
-    if grep -qiE 'FirebaseApp|FirebaseMessaging|google-services|FCM|PushNotifications' "$lc"; then
-      echo "LIKELY PUSH / FIREBASE STARTUP FAILURE"
-    else
-      echo "REACT STARTED THEN STARTUP ERROR BOUNDARY"
-    fi
-  elif grep -qiE 'FATAL EXCEPTION|AndroidRuntime: FATAL' "$lc"; then
-    echo "LIKELY NATIVE CRASH"
-  elif grep -qiE 'Renderer process .*gone|RenderProcessGone|render process .*killed|WebView .*crashed' "$lc"; then
-    echo "LIKELY WEBVIEW RENDERER CRASH"
-  elif grep -qiE 'OutOfMemoryError|lowmemorykiller|lmkd.*kill|Low on memory|onTrimMemory.*(CRITICAL|MODERATE)|Background concurrent .*GC freed' "$lc"; then
-    echo "POSSIBLE MEMORY PRESSURE"
-  else
-    echo "REACT RENDERED BLANK / STARTUP UI FAILURE"
-  fi
 }
 
 airplane_on()  { adb shell cmd connectivity airplane-mode enable  >/dev/null 2>&1 \
@@ -229,19 +115,20 @@ run_row() {
     status="FAIL"; reason="React booted but screen remained splash/blank after ${max_seconds}s"
   fi
 
+  local case_label="n/a" case_n=0 case_sub=""
+  if [ "$status" = "FAIL" ]; then
+    local classify; classify=$(classify_case "$lc_path" "$react_marker" "$post_splash")
+    case_n=$(printf '%s' "$classify" | cut -d'|' -f1)
+    case_label=$(printf '%s' "$classify" | cut -d'|' -f2)
+    case_sub=$(printf '%s' "$classify" | cut -d'|' -f3)
+  fi
   local category="n/a"
   if [ "$status" = "FAIL" ]; then
-    if [ "$post_splash" = "1" ] && [ "$react_marker" = "yes" ]; then
-      category="REACT RENDERED BLANK / STARTUP UI FAILURE"
+    if [ -n "$case_sub" ]; then
+      category="Case $case_n: $case_label [+$(printf '%s' "$case_sub" | sed 's/,/, +/g')]"
     else
-      category=$(classify_logcat "$lc_path")
+      category="Case $case_n: $case_label"
     fi
-  fi
-  # Independent FCM classification — visible even on PASS rows.
-  if [ "$push_attempt" = "yes" ] && [ "$token_recv" = "no" ] \
-     && grep -qiE 'FirebaseApp|FirebaseMessaging|google_app_id|google-services|SERVICE_NOT_AVAILABLE|registrationError' "$lc_path"; then
-    [ "$category" = "n/a" ] && category="LIKELY FIREBASE NOT CONFIGURED" \
-      || category="$category + LIKELY FIREBASE NOT CONFIGURED"
   fi
 
   if [ "$status" = "PASS" ]; then ok "row $n PASS"
@@ -276,29 +163,13 @@ run_row() {
   } >> "$REPORT"
 }
 
-# Detect whether the local capacitor.config.ts is in remote-URL or bundled mode.
-# We cannot reliably introspect the installed APK from adb without unpacking it,
-# so we report the LOCAL config as a hint and label the installed app "unknown".
-detect_local_mode() {
-  if [ -f capacitor.config.ts ] && grep -qE 'server:\s*\{' capacitor.config.ts; then
-    if grep -qE "url:\s*['\"]https?://" capacitor.config.ts; then
-      echo "REMOTE URL (loads $(grep -oE "url:\s*['\"][^'\"]+" capacitor.config.ts | head -n1 | sed "s/url:[[:space:]]*['\"]//"))"
-    else
-      echo "REMOTE URL (server block present, no URL parsed)"
-    fi
-  else
-    echo "BUNDLED / OFFLINE (no server block — loads dist/ via file://)"
-  fi
-}
-
 # ── execute matrix ──────────────────────────────────────────────────────────
 {
   echo "# Android Splash Handoff Smoke — $TIMESTAMP"
   echo
-  echo "Device: $(adb shell getprop ro.product.model 2>/dev/null | tr -d '\r') "\
-       "(Android $(adb shell getprop ro.build.version.release 2>/dev/null | tr -d '\r'))"
+  echo "Device: $(device_summary)"
   echo "Package: \`$PKG\`  Activity: \`$LAUNCH_ACT\`"
-  echo "Local capacitor.config.ts mode: **$(detect_local_mode)**"
+  echo "Local capacitor.config.ts mode: **$(local_capacitor_mode)**"
   echo "Installed app mode: _unknown_ (not introspected from APK)"
   echo
 } > "$REPORT"

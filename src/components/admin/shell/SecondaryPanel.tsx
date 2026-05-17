@@ -10,7 +10,7 @@ interface Props {
   badges: AdminBadges;
   collapsed: boolean;
   onToggleCollapsed: () => void;
-  role: "admin" | "moderator";
+  role: "admin" | "moderator" | "qc_tester";
 }
 
 const PILL_STYLES: Record<string, string> = {

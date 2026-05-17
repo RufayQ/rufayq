@@ -7,9 +7,14 @@ export interface AdminBadges {
   pending_receipts: number;
   pending_apps: number;
   pending_claims: number;
+  open_qc_bugs: number;
+  new_qc_crash_events: number;
 }
 
-const ZERO: AdminBadges = { open_tickets: 0, pending_receipts: 0, pending_apps: 0, pending_claims: 0 };
+const ZERO: AdminBadges = {
+  open_tickets: 0, pending_receipts: 0, pending_apps: 0, pending_claims: 0,
+  open_qc_bugs: 0, new_qc_crash_events: 0,
+};
 
 export const useAdminBadges = (enabled: boolean): AdminBadges => {
   const [badges, setBadges] = useState<AdminBadges>(ZERO);
@@ -24,13 +29,18 @@ export const useAdminBadges = (enabled: boolean): AdminBadges => {
           return count ?? 0;
         } catch { return 0; }
       };
-      const [tickets, receipts, apps, claims] = await Promise.all([
+      const [tickets, receipts, apps, claims, qcBugs, qcCrashes] = await Promise.all([
         safeCount("support_tickets", (q) => q.in("status", ["open", "in_progress", "pending_admin", "pending_patient"])),
         safeCount("payment_receipts", (q) => q.eq("status", "pending")),
         safeCount("provider_applications", (q) => q.eq("status", "pending")),
         safeCount("patient_claims", (q) => q.in("status", ["pending_patient", "pending_review"])),
+        safeCount("qc_bugs", (q) => q.in("status", ["open", "in_progress", "fixed"])),
+        safeCount("qc_crash_events", (q) => q.eq("status", "new")),
       ]);
-      if (alive) setBadges({ open_tickets: tickets, pending_receipts: receipts, pending_apps: apps, pending_claims: claims });
+      if (alive) setBadges({
+        open_tickets: tickets, pending_receipts: receipts, pending_apps: apps, pending_claims: claims,
+        open_qc_bugs: qcBugs, new_qc_crash_events: qcCrashes,
+      });
     };
     load();
     const t = setInterval(load, 60_000);
