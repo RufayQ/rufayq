@@ -114,7 +114,18 @@ export default function ChatHeadBubble({ suppressThreadId, onOpenThread }: Props
   const sideStyle =
     pos.side === "right" ? { right: MARGIN } : { left: MARGIN };
 
-  const initials = (active.title ?? "?").trim().slice(0, 1).toUpperCase();
+  // Resolver gives us Unicode-aware initials + uploaded/google avatar for
+  // direct chats. For provider threads we still render the stethoscope.
+  const resolved = useResolvedContact(
+    active.kind === "direct" ? active.id : null,
+    "direct",
+  );
+  const fallbackInitial = (() => {
+    const m = (active.title ?? "").match(/\p{L}/u);
+    return m ? m[0].toUpperCase() : "";
+  })();
+  const initials = resolved?.initials || fallbackInitial || "?";
+  const avatarUrl = resolved?.avatarUrl ?? null;
 
   return (
     <div
