@@ -317,7 +317,9 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
         )}
         {results.map((r) => (
           <button key={r.device_id} onClick={() => start(r.device_id)} className="w-full rounded-2xl px-3 py-2.5 flex items-center gap-3 btn-press" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-            <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}><User size={16} /></div>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
+              {r.display_name ? <span className="text-[13px] font-bold" style={{ fontFamily: "'DM Sans'" }}>{r.display_name.trim().slice(0, 1).toUpperCase()}</span> : <User size={16} />}
+            </div>
             <div className="flex-1 text-left min-w-0">
               <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{r.display_name ?? "User"}</p>
               {r.rufayq_id && <p className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{r.rufayq_id}</p>}
