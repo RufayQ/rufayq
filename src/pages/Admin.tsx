@@ -34,6 +34,11 @@ import AdminCmsSeo from "@/components/admin/AdminCmsSeo";
 import AdminCmsMedia from "@/components/admin/AdminCmsMedia";
 import AdminCmsBlogCategories from "@/components/admin/AdminCmsBlogCategories";
 import AdminPushNotifications from "@/components/admin/AdminPushNotifications";
+import AdminQcRuns from "@/components/admin/qc/AdminQcRuns";
+import AdminQcSmoke from "@/components/admin/qc/AdminQcSmoke";
+import AdminQcBugs from "@/components/admin/qc/AdminQcBugs";
+import AdminQcValidations from "@/components/admin/qc/AdminQcValidations";
+import AdminQcCrashEvents from "@/components/admin/qc/AdminQcCrashEvents";
 
 import { NAV_MODULES, ALL_LEAVES, findGroupForLeaf, type LeafKey } from "@/components/admin/shell/adminNav";
 import { useAdminBadges } from "@/components/admin/shell/useAdminBadges";
