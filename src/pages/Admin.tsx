@@ -54,7 +54,7 @@ const LS_COLLAPSED = "admin.submenu.collapsed";
 const Admin = () => {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
-  const [role, setRole] = useState<"admin" | "moderator" | null>(null);
+  const [role, setRole] = useState<"admin" | "moderator" | "qc_tester" | null>(null);
   const [leaf, setLeaf] = useState<LeafKey>(() => (localStorage.getItem(LS_LEAF) as LeafKey) || "dashboard");
   const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(LS_COLLAPSED) === "1");
   const [searchOpen, setSearchOpen] = useState(false);
