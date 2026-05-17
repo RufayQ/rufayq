@@ -183,8 +183,8 @@ run_row() {
   stop_logcat "$lc_pid"
 
   local pre_splash=0 post_splash=0
-  is_still_splash "$OUT_DIR/row-$n-pre.png"  && pre_splash=1
-  is_still_splash "$OUT_DIR/row-$n-post.png" && post_splash=1
+  is_blank_or_splash "$OUT_DIR/row-$n-pre.png"  && pre_splash=1
+  is_blank_or_splash "$OUT_DIR/row-$n-post.png" && post_splash=1
   local react_marker="no" hide_marker="no" timeout_marker="no"
   has_marker '[RufayqStartup] React mounted' "$lc_path" && react_marker="yes"
   has_marker '[RufayqStartup] SplashScreen.hide requested' "$lc_path" && hide_marker="yes"
