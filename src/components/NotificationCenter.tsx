@@ -155,12 +155,44 @@ const NotificationCenter = ({
                 </button>
               );
             })}
-            {alertUnread > 0 && tab !== "chats" && (
-              <button onClick={markAllRead} className="ml-auto shrink-0 rounded-full border border-primary-foreground/30 bg-primary-foreground/15 px-3 py-2 text-[11px] font-semibold text-primary-foreground">
-                {showAr && !showEn ? `تعليم ${alertUnread} كمقروء` : `Mark ${alertUnread} read`}
+            {filteredUnreadCount > 0 && tab !== "chats" && (
+              <button onClick={markFilteredRead} className="ml-auto shrink-0 rounded-full border border-primary-foreground/30 bg-primary-foreground/15 px-3 py-2 text-[11px] font-semibold text-primary-foreground">
+                {showAr && !showEn ? `تعليم ${filteredUnreadCount} كمقروء` : `Mark ${filteredUnreadCount} read`}
               </button>
             )}
           </div>
+
+          {showCategoryRow && (
+            <div className="relative mt-3 flex gap-1.5 overflow-x-auto no-scrollbar">
+              {CATEGORY_META.map(({ id, en, ar, Icon }) => {
+                const unread =
+                  id === "all"
+                    ? alertUnread
+                    : items.filter((n) => CATEGORY_KINDS[id as Exclude<Category, "all">].includes(n.kind) && !n.is_read).length;
+                const isActive = categoryFilter === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setCategoryFilter(id)}
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition"
+                    style={{
+                      background: isActive ? "hsl(var(--accent))" : "hsl(var(--primary-foreground) / 0.08)",
+                      color: isActive ? "hsl(var(--accent-foreground))" : "hsl(var(--primary-foreground) / 0.85)",
+                      borderColor: isActive ? "hsl(var(--accent))" : "hsl(var(--primary-foreground) / 0.18)",
+                    }}
+                  >
+                    <Icon size={13} />
+                    <span>{showAr && !showEn ? ar : en}</span>
+                    {unread > 0 && (
+                      <span className="min-w-[14px] rounded-full bg-destructive px-1 text-center text-[9px] font-bold text-destructive-foreground">
+                        {unread > 9 ? "9+" : unread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
@@ -169,8 +201,23 @@ const NotificationCenter = ({
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-accent/30 bg-accent/10 text-accent">
                 <Bell size={30} />
               </div>
-              {showEn && <p className="font-display text-[24px] leading-tight text-card-foreground">You're all caught up</p>}
-              {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد تنبيهات جديدة</p>}
+              {categoryFilter !== "all" && tab !== "chats" ? (
+                <>
+                  {showEn && <p className="font-display text-[22px] leading-tight text-card-foreground">No {activeCategory.en.toLowerCase()} notifications</p>}
+                  {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد تنبيهات في {activeCategory.ar}</p>}
+                  <button
+                    onClick={() => setCategoryFilter("all")}
+                    className="mt-4 rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 text-[11px] font-semibold text-accent"
+                  >
+                    {showAr && !showEn ? "عرض الكل" : "Show all"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {showEn && <p className="font-display text-[24px] leading-tight text-card-foreground">You're all caught up</p>}
+                  {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد تنبيهات جديدة</p>}
+                </>
+              )}
             </div>
           )}
 
