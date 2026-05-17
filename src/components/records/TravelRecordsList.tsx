@@ -456,6 +456,21 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
         </div>
       )}
 
+      <ConfirmDialog
+        open={clearPinOpen}
+        title="Clear all pinned?"
+        titleAr="إزالة كل التثبيتات؟"
+        description="This will unpin all travel records and restore the normal list order."
+        descriptionAr="سيتم إلغاء تثبيت كل المستندات وإعادة الترتيب الطبيعي."
+        confirmLabel="Clear"
+        confirmLabelAr="إزالة"
+        cancelLabel="Cancel"
+        cancelLabelAr="إلغاء"
+        destructive
+        onConfirm={clearAllPins}
+        onClose={() => setClearPinOpen(false)}
+      />
+
       <RecordActionsSheet
         open={!!menuItem}
         target={menuItem ? { id: menuItem.id, name: menuItem.label, subtitle: menuItem.file_name, mutable: true } : null}
