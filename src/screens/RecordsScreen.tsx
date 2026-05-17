@@ -149,7 +149,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
             <button onClick={() => onOpenScanner?.()} className="px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
               ＋ Scan
             </button>
-            <NotificationBell color="#fff" />
+            <NotificationCenter color="#fff" />
             <HeaderMenu items={recordsMenuItems} />
           </div>
         </div>
