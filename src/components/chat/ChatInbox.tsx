@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useChatInbox, type ChatThreadRow } from "@/hooks/useChatInbox";
-import { useResolvedContact } from "@/hooks/useResolvedContact";
+import { useResolvedContact, useResolvedContactState } from "@/hooks/useResolvedContact";
 
 type Tab = "all" | "ai" | "care" | "people";
 
