@@ -41,12 +41,13 @@ export default function PushPermissionPrompt({ onDeepLink }: Props) {
   const enable = async () => {
     const role = (getStoredRole() ?? "patient") as "patient" | "doctor";
     const res = await registerPush({ rolePref: role, onDeepLink });
-    if (res.ok) {
+    if (res.ok === true) {
       toast.success("Notifications enabled · تم تفعيل التنبيهات");
       dismiss(true);
       return;
     }
-    if (res.reason === "permission_denied") {
+    const reason: string = (res as { reason: string }).reason;
+    if (reason === "permission_denied") {
       toast.error("Permission denied · تم رفض الإذن", {
         description: "You can enable it later from your device settings.",
       });
