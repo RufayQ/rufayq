@@ -61,6 +61,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   }, []);
   const userId = useAuthUserId();
   const travelCount = useArtifactCount({ userId });
+  const [travelStats, setTravelStats] = useState({ total: 0, translated: 0, newCount: 0 });
 
   // Local-only edits for demo (medical) records — they don't live in DB yet.
   const [renames, setRenames] = useState<Record<string, string>>({});
@@ -73,6 +74,10 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const totalFiles = records.length;
   const translatedCount = records.filter(r => r.translationStatus === "translated").length;
   const newCount = records.filter(r => r.isNew).length;
+  const headerTotalFiles = segment === "travel" ? travelStats.total : totalFiles;
+  const headerTranslatedCount = segment === "travel" ? travelStats.translated : translatedCount;
+  const headerNewCount = segment === "travel" ? travelStats.newCount : newCount;
+  const travelTabCount = Math.max(travelStats.total, travelCount);
 
   // Filter + search + sort
   const filtered = useMemo(() => {
@@ -154,7 +159,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
           </div>
         </div>
         <div className="flex gap-2 mt-3">
-          {[`${totalFiles} Files`, `${translatedCount} Translated`, newCount > 0 ? `${newCount} New` : null].filter(Boolean).map((s) => (
+          {[`${headerTotalFiles} Files`, `${headerTranslatedCount} Translated`, headerNewCount > 0 ? `${headerNewCount} New` : null].filter(Boolean).map((s) => (
             <span key={s} className="font-mono text-[9px] px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>{s}</span>
           ))}
         </div>
@@ -169,7 +174,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
           style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
         >
           {([
-            { key: "travel" as const, icon: <Plane size={13} />, en: "Travel", ar: "سفر", count: travelCount },
+            { key: "travel" as const, icon: <Plane size={13} />, en: "Travel", ar: "سفر", count: travelTabCount },
             { key: "medical" as const, icon: <Stethoscope size={13} />, en: "Medical", ar: "طبية", count: totalFiles },
           ]).map((s) => {
             const active = segment === s.key;
@@ -267,7 +272,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
         {segment === "travel" ? (
-          <TravelRecordsList userId={userId} searchQuery={searchQuery} />
+          <TravelRecordsList userId={userId} searchQuery={searchQuery} onCountsChange={setTravelStats} />
         ) : (<>
         {/* Featured Discharge Pack */}
         {activeFilter === "All" && !searchQuery && records.length > 0 && (
