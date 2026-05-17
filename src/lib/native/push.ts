@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isNative, platform } from "./index";
 import { parseDeepLink, type DeepLinkTarget } from "./deepLinks";
+import { getDeviceId } from "@/hooks/useDeviceId";
 
 let registered = false;
 
@@ -39,6 +40,7 @@ export async function registerPush(opts: {
     await supabase.from("device_push_tokens").upsert(
       {
         user_id: session.user.id,
+        device_id: getDeviceId(),
         token: token.value,
         platform,
         role_pref: opts.rolePref,
