@@ -238,6 +238,53 @@ const NotificationCenter = ({
           )}
         </div>
 
+        {prefsOpen && (
+          <div className="border-b border-border bg-muted/30 px-4 py-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div>
+                {showEn && <p className="text-[13px] font-semibold text-card-foreground">Notification preferences</p>}
+                {showAr && <p className="font-arabic text-[11px] text-muted-foreground" dir="rtl">تفضيلات الإشعارات</p>}
+              </div>
+              <button
+                onClick={() => setPrefsOpen(false)}
+                aria-label="Close preferences"
+                className="rounded-full p-1 text-muted-foreground hover:text-card-foreground"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              {PREF_ROWS.map(({ id, en, ar, Icon }) => {
+                const enabled = prefs[id] !== false;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => togglePref(id)}
+                    role="switch"
+                    aria-checked={enabled}
+                    className="flex w-full items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 text-left transition active:scale-[0.99]"
+                  >
+                    <Icon size={14} className="shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1">
+                      {showEn && <p className="text-[12px] font-semibold text-card-foreground">{en}</p>}
+                      {showAr && <p className="font-arabic text-[10px] text-muted-foreground" dir="rtl">{ar}</p>}
+                    </div>
+                    <span
+                      className="relative h-[18px] w-[32px] shrink-0 rounded-full transition"
+                      style={{ background: enabled ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.35)" }}
+                    >
+                      <span
+                        className="absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow transition-all"
+                        style={{ left: enabled ? 16 : 2 }}
+                      />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
           {displayedThreads.length === 0 && displayedAlerts.length === 0 && (
             <div className="flex min-h-[360px] flex-col items-center justify-center text-center text-muted-foreground">
