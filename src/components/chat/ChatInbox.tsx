@@ -118,6 +118,10 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             key={t.id}
             role="button"
             tabIndex={0}
+            // Pin the row to LTR so the flex order (avatar → text → meta)
+            // never mirrors, even if a future ancestor goes RTL. Inner text
+            // blocks still use dir="auto" to read each name in its own script.
+            dir="ltr"
             onClick={() => onOpenThread(t)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
