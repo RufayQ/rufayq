@@ -150,13 +150,16 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             ) : (
               <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
             )}
-            <div className="flex-1 min-w-0">
+            {/* Text column: container stays LTR so truncation/ellipsis sit on
+                the trailing edge of the row; the <p>s use dir="auto" to flow
+                each name/preview in its own script. */}
+            <div className="flex-1 min-w-0" dir="ltr">
               <p className="text-[14px] font-bold truncate" dir="auto" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{labelFor(t)}</p>
               <p className="text-[11px] truncate" style={{ color: unread > 0 ? "var(--navy)" : "var(--gray)", fontWeight: unread > 0 ? 600 : 400 }} dir="auto">
                 {t.last_message_preview ?? "New conversation"}
               </p>
             </div>
-            <div className="text-right shrink-0 flex flex-col items-end gap-1">
+            <div className="text-right shrink-0 flex flex-col items-end gap-1" dir="ltr">
               <p className="font-mono text-[9px]" style={{ color: unread > 0 ? "var(--teal-deep)" : "var(--gray)" }} aria-hidden>{timeLabel(t.last_message_at)}</p>
               {unread > 0 ? (
                 <span
