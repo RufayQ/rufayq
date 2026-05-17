@@ -376,6 +376,14 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
     }
   };
 
+  /** Open ConversationProfile directly from the inbox without opening the thread first. */
+  const handleOpenProfileFromInbox = (t: ChatThreadRow) => {
+    if (t.kind === "ai") return; // No profile screen for AI personas.
+    setHumanThread(t);
+    setProfileBackTo("inbox");
+    setView("profile");
+  };
+
   // Auto-open a thread when the parent passes `initialThreadId`
   // (e.g. user tapped a message in the notification center or overlay).
   useEffect(() => {
