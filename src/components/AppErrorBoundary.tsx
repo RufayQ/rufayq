@@ -11,8 +11,8 @@ interface State {
 
 const buttonStyle = {
   border: "1px solid rgba(197,150,90,0.55)",
-  background: "#C5965A",
-  color: "#06101A",
+  background: "var(--gold, #C5965A)",
+  color: "var(--scanner-bg, #06101A)",
   borderRadius: 999,
   padding: "10px 16px",
   fontSize: 13,
