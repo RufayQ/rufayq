@@ -77,6 +77,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const [upgradeCtx, setUpgradeCtx] = useState<{ variant: "guest" | "subscriber"; plan?: string; resetsAt?: Date | string | null }>({ variant: "guest", resetsAt: null });
   const [view, setView] = useState<"inbox" | "ai" | "human" | "profile">("inbox");
   const [humanThread, setHumanThread] = useState<ChatThreadRow | null>(null);
+  // Where ConversationProfile's back button returns to. Set when we open it.
+  const [profileBackTo, setProfileBackTo] = useState<"inbox" | "human">("human");
   const [persona, setPersona] = useState<ChatPersona | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -374,6 +376,14 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
     }
   };
 
+  /** Open ConversationProfile directly from the inbox without opening the thread first. */
+  const handleOpenProfileFromInbox = (t: ChatThreadRow) => {
+    if (t.kind === "ai") return; // No profile screen for AI personas.
+    setHumanThread(t);
+    setProfileBackTo("inbox");
+    setView("profile");
+  };
+
   // Auto-open a thread when the parent passes `initialThreadId`
   // (e.g. user tapped a message in the notification center or overlay).
   useEffect(() => {
@@ -405,6 +415,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
     return (
       <ChatInbox
         onOpenThread={handleOpenThread}
+        onOpenProfile={handleOpenProfileFromInbox}
         onNewAi={() => { setPersona(null); setMessages([]); setView("ai"); }}
       />
     );
@@ -420,7 +431,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         subtitle={subtitle}
         kind={humanThread.kind === "provider" ? "provider" : "direct"}
         onBack={() => { setHumanThread(null); setView("inbox"); }}
-        onOpenProfile={() => setView("profile")}
+        onOpenProfile={() => { setProfileBackTo("human"); setView("profile"); }}
         onMinimize={() => {
           pinChatHead(humanThread.id);
           setHumanThread(null);
@@ -437,7 +448,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         threadId={humanThread.id}
         title={humanThread.title ?? "Conversation"}
         kind={humanThread.kind === "provider" ? "provider" : "direct"}
-        onBack={() => setView("human")}
+        onBack={() => setView(profileBackTo)}
       />
     );
   }
