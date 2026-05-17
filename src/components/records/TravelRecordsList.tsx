@@ -238,6 +238,20 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
 
   const filtered = unified.filter((it) => matchesCat(it) && matchesSearch(it) && !pinnedIds.includes(it.id));
 
+  // Expose visible attachment rows (pinned + filtered) so the parent header
+  // kebab can copy/export/share whatever the user is currently looking at.
+  useEffect(() => {
+    if (!onVisibleItemsChange) return;
+    const visibleAttachments: TransportAttachment[] = [
+      ...pinnedItems,
+      ...filtered,
+    ]
+      .filter((row): row is Extract<UnifiedRow, { kind: "attachment" }> => row.kind === "attachment")
+      .map(({ kind: _kind, ...rest }) => rest as TransportAttachment);
+    onVisibleItemsChange(visibleAttachments);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, loungeCards, cat, searchQuery, pinnedIds.join("|")]);
+
   const openPreview = async (item: TransportAttachment) => {
     const { data, error } = await supabase.storage
       .from(BUCKET)
