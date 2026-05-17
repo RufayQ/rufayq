@@ -135,17 +135,44 @@ export function useResolvedContact(
   return useResolvedContactState(threadId, kind).contact;
 }
 
+/**
+ * Source attribution for the contact returned by the hook. Powers the
+ * inbox cache debug indicator (enable via
+ * `localStorage.setItem("rufayq.debug.contactCache","1")`).
+ *
+ *  - "miss"    → first fetch this session, no cache hit
+ *  - "cache"   → served from in-memory cache (within TTL)
+ *  - "refresh" → previous entry expired or invalidated, just refetched
+ */
+export type ContactSource = "cache" | "miss" | "refresh" | "none";
+
 /** Same as useResolvedContact but also reports a `loading` flag for skeleton UIs. */
 export function useResolvedContactState(
   threadId: string | null | undefined,
   kind: "direct" | "provider",
-): { contact: ResolvedContact | null; loading: boolean } {
+): {
+  contact: ResolvedContact | null;
+  loading: boolean;
+  source: ContactSource;
+  fetchedAt: number | null;
+} {
   const cacheKey = threadId && kind === "direct" ? `${kind}:${threadId}` : null;
-  const cached = cacheKey ? readCache(cacheKey) : null;
+  const initialEntry = cacheKey ? cache.get(cacheKey) ?? null : null;
+  const initialFresh = initialEntry && Date.now() - initialEntry.fetchedAt <= TTL_MS;
+  const cached = initialFresh ? initialEntry!.contact : null;
   const [contact, setContact] = useState<ResolvedContact | null>(cached);
   const [loading, setLoading] = useState<boolean>(!!cacheKey && !cached);
+  const [source, setSource] = useState<ContactSource>(
+    !cacheKey ? "none" : cached ? "cache" : "miss",
+  );
+  const [fetchedAt, setFetchedAt] = useState<number | null>(
+    cached ? initialEntry!.fetchedAt : null,
+  );
   // Bump on cache invalidation so the effect below re-runs and refetches.
   const [version, setVersion] = useState(0);
+  // Track whether this hook has ever fetched, so subsequent fetches register
+  // as "refresh" (TTL expiry or realtime invalidation) instead of "miss".
+  const everFetchedRef = useRef(false);
 
   useEffect(() => {
     ensureRealtime();
@@ -161,22 +188,33 @@ export function useResolvedContactState(
     if (!threadId || kind !== "direct") {
       setContact(null);
       setLoading(false);
+      setSource("none");
+      setFetchedAt(null);
       return;
     }
     const key = `${kind}:${threadId}`;
     const hit = readCache(key);
     if (hit) {
+      const entry = cache.get(key)!;
       setContact(hit);
       setLoading(false);
+      setSource("cache");
+      setFetchedAt(entry.fetchedAt);
+      everFetchedRef.current = true;
       return;
     }
+    const isRefresh = everFetchedRef.current;
     setLoading(true);
     let cancelled = false;
     resolveContact(threadId, kind).then((c) => {
-      cache.set(key, { contact: c, fetchedAt: Date.now() });
+      const now = Date.now();
+      cache.set(key, { contact: c, fetchedAt: now });
       if (!cancelled) {
         setContact(c);
         setLoading(false);
+        setSource(isRefresh ? "refresh" : "miss");
+        setFetchedAt(now);
+        everFetchedRef.current = true;
       }
     });
     return () => {
@@ -184,5 +222,5 @@ export function useResolvedContactState(
     };
   }, [threadId, kind, version]);
 
-  return { contact, loading };
+  return { contact, loading, source, fetchedAt };
 }
