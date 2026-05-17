@@ -60,6 +60,61 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
     return others[0]?.display_name ?? "Conversation";
   };
 
+  // Clamp focusedIndex when the filtered list shrinks (tab switch, search).
+  useEffect(() => {
+    if (focusedIndex >= filtered.length) {
+      setFocusedIndex(Math.max(0, filtered.length - 1));
+    }
+  }, [filtered.length, focusedIndex]);
+
+  // Reset to the top when the user changes tab or types in the filter —
+  // otherwise focusedIndex points at a row that's no longer at that slot.
+  useEffect(() => {
+    setFocusedIndex(0);
+  }, [tab, q]);
+
+  const moveFocusTo = (next: number) => {
+    if (filtered.length === 0) return;
+    const clamped = (next + filtered.length) % filtered.length; // wrap
+    setFocusedIndex(clamped);
+    // Defer focus so the new tabIndex={0} has been applied.
+    requestAnimationFrame(() => {
+      const el = rowRefs.current[clamped];
+      if (el) {
+        el.focus();
+        try { el.scrollIntoView({ block: "nearest" }); } catch { /* ignore */ }
+      }
+    });
+  };
+
+  const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    // Only handle when focus is inside one of our managed rows/avatars.
+    if (!target.closest("[data-row-index]")) return;
+    switch (e.key) {
+      case "ArrowDown": e.preventDefault(); moveFocusTo(focusedIndex + 1); break;
+      case "ArrowUp":   e.preventDefault(); moveFocusTo(focusedIndex - 1); break;
+      case "Home":      e.preventDefault(); moveFocusTo(0); break;
+      case "End":       e.preventDefault(); moveFocusTo(filtered.length - 1); break;
+      case "ArrowRight": {
+        // From row → enter the avatar button (gold-ring profile shortcut).
+        if (target === rowRefs.current[focusedIndex]) {
+          const av = avatarRefs.current[focusedIndex];
+          if (av) { e.preventDefault(); av.focus(); }
+        }
+        break;
+      }
+      case "ArrowLeft": {
+        // From avatar → back out to the row.
+        if (target === avatarRefs.current[focusedIndex]) {
+          e.preventDefault();
+          rowRefs.current[focusedIndex]?.focus();
+        }
+        break;
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden", background: "var(--off-white)" }}>
       {/* Header */}
