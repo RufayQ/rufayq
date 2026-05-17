@@ -115,19 +115,20 @@ run_row() {
     status="FAIL"; reason="React booted but screen remained splash/blank after ${max_seconds}s"
   fi
 
+  local case_label="n/a" case_n=0 case_sub=""
+  if [ "$status" = "FAIL" ]; then
+    local classify; classify=$(classify_case "$lc_path" "$react_marker" "$post_splash")
+    case_n=$(printf '%s' "$classify" | cut -d'|' -f1)
+    case_label=$(printf '%s' "$classify" | cut -d'|' -f2)
+    case_sub=$(printf '%s' "$classify" | cut -d'|' -f3)
+  fi
   local category="n/a"
   if [ "$status" = "FAIL" ]; then
-    if [ "$post_splash" = "1" ] && [ "$react_marker" = "yes" ]; then
-      category="REACT RENDERED BLANK / STARTUP UI FAILURE"
+    if [ -n "$case_sub" ]; then
+      category="Case $case_n: $case_label [+$(printf '%s' "$case_sub" | sed 's/,/, +/g')]"
     else
-      category=$(classify_logcat "$lc_path")
+      category="Case $case_n: $case_label"
     fi
-  fi
-  # Independent FCM classification — visible even on PASS rows.
-  if [ "$push_attempt" = "yes" ] && [ "$token_recv" = "no" ] \
-     && grep -qiE 'FirebaseApp|FirebaseMessaging|google_app_id|google-services|SERVICE_NOT_AVAILABLE|registrationError' "$lc_path"; then
-    [ "$category" = "n/a" ] && category="LIKELY FIREBASE NOT CONFIGURED" \
-      || category="$category + LIKELY FIREBASE NOT CONFIGURED"
   fi
 
   if [ "$status" = "PASS" ]; then ok "row $n PASS"
