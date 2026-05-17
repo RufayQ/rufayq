@@ -246,11 +246,11 @@ FAILED=0
 {
   echo "## Summary"
   echo
-  echo "| Row | Scenario | Status |"
-  echo "|-----|----------|--------|"
+  echo "| Row | Scenario | Status | Likely cause |"
+  echo "|-----|----------|--------|--------------|"
   for r in "${ROW_RESULTS[@]}"; do
-    IFS='|' read -r n name status reason <<<"$r"
-    echo "| $n | $name | $status |"
+    IFS='|' read -r n name status reason category <<<"$r"
+    echo "| $n | $name | $status | ${category:-n/a} |"
     [ "$status" = "FAIL" ] && FAILED=$((FAILED+1))
   done
 } >> "$REPORT"
