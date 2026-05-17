@@ -401,6 +401,66 @@ function CacheBadge({ source, fetchedAt }: { source: "cache" | "miss" | "refresh
   );
 }
 
+// ----------------------------------------------------------------------------
+// Per-row action menu (mute / mark unread). A lightweight popover that closes
+// on outside click or Escape. Stops event propagation so taps inside don't
+// open the parent thread row.
+// ----------------------------------------------------------------------------
+function RowMenu({
+  muted, onClose, onToggleMute, onMarkUnread,
+}: {
+  muted: boolean;
+  onClose: () => void;
+  onToggleMute: () => void | Promise<void>;
+  onMarkUnread: () => void | Promise<void>;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+  return (
+    <div
+      ref={ref}
+      role="menu"
+      onClick={(e) => e.stopPropagation()}
+      className="absolute right-0 top-9 z-20 w-[200px] rounded-xl py-1 shadow-lg"
+      style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+    >
+      <button
+        type="button"
+        role="menuitem"
+        onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
+        className="w-full px-3 py-2 flex items-center gap-2 text-left text-[13px] btn-press"
+        style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}
+      >
+        {muted ? <Bell size={14} /> : <BellOff size={14} />}
+        <span className="flex-1">
+          {muted ? "Unmute · إلغاء الكتم" : "Mute · كتم"}
+        </span>
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={(e) => { e.stopPropagation(); onMarkUnread(); }}
+        className="w-full px-3 py-2 flex items-center gap-2 text-left text-[13px] btn-press"
+        style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}
+      >
+        <MailOpen size={14} />
+        <span className="flex-1">Mark unread · وضع كغير مقروء</span>
+      </button>
+    </div>
+  );
+}
+
 function EmptyState({ onNewAi, onSearch, onCare }: { onNewAi: () => void; onSearch: () => void; onCare: () => void }) {
   return (
     <div className="text-center py-10 px-6">
