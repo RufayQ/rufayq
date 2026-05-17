@@ -64,41 +64,31 @@ export function useChatInbox() {
 
   const load = useCallback(async () => {
     const deviceId = getDeviceId();
-    // Threads where this device participates
-    const { data: myParts } = await supabase
-      .from("chat_participants")
-      .select("thread_id, last_read_at")
-      .eq("device_id", deviceId);
-    const lastReadByThread: Record<string, string | null> = {};
-    for (const p of myParts ?? []) lastReadByThread[p.thread_id] = p.last_read_at;
-    const ids = (myParts ?? []).map((p) => p.thread_id);
-    if (ids.length === 0) {
-      setThreads([]); setParticipants({}); setUnreadByThread({}); setLoading(false); return;
-    }
-    const { data: tRows } = await supabase
-      .from("chat_threads")
-      .select("id, kind, title, ai_persona, organization_id, last_message_at, last_message_preview")
-      .in("id", ids)
-      .order("last_message_at", { ascending: false });
-    setThreads((tRows ?? []) as ChatThreadRow[]);
+    // User scope: if signed in, every participant row owned by this user counts
+    // as the same inbox, so reading on one device clears unread on all of them.
+    // Guests fall back to device-only scope.
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id ?? null;
 
-    const { data: allParts } = await supabase
+    // Threads where this device OR this user participates
+    let partsQuery = supabase
       .from("chat_participants")
-      .select("thread_id, device_id, organization_id, display_name, last_read_at")
-      .in("thread_id", ids);
-    const byThread: Record<string, ParticipantRow[]> = {};
-    for (const p of (allParts ?? []) as ParticipantRow[]) {
-      (byThread[p.thread_id] ||= []).push(p);
-    }
+      .select("thread_id, last_read_at, user_id, device_id");
+    partsQuery = userId
+      ? partsQuery.or(`device_id.eq.${deviceId},user_id.eq.${userId}`)
+      : partsQuery.eq("device_id", deviceId);
+    const { data: myParts } = await partsQuery;
+    const ids = Array.from(new Set((myParts ?? []).map((p) => p.thread_id)));
+...
     setParticipants(byThread);
 
     // Single grouped RPC replaces the previous N+1 per-thread COUNT queries.
     // Threads with zero unread don't appear in the result, so default to 0.
-    void lastReadByThread; // last_read_at is now evaluated server-side inside the RPC
     const unread: Record<string, number> = {};
     for (const tid of ids) unread[tid] = 0;
     const { data: unreadRows } = await supabase.rpc("chat_unread_counts_for_device", {
       _device_id: deviceId,
+      _user_id: userId,
     });
     for (const row of (unreadRows ?? []) as Array<{ thread_id: string; unread_count: number }>) {
       unread[row.thread_id] = Number(row.unread_count) || 0;
