@@ -74,10 +74,10 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const totalFiles = records.length;
   const translatedCount = records.filter(r => r.translationStatus === "translated").length;
   const newCount = records.filter(r => r.isNew).length;
-  const headerTotalFiles = segment === "travel" ? travelStats.total : totalFiles;
+  const travelTabCount = Math.max(travelStats.total, travelCount);
+  const headerTotalFiles = segment === "travel" ? travelTabCount : totalFiles;
   const headerTranslatedCount = segment === "travel" ? travelStats.translated : translatedCount;
   const headerNewCount = segment === "travel" ? travelStats.newCount : newCount;
-  const travelTabCount = Math.max(travelStats.total, travelCount);
 
   // Filter + search + sort
   const filtered = useMemo(() => {
