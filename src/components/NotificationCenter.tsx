@@ -174,7 +174,7 @@ const NotificationCenter = ({
 
           <div className="relative mt-5 flex gap-2 overflow-x-auto no-scrollbar">
             {(["all", "chats", "alerts"] as Tab[]).map((tabName) => {
-              const count = tabName === "all" ? totalUnread : tabName === "chats" ? chatUnread : alertUnread;
+              const count = tabName === "all" ? totalUnread : tabName === "chats" ? allowedChatUnread : visibleAlertUnread;
               const labelEn = tabName === "all" ? "All" : tabName === "chats" ? "Messages" : "Alerts";
               const labelAr = tabName === "all" ? "الكل" : tabName === "chats" ? "الرسائل" : "التنبيهات";
               const isActive = tab === tabName;
