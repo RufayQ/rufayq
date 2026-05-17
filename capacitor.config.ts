@@ -8,17 +8,22 @@ import type { CapacitorConfig } from '@capacitor/cli';
  *
  * appId: com.rufayq.app  (single store listing per platform)
  *
- * Hot-reload during development points at the Lovable sandbox preview so
- * native shells reflect web changes immediately. Remove the `server.url`
- * block before producing a production / store-submission build.
+ * `server.url` points the native shell at the live published web app so the
+ * Android/iOS build always reflects the latest deployed version. The Lovable
+ * sandbox preview URL (`id-preview--…lovableproject.com`) must NOT be used
+ * here — it is gated to the Lovable iframe and renders blank inside a native
+ * webview, causing the splash to hang forever (the "blacked out" symptom).
+ *
+ * For a true offline store build, remove the `server` block entirely so the
+ * shell loads bundled `dist/` assets via `file://`.
  */
 const config: CapacitorConfig = {
   appId: 'com.rufayq.app',
   appName: 'Rufayq',
   webDir: 'dist',
   server: {
-    url: 'https://aacabea3-4cbd-4aa0-9a0a-eaba72cdef9b.lovableproject.com?forceHideBadge=true',
-    cleartext: true,
+    url: 'https://rufayq.com',
+    cleartext: false,
   },
   android: {
     allowMixedContent: true,
