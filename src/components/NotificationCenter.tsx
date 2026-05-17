@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, BellRing, CalendarClock, Check, MessageCircle, Pill, Receipt, Stethoscope, X } from "lucide-react";
+import { Bell, BellRing, CalendarClock, Check, MessageCircle, Pill, Receipt, Settings2, Stethoscope, X } from "lucide-react";
 import { usePatientNotifications } from "@/hooks/usePatientNotifications";
 import { useChatInbox } from "@/hooks/useChatInbox";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useNotificationPrefs, type NotificationCategoryId } from "@/hooks/useNotificationPrefs";
 
 interface Props {
   color?: string;
