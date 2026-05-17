@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, BellRing, MessageCircle, X } from "lucide-react";
+import { Bell, BellRing, Check, MessageCircle, X } from "lucide-react";
 import { usePatientNotifications } from "@/hooks/usePatientNotifications";
 import { useChatInbox } from "@/hooks/useChatInbox";
 import { useLanguage } from "@/contexts/LanguageContext";
