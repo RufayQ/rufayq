@@ -137,7 +137,7 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
               <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-bold truncate" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{labelFor(t)}</p>
+              <p className="text-[14px] font-bold truncate" dir="auto" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{labelFor(t)}</p>
               <p className="text-[11px] truncate" style={{ color: unread > 0 ? "var(--navy)" : "var(--gray)", fontWeight: unread > 0 ? 600 : 400 }} dir="auto">
                 {t.last_message_preview ?? "New conversation"}
               </p>
@@ -340,18 +340,22 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
             No discoverable user found · لم يتم العثور على مستخدم
           </p>
         )}
-        {results.map((r) => (
+        {results.map((r) => {
+          const fallbackName = r.display_name?.trim() || r.rufayq_id?.trim() || "User";
+          const letter = (fallbackName.match(/\p{L}/u)?.[0] ?? "?").toUpperCase();
+          return (
           <button key={r.device_id} onClick={() => start(r.device_id)} className="w-full rounded-2xl px-3 py-2.5 flex items-center gap-3 btn-press" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-            <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
-              {r.display_name ? <span className="text-[13px] font-bold" style={{ fontFamily: "'DM Sans'" }}>{r.display_name.trim().slice(0, 1).toUpperCase()}</span> : <User size={16} />}
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
+              <span className="text-[13px] font-bold" style={{ fontFamily: "'DM Sans'" }}>{letter}</span>
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{r.display_name ?? "User"}</p>
+              <p className="text-[13px] font-bold truncate" dir="auto" style={{ color: "var(--navy)" }}>{fallbackName}</p>
               {r.rufayq_id && <p className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{r.rufayq_id}</p>}
             </div>
             <ChevronRight size={14} style={{ color: "var(--teal-deep)" }} />
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
