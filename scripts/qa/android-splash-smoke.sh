@@ -193,19 +193,33 @@ run_row() {
   local pre_splash=0 post_splash=0
   is_blank_or_splash "$OUT_DIR/row-$n-pre.png"  && pre_splash=1
   is_blank_or_splash "$OUT_DIR/row-$n-post.png" && post_splash=1
-  local react_marker="no" hide_marker="no" timeout_marker="no" boundary_marker="no" push_attempt="no"
+  local react_marker="no" hide_marker="no" timeout_marker="no" boundary_marker="no"
+  local push_attempt="no" push_perm="no" push_listener="no" push_reg_ok="no"
+  local token_recv="no" token_save="no" firebase_init="unknown"
+  local boundary_detail=""
   has_marker '[RufayqStartup] React mounted' "$lc_path" && react_marker="yes"
   has_marker '[RufayqStartup] SplashScreen.hide requested' "$lc_path" && hide_marker="yes"
   has_marker '[RufayqStartup] Splash fallback timeout fired' "$lc_path" && timeout_marker="yes"
-  has_marker '[RufayqStartup] ErrorBoundary rendered' "$lc_path" && boundary_marker="yes"
+  if has_marker '[RufayqStartup] ErrorBoundary rendered' "$lc_path"; then
+    boundary_marker="yes"
+    boundary_detail=$(grep -F '[RufayqStartup] ErrorBoundary rendered' "$lc_path" | head -n1)
+  fi
   has_marker '[RufayqStartup] Push registration attempt' "$lc_path" && push_attempt="yes"
+  grep -qF '[RufayqStartup] Push permission result' "$lc_path" && push_perm="yes"
+  has_marker '[RufayqStartup] Push listener setup success' "$lc_path" && push_listener="yes"
+  has_marker '[RufayqStartup] Push native register success' "$lc_path" && push_reg_ok="yes"
+  has_marker '[RufayqStartup] Push token received' "$lc_path" && token_recv="yes"
+  has_marker '[RufayqStartup] Push token upsert success' "$lc_path" && token_save="yes"
+  if grep -qiE 'FirebaseApp.*initialized|FirebaseInstanceId|FirebaseMessaging.*Started' "$lc_path"; then
+    firebase_init="yes"
+  elif grep -qiE 'Default FirebaseApp is not initialized|Missing google_app_id|google-services\.json.*missing' "$lc_path"; then
+    firebase_init="no"
+  fi
 
   local status="PASS" reason=""
   if [ "$require_handoff" = "1" ] && [ "$post_splash" = "1" ]; then
     status="FAIL"; reason="splash still visible after ${max_seconds}s"
   elif [ "$require_handoff" = "0" ] && [ "$post_splash" = "1" ]; then
-    # Offline case: splash is acceptable ONLY if logcat shows an explicit
-    # network-error render path; otherwise we treat it as a hang.
     if ! grep -qiE 'ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|net::ERR_' "$lc_path"; then
       status="FAIL"; reason="navy splash after ${max_seconds}s with no offline error path"
     fi
@@ -223,6 +237,12 @@ run_row() {
       category=$(classify_logcat "$lc_path")
     fi
   fi
+  # Independent FCM classification — visible even on PASS rows.
+  if [ "$push_attempt" = "yes" ] && [ "$token_recv" = "no" ] \
+     && grep -qiE 'FirebaseApp|FirebaseMessaging|google_app_id|google-services|SERVICE_NOT_AVAILABLE|registrationError' "$lc_path"; then
+    [ "$category" = "n/a" ] && category="LIKELY FIREBASE NOT CONFIGURED" \
+      || category="$category + LIKELY FIREBASE NOT CONFIGURED"
+  fi
 
   if [ "$status" = "PASS" ]; then ok "row $n PASS"
   else err "row $n FAIL — $reason ($category)"; fi
@@ -233,9 +253,22 @@ run_row() {
     echo "- status: **$status**"
     [ -n "$reason" ] && echo "- reason: $reason"
     [ "$category" != "n/a" ] && echo "- likely cause: **$category**"
-    echo "- React mounted marker: **$react_marker**"
-    echo "- SplashScreen.hide requested marker: **$hide_marker**"
-    echo "- splash fallback timeout marker: **$timeout_marker**"
+    echo ""
+    echo "**Startup checklist**"
+    echo "- React mounted: **$react_marker**"
+    echo "- SplashScreen.hide requested: **$hide_marker**"
+    echo "- Splash fallback timeout fired: **$timeout_marker**"
+    echo "- Error boundary rendered: **$boundary_marker**${boundary_detail:+ — \`$boundary_detail\`}"
+    echo ""
+    echo "**Push / FCM checklist**"
+    echo "- Push prompt mounted: see \`[RufayqStartup] Push prompt mounted\` in logcat slice"
+    echo "- Push registration attempted: **$push_attempt**"
+    echo "- Push listener setup success: **$push_listener**"
+    echo "- Firebase initialized: **$firebase_init**"
+    echo "- Push native register success: **$push_reg_ok**"
+    echo "- Token received: **$token_recv**"
+    echo "- Token saved to backend: **$token_save**"
+    echo ""
     echo "- pre-screenshot: \`row-$n-pre.png\`"
     echo "- post-screenshot: \`row-$n-post.png\`"
     echo "- logcat slice: \`row-$n-logcat.txt\`"
