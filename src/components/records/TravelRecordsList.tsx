@@ -118,15 +118,45 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
 
   const counts = items.reduce<Record<TravelCat, number>>(
     (acc, it) => { acc.all += 1; acc[classify(it)] += 1; return acc; },
-    { all: 0, passport: 0, visa: 0, booking: 0, insurance: 0, other: 0 },
+    { all: 0, passport: 0, visa: 0, booking: 0, lounge: 0, insurance: 0, other: 0 },
   );
 
-  const filtered = items.filter((it) => {
-    if (cat !== "all" && classify(it) !== cat) return false;
+  const [pinnedIds, setPinnedIds] = useState<string[]>(() => readPins());
+
+  const togglePin = (id: string) => {
+    setPinnedIds((prev) => {
+      let next: string[];
+      if (prev.includes(id)) {
+        next = prev.filter((x) => x !== id);
+        toast("Unpinned · تم إلغاء التثبيت", { duration: 1400 });
+      } else {
+        if (prev.length >= MAX_PINS) {
+          // Replace the oldest pin (first in array)
+          next = [...prev.slice(1), id];
+          toast(`Pinned (replaced oldest, max ${MAX_PINS}) · تم التثبيت`, { duration: 1600 });
+        } else {
+          next = [...prev, id];
+          toast.success("Pinned to top · تم التثبيت", { duration: 1400 });
+        }
+      }
+      writePins(next);
+      return next;
+    });
+  };
+
+  const matchesSearch = (it: TransportAttachment) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return it.label.toLowerCase().includes(q) || it.file_name.toLowerCase().includes(q);
-  });
+  };
+  const matchesCat = (it: TransportAttachment) => cat === "all" || classify(it) === cat;
+
+  // Pinned section: respects search, ignores category (so user always sees them)
+  const pinnedItems = pinnedIds
+    .map((id) => items.find((it) => it.id === id))
+    .filter((it): it is TransportAttachment => !!it && matchesSearch(it));
+
+  const filtered = items.filter((it) => matchesCat(it) && matchesSearch(it) && !pinnedIds.includes(it.id));
 
   const openPreview = async (item: TransportAttachment) => {
     const { data, error } = await supabase.storage
