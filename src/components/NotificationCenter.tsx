@@ -81,8 +81,19 @@ const NotificationCenter = ({
     categoryFilter === "all"
       ? allowedAlerts
       : allowedAlerts.filter((n) => CATEGORY_KINDS[categoryFilter].includes(n.kind));
-  const displayedAlerts = tab === "chats" ? [] : filteredAlerts;
-  const displayedThreads = tab === "alerts" ? [] : unreadThreads;
+  const historyAlerts = [...filteredAlerts]
+    .filter((n) => n.is_read)
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .slice(0, 50);
+  const historyThreads = prefs.chats === false
+    ? []
+    : [...threads]
+        .sort((a, b) => Date.parse(b.last_message_at) - Date.parse(a.last_message_at))
+        .slice(0, 30);
+  const displayedAlerts =
+    tab === "chats" ? [] : tab === "history" ? historyAlerts : filteredAlerts;
+  const displayedThreads =
+    tab === "alerts" ? [] : tab === "history" ? historyThreads : unreadThreads;
   const filteredUnreadCount = filteredAlerts.filter((n) => !n.is_read).length;
   const markFilteredRead = () => {
     if (categoryFilter === "all") {
@@ -97,6 +108,7 @@ const NotificationCenter = ({
     });
   };
   const showCategoryRow = tab !== "chats";
+  const isHistory = tab === "history";
   const activeCategory = CATEGORY_META.find((c) => c.id === categoryFilter)!;
 
   // Bilingual labels for the prefs panel; mirrors CATEGORY_META plus chats.
