@@ -6,6 +6,7 @@ import { getDeviceId } from "@/hooks/useDeviceId";
 import { useChatInbox, type ChatThreadRow } from "@/hooks/useChatInbox";
 import { useResolvedContact, useResolvedContactState } from "@/hooks/useResolvedContact";
 import { computeInitialsFrom } from "@/lib/contactResolver";
+import { useFocusReturn } from "@/hooks/useFocusReturn";
 
 type Tab = "all" | "ai" | "care" | "people";
 
