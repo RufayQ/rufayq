@@ -183,6 +183,13 @@ export default function ChatHeadBubble({ suppressThreadId, onOpenThread }: Props
       >
         {active.kind === "provider" ? (
           <Stethoscope size={22} />
+        ) : avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full rounded-full object-cover"
+            draggable={false}
+          />
         ) : (
           <span>{initials || <MessageCircle size={22} />}</span>
         )}
