@@ -3384,6 +3384,238 @@ export type Database = {
           },
         ]
       }
+      qc_bug_validations: {
+        Row: {
+          bug_id: string
+          build_version: string
+          created_at: string
+          id: string
+          notes: string | null
+          outcome: string
+          validator_id: string | null
+        }
+        Insert: {
+          bug_id: string
+          build_version: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          outcome: string
+          validator_id?: string | null
+        }
+        Update: {
+          bug_id?: string
+          build_version?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          outcome?: string
+          validator_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qc_bug_validations_bug_id_fkey"
+            columns: ["bug_id"]
+            isOneToOne: false
+            referencedRelation: "qc_bugs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qc_bugs: {
+        Row: {
+          assignee_id: string | null
+          build_version: string | null
+          case_code: number | null
+          case_subtags: string[]
+          crash_event_id: string | null
+          created_at: string
+          description: string
+          id: string
+          platform: string | null
+          reporter_id: string | null
+          screenshot_paths: string[]
+          severity: Database["public"]["Enums"]["qc_bug_severity"]
+          source: string
+          status: Database["public"]["Enums"]["qc_bug_status"]
+          test_run_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          build_version?: string | null
+          case_code?: number | null
+          case_subtags?: string[]
+          crash_event_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          platform?: string | null
+          reporter_id?: string | null
+          screenshot_paths?: string[]
+          severity?: Database["public"]["Enums"]["qc_bug_severity"]
+          source?: string
+          status?: Database["public"]["Enums"]["qc_bug_status"]
+          test_run_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          build_version?: string | null
+          case_code?: number | null
+          case_subtags?: string[]
+          crash_event_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          platform?: string | null
+          reporter_id?: string | null
+          screenshot_paths?: string[]
+          severity?: Database["public"]["Enums"]["qc_bug_severity"]
+          source?: string
+          status?: Database["public"]["Enums"]["qc_bug_status"]
+          test_run_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qc_bugs_crash_event_id_fkey"
+            columns: ["crash_event_id"]
+            isOneToOne: false
+            referencedRelation: "qc_crash_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qc_bugs_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: false
+            referencedRelation: "qc_test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qc_crash_events: {
+        Row: {
+          app_version: string | null
+          build_version: string | null
+          case_code: number | null
+          case_subtags: string[]
+          created_at: string
+          device: string | null
+          error_message: string | null
+          error_name: string | null
+          id: string
+          linked_bug_id: string | null
+          log_excerpt: string | null
+          metadata: Json
+          platform: string | null
+          source: string
+          stack: string | null
+          status: Database["public"]["Enums"]["qc_crash_event_status"]
+          triaged_at: string | null
+          triaged_by: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          build_version?: string | null
+          case_code?: number | null
+          case_subtags?: string[]
+          created_at?: string
+          device?: string | null
+          error_message?: string | null
+          error_name?: string | null
+          id?: string
+          linked_bug_id?: string | null
+          log_excerpt?: string | null
+          metadata?: Json
+          platform?: string | null
+          source: string
+          stack?: string | null
+          status?: Database["public"]["Enums"]["qc_crash_event_status"]
+          triaged_at?: string | null
+          triaged_by?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          build_version?: string | null
+          case_code?: number | null
+          case_subtags?: string[]
+          created_at?: string
+          device?: string | null
+          error_message?: string | null
+          error_name?: string | null
+          id?: string
+          linked_bug_id?: string | null
+          log_excerpt?: string | null
+          metadata?: Json
+          platform?: string | null
+          source?: string
+          stack?: string | null
+          status?: Database["public"]["Enums"]["qc_crash_event_status"]
+          triaged_at?: string | null
+          triaged_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qc_crash_events_linked_bug_id_fkey"
+            columns: ["linked_bug_id"]
+            isOneToOne: false
+            referencedRelation: "qc_bugs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qc_test_runs: {
+        Row: {
+          build_version: string
+          case_code: number | null
+          case_subtags: string[]
+          created_at: string
+          device: string | null
+          id: string
+          logcat_excerpt: string | null
+          notes: string | null
+          platform: string
+          reporter_id: string | null
+          result: Database["public"]["Enums"]["qc_run_result"]
+          scenario: string
+          smoke_report: string | null
+        }
+        Insert: {
+          build_version: string
+          case_code?: number | null
+          case_subtags?: string[]
+          created_at?: string
+          device?: string | null
+          id?: string
+          logcat_excerpt?: string | null
+          notes?: string | null
+          platform: string
+          reporter_id?: string | null
+          result: Database["public"]["Enums"]["qc_run_result"]
+          scenario: string
+          smoke_report?: string | null
+        }
+        Update: {
+          build_version?: string
+          case_code?: number | null
+          case_subtags?: string[]
+          created_at?: string
+          device?: string | null
+          id?: string
+          logcat_excerpt?: string | null
+          notes?: string | null
+          platform?: string
+          reporter_id?: string | null
+          result?: Database["public"]["Enums"]["qc_run_result"]
+          scenario?: string
+          smoke_report?: string | null
+        }
+        Relationships: []
+      }
       rcm_admissions: {
         Row: {
           actual_los_days: number | null
@@ -7745,6 +7977,7 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      is_qc_staff: { Args: { _user_id: string }; Returns: boolean }
       journey_archive_journey: {
         Args: { _idempotency_key: string; _journey_id: string; _reason: string }
         Returns: Json
@@ -7939,6 +8172,16 @@ export type Database = {
         | "vendor"
         | "insurance"
         | "internal"
+      qc_bug_severity: "blocker" | "critical" | "major" | "minor" | "trivial"
+      qc_bug_status:
+        | "open"
+        | "in_progress"
+        | "fixed"
+        | "validated"
+        | "closed"
+        | "wont_fix"
+      qc_crash_event_status: "new" | "triaged" | "linked_to_bug" | "ignored"
+      qc_run_result: "pass" | "fail" | "blocked" | "skipped"
       rcm_activation_kind: "policy" | "class" | "network"
       rcm_activation_status:
         | "pending"
@@ -8371,6 +8614,17 @@ export const Constants = {
         "insurance",
         "internal",
       ],
+      qc_bug_severity: ["blocker", "critical", "major", "minor", "trivial"],
+      qc_bug_status: [
+        "open",
+        "in_progress",
+        "fixed",
+        "validated",
+        "closed",
+        "wont_fix",
+      ],
+      qc_crash_event_status: ["new", "triaged", "linked_to_bug", "ignored"],
+      qc_run_result: ["pass", "fail", "blocked", "skipped"],
       rcm_activation_kind: ["policy", "class", "network"],
       rcm_activation_status: [
         "pending",
