@@ -118,6 +118,10 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             key={t.id}
             role="button"
             tabIndex={0}
+            // Pin the row to LTR so the flex order (avatar → text → meta)
+            // never mirrors, even if a future ancestor goes RTL. Inner text
+            // blocks still use dir="auto" to read each name in its own script.
+            dir="ltr"
             onClick={() => onOpenThread(t)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -146,13 +150,16 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             ) : (
               <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
             )}
-            <div className="flex-1 min-w-0">
+            {/* Text column: container stays LTR so truncation/ellipsis sit on
+                the trailing edge of the row; the <p>s use dir="auto" to flow
+                each name/preview in its own script. */}
+            <div className="flex-1 min-w-0" dir="ltr">
               <p className="text-[14px] font-bold truncate" dir="auto" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{labelFor(t)}</p>
               <p className="text-[11px] truncate" style={{ color: unread > 0 ? "var(--navy)" : "var(--gray)", fontWeight: unread > 0 ? 600 : 400 }} dir="auto">
                 {t.last_message_preview ?? "New conversation"}
               </p>
             </div>
-            <div className="text-right shrink-0 flex flex-col items-end gap-1">
+            <div className="text-right shrink-0 flex flex-col items-end gap-1" dir="ltr">
               <p className="font-mono text-[9px]" style={{ color: unread > 0 ? "var(--teal-deep)" : "var(--gray)" }} aria-hidden>{timeLabel(t.last_message_at)}</p>
               {unread > 0 ? (
                 <span
@@ -394,13 +401,22 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
             deviceId: r.device_id,
           });
           return (
-          <button key={r.device_id} onClick={() => start(r.device_id)} className="w-full rounded-2xl px-3 py-2.5 flex items-center gap-3 btn-press" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+          <button
+            key={r.device_id}
+            onClick={() => start(r.device_id)}
+            // Row pinned LTR so avatar → name → chevron never mirrors.
+            // The name <p> uses dir="auto" so Arabic names still read RTL
+            // inside their truncation box.
+            dir="ltr"
+            className="w-full rounded-2xl px-3 py-2.5 flex items-center gap-3 btn-press"
+            style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+          >
             <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
               <span className="text-[13px] font-bold" style={{ fontFamily: "'DM Sans'" }}>{letter}</span>
             </div>
-            <div className="flex-1 text-left min-w-0">
+            <div className="flex-1 text-left min-w-0" dir="ltr">
               <p className="text-[13px] font-bold truncate" dir="auto" style={{ color: "var(--navy)" }}>{fallbackName}</p>
-              {r.rufayq_id && <p className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{r.rufayq_id}</p>}
+              {r.rufayq_id && <p className="font-mono text-[10px]" dir="ltr" style={{ color: "var(--gray)" }}>{r.rufayq_id}</p>}
             </div>
             <ChevronRight size={14} style={{ color: "var(--teal-deep)" }} />
           </button>
