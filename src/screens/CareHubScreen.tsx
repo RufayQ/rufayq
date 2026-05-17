@@ -247,7 +247,12 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
 };
 
 /* ─── CARE PLAN ─── */
-const CarePlanTab = () => {
+interface CarePlanTabProps {
+  onAddTask: () => void;
+  onAddAppointment: () => void;
+}
+
+const CarePlanTab = ({ onAddTask, onAddAppointment }: CarePlanTabProps) => {
   const { instructions } = useProviderFeed();
   const { items: appointments } = useAppointments();
   const now = Date.now();
@@ -259,18 +264,26 @@ const CarePlanTab = () => {
       return /follow.?up|post.?op|post.?travel/.test(hay);
     })
     .slice(0, 5);
-  const [tasks, setTasks] = useState([
-    { en: "Morning meds 8AM", ar: "أدوية الصباح ٨ ص", done: false },
-    { en: "Elevate leg 30 min", ar: "رفع الرجل ٣٠ دقيقة", done: true },
-    { en: "Cold compress", ar: "كمادة باردة", done: false },
-    { en: "Breathing exercises", ar: "تمارين التنفس", done: false },
-    { en: "Evening meds 8PM", ar: "أدوية المساء ٨ م", done: false },
-    { en: "Log pain level", ar: "تسجيل مستوى الألم", done: false },
-  ]);
+
+  const [tasks, setTasks] = useState<CarePlanTask[]>(() => carePlanStore.list());
+  useEffect(() => {
+    const sync = () => setTasks(carePlanStore.list());
+    return subscribeCarePlan(sync);
+  }, []);
+
   const [painLevel, setPainLevel] = useState(3);
 
-  const toggleTask = (i: number) => setTasks(prev => prev.map((t, idx) => idx === i ? { ...t, done: !t.done } : t));
-  const doneCount = tasks.filter(t => t.done).length;
+  const toggleTask = (id: string) => carePlanStore.toggle(id);
+  const deleteTask = (id: string) => carePlanStore.remove(id);
+  const seedStarter = () => { carePlanStore.seedStarter(); toast.success("Starter plan added · تم إضافة خطة البداية", { duration: 1800 }); };
+
+  const doneCount = tasks.filter((t) => t.done).length;
+
+  // Group tasks by category, with done at the bottom
+  const grouped: Record<CarePlanCategory, CarePlanTask[]> = {
+    medication: [], exercise: [], wound: [], vitals: [], hydration: [], rest: [], custom: [],
+  };
+  for (const t of tasks) grouped[t.category].push(t);
 
   const milestones = [
     { date: "Apr 15", emoji: "✈️", en: "Return Flight", ar: "رحلة العودة" },
@@ -283,6 +296,24 @@ const CarePlanTab = () => {
 
   return (
     <div className="px-4 py-4 space-y-4">
+      {/* Quick add row */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={onAddTask}
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[12px] font-semibold btn-press text-white"
+          style={{ background: "var(--teal-deep)" }}
+        >
+          <Plus size={14} /> Add task · مهمة
+        </button>
+        <button
+          onClick={onAddAppointment}
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[12px] font-semibold btn-press"
+          style={{ background: "var(--white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+        >
+          <CalendarPlus size={14} style={{ color: "var(--teal-deep)" }} /> Appointment · موعد
+        </button>
+      </div>
+
       {/* Provider Instructions Feed */}
       {instructions.length > 0 && (
         <div>
@@ -334,30 +365,91 @@ const CarePlanTab = () => {
         </div>
       )}
 
-      {/* Daily Tasks */}
+      {/* Tasks */}
       <div className="rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between mb-3">
-          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>TODAY'S TASKS</p>
-          <span className="text-[10px] font-bold" style={{ color: "var(--teal-deep)" }}>{doneCount}/{tasks.length}</span>
+          <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>YOUR CARE TASKS · <span className="font-arabic">مهامك</span></p>
+          {tasks.length > 0 && (
+            <span className="text-[10px] font-bold" style={{ color: "var(--teal-deep)" }}>{doneCount}/{tasks.length}</span>
+          )}
         </div>
-        <div className="w-full h-1.5 rounded-full mb-3" style={{ background: "var(--gray-light)" }}>
-          <div className="h-full rounded-full transition-all" style={{ width: `${(doneCount / tasks.length) * 100}%`, background: "var(--success)" }} />
-        </div>
-        <div className="space-y-2">
-          {tasks.map((t, i) => (
-            <button key={i} onClick={() => toggleTask(i)} className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl btn-press text-left transition-all"
-              style={{ background: t.done ? "rgba(61,170,110,0.06)" : "var(--off-white)" }}>
-              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0"
-                style={{ background: t.done ? "var(--success)" : "var(--gray-light)", color: t.done ? "#fff" : "var(--gray)" }}>
-                {t.done ? "✓" : ""}
-              </div>
-              <div className="flex-1">
-                <p className="text-[12px]" style={{ color: t.done ? "var(--gray)" : "var(--navy)", textDecoration: t.done ? "line-through" : "none" }}>{t.en}</p>
-                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{t.ar}</p>
-              </div>
-            </button>
-          ))}
-        </div>
+
+        {tasks.length === 0 ? (
+          <div className="text-center py-6">
+            <div className="w-12 h-12 mx-auto rounded-2xl flex items-center justify-center text-2xl mb-3" style={{ background: "var(--teal-light)" }}>📋</div>
+            <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--navy)" }}>No tasks yet</p>
+            <p className="font-arabic text-[11px] mb-3" dir="rtl" style={{ color: "var(--gray)" }}>لا توجد مهام بعد</p>
+            <p className="text-[11px] leading-relaxed mb-4" style={{ color: "var(--gray)" }}>
+              Build your daily recovery routine — medications, exercises, wound care and more.
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={onAddTask}
+                className="w-full rounded-xl py-2.5 text-[12px] font-semibold btn-press text-white flex items-center justify-center gap-1.5"
+                style={{ background: "var(--teal-deep)" }}
+              >
+                <Plus size={14} /> Add first task · أضف مهمة
+              </button>
+              <button
+                onClick={seedStarter}
+                className="w-full rounded-xl py-2 text-[11px] font-medium btn-press"
+                style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+              >
+                ✨ Use starter template · استخدم القالب
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="w-full h-1.5 rounded-full mb-3" style={{ background: "var(--gray-light)" }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${(doneCount / tasks.length) * 100}%`, background: "var(--success)" }} />
+            </div>
+            <div className="space-y-3">
+              {CARE_CATEGORIES.map((cat) => {
+                const items = grouped[cat.key].sort((a, b) => Number(a.done) - Number(b.done));
+                if (items.length === 0) return null;
+                return (
+                  <div key={cat.key}>
+                    <p className="text-[10px] font-semibold mb-1.5 flex items-center gap-1" style={{ color: "var(--gray)" }}>
+                      <span>{cat.emoji}</span> {cat.en} <span className="font-arabic opacity-70" dir="rtl">· {cat.ar}</span>
+                    </p>
+                    <div className="space-y-1.5">
+                      {items.map((t) => (
+                        <div key={t.id} className="group flex items-center gap-2 py-2 px-3 rounded-xl transition-all"
+                          style={{ background: t.done ? "rgba(61,170,110,0.06)" : "var(--off-white)" }}>
+                          <button
+                            onClick={() => toggleTask(t.id)}
+                            aria-label={t.done ? "Mark not done" : "Mark done"}
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 btn-press"
+                            style={{ background: t.done ? "var(--success)" : "var(--gray-light)", color: t.done ? "#fff" : "var(--gray)" }}
+                          >
+                            {t.done ? "✓" : ""}
+                          </button>
+                          <button
+                            onClick={() => toggleTask(t.id)}
+                            className="flex-1 text-left btn-press"
+                          >
+                            <p className="text-[12px]" style={{ color: t.done ? "var(--gray)" : "var(--navy)", textDecoration: t.done ? "line-through" : "none" }}>
+                              {t.en}{t.time ? <span className="font-mono ml-1" style={{ color: "var(--gold)" }}>· {t.time}</span> : null}
+                            </p>
+                            {t.ar && <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{t.ar}</p>}
+                          </button>
+                          <button
+                            onClick={() => deleteTask(t.id)}
+                            aria-label="Delete task"
+                            className="opacity-40 hover:opacity-100 btn-press p-1"
+                          >
+                            <Trash2 size={12} style={{ color: "var(--gray)" }} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Milestones */}
