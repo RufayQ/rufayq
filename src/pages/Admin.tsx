@@ -94,9 +94,15 @@ const Admin = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [role]);
 
+  useEffect(() => {
+    if (role === "qc_tester" && !isQcLeaf(leaf)) setLeaf("qc_runs");
+  }, [role, leaf]);
+
   const visibleModules = useMemo(
-    () => NAV_MODULES.map((g) => ({ ...g, leaves: g.leaves.filter((l) => role === "admin" || !l.adminOnly) }))
-                     .filter((g) => g.leaves.length > 0),
+    () => NAV_MODULES
+      .filter((g) => role !== "qc_tester" || g.key === "qc")
+      .map((g) => ({ ...g, leaves: g.leaves.filter((l) => role === "admin" || !l.adminOnly) }))
+      .filter((g) => g.leaves.length > 0),
     [role],
   );
 
