@@ -83,7 +83,7 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
             <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>مركز التعافي الخاص بك</p>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell color="#fff" />
+            <NotificationCenter color="#fff" />
             <HeaderMenu items={careMenuItems} />
           </div>
         </div>
