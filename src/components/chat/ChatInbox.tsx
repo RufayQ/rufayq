@@ -182,8 +182,15 @@ function timeLabel(iso: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Debug flag — enable in DevTools:
+//   localStorage.setItem("rufayq.debug.contactCache","1"); location.reload();
+function isContactCacheDebug() {
+  try { return localStorage.getItem("rufayq.debug.contactCache") === "1"; }
+  catch { return false; }
+}
+
 function ThreadAvatar({ threadId, kind, persona }: { threadId: string; kind: ChatThreadRow["kind"]; persona: string | null }) {
-  const { contact, loading } = useResolvedContactState(kind === "direct" ? threadId : null, "direct");
+  const { contact, loading, source, fetchedAt } = useResolvedContactState(kind === "direct" ? threadId : null, "direct");
   const bg = kind === "ai" ? "var(--navy)" : kind === "provider" ? "var(--teal-deep)" : "var(--teal-light)";
   const fg = kind === "direct" ? "var(--teal-deep)" : "#fff";
   const emoji = kind === "ai" ? (persona === "shopping" ? "🛍️" : persona === "tour" ? "🗺️" : "🩺") : null;
@@ -200,10 +207,34 @@ function ThreadAvatar({ threadId, kind, persona }: { threadId: string; kind: Cha
     }
     return <User size={18} />;
   };
+  const debug = kind === "direct" && isContactCacheDebug() && source !== "none";
   return (
-    <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 overflow-hidden" style={{ background: bg, color: fg, border: kind === "ai" ? "2px solid var(--gold)" : "none" }}>
-      {kind === "ai" ? <span className="text-lg">{emoji}</span> : kind === "provider" ? <Stethoscope size={18} /> : renderDirect()}
+    <div className="relative w-11 h-11 shrink-0">
+      <div className="w-11 h-11 rounded-full flex items-center justify-center overflow-hidden" style={{ background: bg, color: fg, border: kind === "ai" ? "2px solid var(--gold)" : "none" }}>
+        {kind === "ai" ? <span className="text-lg">{emoji}</span> : kind === "provider" ? <Stethoscope size={18} /> : renderDirect()}
+      </div>
+      {debug && <CacheBadge source={source} fetchedAt={fetchedAt} />}
     </div>
+  );
+}
+
+function CacheBadge({ source, fetchedAt }: { source: "cache" | "miss" | "refresh"; fetchedAt: number | null }) {
+  const map = {
+    cache:   { bg: "#16a34a", label: "C", title: "Cache hit" },
+    miss:    { bg: "#6b7280", label: "M", title: "First fetch" },
+    refresh: { bg: "#d97706", label: "R", title: "Refreshed after TTL/invalidate" },
+  } as const;
+  const m = map[source];
+  const ageS = fetchedAt ? Math.round((Date.now() - fetchedAt) / 1000) : null;
+  return (
+    <span
+      className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[9px] font-bold pointer-events-none"
+      style={{ background: m.bg, color: "#fff", border: "1.5px solid var(--white)", fontFamily: "'DM Sans'" }}
+      title={`${m.title}${ageS != null ? ` · ${ageS}s ago` : ""}`}
+      aria-hidden
+    >
+      {m.label}
+    </span>
   );
 }
 
