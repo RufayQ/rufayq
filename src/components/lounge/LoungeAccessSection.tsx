@@ -16,6 +16,46 @@ interface Props {
   segments: TransportSegment[];
 }
 
+/* ─── Expiry helpers (MM/YY ⇄ ISO YYYY-MM-DD using last day of month) ─── */
+const formatMMYYInput = (raw: string): string => {
+  const digits = raw.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+};
+const mmyyToIso = (mmyy: string): string | null => {
+  const m = /^(\d{2})\/(\d{2})$/.exec(mmyy.trim());
+  if (!m) return null;
+  const month = parseInt(m[1], 10);
+  const year = 2000 + parseInt(m[2], 10);
+  if (month < 1 || month > 12) return null;
+  // Last day of the month (cards expire end-of-month).
+  const lastDay = new Date(year, month, 0).getDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+};
+const isoToMMYY = (iso?: string): string => {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(iso);
+  if (!m) return "";
+  return `${m[2]}/${m[1].slice(2)}`;
+};
+const formatExpMMYY = (iso?: string): string => isoToMMYY(iso);
+
+/* ─── Brand theming for the credit-card look ─── */
+const brandTheme = (program: string): { bg: string; tagline: string } => {
+  const p = program.toLowerCase();
+  if (p.includes("dragon"))
+    return { bg: "linear-gradient(135deg, #0f2e3d 0%, #0a4a5e 60%, #c5965a 140%)", tagline: "Lounge Access" };
+  if (p.includes("priority"))
+    return { bg: "linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 100%)", tagline: "Priority Pass" };
+  if (p.includes("visa"))
+    return { bg: "linear-gradient(135deg, #1a1f71 0%, #2e3a9e 100%)", tagline: "Airport Companion" };
+  if (p.includes("mastercard"))
+    return { bg: "linear-gradient(135deg, #1a1a1a 0%, #4a1f0a 100%)", tagline: "Travel Pass" };
+  if (p.includes("loungekey"))
+    return { bg: "linear-gradient(135deg, #2a2a2a 0%, #1a4a3e 100%)", tagline: "LoungeKey" };
+  return { bg: "linear-gradient(135deg, var(--header-dark-from), var(--header-teal-from))", tagline: "Lounge Card" };
+};
+
 /**
  * Lounge Access section rendered inside the Tickets tab. Stores Dragonpass /
  * Priority Pass / Visa Airport Companion / Mastercard Travel Pass / generic
