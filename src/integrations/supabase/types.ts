@@ -505,6 +505,7 @@ export type Database = {
           display_name: string | null
           id: string
           last_read_at: string | null
+          muted: boolean
           organization_id: string | null
           thread_id: string
           user_id: string | null
@@ -516,6 +517,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           last_read_at?: string | null
+          muted?: boolean
           organization_id?: string | null
           thread_id: string
           user_id?: string | null
@@ -527,6 +529,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           last_read_at?: string | null
+          muted?: boolean
           organization_id?: string | null
           thread_id?: string
           user_id?: string | null
@@ -7634,6 +7637,19 @@ export type Database = {
       chat_caller_participates: {
         Args: { _thread_id: string }
         Returns: boolean
+      }
+      chat_mark_thread_unread: {
+        Args: { _device_id: string; _thread_id: string; _user_id?: string }
+        Returns: undefined
+      }
+      chat_set_thread_muted: {
+        Args: {
+          _device_id: string
+          _muted: boolean
+          _thread_id: string
+          _user_id?: string
+        }
+        Returns: undefined
       }
       chat_unread_counts_for_device:
         | {

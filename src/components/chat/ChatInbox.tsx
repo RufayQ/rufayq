@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Plus, Sparkles, Stethoscope, User, X, ChevronRight, Loader2, Info } from "lucide-react";
+import { Search, Plus, Sparkles, Stethoscope, User, X, ChevronRight, Loader2, Info, MoreVertical, BellOff, Bell, MailOpen } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
@@ -19,7 +19,8 @@ interface Props {
 
 /** Conversation inbox: AI, care providers, and people. */
 export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Props) {
-  const { threads, participants, unreadByThread, loading, reload } = useChatInbox();
+  const { threads, participants, unreadByThread, mutedByThread, loading, reload, setThreadMuted, markThreadUnread } = useChatInbox();
+  const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const [newSheet, setNewSheet] = useState<null | "menu" | "people" | "care">(null);
@@ -256,16 +257,65 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             </div>
             <div className="text-right shrink-0 flex flex-col items-end gap-1" dir="ltr">
               <p className="font-mono text-[9px]" style={{ color: unread > 0 ? "var(--teal-deep)" : "var(--gray)" }} aria-hidden>{timeLabel(t.last_message_at)}</p>
-              {unread > 0 ? (
-                <span
-                  className="min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center"
-                  style={{ background: "var(--teal-deep)", color: "#fff" }}
-                  aria-label={`${unread} unread`}
-                >
-                  {unread > 99 ? "99+" : unread}
-                </span>
-              ) : (
-                <ChevronRight size={14} style={{ color: "var(--teal-deep)" }} aria-hidden />
+              <div className="flex items-center gap-1">
+                {mutedByThread[t.id] && (
+                  <BellOff size={12} aria-label="Muted · مكتومة" style={{ color: "var(--gray)" }} />
+                )}
+                {unread > 0 ? (
+                  <span
+                    className="min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center"
+                    style={{
+                      background: mutedByThread[t.id] ? "var(--gray)" : "var(--teal-deep)",
+                      color: "#fff",
+                    }}
+                    aria-label={`${unread} unread`}
+                  >
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                ) : (
+                  <ChevronRight size={14} style={{ color: "var(--teal-deep)" }} aria-hidden />
+                )}
+              </div>
+            </div>
+            {/* Row menu trigger (mute / mark unread). Stops propagation so
+                tapping the menu does not also open the thread. */}
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setOpenMenuFor(openMenuFor === t.id ? null : t.id); }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
+                className="w-8 h-8 rounded-full flex items-center justify-center btn-press outline-none focus-visible:ring-2"
+                style={{ color: "var(--gray)", ["--tw-ring-color" as string]: "var(--teal-deep)" }}
+                aria-label={`More options for ${labelFor(t)} · المزيد`}
+                aria-haspopup="menu"
+                aria-expanded={openMenuFor === t.id}
+              >
+                <MoreVertical size={16} />
+              </button>
+              {openMenuFor === t.id && (
+                <RowMenu
+                  muted={!!mutedByThread[t.id]}
+                  onClose={() => setOpenMenuFor(null)}
+                  onToggleMute={async () => {
+                    const next = !mutedByThread[t.id];
+                    try {
+                      await setThreadMuted(t.id, next);
+                      toast.success(next ? "Muted · تم الكتم" : "Unmuted · إلغاء الكتم");
+                    } catch {
+                      toast.error("Couldn't update mute · تعذّر التحديث");
+                    }
+                    setOpenMenuFor(null);
+                  }}
+                  onMarkUnread={async () => {
+                    try {
+                      await markThreadUnread(t.id);
+                      toast.success("Marked as unread · تم وضع علامة كغير مقروء");
+                    } catch {
+                      toast.error("Couldn't mark unread · تعذّر التحديث");
+                    }
+                    setOpenMenuFor(null);
+                  }}
+                />
               )}
             </div>
           </div>
@@ -348,6 +398,66 @@ function CacheBadge({ source, fetchedAt }: { source: "cache" | "miss" | "refresh
     >
       {m.label}
     </span>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Per-row action menu (mute / mark unread). A lightweight popover that closes
+// on outside click or Escape. Stops event propagation so taps inside don't
+// open the parent thread row.
+// ----------------------------------------------------------------------------
+function RowMenu({
+  muted, onClose, onToggleMute, onMarkUnread,
+}: {
+  muted: boolean;
+  onClose: () => void;
+  onToggleMute: () => void | Promise<void>;
+  onMarkUnread: () => void | Promise<void>;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+  return (
+    <div
+      ref={ref}
+      role="menu"
+      onClick={(e) => e.stopPropagation()}
+      className="absolute right-0 top-9 z-20 w-[200px] rounded-xl py-1 shadow-lg"
+      style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+    >
+      <button
+        type="button"
+        role="menuitem"
+        onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
+        className="w-full px-3 py-2 flex items-center gap-2 text-left text-[13px] btn-press"
+        style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}
+      >
+        {muted ? <Bell size={14} /> : <BellOff size={14} />}
+        <span className="flex-1">
+          {muted ? "Unmute · إلغاء الكتم" : "Mute · كتم"}
+        </span>
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={(e) => { e.stopPropagation(); onMarkUnread(); }}
+        className="w-full px-3 py-2 flex items-center gap-2 text-left text-[13px] btn-press"
+        style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}
+      >
+        <MailOpen size={14} />
+        <span className="flex-1">Mark unread · وضع كغير مقروء</span>
+      </button>
+    </div>
   );
 }
 
