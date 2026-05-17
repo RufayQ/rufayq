@@ -31,6 +31,23 @@ export async function registerPush(opts: {
   const perm = await PushNotifications.requestPermissions();
   if (perm.receive !== "granted") return { ok: false, reason: "denied" };
 
+  // One-shot backfill: claim any pre-existing rows for this user+platform that
+  // were inserted before `device_id` existed. Safe because IS NULL guard means
+  // we never overwrite another device's claim.
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      await supabase
+        .from("device_push_tokens")
+        .update({ device_id: getDeviceId() })
+        .eq("user_id", session.user.id)
+        .eq("platform", platform)
+        .is("device_id", null);
+    }
+  } catch (e) {
+    console.warn("[push] device_id backfill failed", e);
+  }
+
   await PushNotifications.register();
   registered = true;
 
