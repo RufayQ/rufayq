@@ -114,9 +114,10 @@ const Highlight = ({ text, query }: { text: string; query: string }) => {
 interface Props {
   userId: string | null;
   searchQuery: string;
+  onCountsChange?: (counts: { total: number; translated: number; newCount: number }) => void;
 }
 
-const TravelRecordsList = ({ userId, searchQuery }: Props) => {
+const TravelRecordsList = ({ userId, searchQuery, onCountsChange }: Props) => {
   const deviceId = getDeviceId();
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loungeCards, setLoungeCards] = useState<LoungeMembership[]>(() => listLoungeMemberships());
@@ -179,6 +180,10 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     (acc, it) => { acc.all += 1; acc[classifyRow(it)] += 1; return acc; },
     { all: 0, passport: 0, visa: 0, booking: 0, lounge: 0, insurance: 0, other: 0 },
   );
+
+  useEffect(() => {
+    onCountsChange?.({ total: counts.all, translated: 0, newCount: 0 });
+  }, [counts.all, onCountsChange]);
 
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => readPins());
 
