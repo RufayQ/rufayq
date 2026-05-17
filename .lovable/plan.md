@@ -1,154 +1,57 @@
-The consolidated FCM hardening plan is good, but please verify it is actually implemented in the repo and live domain.
+# Add APK preflight check to `scripts/build-android-apk.sh`
 
-  
-Please make only the scoped changes listed below.
+The script already has a basic existence check after Gradle runs:
 
-1. In `src/lib/native/push.ts`:
+```bash
+[ -f "$OUT" ] || { echo "✗ APK not produced at $OUT"; exit 1; }
+```
 
-   - Add PushNotifications listeners before calling `PushNotifications.register()`.
+This is too terse — when CI or a contributor hits it, they get one line with no diagnostics about *why* Gradle silently skipped producing the APK (most common causes: wrong variant name, Gradle task succeeded but assembled a different module, output dir was cleaned, or `assembleDebug` was a no-op due to cache).
 
-   - Wrap every native/plugin call in try/catch:
+## Change
 
-     - requestPermissions
+Replace the single-line check (around line 73 of `scripts/build-android-apk.sh`) with a dedicated **preflight block** that:
 
-     - createChannel
+1. Verifies the expected APK exists at `android/app/build/outputs/apk/$LOWER_VARIANT/app-$LOWER_VARIANT.apk`.
+2. On failure, prints a clear, actionable error including:
+  - The exact path that was expected
+  - The contents of `android/app/build/outputs/apk/` (so the user can see what Gradle *did* produce, e.g. a release APK or a different flavor)
+  - The last Gradle task line for context
+  - The fix hint: re-run with `VARIANT=Debug` or check `android/app/build.gradle` for the matching build type
+3. On success, additionally verifies the APK is non-empty (`[ -s ]`) and prints size + sha256 for traceability.
+4. Exits with a non-zero status (`exit 2`) distinct from generic shell errors so CI can branch on it.
 
-     - addListener
+## Files touched
 
-     - register
+- `scripts/build-android-apk.sh` — replace the existence check with the preflight block described above. No other behavior changes.
 
-     - token upsert
-
-   - Return a structured `PushRegistrationResult` with:
-
-     web, not_native, missing_plugin, permission_denied, firebase_not_configured, registration_failed, token_upsert_failed, listener_setup_failed, already_registered, unknown.
-
-   - Add `[RufayqStartup]` logs for:
-
-     Push registration attempt
-
-     Push permission result
-
-     Push listener setup success/fail
-
-     Push native register success/fail
-
-     Push token received
-
-     Push token upsert success/fail
-
-     Push registration failed safely: <reason>
-
-   - Classify Firebase-native errors such as:
-
-     Default FirebaseApp is not initialized
-
-     Missing google_app_id
-
-     SERVICE_NOT_AVAILABLE
-
-     google-services
-
-     FirebaseMessaging
-
-     as `firebase_not_configured` where applicable.
-
-2. In `src/components/PushPermissionPrompt.tsx`:
-
-   - Keep native prompt user-action only.
-
-   - Wrap `enable()` in try/catch.
-
-   - Unexpected failures must show a toast and log `[RufayqStartup] Push registration failed safely: unknown`, not throw.
-
-3. In `src/pages/Index.tsx`:
-
-   - Remove automatic `registerPush(...)` after patient login.
-
-   - Replace it with:
-
-     `[RufayqStartup] Auto-push disabled, awaiting user opt-in`
-
-   - Push registration should only happen after the user taps Enable.
-
-4. In `scripts/qa/android-splash-smoke.sh`:
-
-   - Extend log filters for:
-
-     FirebaseApp
-
-     FirebaseMessaging
-
-     google_app_id
-
-     google-services
-
-     SERVICE_NOT_AVAILABLE
-
-     registrationError
-
-     PushNotifications
-
-   - Add report checklist:
-
-     React mounted: yes/no
-
-     Push prompt mounted: yes/no
-
-     Push registration attempted: yes/no
-
-     Firebase initialized: yes/no
-
-     Token received: yes/no
-
-     Token saved to backend: yes/no
-
-     Error boundary rendered: yes/no + error name/message
-
-   - Add classification:
-
-     LIKELY FIREBASE NOT CONFIGURED
-
-5. Add `docs/qa/fcm-verification.md`:
-
-   - Include exact commands to verify:
-
-     android/app/google-services.json exists
-
-     package_name is [com.rufayq.app](http://com.rufayq.app)
-
-     Google Services Gradle plugin is applied
-
-     POST_NOTIFICATIONS permission exists
-
-     fresh APK build/install
-
-     adb logcat filter
-
-     expected good/bad FCM signs
-
-   - Cross-link it from `docs/mobile-setup.md` and `docs/qa/android-splash-handoff-smoke.md`.
+Please add a diagnostic APK artifact preflight to `scripts/build-android-apk.sh`.
 
 Important:
 
-- Do not claim browser preview proves FCM. The push prompt does not normally show on web because `isNative` is false.
+- Only touch `scripts/build-android-apk.sh`.
 
-- For browser preview, it is enough that direct `registerPush()` returns a safe web/not_native result if invoked by a test harness.
+- Do not change Gradle files.
 
-- Real FCM verification requires Android native project + google-services.json + adb logcat.
+- Do not change Capacitor config.
 
-Final response must include:
+- Do not change CI workflows.
 
-- changed files,
+- Do not change the release AAB script/path.
 
-- exact markers added,
+- This is only for APK build diagnostics.
 
-- confirmation that auto-registration was removed,
+Context:
 
-- smoke-script classification output,
+The script currently has a terse post-Gradle check like:
 
-- local Android verification commands,
+```bash
 
-- and whether adb showed token receipt/token backend save.
+[ -f "$OUT" ] || { echo "✗ APK not produced at $OUT"; exit 1; }
 
 &nbsp;
+
+## Out of scope
+
+- No changes to Gradle, Capacitor config, CI workflows, or the smoke-test script.
+- No changes to the `release` variant path (CI uses AAB, not APK).
