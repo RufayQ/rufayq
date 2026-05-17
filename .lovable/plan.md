@@ -1,313 +1,293 @@
-Please implement the Android splash-handoff / blackout fix based on the investigation below. Do not add unrelated features or redesign existing UI.
+## What I found
 
-Context:
+- The screenshot is no longer a pure native blackout: React is starting and the app error boundary is rendering `We hit a startup error`.
+- `https://rufayq.com` is published with the startup markers: browser logs show `[RufayqStartup] React mounted` from the live custom domain.
+- The patient shell chunk on the live domain contains the FCM/native push code (`PushNotifications`) and startup patient bootstrap code.
+- FCM is a plausible suspect, not because of memory first, but because Capacitor push can crash/throw on Android if the native Firebase setup is incomplete or stale, especially around `PushNotifications.register()`.
+- The current smoke script can classify black/splash screens, but it does not yet capture the new visible error-boundary case or include enough React error-boundary details.
 
-The issue is likely not primarily “excessive memory.” It is more likely a native WebView startup / splash-handoff problem because:
+## Plan
 
-- `capacitor.config.ts` points to `https://rufayq.com`, but `scripts/build-android.sh` removes the entire `server` block before `npx cap sync android`.
+1. **Add startup phase markers around the real patient app mount path**
+  - Add concise console markers in `Index.tsx` around: patient shell render, patient bootstrap start/end/fail, global chat setup, deep-link listener setup, push prompt mount, and push registration attempt.
+  - Keep markers under the existing `[RufayqStartup]` prefix so adb/logcat can locate the exact point after which failure begins.
+2. **Harden FCM/push so it cannot take down startup**
+  - Change `src/lib/native/push.ts` so plugin import/permission/register/listener setup is fully guarded and logged.
+  - Do not call native push registration automatically during startup; only after a user action or confirmed post-login path.
+  - Catch and return structured reasons for failures such as missing plugin, Firebase not initialized, permission denied, or registration failure.
+  - Ensure a push failure logs a warning and leaves the app usable.
+3. **Avoid unauthenticated startup requests that are currently failing noisily**
+  - Gate global chat unread tracking so it does not query protected chat tables for guest/unauthenticated users.
+  - Gate audit writes for unauthenticated guest flows if the table rejects them, so repeated 401s don’t pollute startup diagnostics.
+  - This does not add a new feature; it reduces startup failure surface.
+4. **Improve the visible startup error screen diagnostics**
+  - Keep the branded fallback, but include a short non-technical recovery message and log the actual error name/message to console/logcat.
+  - Add a stable marker like `[RufayqStartup] ErrorBoundary rendered` so the smoke report can classify this as “React started, then render/startup error”.
+5. **Update the Android smoke script classification**
+  - Detect the error-boundary marker and classify it as `REACT STARTED THEN STARTUP ERROR BOUNDARY`.
+  - Include nearby logcat excerpt lines around `RufayqStartup`, `PushNotifications`, `FirebaseApp`, `FCM`, `AndroidRuntime`, `OutOfMemoryError`, `ChunkLoadError`, and `net::ERR_*`.
+  - Preserve existing cases for JS boot failure, remote URL/network failure, chunk load failure, renderer crash, and memory pressure.
+6. **Document the correct FCM/native requirement without changing app features**
+  - Update the Android smoke docs to state that if FCM is enabled, the Android project must include the correct Firebase config (`google-services.json`) before testing push registration.
+  - Explicitly note that missing/invalid Firebase native config can present as a startup crash after React begins, not just as a push error.
 
-- APKs/AABs built with that script therefore use bundled `dist/` assets, not `https://rufayq.com`.
+### **1. Add phase markers, but make them ordered and searchable**
 
-- The React app has dark/blank fallbacks such as route fallback/auth fallback that can look like a black screen if auth, session, chunks, or network stalls.
+Ask them to add markers like:
 
-- There is no explicit `SplashScreen.hide()` call from the React boot path, so the app depends on Capacitor defaults instead of a controlled “React is alive” signal.
+`[RufayqStartup] main.tsx render start`  
+`[RufayqStartup] React mounted`  
+`[RufayqStartup] Index render start`  
+`[RufayqStartup] Patient bootstrap start`  
+`[RufayqStartup] Patient bootstrap success`  
+`[RufayqStartup] Patient bootstrap failed: <name> <message>`  
+`[RufayqStartup] Deep link listener setup start`  
+`[RufayqStartup] Deep link listener setup success`  
+`[RufayqStartup] Global chat setup start`  
+`[RufayqStartup] Global chat skipped: unauthenticated`  
+`[RufayqStartup] Push prompt mounted`  
+`[RufayqStartup] Push registration attempt`  
+`[RufayqStartup] Push registration failed safely: <reason>`  
+`[RufayqStartup] ErrorBoundary rendered: <name> <message>`  
 
-- Memory remains possible only if logs show `OutOfMemoryError`, `Renderer process gone`, `Low memory killer`, WebView renderer crashes, or similar indicators.
 
-Goal:
+The ordering matters. You need to know the **last successful marker** before the error.
 
-Make Android startup deterministic and debuggable. The app should never silently appear as a black/navy screen after the native splash. It should either:
+### **2. Do not auto-register push during startup**
 
-1. hand off into the app,
+This is especially important.
 
-2. show a branded RufayQ loading/auth/offline/error state, or
+The current code registers push after successful patient login. 【F:src/pages/Index.tsx†L242-L251】
 
-3. produce a smoke-test report that clearly categorizes the likely failure.
+That is not exactly “cold app startup,” but it can still be part of the first-login startup path. I would ask Lovable to temporarily disable automatic post-login registration and leave push registration only behind a user tap until the app is stable.
 
-Please make the following changes.
+### **3. Harden registerPush**
+
+The push module should return structured results and never allow ordinary registration failures to escape.
+
+Suggested result shape:
+
+`type PushRegistrationResult =`  
+  `| { ok: true }`  
+  `| {`  
+      `ok: false;`  
+      `reason:`  
+        `| "web"`  
+        `| "not_native"`  
+        `| "missing_plugin"`  
+        `| "permission_denied"`  
+        `| "firebase_not_configured"`  
+        `| "registration_failed"`  
+        `| "listener_setup_failed"`  
+        `| "unknown";`  
+      `message?: string;`  
+    `};`  
+
+
+And it should log with startup markers:
+
+`[RufayqStartup] Push registration attempt`  
+`[RufayqStartup] Push permission result: granted/denied`  
+`[RufayqStartup] Push register failed safely: firebase_not_configured ...`  
+
+
+### **4. Capture the error boundary’s actual error**
+
+The boundary should log:
+
+`console.error("[RufayqStartup] ErrorBoundary rendered", {`  
+  `name: error.name,`  
+  `message: error.message,`  
+  `stack: error.stack,`  
+`});`  
+
+
+The UI can stay non-technical, but adb/logcat needs the actual error.
+
+### **5. Update smoke classification for visible error-boundary state**
+
+This is a good addition. The smoke script should now distinguish:
+
+`PASS: app rendered normal screen`  
+`JS DID NOT REACH REACT BOOT`  
+`REACT STARTED THEN STARTUP ERROR BOUNDARY`  
+`REACT RENDERED BLANK / STARTUP UI FAILURE`  
+`LIKELY REMOTE URL / NETWORK FAILURE`  
+`LIKELY JS / CHUNK LOAD FAILURE`  
+`LIKELY PUSH / FIREBASE STARTUP FAILURE`  
+`LIKELY NATIVE CRASH`  
+`LIKELY WEBVIEW RENDERER CRASH`  
+`POSSIBLE MEMORY PRESSURE`  
+`UNKNOWN`  
+
 
 ---
 
-## 1. Add explicit Capacitor splash handoff
+## **What I would send back to Lovable**
 
-Add a small native-safe startup helper that hides the Capacitor native splash screen after the first React paint.
+Paste this:
 
-Requirements:
-
-- Use `@capacitor/splash-screen`.
-
-- Only run inside native Capacitor, not normal web preview/browser.
-
-- Do not throw if Capacitor plugins are unavailable.
-
-- Schedule hide after React has mounted/painted, for example using `requestAnimationFrame`.
-
-- Add a short fallback timeout so the native splash cannot stay forever if a route chunk, auth check, or network call stalls.
-
-- Keep the helper small and reusable, for example:
-
-  - `src/lib/native/splashHandoff.ts`
-
-  - or a similarly appropriate location.
-
-Suggested behavior:
-
-- On app boot, once React is alive, call `SplashScreen.hide()`.
-
-- Also set a fallback timer around 1500–3000ms to call hide if the first paint path stalls.
-
-- Guard this with `Capacitor.isNativePlatform()` or equivalent.
-
-- Catch and log errors non-fatally.
-
-Then wire this helper into the main app bootstrap path, such as `src/App.tsx`, `src/main.tsx`, or the existing top-level app shell.
-
-Important:
-
-- Do not wrap imports in try/catch.
-
-- Avoid changing unrelated app behavior.
-
-- The purpose is a controlled “React is alive, hide native splash” signal.
-
----
-
-## 2. Replace silent black fallbacks with branded visible loading UI
-
-Find the app’s dark/blank loading fallbacks, especially:
-
-- route-level fallback in `App.tsx` / router lazy loading,
-
-- auth/session fallback such as `AppAuthGuard`,
-
-- any full-screen fallback that currently renders a plain dark or empty screen.
-
-Replace them with a branded RufayQ startup/loading screen.
-
-Requirements:
-
-- The screen should make it clear the app is loading, not blacked out.
-
-- It should use existing project styling/design tokens where possible.
-
-- Include simple branding text such as “RufayQ” and a loading message like:
-
-  - “Preparing your care experience…”
-
-  - “Loading securely…”
-
-- Keep it lightweight and safe for initial boot.
-
-- Avoid network-dependent images.
-
-- Reuse one shared component if practical, for example:
-
-  - `src/components/common/AppStartupFallback.tsx`
-
-  - `src/components/AppStartupFallback.tsx`
-
-  - or an existing shared UI location.
-
-Use this same branded fallback for:
-
-- lazy route fallback,
-
-- auth guard loading,
-
-- any current blank/dark full-screen loading state that can appear during startup.
-
-Do not introduce a heavy dependency just for this screen.
-
----
-
-## 3. Clarify Android build modes
-
-Update the Android build/run documentation and scripts so it is obvious whether a build is:
-
-### Remote URL mode
-
-- Loads `https://rufayq.com`
-
-- Requires network
-
-- Uses the `server.url` block in `capacitor.config.ts`
-
-### Bundled mode
-
-- Loads local `dist/`
-
-- Should work offline
-
-- Removes or omits the `server` block before Capacitor sync/build
-
-Specifically:
-
-- Inspect `scripts/build-android.sh`.
-
-- If it removes the `server` block, make its output/logging explicitly say that the resulting Android build is “bundled/offline mode.”
-
-- If there is a separate workflow for remote URL mode, document it.
-
-- If no remote build script exists, add clear comments/docs explaining how to run each mode without accidentally confusing them.
-
-- Update relevant docs, for example existing Android/QA docs or create a small `docs/android-build-modes.md` if no suitable doc exists.
-
-Do not silently change build mode behavior unless needed. The main fix is clarity and startup handling.
-
----
-
-## 4. Upgrade the Android splash smoke report diagnostics
-
-Update `scripts/qa/android-splash-smoke.sh` so the generated report helps distinguish memory problems from loading/startup problems.
-
-Extend log capture/filtering to flag these categories:
-
-### Network/WebView load failures
-
-Look for indicators such as:
-
-- `ERR_NAME_NOT_RESOLVED`
-
-- `ERR_INTERNET_DISCONNECTED`
-
-- `ERR_CONNECTION`
-
-- `net::ERR`
-
-- WebView page load failures
-
-### JS/chunk/load failures
-
-Look for:
-
-- failed dynamic imports,
-
-- chunk load errors,
-
-- missing asset errors,
-
-- JavaScript exceptions during startup.
-
-### Native crashes
-
-Look for:
-
-- `FATAL EXCEPTION`
-
-- `AndroidRuntime`
-
-- process crash messages.
-
-### WebView renderer crashes
-
-Look for:
-
-- `Renderer process gone`
-
-- `RenderProcessGone`
-
-- WebView renderer crash messages.
-
-### Memory pressure indicators
-
-Look for:
-
-- `OutOfMemoryError`
-
-- `Low memory`
-
-- `lowmemorykiller`
-
-- `LMKD`
-
-- `Trim memory`
-
-- `onTrimMemory`
-
-The report should include a “Likely failure category” or similar summary, for example:
-
-- `PASS: splash handed off`
-
-- `LIKELY NETWORK / REMOTE URL LOAD FAILURE`
-
-- `LIKELY JS / CHUNK LOAD FAILURE`
-
-- `LIKELY NATIVE CRASH`
-
-- `LIKELY WEBVIEW RENDERER CRASH`
-
-- `POSSIBLE MEMORY PRESSURE`
-
-- `UNKNOWN: no clear indicator found`
-
-Also add a preflight/report line showing whether the installed app/test target appears to be:
-
-- Remote URL mode,
-
-- Bundled mode,
-
-- or Unknown.
-
-If it is not possible to reliably inspect the installed app mode from adb, then report “Unknown” and include the local `capacitor.config.ts` mode as a hint. Do not make the script brittle.
-
-Keep the script POSIX/bash-safe and avoid requiring optional tools unless gracefully checked.
-
----
-
-## 5. Validation
-
-After making changes, run the checks that are available in this project.
-
-At minimum:
-
-- Syntax-check changed shell scripts:
-
-  - `bash -n scripts/qa/android-splash-smoke.sh`
-
-  - `bash -n scripts/build-android.sh` if modified
-
-- Run TypeScript/build checks if available:
-
-  - `npm run typecheck`
-
-  - or the project’s equivalent
-
-- Run lint/build/test only if dependencies are available.
-
-If some commands cannot run because dependencies or Android device/emulator are unavailable, clearly state that as an environment limitation.
-
-The final proof should be a fresh install on a physical Android device/emulator using the updated smoke script.
-
----
-
-## Acceptance criteria
-
-This fix is complete when:
-
-1. The app explicitly calls `SplashScreen.hide()` from the React/native boot path after React is alive.
-
-2. The native splash has a fallback hide timeout so it cannot hang indefinitely.  
+`This discovery makes sense, but please prove FCM/push with ordered markers and the actual error boundary payload.`  
   
-3. Web preview/browser behavior is unaffected.
+`The screenshot showing “We hit a startup error” means React is starting and the native splash handoff is no longer the only failure. Please treat this as “React started, then startup/render error,” not as a pure native blackout.`  
+  
+`Please implement the following narrowly:`  
+  
+`1. Add ordered startup markers under the exact prefix [RufayqStartup]:`  
+   `- main.tsx render start`  
+   `- React mounted`  
+   `- Index render start`  
+   `- patient bootstrap start/success/fail`  
+   `- global chat setup start/skipped/success/fail`  
+   `- deep-link listener setup start/success/fail`  
+   `- push prompt mounted`  
+   `- push registration attempt`  
+   `- push registration success/fail-safe with reason`  
+   `- ErrorBoundary rendered with error name/message`  
+  
+`2. In the error boundary, log the actual caught error:`  
+   `- error.name`  
+   `- error.message`  
+   `- error.stack`  
+   `- component stack`  
+   `Keep the user-facing screen simple, but adb/logcat must contain the real error.`  
+  
+`3. Harden src/lib/native/push.ts:`  
+   `- Do not let permission/register/listener/channel setup throw into app startup.`  
+   `- Wrap the whole native push flow in defensive try/catch.`  
+   `- Return structured failure reasons:`  
+     `web/not_native, missing_plugin, permission_denied, firebase_not_configured, registration_failed, listener_setup_failed, unknown.`  
+   `- Log every phase with [RufayqStartup].`  
+   `- If Firebase/native config is missing, log a warning and keep the app usable.`  
+  
+`4. Temporarily remove automatic push registration from first patient login/startup.`  
+   `- Push registration should only happen after an explicit user action from the push prompt until startup is proven stable.`  
+   `- The prompt can still mount, but it must not call native push APIs unless the user taps Enable.`  
+  
+`5. Gate global chat startup work for unauthenticated/guest users.`  
+   `- Do not query protected chat tables or subscribe to protected realtime channels until a valid user/session or allowed guest condition is confirmed.`  
+   `- Log skipped state with [RufayqStartup] Global chat skipped: unauthenticated.`  
+  
+`6. Update the Android smoke script:`  
+   `- Detect [RufayqStartup] ErrorBoundary rendered.`  
+   `- Classify that as REACT STARTED THEN STARTUP ERROR BOUNDARY.`  
+   `- Include a nearby log excerpt around:`  
+     `RufayqStartup, PushNotifications, FirebaseApp, FirebaseMessaging, FCM, AndroidRuntime, OutOfMemoryError, ChunkLoadError, net::ERR_.`  
+   `- Add a specific classification for likely push/Firebase failure if Firebase/Push logs appear before the error boundary.`  
+  
+`7. Update Android smoke docs:`  
+   `- If FCM is enabled, Android must include the correct google-services.json.`  
+   `- Missing/stale Firebase native config can present after React starts, especially if push registration is attempted.`  
+  
+`Please provide the adb evidence in this exact format:`  
+  
+`React mounted: yes/no`  
+`Patient shell mounted: yes/no`  
+`Patient bootstrap started: yes/no`  
+`Patient bootstrap completed: yes/no`  
+`Global chat setup attempted: yes/no`  
+`Push prompt mounted: yes/no`  
+`Push registration attempted: yes/no`  
+`Push registration failed safely: yes/no + reason`  
+`Error boundary rendered: yes/no + error name/message`  
+`Splash hide requested: yes/no`  
+`Classification: exact startup phase/cause`  
+  
+`Most important: include the actual error boundary error name/message from adb/logcat. Without that, FCM is only a plausible suspect, not proven.`  
 
-4. Startup/auth/route loading states are visibly branded and no longer look like a black screen.
 
-5. Android build mode docs/script output clearly distinguish remote URL mode from bundled/offline mode.
+---
 
-6. The Android smoke script report flags likely causes including:
+## **What I would check on the device right now**
 
-   - network failure,
+Run this against the failing device:
 
-   - JS/chunk failure,
+`adb logcat -c`  
+`adb shell monkey -p com.rufayq.app -c android.intent.category.LAUNCHER 1`  
+`sleep 8`  
+`adb logcat -d -v time | grep -Ei 'RufayqStartup|We hit a startup error|ErrorBoundary|PushNotifications|FirebaseApp|FirebaseMessaging|FCM|google-services|AndroidRuntime|FATAL EXCEPTION|OutOfMemoryError|Renderer process|RenderProcessGone|ChunkLoadError|TypeError|ReferenceError|net::ERR_'`  
 
-   - native crash,
 
-   - WebView renderer crash,
+### **If you see this**
 
-   - memory pressure.
+`[RufayqStartup] Push registration attempt`  
+`FirebaseApp...`  
+`[RufayqStartup] ErrorBoundary rendered ...`  
 
-7. Existing app behavior is not otherwise changed.
 
-8. The final response lists changed files and exact validation commands/results.
+Then FCM/push is very likely involved.
 
-&nbsp;
+### **If you see this**
+
+`[RufayqStartup] Index render start`  
+`[RufayqStartup] ErrorBoundary rendered TypeError ...`  
+
+
+with no push/Firebase logs, then it is probably a normal React render/bootstrap bug, not FCM.
+
+### **If you see this**
+
+`ChunkLoadError`  
+`Failed to fetch dynamically imported module`  
+
+
+then it is a deployment/chunk mismatch.
+
+### **If you see this**
+
+`net::ERR_NAME_NOT_RESOLVED`  
+`net::ERR_INTERNET_DISCONNECTED`  
+
+
+then it is remote URL/network loading.
+
+### **If you see this**
+
+`Renderer process gone`  
+`OutOfMemoryError`  
+`lowmemorykiller`  
+
+
+then memory/WebView renderer crash becomes much more likely.
+
+---
+
+## **My recommendation**
+
+I would approve Lovable’s plan **with one correction**:
+
+> *Do not assume FCM is the cause yet. Instrument first, disable automatic push registration during startup, and require the error boundary’s real error message from adb/logcat.*
+
+The plan is good because it turns the next run into a deterministic answer:
+
+`React mounted: yes`  
+`Splash hide requested: yes`  
+`Error boundary rendered: yes`  
+`Push registration attempted: yes/no`  
+`Error: exact message`  
+
+
+That is exactly what you need now.
+
+---
+
+## **Commands I used to validate the current repo state**
+
+- ✅ rg -n "PushNotifications|registerPush|push|notification|global chat|unread|audit|RufayqStartup|ErrorBoundary|setupDeep|deep link|useEffect" src/lib src/pages src/components src/hooks -S
+- ✅ nl -ba src/lib/native/push.ts | sed -n '1,260p'; rg -n "push|Push|notification|deep|chat|bootstrap|useEffect|RufayqStartup|setup" src/pages/Index.tsx -S
+- ✅ nl -ba src/pages/Index.tsx | sed -n '238,310p'; nl -ba src/components/PushPermissionPrompt.tsx | sed -n '1,120p'; nl -ba src/hooks/useGlobalChat.ts | sed -n '1,200p'; nl -ba src/hooks/usePatientBootstrap.ts | sed -n '1,80p'## Short answer  
+Expected result
+
+After implementation, adb/logcat should answer the key question directly:
+
+```text
+React mounted: yes/no
+Patient shell mounted: yes/no
+Push registration attempted: yes/no
+Push registration failed safely: yes/no + reason
+Error boundary rendered: yes/no + error message
+Splash hide requested: yes/no
+Classification: exact startup phase/cause
+```
+
+If FCM is the cause, the next smoke report should show React booting, then a push/Firebase-related marker or native log before the error boundary/crash. If FCM is not the cause, the added markers will show the next failing phase without changing unrelated features.
