@@ -209,8 +209,14 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
             <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>ملفاتك {segment === "medical" ? "الطبية" : "للسفر"}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => onOpenScanner?.()} className="px-3 py-1.5 rounded-full text-[11px] font-medium btn-press" style={{ background: "var(--gold)", color: "#fff" }}>
-              ＋ Scan
+            <button
+              onClick={() => onOpenScanner?.()}
+              className="w-9 h-9 rounded-full flex items-center justify-center btn-press"
+              style={{ background: "var(--gold)", color: "var(--navy)" }}
+              aria-label="Scan document · مسح وثيقة"
+              title="Scan document · مسح وثيقة"
+            >
+              <ScanLine size={18} aria-hidden="true" />
             </button>
             <NotificationCenter color="#fff" />
             <HeaderMenu items={recordsMenuItems} />
