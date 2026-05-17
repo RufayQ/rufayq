@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical } from "lucide-react";
+import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
@@ -9,13 +9,14 @@ import RecordActionsSheet from "@/components/records/RecordActionsSheet";
 const BUCKET = "transport-attachments";
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
 
-type TravelCat = "all" | "passport" | "visa" | "booking" | "insurance" | "other";
+type TravelCat = "all" | "passport" | "visa" | "booking" | "insurance" | "lounge" | "other";
 
 const CAT_DEFS: { key: TravelCat; en: string; ar: string }[] = [
   { key: "all",       en: "All",       ar: "الكل" },
   { key: "passport",  en: "Passport",  ar: "جواز" },
   { key: "visa",      en: "Visas",     ar: "تأشيرات" },
   { key: "booking",   en: "Bookings",  ar: "حجوزات" },
+  { key: "lounge",    en: "Lounge",    ar: "صالة" },
   { key: "insurance", en: "Insurance", ar: "تأمين" },
   { key: "other",     en: "Other",     ar: "أخرى" },
 ];
@@ -24,9 +25,27 @@ const classify = (it: { label: string; file_name: string }): TravelCat => {
   const s = `${it.label} ${it.file_name}`.toLowerCase();
   if (/(passport|iqama|id\b|جواز|هوية|إقامة)/.test(s)) return "passport";
   if (/(visa|تأشير|فيزا)/.test(s)) return "visa";
+  if (/(lounge|dragonpass|priority\s*pass|loungekey|loungebuddy|صالة|لاونج)/.test(s)) return "lounge";
   if (/(hotel|booking|reservation|ticket|flight|boarding|itinerary|فندق|حجز|تذكر|طيران)/.test(s)) return "booking";
   if (/(insur|تأمين|policy|بوليصة)/.test(s)) return "insurance";
   return "other";
+};
+
+const PIN_KEY = "rufayq_travel_pinned_ids";
+const MAX_PINS = 2;
+
+const readPins = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(PIN_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.slice(0, MAX_PINS) : [];
+  } catch { return []; }
+};
+const writePins = (ids: string[]) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PIN_KEY, JSON.stringify(ids.slice(0, MAX_PINS)));
 };
 
 // Split text into segments with matches wrapped, for inline highlighting.
@@ -99,15 +118,45 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
 
   const counts = items.reduce<Record<TravelCat, number>>(
     (acc, it) => { acc.all += 1; acc[classify(it)] += 1; return acc; },
-    { all: 0, passport: 0, visa: 0, booking: 0, insurance: 0, other: 0 },
+    { all: 0, passport: 0, visa: 0, booking: 0, lounge: 0, insurance: 0, other: 0 },
   );
 
-  const filtered = items.filter((it) => {
-    if (cat !== "all" && classify(it) !== cat) return false;
+  const [pinnedIds, setPinnedIds] = useState<string[]>(() => readPins());
+
+  const togglePin = (id: string) => {
+    setPinnedIds((prev) => {
+      let next: string[];
+      if (prev.includes(id)) {
+        next = prev.filter((x) => x !== id);
+        toast("Unpinned · تم إلغاء التثبيت", { duration: 1400 });
+      } else {
+        if (prev.length >= MAX_PINS) {
+          // Replace the oldest pin (first in array)
+          next = [...prev.slice(1), id];
+          toast(`Pinned (replaced oldest, max ${MAX_PINS}) · تم التثبيت`, { duration: 1600 });
+        } else {
+          next = [...prev, id];
+          toast.success("Pinned to top · تم التثبيت", { duration: 1400 });
+        }
+      }
+      writePins(next);
+      return next;
+    });
+  };
+
+  const matchesSearch = (it: TransportAttachment) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return it.label.toLowerCase().includes(q) || it.file_name.toLowerCase().includes(q);
-  });
+  };
+  const matchesCat = (it: TransportAttachment) => cat === "all" || classify(it) === cat;
+
+  // Pinned section: respects search, ignores category (so user always sees them)
+  const pinnedItems = pinnedIds
+    .map((id) => items.find((it) => it.id === id))
+    .filter((it): it is TransportAttachment => !!it && matchesSearch(it));
+
+  const filtered = items.filter((it) => matchesCat(it) && matchesSearch(it) && !pinnedIds.includes(it.id));
 
   const openPreview = async (item: TransportAttachment) => {
     const { data, error } = await supabase.storage
@@ -221,7 +270,91 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     );
   }
 
-  if (filtered.length === 0) {
+  const renderRow = (item: TransportAttachment, isPinned: boolean) => {
+    const itemCat = classify(item);
+    const isLounge = itemCat === "lounge";
+    return (
+      <div
+        key={item.id}
+        className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left card-press relative"
+        style={{
+          background: "var(--white)",
+          border: isPinned ? "1.5px solid rgba(197,150,90,0.55)" : "1px solid var(--gray-light)",
+          boxShadow: isPinned ? "0 4px 14px rgba(197,150,90,0.18)" : "0 1px 6px rgba(0,0,0,0.04)",
+        }}
+      >
+        <button onClick={() => openPreview(item)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+          <div
+            className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: isLounge ? "rgba(45,138,158,0.12)" : "var(--gold-pale)" }}
+          >
+            {isLounge ? (
+              <Sofa size={20} style={{ color: "var(--teal-deep)" }} />
+            ) : isImage(item.mime_type) ? (
+              <ImageIcon size={20} style={{ color: "var(--gold)" }} />
+            ) : (
+              <FileText size={20} style={{ color: "var(--gold)" }} />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
+              <Highlight text={item.label} query={searchQuery} />
+            </p>
+            <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
+              <Highlight text={item.file_name} query={searchQuery} />
+            </p>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              {isLounge ? (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(45,138,158,0.14)", color: "var(--teal-deep)" }}>
+                  <Sofa size={9} /> Lounge
+                </span>
+              ) : (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(197,150,90,0.12)", color: "var(--gold)" }}>
+                  <Plane size={9} /> Travel
+                </span>
+              )}
+              <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
+                {new Date(item.created_at).toLocaleDateString()}
+              </span>
+              {item.size_bytes && (
+                <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
+                  · {(item.size_bytes / 1024).toFixed(0)} KB
+                </span>
+              )}
+            </div>
+          </div>
+        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => togglePin(item.id)}
+            className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
+            style={{ background: isPinned ? "rgba(197,150,90,0.18)" : "var(--off-white)" }}
+            aria-label={isPinned ? "Unpin" : "Pin to top"}
+            title={isPinned ? "Unpin" : `Pin to top (max ${MAX_PINS})`}
+          >
+            {isPinned ? (
+              <Pin size={13} fill="var(--gold)" style={{ color: "var(--gold)" }} />
+            ) : (
+              <Pin size={13} style={{ color: "var(--gray)" }} />
+            )}
+          </button>
+          <Eye size={16} style={{ color: "var(--gold)" }} />
+          <button
+            onClick={() => setMenuItem(item)}
+            className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
+            style={{ background: "var(--off-white)" }}
+            aria-label="More actions"
+          >
+            <MoreVertical size={14} style={{ color: "var(--gray)" }} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const nothingToShow = filtered.length === 0 && pinnedItems.length === 0;
+
+  if (nothingToShow) {
     return (
       <>
         {items.length > 0 && chipStrip}
@@ -235,7 +368,7 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
           </p>
           {!searchQuery && cat === "all" && (
             <p className="text-[11px] mt-2 px-6" style={{ color: "var(--gray)" }}>
-              Attach passports, visas, hotel bookings or insurance from any ticket in the Journey section.
+              Attach passports, visas, hotel bookings, lounge passes or insurance from any ticket in the Journey section.
             </p>
           )}
           {(searchQuery || cat !== "all") && (
@@ -255,62 +388,25 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
   return (
     <>
       {chipStrip}
-      <div className="flex items-center justify-between mt-1">
+
+      {pinnedItems.length > 0 && (
+        <div className="mt-2">
+          <p className="font-mono text-[10px] tracking-widest mb-1.5 flex items-center gap-1" style={{ color: "var(--gold)" }}>
+            <Pin size={9} fill="var(--gold)" style={{ color: "var(--gold)" }} /> PINNED · <span className="font-arabic">مثبتة</span>
+            <span className="opacity-60">({pinnedItems.length}/{MAX_PINS})</span>
+          </p>
+          <div className="space-y-2">{pinnedItems.map((it) => renderRow(it, true))}</div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mt-3">
         <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>
           {searchQuery || cat !== "all" ? `RESULTS — ${filtered.length}` : `TRAVEL DOCUMENTS — ${filtered.length} FILES`}
         </p>
       </div>
 
       <div className="space-y-3 mt-2">
-        {filtered.map((item) => (
-          <div
-            key={item.id}
-            className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left card-press"
-            style={{ background: "var(--white)", border: "1px solid var(--gray-light)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
-          >
-            <button onClick={() => openPreview(item)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--gold-pale)" }}>
-                {isImage(item.mime_type) ? (
-                  <ImageIcon size={20} style={{ color: "var(--gold)" }} />
-                ) : (
-                  <FileText size={20} style={{ color: "var(--gold)" }} />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
-                  <Highlight text={item.label} query={searchQuery} />
-                </p>
-                <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
-                  <Highlight text={item.file_name} query={searchQuery} />
-                </p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(197,150,90,0.12)", color: "var(--gold)" }}>
-                    <Plane size={9} /> Travel
-                  </span>
-                  <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </span>
-                  {item.size_bytes && (
-                    <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
-                      · {(item.size_bytes / 1024).toFixed(0)} KB
-                    </span>
-                  )}
-                </div>
-              </div>
-            </button>
-            <div className="flex items-center gap-1 shrink-0">
-              <Eye size={16} style={{ color: "var(--gold)" }} />
-              <button
-                onClick={() => setMenuItem(item)}
-                className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
-                style={{ background: "var(--off-white)" }}
-                aria-label="More actions"
-              >
-                <MoreVertical size={14} style={{ color: "var(--gray)" }} />
-              </button>
-            </div>
-          </div>
-        ))}
+        {filtered.map((item) => renderRow(item, false))}
       </div>
 
       {previewUrl && previewItem && (
