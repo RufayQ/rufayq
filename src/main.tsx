@@ -6,6 +6,7 @@ import { registerOfflineSW } from "./lib/registerSW";
 import { initSplashHandoff } from "./lib/native/splashHandoff";
 
 createRoot(document.getElementById("root")!).render(<App />);
+console.info("[RufayqStartup] React mounted");
 registerOfflineSW();
 // Hide the Capacitor native splash once React is alive. No-op on web.
 initSplashHandoff();
