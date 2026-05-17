@@ -117,14 +117,22 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
           >
             {onOpenProfile && t.kind !== "ai" ? (
-              <button
-                type="button"
+              <span
+                role="button"
+                tabIndex={0}
                 onClick={(e) => { e.stopPropagation(); onOpenProfile(t); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onOpenProfile(t);
+                  }
+                }}
                 className="rounded-full btn-press"
                 aria-label={`Open ${labelFor(t)} profile`}
               >
                 <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
-              </button>
+              </span>
             ) : (
               <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
             )}
