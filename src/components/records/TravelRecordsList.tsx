@@ -85,6 +85,7 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
   const [menuItem, setMenuItem] = useState<TransportAttachment | null>(null);
   const [cat, setCat] = useState<TravelCat>("all");
+  const [clearPinOpen, setClearPinOpen] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
