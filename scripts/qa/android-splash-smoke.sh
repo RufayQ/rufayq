@@ -36,11 +36,6 @@ APK="${APK:-}"
 
 require_tool adb
 
-screenshot() {
-  local path="$1"
-  adb exec-out screencap -p > "$path" 2>/dev/null
-}
-
 cold_launch() {
   adb shell am force-stop "$PKG" >/dev/null
   adb shell pm clear "$PKG" >/dev/null 2>&1 || true
@@ -50,58 +45,6 @@ cold_launch() {
 warm_launch() {
   adb shell am force-stop "$PKG" >/dev/null
   adb shell am start -W -n "$LAUNCH_ACT" >/dev/null
-}
-
-start_logcat() {
-  local path="$1"
-  adb logcat -c
-  # Cast a wider net so we can categorise failures (network, JS, native crash,
-  # renderer crash, memory pressure) — not just Capacitor/chromium chatter.
-  adb logcat \
-      Capacitor:* CapacitorPlugins:* chromium:* \
-      AndroidRuntime:E ActivityManager:W WebViewChromium:W \
-      lowmemorykiller:* lmkd:* art:E \
-      FirebaseApp:* FirebaseMessaging:* FirebaseInstanceId:* FA:* GoogleApiManager:* \
-      PushNotifications:* *:F \
-    > "$path" 2>/dev/null &
-  echo $!
-}
-
-stop_logcat() {
-  kill "$1" 2>/dev/null || true
-  wait "$1" 2>/dev/null || true
-}
-
-# Inspect RufayQ startup markers emitted by the React boot path.
-has_marker() {
-  local marker="$1" lc="$2"
-  grep -qF "$marker" "$lc"
-}
-
-# Inspect a logcat slice and emit a single likely-cause category.
-classify_logcat() {
-  local lc="$1"
-  if   ! has_marker '[RufayqStartup] React mounted' "$lc"; then
-    echo "JS DID NOT REACH REACT BOOT"
-  elif grep -qiE 'ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION|net::ERR_|net::ERR_FAILED|WebViewClient.*error' "$lc"; then
-    echo "LIKELY REMOTE URL / NETWORK FAILURE"
-  elif grep -qiE 'ChunkLoadError|Loading chunk [0-9]+ failed|Failed to fetch dynamically imported module|Unexpected token|SyntaxError|ReferenceError' "$lc"; then
-    echo "LIKELY JS / CHUNK LOAD FAILURE"
-  elif has_marker '[RufayqStartup] ErrorBoundary rendered' "$lc"; then
-    if grep -qiE 'FirebaseApp|FirebaseMessaging|google-services|FCM|PushNotifications' "$lc"; then
-      echo "LIKELY PUSH / FIREBASE STARTUP FAILURE"
-    else
-      echo "REACT STARTED THEN STARTUP ERROR BOUNDARY"
-    fi
-  elif grep -qiE 'FATAL EXCEPTION|AndroidRuntime: FATAL' "$lc"; then
-    echo "LIKELY NATIVE CRASH"
-  elif grep -qiE 'Renderer process .*gone|RenderProcessGone|render process .*killed|WebView .*crashed' "$lc"; then
-    echo "LIKELY WEBVIEW RENDERER CRASH"
-  elif grep -qiE 'OutOfMemoryError|lowmemorykiller|lmkd.*kill|Low on memory|onTrimMemory.*(CRITICAL|MODERATE)|Background concurrent .*GC freed' "$lc"; then
-    echo "POSSIBLE MEMORY PRESSURE"
-  else
-    echo "REACT RENDERED BLANK / STARTUP UI FAILURE"
-  fi
 }
 
 airplane_on()  { adb shell cmd connectivity airplane-mode enable  >/dev/null 2>&1 \
