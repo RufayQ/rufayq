@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit --pretty false",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",
