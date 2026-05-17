@@ -12,7 +12,7 @@
  * Intentionally lightweight: no network images, no heavy deps, inline styles
  * so it renders even if the design-system CSS hasn't hydrated yet.
  */
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 const BG = "#06101A";
 const TEXT = "#E8ECF0";
@@ -21,8 +21,10 @@ const GOLD = "#C5965A";
 const TEAL = "#0FB5C9";
 
 interface Props {
+  title?: string;
   message?: string;
   messageAr?: string;
+  children?: ReactNode;
 }
 
 const wrap: CSSProperties = {
@@ -49,8 +51,10 @@ const dot: CSSProperties = {
 };
 
 const AppStartupFallback = ({
+  title = "RufayQ",
   message = "Preparing your care experience…",
   messageAr,
+  children,
 }: Props) => {
   const isAr = typeof document !== "undefined" && document.documentElement.lang === "ar";
   const text = isAr && messageAr ? messageAr : message;
@@ -64,8 +68,14 @@ const AppStartupFallback = ({
         }
       `}</style>
       <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, letterSpacing: 0.5 }}>
-        <span>Rufay</span>
-        <span style={{ color: GOLD, fontWeight: 700 }}>Q</span>
+        {title === "RufayQ" ? (
+          <>
+            <span>Rufay</span>
+            <span style={{ color: GOLD, fontWeight: 700 }}>Q</span>
+          </>
+        ) : (
+          <span>{title}</span>
+        )}
       </div>
       <div style={{ display: "flex", gap: 6 }}>
         <span style={{ ...dot, animationDelay: "0s" }} />
@@ -73,6 +83,7 @@ const AppStartupFallback = ({
         <span style={{ ...dot, animationDelay: "0.3s" }} />
       </div>
       <div style={{ fontSize: 13, color: MUTED, maxWidth: 280 }}>{text}</div>
+      {children ? <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>{children}</div> : null}
     </div>
   );
 };
