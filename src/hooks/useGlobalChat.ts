@@ -117,7 +117,7 @@ export function useGlobalChat(activeThreadId?: string | null) {
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, () => recompute())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [recompute, activeThreadId]);
+  }, [recompute, activeThreadId, enabled]);
 
   return { totalUnread, refresh: recompute };
 }
