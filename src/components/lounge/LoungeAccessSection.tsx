@@ -69,7 +69,10 @@ const LoungeAccessSection = ({ segments }: Props) => {
   const [adding, setAdding] = useState(false);
   const [qrTarget, setQrTarget] = useState<LoungeMembership | null>(null);
 
-  useEffect(() => subscribeLoungeMemberships(() => setItems(listLoungeMemberships())), []);
+  useEffect(() => {
+    void fetchLoungeMemberships().then(() => setItems(listLoungeMemberships()));
+    return subscribeLoungeMemberships(() => setItems(listLoungeMemberships()));
+  }, []);
 
   const flightSegments = segments.filter((s) => s.type === "flight");
 
