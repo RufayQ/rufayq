@@ -19,7 +19,8 @@ interface Props {
 
 /** Conversation inbox: AI, care providers, and people. */
 export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Props) {
-  const { threads, participants, unreadByThread, loading, reload } = useChatInbox();
+  const { threads, participants, unreadByThread, mutedByThread, loading, reload, setThreadMuted, markThreadUnread } = useChatInbox();
+  const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const [newSheet, setNewSheet] = useState<null | "menu" | "people" | "care">(null);
