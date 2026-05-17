@@ -173,6 +173,7 @@ const LoungeFormSheet = ({
   const [cardholderName, setCardholderName] = useState(initial?.cardholderName || "");
   const [cardLast4, setCardLast4] = useState(initial?.cardLast4 || "");
   const [expiresOn, setExpiresOn] = useState(initial?.expiresOn || "");
+  const [mmyyDisplay, setMmyyDisplay] = useState(isoToMMYY(initial?.expiresOn));
   const [linkedSegmentId, setLinkedSegmentId] = useState(initial?.linkedSegmentId || "");
   const [notes, setNotes] = useState(initial?.notes || "");
 
@@ -182,17 +183,24 @@ const LoungeFormSheet = ({
       toast.error("Program, number and cardholder are required");
       return;
     }
+    const iso = mmyyToIso(mmyyDisplay);
+    if (mmyyDisplay && !iso) {
+      toast.error("Expiry must be MM/YY (e.g. 05/29)");
+      return;
+    }
     onSave({
       id: initial?.id,
       program: program.trim(),
       membershipNumber: membershipNumber.trim(),
       cardholderName: cardholderName.trim(),
       cardLast4: cardLast4.trim() || undefined,
-      expiresOn: expiresOn || undefined,
+      expiresOn: iso || undefined,
       linkedSegmentId: linkedSegmentId || undefined,
       notes: notes.trim() || undefined,
     });
   };
+  // Silence unused-var lint while keeping setter available for future use.
+  void expiresOn; void setExpiresOn;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.45)" }} onClick={onClose}>
