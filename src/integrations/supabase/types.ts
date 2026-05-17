@@ -507,6 +507,7 @@ export type Database = {
           last_read_at: string | null
           organization_id: string | null
           thread_id: string
+          user_id: string | null
         }
         Insert: {
           archived?: boolean
@@ -517,6 +518,7 @@ export type Database = {
           last_read_at?: string | null
           organization_id?: string | null
           thread_id: string
+          user_id?: string | null
         }
         Update: {
           archived?: boolean
@@ -527,6 +529,7 @@ export type Database = {
           last_read_at?: string | null
           organization_id?: string | null
           thread_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -7632,13 +7635,21 @@ export type Database = {
         Args: { _thread_id: string }
         Returns: boolean
       }
-      chat_unread_counts_for_device: {
-        Args: { _device_id: string }
-        Returns: {
-          thread_id: string
-          unread_count: number
-        }[]
-      }
+      chat_unread_counts_for_device:
+        | {
+            Args: { _device_id: string }
+            Returns: {
+              thread_id: string
+              unread_count: number
+            }[]
+          }
+        | {
+            Args: { _device_id: string; _user_id?: string }
+            Returns: {
+              thread_id: string
+              unread_count: number
+            }[]
+          }
       claim_guest_patient_data: { Args: { _device_id: string }; Returns: Json }
       compute_refund_tier: {
         Args: {
