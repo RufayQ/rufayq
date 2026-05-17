@@ -179,6 +179,10 @@ run_row() {
   local pre_splash=0 post_splash=0
   is_still_splash "$OUT_DIR/row-$n-pre.png"  && pre_splash=1
   is_still_splash "$OUT_DIR/row-$n-post.png" && post_splash=1
+  local react_marker="no" hide_marker="no" timeout_marker="no"
+  has_marker '[RufayqStartup] React mounted' "$lc_path" && react_marker="yes"
+  has_marker '[RufayqStartup] SplashScreen.hide requested' "$lc_path" && hide_marker="yes"
+  has_marker '[RufayqStartup] Splash fallback timeout fired' "$lc_path" && timeout_marker="yes"
 
   local status="PASS" reason=""
   if [ "$require_handoff" = "1" ] && [ "$post_splash" = "1" ]; then
@@ -191,6 +195,10 @@ run_row() {
     fi
   fi
 
+  if [ "$status" = "PASS" ] && [ "$post_splash" = "1" ] && [ "$react_marker" = "yes" ]; then
+    status="FAIL"; reason="React booted but screen remained splash/blank after ${max_seconds}s"
+  fi
+
   local category="n/a"
   if [ "$status" = "FAIL" ]; then
     category=$(classify_logcat "$lc_path")
@@ -199,12 +207,15 @@ run_row() {
   if [ "$status" = "PASS" ]; then ok "row $n PASS"
   else err "row $n FAIL — $reason ($category)"; fi
 
-  ROW_RESULTS+=("$n|$name|$status|$reason|$category")
+  ROW_RESULTS+=("$n|$name|$status|$reason|$category|$react_marker|$hide_marker|$timeout_marker")
   {
     echo "### Row $n — $name"
     echo "- status: **$status**"
     [ -n "$reason" ] && echo "- reason: $reason"
     [ "$category" != "n/a" ] && echo "- likely cause: **$category**"
+    echo "- React mounted marker: **$react_marker**"
+    echo "- SplashScreen.hide requested marker: **$hide_marker**"
+    echo "- splash fallback timeout marker: **$timeout_marker**"
     echo "- pre-screenshot: \`row-$n-pre.png\`"
     echo "- post-screenshot: \`row-$n-post.png\`"
     echo "- logcat slice: \`row-$n-logcat.txt\`"
