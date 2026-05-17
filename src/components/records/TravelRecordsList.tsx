@@ -1,11 +1,49 @@
-import { useEffect, useState } from "react";
-import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2, ScanLine, CreditCard } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet from "@/components/records/RecordActionsSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import {
+  listLoungeMemberships,
+  subscribeLoungeMemberships,
+  deleteLoungeMembership,
+  type LoungeMembership,
+} from "@/lib/loungeMemberships";
+
+/** Unified row shape so attachments and lounge memberships share render code. */
+type UnifiedRow =
+  | ({ kind: "attachment" } & TransportAttachment)
+  | {
+      kind: "lounge-card";
+      id: string; // synthetic: "lounge:<membershipId>"
+      label: string;
+      file_name: string;
+      created_at: string;
+      mime_type: null;
+      size_bytes: null;
+      membership: LoungeMembership;
+    };
+
+const loungeExpMMYY = (iso?: string): string => {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(iso);
+  return m ? `${m[2]}/${m[1].slice(2)}` : "";
+};
+
+const membershipToRow = (m: LoungeMembership): UnifiedRow => ({
+  kind: "lounge-card",
+  id: `lounge:${m.id}`,
+  label: `${m.program} · ${m.cardholderName}`,
+  file_name: m.membershipNumber,
+  created_at: m.createdAt,
+  mime_type: null,
+  size_bytes: null,
+  membership: m,
+});
 
 const BUCKET = "transport-attachments";
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
@@ -80,10 +118,12 @@ interface Props {
 const TravelRecordsList = ({ userId, searchQuery }: Props) => {
   const deviceId = getDeviceId();
   const [items, setItems] = useState<TransportAttachment[]>([]);
+  const [loungeCards, setLoungeCards] = useState<LoungeMembership[]>(() => listLoungeMemberships());
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
-  const [menuItem, setMenuItem] = useState<TransportAttachment | null>(null);
+  const [qrTarget, setQrTarget] = useState<LoungeMembership | null>(null);
+  const [menuItem, setMenuItem] = useState<UnifiedRow | null>(null);
   const [cat, setCat] = useState<TravelCat>("all");
   const [clearPinOpen, setClearPinOpen] = useState(false);
 
@@ -118,8 +158,24 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, deviceId]);
 
-  const counts = items.reduce<Record<TravelCat, number>>(
-    (acc, it) => { acc.all += 1; acc[classify(it)] += 1; return acc; },
+  // Lounge memberships live in localStorage — subscribe for real-time updates.
+  useEffect(() => {
+    setLoungeCards(listLoungeMemberships());
+    return subscribeLoungeMemberships(() => setLoungeCards(listLoungeMemberships()));
+  }, []);
+
+  // Merge attachments + lounge cards into one sorted list.
+  const unified: UnifiedRow[] = useMemo(() => {
+    const attachments: UnifiedRow[] = items.map((it) => ({ kind: "attachment" as const, ...it }));
+    const lounge: UnifiedRow[] = loungeCards.map(membershipToRow);
+    return [...lounge, ...attachments].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }, [items, loungeCards]);
+
+  const classifyRow = (r: UnifiedRow): TravelCat =>
+    r.kind === "lounge-card" ? "lounge" : classify(r);
+
+  const counts = unified.reduce<Record<TravelCat, number>>(
+    (acc, it) => { acc.all += 1; acc[classifyRow(it)] += 1; return acc; },
     { all: 0, passport: 0, visa: 0, booking: 0, lounge: 0, insurance: 0, other: 0 },
   );
 
@@ -152,19 +208,28 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     toast.success("All pins cleared · تم إلغاء كل التثبيتات", { duration: 1400 });
   };
 
-  const matchesSearch = (it: TransportAttachment) => {
+  const matchesSearch = (it: UnifiedRow) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    return it.label.toLowerCase().includes(q) || it.file_name.toLowerCase().includes(q);
+    if (it.label.toLowerCase().includes(q) || it.file_name.toLowerCase().includes(q)) return true;
+    if (it.kind === "lounge-card") {
+      const m = it.membership;
+      return (
+        m.program.toLowerCase().includes(q) ||
+        m.cardholderName.toLowerCase().includes(q) ||
+        m.membershipNumber.toLowerCase().includes(q)
+      );
+    }
+    return false;
   };
-  const matchesCat = (it: TransportAttachment) => cat === "all" || classify(it) === cat;
+  const matchesCat = (it: UnifiedRow) => cat === "all" || classifyRow(it) === cat;
 
   // Pinned section: respects search, ignores category (so user always sees them)
   const pinnedItems = pinnedIds
-    .map((id) => items.find((it) => it.id === id))
-    .filter((it): it is TransportAttachment => !!it && matchesSearch(it));
+    .map((id) => unified.find((it) => it.id === id))
+    .filter((it): it is UnifiedRow => !!it && matchesSearch(it));
 
-  const filtered = items.filter((it) => matchesCat(it) && matchesSearch(it) && !pinnedIds.includes(it.id));
+  const filtered = unified.filter((it) => matchesCat(it) && matchesSearch(it) && !pinnedIds.includes(it.id));
 
   const openPreview = async (item: TransportAttachment) => {
     const { data, error } = await supabase.storage
@@ -278,9 +343,13 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     );
   }
 
-  const renderRow = (item: TransportAttachment, isPinned: boolean) => {
-    const itemCat = classify(item);
-    const isLounge = itemCat === "lounge";
+  const renderRow = (item: UnifiedRow, isPinned: boolean) => {
+    const isLounge = item.kind === "lounge-card";
+    const handleOpen = () => {
+      if (item.kind === "lounge-card") setQrTarget(item.membership);
+      else void openPreview(item);
+    };
+    const expMMYY = item.kind === "lounge-card" ? loungeExpMMYY(item.membership.expiresOn) : "";
     return (
       <div
         key={item.id}
@@ -291,14 +360,14 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
           boxShadow: isPinned ? "0 4px 14px rgba(197,150,90,0.18)" : "0 1px 6px rgba(0,0,0,0.04)",
         }}
       >
-        <button onClick={() => openPreview(item)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+        <button onClick={handleOpen} className="flex items-center gap-3 flex-1 min-w-0 text-left">
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: isLounge ? "rgba(45,138,158,0.12)" : "var(--gold-pale)" }}
           >
             {isLounge ? (
               <Sofa size={20} style={{ color: "var(--teal-deep)" }} />
-            ) : isImage(item.mime_type) ? (
+            ) : item.kind === "attachment" && isImage(item.mime_type) ? (
               <ImageIcon size={20} style={{ color: "var(--gold)" }} />
             ) : (
               <FileText size={20} style={{ color: "var(--gold)" }} />
@@ -308,14 +377,24 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
             <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
               <Highlight text={item.label} query={searchQuery} />
             </p>
-            <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
+            <p className="text-[11px] truncate font-mono" style={{ color: "var(--gray)" }}>
               <Highlight text={item.file_name} query={searchQuery} />
             </p>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               {isLounge ? (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(45,138,158,0.14)", color: "var(--teal-deep)" }}>
-                  <Sofa size={9} /> Lounge
-                </span>
+                <>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(45,138,158,0.14)", color: "var(--teal-deep)" }}>
+                    <Sofa size={9} /> Lounge Card · <span className="font-arabic">بطاقة صالة</span>
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(197,150,90,0.14)", color: "var(--gold)" }}>
+                    <ScanLine size={9} /> QR
+                  </span>
+                  {expMMYY && (
+                    <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
+                      Exp {expMMYY}
+                    </span>
+                  )}
+                </>
               ) : (
                 <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(197,150,90,0.12)", color: "var(--gold)" }}>
                   <Plane size={9} /> Travel
@@ -324,7 +403,7 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
               <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
                 {new Date(item.created_at).toLocaleDateString()}
               </span>
-              {item.size_bytes && (
+              {item.kind === "attachment" && item.size_bytes && (
                 <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
                   · {(item.size_bytes / 1024).toFixed(0)} KB
                 </span>
@@ -475,12 +554,81 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
         open={!!menuItem}
         target={menuItem ? { id: menuItem.id, name: menuItem.label, subtitle: menuItem.file_name, mutable: true } : null}
         onClose={() => setMenuItem(null)}
-        onPreview={() => menuItem && openPreview(menuItem)}
-        onRename={(newName) => menuItem && renameItem(menuItem, newName)}
-        onShare={() => menuItem && shareItem(menuItem)}
-        onApplyToMilestone={(m) => menuItem && applyToMilestone(menuItem, m)}
-        onDelete={() => menuItem && deleteItem(menuItem)}
+        onPreview={() => {
+          if (!menuItem) return;
+          if (menuItem.kind === "lounge-card") setQrTarget(menuItem.membership);
+          else void openPreview(menuItem);
+        }}
+        onRename={
+          menuItem && menuItem.kind === "attachment"
+            ? (newName) => renameItem(menuItem, newName)
+            : undefined
+        }
+        onShare={
+          menuItem && menuItem.kind === "attachment"
+            ? () => shareItem(menuItem)
+            : undefined
+        }
+        onApplyToMilestone={
+          menuItem && menuItem.kind === "attachment"
+            ? (m) => applyToMilestone(menuItem, m)
+            : undefined
+        }
+        onDelete={() => {
+          if (!menuItem) return;
+          if (menuItem.kind === "lounge-card") {
+            deleteLoungeMembership(menuItem.membership.id);
+            toast.success("Lounge card removed · تم الحذف", { duration: 1400 });
+          } else {
+            void deleteItem(menuItem);
+          }
+        }}
       />
+
+      {qrTarget && (
+        <div
+          className="fixed inset-0 z-[110] flex items-end justify-center"
+          style={{ background: "rgba(15,23,42,0.6)" }}
+          onClick={() => setQrTarget(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[420px] rounded-t-3xl p-5 animate-slide-up"
+            style={{ background: "var(--white)", boxShadow: "0 -8px 32px rgba(0,0,0,0.25)" }}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--gray-light)" }} />
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>{qrTarget.program}</p>
+                <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>
+                  اعرض الرمز لموظف الصالة للمسح
+                </p>
+              </div>
+              <button
+                onClick={() => setQrTarget(null)}
+                aria-label="Close"
+                className="flex h-7 w-7 items-center justify-center rounded-full"
+                style={{ background: "var(--off-white)", color: "var(--navy)" }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="rounded-2xl p-5 flex flex-col items-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+              <div className="rounded-xl bg-white p-3" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
+                <QRCodeSVG value={qrTarget.membershipNumber} size={196} level="M" includeMargin={false} />
+              </div>
+              <p className="mt-3 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
+                {qrTarget.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
+              </p>
+              <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>{qrTarget.cardholderName}</p>
+              <div className="mt-2 flex gap-3 text-[10px]" style={{ color: "var(--gray)" }}>
+                {qrTarget.cardLast4 && <span>Linked card •••• {qrTarget.cardLast4}</span>}
+                {loungeExpMMYY(qrTarget.expiresOn) && <span>Exp {loungeExpMMYY(qrTarget.expiresOn)}</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
