@@ -312,7 +312,12 @@ const NotificationCenter = ({
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-accent/30 bg-accent/10 text-accent">
                 <Bell size={30} />
               </div>
-              {categoryFilter !== "all" && tab !== "chats" ? (
+              {isHistory ? (
+                <>
+                  {showEn && <p className="font-display text-[22px] leading-tight text-card-foreground">No past notifications yet</p>}
+                  {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد إشعارات سابقة</p>}
+                </>
+              ) : categoryFilter !== "all" && tab !== "chats" ? (
                 <>
                   {showEn && <p className="font-display text-[22px] leading-tight text-card-foreground">No {activeCategory.en.toLowerCase()} notifications</p>}
                   {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد تنبيهات في {activeCategory.ar}</p>}
