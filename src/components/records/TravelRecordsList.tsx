@@ -11,6 +11,7 @@ import {
   listLoungeMemberships,
   subscribeLoungeMemberships,
   deleteLoungeMembership,
+  fetchLoungeMemberships,
   type LoungeMembership,
 } from "@/lib/loungeMemberships";
 
@@ -160,7 +161,7 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
 
   // Lounge memberships live in localStorage — subscribe for real-time updates.
   useEffect(() => {
-    setLoungeCards(listLoungeMemberships());
+    void fetchLoungeMemberships().then(() => setLoungeCards(listLoungeMemberships()));
     return subscribeLoungeMemberships(() => setLoungeCards(listLoungeMemberships()));
   }, []);
 
