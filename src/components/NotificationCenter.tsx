@@ -16,7 +16,7 @@ interface Props {
   onOpenChange?: (open: boolean) => void;
 }
 
-type Tab = "all" | "chats" | "alerts";
+type Tab = "all" | "chats" | "alerts" | "history";
 type Category = "all" | "appointments" | "meds" | "care" | "billing";
 
 const CATEGORY_KINDS: Record<Exclude<Category, "all">, string[]> = {
@@ -81,8 +81,19 @@ const NotificationCenter = ({
     categoryFilter === "all"
       ? allowedAlerts
       : allowedAlerts.filter((n) => CATEGORY_KINDS[categoryFilter].includes(n.kind));
-  const displayedAlerts = tab === "chats" ? [] : filteredAlerts;
-  const displayedThreads = tab === "alerts" ? [] : unreadThreads;
+  const historyAlerts = [...filteredAlerts]
+    .filter((n) => n.is_read)
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .slice(0, 50);
+  const historyThreads = prefs.chats === false
+    ? []
+    : [...threads]
+        .sort((a, b) => Date.parse(b.last_message_at) - Date.parse(a.last_message_at))
+        .slice(0, 30);
+  const displayedAlerts =
+    tab === "chats" ? [] : tab === "history" ? historyAlerts : filteredAlerts;
+  const displayedThreads =
+    tab === "alerts" ? [] : tab === "history" ? historyThreads : unreadThreads;
   const filteredUnreadCount = filteredAlerts.filter((n) => !n.is_read).length;
   const markFilteredRead = () => {
     if (categoryFilter === "all") {
@@ -97,6 +108,7 @@ const NotificationCenter = ({
     });
   };
   const showCategoryRow = tab !== "chats";
+  const isHistory = tab === "history";
   const activeCategory = CATEGORY_META.find((c) => c.id === categoryFilter)!;
 
   // Bilingual labels for the prefs panel; mirrors CATEGORY_META plus chats.
@@ -173,10 +185,19 @@ const NotificationCenter = ({
           </div>
 
           <div className="relative mt-5 flex gap-2 overflow-x-auto no-scrollbar">
-            {(["all", "chats", "alerts"] as Tab[]).map((tabName) => {
-              const count = tabName === "all" ? totalUnread : tabName === "chats" ? allowedChatUnread : visibleAlertUnread;
-              const labelEn = tabName === "all" ? "All" : tabName === "chats" ? "Messages" : "Alerts";
-              const labelAr = tabName === "all" ? "الكل" : tabName === "chats" ? "الرسائل" : "التنبيهات";
+            {(["all", "chats", "alerts", "history"] as Tab[]).map((tabName) => {
+              const count =
+                tabName === "all"
+                  ? totalUnread
+                  : tabName === "chats"
+                  ? allowedChatUnread
+                  : tabName === "alerts"
+                  ? visibleAlertUnread
+                  : 0;
+              const labelEn =
+                tabName === "all" ? "All" : tabName === "chats" ? "Messages" : tabName === "alerts" ? "Alerts" : "History";
+              const labelAr =
+                tabName === "all" ? "الكل" : tabName === "chats" ? "الرسائل" : tabName === "alerts" ? "التنبيهات" : "السجل";
               const isActive = tab === tabName;
               return (
                 <button
@@ -190,7 +211,7 @@ const NotificationCenter = ({
                   }}
                 >
                   <span>{showAr && !showEn ? labelAr : labelEn}</span>
-                  {count > 0 && (
+                  {count > 0 && tabName !== "history" && (
                     <span className="min-w-4 rounded-full bg-destructive px-1.5 text-center text-[9px] font-bold text-destructive-foreground">
                       {count > 9 ? "9+" : count}
                     </span>
@@ -198,7 +219,7 @@ const NotificationCenter = ({
                 </button>
               );
             })}
-            {filteredUnreadCount > 0 && tab !== "chats" && (
+            {filteredUnreadCount > 0 && tab !== "chats" && tab !== "history" && (
               <button onClick={markFilteredRead} className="ml-auto shrink-0 rounded-full border border-primary-foreground/30 bg-primary-foreground/15 px-3 py-2 text-[11px] font-semibold text-primary-foreground">
                 {showAr && !showEn ? `تعليم ${filteredUnreadCount} كمقروء` : `Mark ${filteredUnreadCount} read`}
               </button>
@@ -291,7 +312,12 @@ const NotificationCenter = ({
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-accent/30 bg-accent/10 text-accent">
                 <Bell size={30} />
               </div>
-              {categoryFilter !== "all" && tab !== "chats" ? (
+              {isHistory ? (
+                <>
+                  {showEn && <p className="font-display text-[22px] leading-tight text-card-foreground">No past notifications yet</p>}
+                  {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد إشعارات سابقة</p>}
+                </>
+              ) : categoryFilter !== "all" && tab !== "chats" ? (
                 <>
                   {showEn && <p className="font-display text-[22px] leading-tight text-card-foreground">No {activeCategory.en.toLowerCase()} notifications</p>}
                   {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد تنبيهات في {activeCategory.ar}</p>}
@@ -324,17 +350,23 @@ const NotificationCenter = ({
                   onOpenThread?.(thread.id);
                   setOpen(false);
                 }}
-                className="flex w-full items-start gap-3 rounded-2xl border border-primary/20 bg-primary/10 p-3 text-left transition active:scale-[0.99]"
+                className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+                  isHistory ? "border-border bg-muted/35" : "border-primary/20 bg-primary/10"
+                }`}
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  isHistory ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground"
+                }`}>
                   <MessageCircle size={17} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-semibold text-card-foreground">{otherDisplay}</p>
-                    <span className="min-w-[18px] rounded-full bg-destructive px-1.5 text-center text-[10px] font-bold text-destructive-foreground">
-                      {count > 9 ? "9+" : count}
-                    </span>
+                    {!isHistory && count > 0 && (
+                      <span className="min-w-[18px] rounded-full bg-destructive px-1.5 text-center text-[10px] font-bold text-destructive-foreground">
+                        {count > 9 ? "9+" : count}
+                      </span>
+                    )}
                   </div>
                   {thread.last_message_preview && (
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">{thread.last_message_preview}</p>

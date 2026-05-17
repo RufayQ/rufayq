@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
+import NotificationCenter from "@/components/NotificationCenter";
 import { Copy, Share2, Download, RefreshCw, Plus, Video, MapPin, Building2, Edit3, Settings as SettingsIcon, HelpCircle, CreditCard, Wallet, Archive, CalendarClock, LogOut } from "lucide-react";
 import { defaultTransportSegments, appointments, type Appointment, type JourneyStep } from "@/constants/data";
 import { useJourneys } from "@/hooks/useJourneys";
@@ -884,7 +885,10 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
             <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Treatment Journey</p>
             <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>خريطة رحلتك العلاجية</p>
           </div>
-          <HeaderMenu items={journeyMenuItems} />
+          <div className="flex items-center gap-2">
+            <NotificationCenter color="#fff" onNavigate={(link) => onNavigate?.(link)} />
+            <HeaderMenu items={journeyMenuItems} />
+          </div>
         </div>
         <div className="mt-3 rounded-lg px-3.5 py-2.5" style={{ background: "rgba(255,255,255,0.08)" }}>
           <div className="flex items-center gap-3">
