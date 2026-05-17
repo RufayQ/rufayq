@@ -32,6 +32,13 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
     threads.length,
   ]);
 
+  // Roving tabindex state for arrow-key navigation across rows. Only the
+  // active row (and its avatar button) participates in the tab sequence;
+  // the rest are tabIndex={-1} so Tab jumps past the whole list at once.
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const avatarRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
   const filtered = useMemo(() => {
     return threads.filter((t) => {
       if (tab === "ai" && t.kind !== "ai") return false;
