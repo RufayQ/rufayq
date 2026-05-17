@@ -34,6 +34,7 @@ export async function resolveContact(
   const otherDeviceId = other?.device_id ?? null;
   let name = other?.display_name ?? "";
   let nameAr: string | null = null;
+  let rufayqId: string | null = null;
   let avatarUrl: string | null = null;
   let source: ResolvedContact["source"] = "initials";
 
@@ -46,6 +47,7 @@ export async function resolveContact(
     if (profile) {
       if (!name) name = profile.full_name_en ?? profile.rufayq_id ?? "";
       nameAr = profile.full_name_ar ?? null;
+      rufayqId = profile.rufayq_id ?? null;
       if (profile.avatar_url) {
         avatarUrl = profile.avatar_url;
         source = "upload";
@@ -57,7 +59,59 @@ export async function resolveContact(
   }
 
   if (!name) name = kind === "provider" ? "Care provider" : "Conversation";
-  const initials = name.trim().slice(0, 1).toUpperCase() || "?";
+  const initials = computeInitials(name, nameAr, rufayqId, otherDeviceId);
 
   return { name, nameAr, avatarUrl, initials, source, otherDeviceId };
+}
+
+/**
+ * Always returns 1–2 readable letters for a direct-chat avatar fallback.
+ * Tries: first+last word of EN name → Arabic name → rufayq_id → device-id hash → "?".
+ * Strips emoji, digits and punctuation so we don't render junk inside the circle.
+ */
+function computeInitials(
+  name: string,
+  nameAr: string | null,
+  rufayqId: string | null,
+  deviceId: string | null,
+): string {
+  // Letter = any Unicode letter (Latin, Arabic, etc.)
+  const LETTER = /\p{L}/u;
+  const cleanWords = (s: string) =>
+    s
+      .normalize("NFKD")
+      .split(/[\s._\-]+/)
+      .map((w) => w.replace(/[^\p{L}]/gu, ""))
+      .filter((w) => w.length > 0 && LETTER.test(w));
+
+  const fromWords = (s: string): string => {
+    const words = cleanWords(s);
+    if (words.length === 0) return "";
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  };
+
+  // Skip generic placeholders so we fall through to better sources.
+  const GENERIC = new Set(["conversation", "careprovider", "care provider", "user", "unknown"]);
+  if (name && !GENERIC.has(name.trim().toLowerCase())) {
+    const ini = fromWords(name);
+    if (ini) return ini;
+  }
+  if (nameAr) {
+    const ini = fromWords(nameAr);
+    if (ini) return ini;
+  }
+  if (rufayqId) {
+    const letters = rufayqId.replace(/[^\p{L}]/gu, "");
+    if (letters) return letters.slice(0, 2).toUpperCase();
+    const alnum = rufayqId.replace(/[^\p{L}\p{N}]/gu, "");
+    if (alnum) return alnum.slice(0, 2).toUpperCase();
+  }
+  if (deviceId) {
+    const hex = deviceId.replace(/[^a-zA-Z0-9]/g, "");
+    if (hex) return hex.slice(0, 2).toUpperCase();
+  }
+  // Last resort: use the first char of the (generic) name if any, else "?".
+  const fallback = fromWords(name);
+  return fallback || "?";
 }
