@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical } from "lucide-react";
+import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, PinOff, Sofa } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
@@ -9,13 +9,14 @@ import RecordActionsSheet from "@/components/records/RecordActionsSheet";
 const BUCKET = "transport-attachments";
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
 
-type TravelCat = "all" | "passport" | "visa" | "booking" | "insurance" | "other";
+type TravelCat = "all" | "passport" | "visa" | "booking" | "insurance" | "lounge" | "other";
 
 const CAT_DEFS: { key: TravelCat; en: string; ar: string }[] = [
   { key: "all",       en: "All",       ar: "الكل" },
   { key: "passport",  en: "Passport",  ar: "جواز" },
   { key: "visa",      en: "Visas",     ar: "تأشيرات" },
   { key: "booking",   en: "Bookings",  ar: "حجوزات" },
+  { key: "lounge",    en: "Lounge",    ar: "صالة" },
   { key: "insurance", en: "Insurance", ar: "تأمين" },
   { key: "other",     en: "Other",     ar: "أخرى" },
 ];
@@ -24,9 +25,27 @@ const classify = (it: { label: string; file_name: string }): TravelCat => {
   const s = `${it.label} ${it.file_name}`.toLowerCase();
   if (/(passport|iqama|id\b|جواز|هوية|إقامة)/.test(s)) return "passport";
   if (/(visa|تأشير|فيزا)/.test(s)) return "visa";
+  if (/(lounge|dragonpass|priority\s*pass|loungekey|loungebuddy|صالة|لاونج)/.test(s)) return "lounge";
   if (/(hotel|booking|reservation|ticket|flight|boarding|itinerary|فندق|حجز|تذكر|طيران)/.test(s)) return "booking";
   if (/(insur|تأمين|policy|بوليصة)/.test(s)) return "insurance";
   return "other";
+};
+
+const PIN_KEY = "rufayq_travel_pinned_ids";
+const MAX_PINS = 2;
+
+const readPins = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(PIN_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.slice(0, MAX_PINS) : [];
+  } catch { return []; }
+};
+const writePins = (ids: string[]) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PIN_KEY, JSON.stringify(ids.slice(0, MAX_PINS)));
 };
 
 // Split text into segments with matches wrapped, for inline highlighting.
