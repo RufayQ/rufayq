@@ -160,13 +160,23 @@ function timeLabel(iso: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function ThreadAvatar({ kind, persona }: { kind: ChatThreadRow["kind"]; persona: string | null }) {
+function ThreadAvatar({ threadId, kind, persona }: { threadId: string; kind: ChatThreadRow["kind"]; persona: string | null }) {
+  const contact = useResolvedContact(kind === "direct" ? threadId : null, "direct");
   const bg = kind === "ai" ? "var(--navy)" : kind === "provider" ? "var(--teal-deep)" : "var(--teal-light)";
   const fg = kind === "direct" ? "var(--teal-deep)" : "#fff";
   const emoji = kind === "ai" ? (persona === "shopping" ? "🛍️" : persona === "tour" ? "🗺️" : "🩺") : null;
+  const renderDirect = () => {
+    if (contact?.avatarUrl) {
+      return <img src={contact.avatarUrl} alt={contact.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />;
+    }
+    if (contact?.initials) {
+      return <span className="text-[15px] font-bold" style={{ fontFamily: "'DM Sans'" }}>{contact.initials}</span>;
+    }
+    return <User size={18} />;
+  };
   return (
-    <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: bg, color: fg, border: kind === "ai" ? "2px solid var(--gold)" : "none" }}>
-      {kind === "ai" ? <span className="text-lg">{emoji}</span> : kind === "provider" ? <Stethoscope size={18} /> : <User size={18} />}
+    <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 overflow-hidden" style={{ background: bg, color: fg, border: kind === "ai" ? "2px solid var(--gold)" : "none" }}>
+      {kind === "ai" ? <span className="text-lg">{emoji}</span> : kind === "provider" ? <Stethoscope size={18} /> : renderDirect()}
     </div>
   );
 }
