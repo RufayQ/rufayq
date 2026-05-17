@@ -146,6 +146,12 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     });
   };
 
+  const clearAllPins = () => {
+    setPinnedIds([]);
+    writePins([]);
+    toast.success("All pins cleared · تم إلغاء كل التثبيتات", { duration: 1400 });
+  };
+
   const matchesSearch = (it: TransportAttachment) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
