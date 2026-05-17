@@ -207,7 +207,11 @@ run_row() {
 
   local category="n/a"
   if [ "$status" = "FAIL" ]; then
-    category=$(classify_logcat "$lc_path")
+    if [ "$post_splash" = "1" ] && [ "$react_marker" = "yes" ]; then
+      category="REACT RENDERED BLANK / STARTUP UI FAILURE"
+    else
+      category=$(classify_logcat "$lc_path")
+    fi
   fi
 
   if [ "$status" = "PASS" ]; then ok "row $n PASS"
