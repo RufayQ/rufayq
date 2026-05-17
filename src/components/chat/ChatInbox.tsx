@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Plus, Sparkles, Stethoscope, User, X, ChevronRight, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +32,13 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
     threads.length,
   ]);
 
+  // Roving tabindex state for arrow-key navigation across rows. Only the
+  // active row (and its avatar button) participates in the tab sequence;
+  // the rest are tabIndex={-1} so Tab jumps past the whole list at once.
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const avatarRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
   const filtered = useMemo(() => {
     return threads.filter((t) => {
       if (tab === "ai" && t.kind !== "ai") return false;
@@ -51,6 +58,61 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
     if (t.kind === "provider") return t.title ?? "Care provider";
     const others = (participants[t.id] ?? []).filter((p) => p.device_id !== me);
     return others[0]?.display_name ?? "Conversation";
+  };
+
+  // Clamp focusedIndex when the filtered list shrinks (tab switch, search).
+  useEffect(() => {
+    if (focusedIndex >= filtered.length) {
+      setFocusedIndex(Math.max(0, filtered.length - 1));
+    }
+  }, [filtered.length, focusedIndex]);
+
+  // Reset to the top when the user changes tab or types in the filter —
+  // otherwise focusedIndex points at a row that's no longer at that slot.
+  useEffect(() => {
+    setFocusedIndex(0);
+  }, [tab, q]);
+
+  const moveFocusTo = (next: number) => {
+    if (filtered.length === 0) return;
+    const clamped = (next + filtered.length) % filtered.length; // wrap
+    setFocusedIndex(clamped);
+    // Defer focus so the new tabIndex={0} has been applied.
+    requestAnimationFrame(() => {
+      const el = rowRefs.current[clamped];
+      if (el) {
+        el.focus();
+        try { el.scrollIntoView({ block: "nearest" }); } catch { /* ignore */ }
+      }
+    });
+  };
+
+  const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    // Only handle when focus is inside one of our managed rows/avatars.
+    if (!target.closest("[data-row-index]")) return;
+    switch (e.key) {
+      case "ArrowDown": e.preventDefault(); moveFocusTo(focusedIndex + 1); break;
+      case "ArrowUp":   e.preventDefault(); moveFocusTo(focusedIndex - 1); break;
+      case "Home":      e.preventDefault(); moveFocusTo(0); break;
+      case "End":       e.preventDefault(); moveFocusTo(filtered.length - 1); break;
+      case "ArrowRight": {
+        // From row → enter the avatar button (gold-ring profile shortcut).
+        if (target === rowRefs.current[focusedIndex]) {
+          const av = avatarRefs.current[focusedIndex];
+          if (av) { e.preventDefault(); av.focus(); }
+        }
+        break;
+      }
+      case "ArrowLeft": {
+        // From avatar → back out to the row.
+        if (target === avatarRefs.current[focusedIndex]) {
+          e.preventDefault();
+          rowRefs.current[focusedIndex]?.focus();
+        }
+        break;
+      }
+    }
   };
 
   return (
@@ -112,29 +174,40 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
       </div>
 
       {/* List */}
-      <div ref={inboxFocus.containerRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
+      <div
+        ref={inboxFocus.containerRef}
+        role="list"
+        aria-label="Conversations"
+        onKeyDown={handleListKeyDown}
+        className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5"
+      >
         {loading && <p className="text-center text-[12px] mt-6" style={{ color: "var(--gray)" }}>Loading…</p>}
         {!loading && filtered.length === 0 && (
           <EmptyState onNewAi={onNewAi} onSearch={() => setNewSheet("people")} onCare={() => setNewSheet("care")} />
         )}
-        {filtered.map((t) => {
+        {filtered.map((t, i) => {
           const unread = unreadByThread[t.id] ?? 0;
           const rowKey = `row:${t.id}`;
           const avatarKey = `avatar:${t.id}`;
+          const isActive = i === focusedIndex;
           return (
           // Row is a div+role="button" (NOT a <button>) so the inner avatar
           // <button> for "Open profile" is valid HTML and gets its own focus
-          // ring + screen-reader name.
+          // ring + screen-reader name. Roving tabindex: only the active row
+          // tabIndex={0}; others -1 so Tab skips past the list.
           <div
             key={t.id}
-            role="button"
-            tabIndex={0}
+            ref={(el) => { rowRefs.current[i] = el; }}
+            role="listitem"
+            data-row-index={i}
+            tabIndex={isActive ? 0 : -1}
             // Pin the row to LTR so the flex order (avatar → text → meta)
             // never mirrors, even if a future ancestor goes RTL. Inner text
             // blocks still use dir="auto" to read each name in its own script.
             dir="ltr"
             data-focus-key={rowKey}
             onClick={() => { inboxFocus.remember(rowKey); onOpenThread(t); }}
+            onFocus={() => setFocusedIndex(i)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
@@ -143,14 +216,19 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
               }
             }}
             aria-label={`Open conversation with ${labelFor(t)}`}
+            aria-posinset={i + 1}
+            aria-setsize={filtered.length}
             className="w-full text-left rounded-2xl px-3 py-3 flex items-center gap-3 btn-press cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
             style={{ background: "var(--white)", border: "1px solid var(--gray-light)", ["--tw-ring-color" as string]: "var(--teal-deep)" }}
           >
             {onOpenProfile && t.kind !== "ai" ? (
               <button
                 type="button"
+                ref={(el) => { avatarRefs.current[i] = el; }}
                 data-focus-key={avatarKey}
+                tabIndex={isActive ? 0 : -1}
                 onClick={(e) => { e.stopPropagation(); inboxFocus.remember(avatarKey); onOpenProfile(t); }}
+                onFocus={() => setFocusedIndex(i)}
                 onKeyDown={(e) => {
                   // Stop Enter/Space from also triggering the parent row.
                   if (e.key === "Enter" || e.key === " ") {
