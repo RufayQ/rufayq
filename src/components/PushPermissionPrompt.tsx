@@ -44,14 +44,14 @@ export default function PushPermissionPrompt({ onDeepLink }: Props) {
     if (res.ok) {
       toast.success("Notifications enabled · تم تفعيل التنبيهات");
       dismiss(true);
-    } else if (res.reason === "permission_denied") {
+      return;
+    }
+    if (res.reason === "permission_denied") {
       toast.error("Permission denied · تم رفض الإذن", {
         description: "You can enable it later from your device settings.",
       });
-      dismiss(false);
-    } else {
-      dismiss(false);
     }
+    dismiss(false);
   };
 
   return (
