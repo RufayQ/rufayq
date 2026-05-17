@@ -16,6 +16,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { syncGoogleLinkage } from "@/lib/auth/googleLink";
+import AppStartupFallback from "@/components/AppStartupFallback";
 
 type Status = "checking" | "allow" | "redirecting";
 
@@ -48,7 +49,10 @@ const hasGuestOk = () => {
 };
 
 const RouteFallback = () => (
-  <div style={{ minHeight: "100vh", background: "#06101A" }} />
+  <AppStartupFallback
+    message="Checking your session…"
+    messageAr="جارٍ التحقق من جلستك…"
+  />
 );
 
 const AppAuthGuard = ({ children }: Props) => {
