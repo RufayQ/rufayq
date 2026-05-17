@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, BellRing, MessageCircle, X } from "lucide-react";
+import { Bell, BellRing, Check, MessageCircle, X } from "lucide-react";
 import { usePatientNotifications } from "@/hooks/usePatientNotifications";
 import { useChatInbox } from "@/hooks/useChatInbox";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -128,8 +128,8 @@ const NotificationCenter = ({
               );
             })}
             {alertUnread > 0 && tab !== "chats" && (
-              <button onClick={markAllRead} className="ml-auto shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold text-primary-foreground/80 underline underline-offset-4">
-                {showAr && !showEn ? "تعليم الكل" : "Mark read"}
+              <button onClick={markAllRead} className="ml-auto shrink-0 rounded-full border border-primary-foreground/30 bg-primary-foreground/15 px-3 py-2 text-[11px] font-semibold text-primary-foreground">
+                {showAr && !showEn ? `تعليم ${alertUnread} كمقروء` : `Mark ${alertUnread} read`}
               </button>
             )}
           </div>
@@ -181,27 +181,42 @@ const NotificationCenter = ({
           })}
 
           {displayedAlerts.map((notification) => (
-            <button
+            <div
               key={`alert-${notification.id}`}
-              onClick={() => {
-                markRead(notification.id);
-                if (notification.link && onNavigate) onNavigate(notification.link);
-                setOpen(false);
-              }}
-              className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+              className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition ${
                 notification.is_read ? "border-border bg-muted/35" : "border-accent/30 bg-accent/10"
               }`}
             >
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${notification.is_read ? "bg-muted text-muted-foreground" : "bg-accent text-accent-foreground"}`}>
-                <BellRing size={17} />
-              </div>
-              <div className="min-w-0 flex-1">
-                {showEn && <p className="text-sm font-semibold text-card-foreground">{notification.title}</p>}
-                {showAr && notification.title_ar && <p className="mt-0.5 font-arabic text-xs text-accent" dir="rtl">{notification.title_ar}</p>}
-                {notification.body && <p className="mt-1 text-xs text-muted-foreground">{notification.body}</p>}
-                <p className="mt-1 text-[10px] text-muted-foreground">{new Date(notification.created_at).toLocaleString()}</p>
-              </div>
-            </button>
+              <button
+                onClick={() => {
+                  if (!notification.is_read) markRead(notification.id);
+                  if (notification.link && onNavigate) {
+                    onNavigate(notification.link);
+                    setOpen(false);
+                  }
+                }}
+                className="flex flex-1 items-start gap-3 text-left active:scale-[0.99]"
+              >
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${notification.is_read ? "bg-muted text-muted-foreground" : "bg-accent text-accent-foreground"}`}>
+                  <BellRing size={17} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  {showEn && <p className="text-sm font-semibold text-card-foreground">{notification.title}</p>}
+                  {showAr && notification.title_ar && <p className="mt-0.5 font-arabic text-xs text-accent" dir="rtl">{notification.title_ar}</p>}
+                  {notification.body && <p className="mt-1 text-xs text-muted-foreground">{notification.body}</p>}
+                  <p className="mt-1 text-[10px] text-muted-foreground">{new Date(notification.created_at).toLocaleString()}</p>
+                </div>
+              </button>
+              {!notification.is_read && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); markRead(notification.id); }}
+                  aria-label="Mark as read · تعليم كمقروء"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-accent/40 bg-accent/15 text-accent active:scale-95"
+                >
+                  <Check size={15} />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </div>
