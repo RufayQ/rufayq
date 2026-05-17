@@ -121,10 +121,18 @@ stop_logcat() {
   wait "$1" 2>/dev/null || true
 }
 
+# Inspect RufayQ startup markers emitted by the React boot path.
+has_marker() {
+  local marker="$1" lc="$2"
+  grep -qF "$marker" "$lc"
+}
+
 # Inspect a logcat slice and emit a single likely-cause category.
 classify_logcat() {
   local lc="$1"
-  if   grep -qiE 'ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION|net::ERR_|net::ERR_FAILED|WebViewClient.*error' "$lc"; then
+  if   ! has_marker '[RufayqStartup] React mounted' "$lc"; then
+    echo "JS DID NOT REACH REACT BOOT"
+  elif grep -qiE 'ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION|net::ERR_|net::ERR_FAILED|WebViewClient.*error' "$lc"; then
     echo "LIKELY NETWORK / REMOTE URL LOAD FAILURE"
   elif grep -qiE 'ChunkLoadError|Loading chunk [0-9]+ failed|Failed to fetch dynamically imported module|Unexpected token|SyntaxError|ReferenceError' "$lc"; then
     echo "LIKELY JS / CHUNK LOAD FAILURE"
@@ -135,7 +143,7 @@ classify_logcat() {
   elif grep -qiE 'OutOfMemoryError|lowmemorykiller|lmkd.*kill|Low on memory|onTrimMemory.*(CRITICAL|MODERATE)|Background concurrent .*GC freed' "$lc"; then
     echo "POSSIBLE MEMORY PRESSURE"
   else
-    echo "UNKNOWN: no clear indicator found"
+    echo "REACT RENDERED BLANK / STARTUP UI FAILURE"
   fi
 }
 
