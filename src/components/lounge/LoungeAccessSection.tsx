@@ -8,6 +8,7 @@ import {
   saveLoungeMembership,
   deleteLoungeMembership,
   subscribeLoungeMemberships,
+  fetchLoungeMemberships,
   type LoungeMembership,
 } from "@/lib/loungeMemberships";
 
