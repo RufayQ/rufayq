@@ -37,6 +37,10 @@ bun run build
 
 echo "▶ syncing capacitor"
 # Strip dev-only server.url before sync so the AAB ships bundled assets.
+# This script ALWAYS produces a BUNDLED / OFFLINE build (loads dist/ via file://).
+# For a REMOTE URL build (loads https://rufayq.com), do not run this script —
+# instead run `npx cap sync android` directly with the unmodified config and
+# build the APK from Android Studio.
 node -e "
   const fs=require('fs');
   const p='capacitor.config.ts';
@@ -47,6 +51,7 @@ node -e "
 "
 trap 'mv capacitor.config.ts.bak capacitor.config.ts 2>/dev/null || true' EXIT
 
+echo "  ↳ build mode: BUNDLED (server block stripped, app will load dist/ via file://)"
 npx cap sync android
 
 echo "▶ gradle :bundleRelease"
