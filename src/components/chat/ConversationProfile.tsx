@@ -145,6 +145,7 @@ export default function ConversationProfile({ threadId, title, kind, onBack }: P
           </div>
           <p
             className="text-[20px] font-bold text-white text-center"
+            dir="auto"
             style={{ fontFamily: "'DM Sans'", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
           >
             {displayName}
