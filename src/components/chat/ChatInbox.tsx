@@ -406,7 +406,7 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
         </div>
       </div>
 
-      <div className="mt-3 space-y-1.5">
+      <div ref={peopleFocus.containerRef} className="mt-3 space-y-1.5">
         {searched && !busy && results.length === 0 && (
           <p className="text-center text-[12px] py-4" style={{ color: "var(--gray)" }}>
             No discoverable user found · لم يتم العثور على مستخدم
@@ -426,7 +426,8 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
           return (
           <button
             key={r.device_id}
-            onClick={() => start(r.device_id)}
+            data-focus-key={r.device_id}
+            onClick={() => { peopleFocus.remember(r.device_id); start(r.device_id); }}
             // Row pinned LTR so avatar → name → chevron never mirrors.
             // The name <p> uses dir="auto" so Arabic names still read RTL
             // inside their truncation box.
