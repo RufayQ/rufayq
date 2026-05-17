@@ -10,11 +10,13 @@ type Tab = "all" | "ai" | "care" | "people";
 
 interface Props {
   onOpenThread: (thread: ChatThreadRow) => void;
+  /** Optional: tap an inbox avatar to open its contact profile directly. */
+  onOpenProfile?: (thread: ChatThreadRow) => void;
   onNewAi: () => void;
 }
 
 /** Conversation inbox: AI, care providers, and people. */
-export default function ChatInbox({ onOpenThread, onNewAi }: Props) {
+export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Props) {
   const { threads, participants, unreadByThread, loading, reload } = useChatInbox();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
