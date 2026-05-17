@@ -16,28 +16,49 @@ out app" symptom — they fail in different ways.
 - Useful for: hot-reload during development, quick QA of the live web app.
 - Do **NOT** ship to Play Store in this mode (review risk + offline failure).
 
-How to build it manually:
+**Critical caveat:** before installing this APK on a device, the fixed React
+code MUST be published to `https://rufayq.com`. The Lovable preview URL
+showing `[RufayqStartup] React mounted` does NOT prove the device WebView is
+running the new code — it is loading whatever is live at rufayq.com.
+
+How to build an installable APK in remote mode:
 
 ```bash
-npx cap sync android
-# open android/ in Android Studio and Run → app
+MODE=remote ./scripts/build-android-apk.sh
+# → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## 2. Bundled / offline mode (store releases)
+> ⚠️  `npx cap sync android` by itself does NOT produce an APK. It only copies
+> web assets + plugins into the Android project. You still need Gradle
+> (`./gradlew assembleDebug`) or Android Studio to assemble the APK. The
+> script above wraps that.
+
+## 2. Bundled / offline mode (store releases & local fix verification)
 
 - The `server` block is stripped before `npx cap sync android`.
 - WebView loads bundled `dist/` assets via `file://`.
 - Works offline (subject to the app's own offline cache layer).
 - Required for Google Play submission.
+- **Recommended for verifying any startup/splash fix** — the JS that runs is
+  the JS in the APK, with no dependency on what rufayq.com is currently
+  serving.
 
-How to build it:
+How to build an installable APK in bundled mode (for local device tests):
 
 ```bash
-scripts/build-android.sh
+./scripts/build-android-apk.sh          # MODE=bundled is the default
+# → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-This script prints `build mode: BUNDLED` during the sync step and restores the
-original `capacitor.config.ts` on exit.
+How to build a release AAB for Google Play submission:
+
+```bash
+./scripts/build-android.sh
+# → android/app/build/outputs/bundle/release/app-release.aab
+```
+
+Note: `app-release.aab` is **not** directly installable via `adb install`.
+Use the APK script above for device smoke tests.
 
 ## How to tell which mode an installed APK is in
 
