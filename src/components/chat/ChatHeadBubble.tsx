@@ -30,6 +30,16 @@ export default function ChatHeadBubble({ suppressThreadId, onOpenThread }: Props
   // Close menu when active thread changes
   useEffect(() => { setMenuOpen(false); }, [active?.id]);
 
+  // Resolver gives us Unicode-aware initials + uploaded/google avatar for
+  // direct chats. MUST be called unconditionally (before any early return)
+  // to satisfy React's rules of hooks — otherwise the hook count changes
+  // between renders and React throws minified error #310 in production,
+  // which AppErrorBoundary catches as "We hit a startup error".
+  const resolved = useResolvedContact(
+    active?.kind === "direct" ? active.id : null,
+    "direct",
+  );
+
   // Broadcast bubble visibility so the heads-up overlay can suppress
   // duplicate cards for the same thread (Option C coexistence).
   useEffect(() => {
