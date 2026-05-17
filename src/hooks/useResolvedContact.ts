@@ -1,8 +1,93 @@
 import { useEffect, useState } from "react";
 import { resolveContact, type ResolvedContact } from "@/lib/contactResolver";
+import { supabase } from "@/integrations/supabase/client";
 
-// Tiny in-memory cache so scrolling the inbox doesn't refetch per row.
-const cache = new Map<string, ResolvedContact>();
+// ---------------------------------------------------------------------------
+// In-memory cache with TTL + realtime invalidation
+// ---------------------------------------------------------------------------
+// Why: scrolling the inbox shouldn't refetch per row, but profile photos /
+// display names DO change mid-session (user uploads avatar, links Google,
+// edits name). Without invalidation those rows show stale data for the rest
+// of the session.
+//
+// Strategy:
+//   1. Each entry has a fetched-at timestamp; reads older than TTL re-resolve.
+//   2. Subscribers (the hook) can be notified to refetch via a version bump.
+//   3. A single realtime channel watches public.profiles UPDATEs and drops
+//      every cache entry whose otherDeviceId matches the changed row.
+//   4. invalidateContactCache(threadId?) is exported for manual busting
+//      (e.g. after the current user edits their own profile, or for tests).
+
+type Entry = { contact: ResolvedContact; fetchedAt: number };
+
+const TTL_MS = 5 * 60 * 1000; // 5 minutes
+const cache = new Map<string, Entry>();
+const subscribers = new Set<() => void>();
+let realtimeStarted = false;
+
+function notify() {
+  subscribers.forEach((cb) => cb());
+}
+
+/** Drop one or all entries from the cache and re-render every active hook. */
+export function invalidateContactCache(threadId?: string) {
+  if (!threadId) {
+    cache.clear();
+  } else {
+    for (const key of cache.keys()) {
+      if (key.endsWith(`:${threadId}`)) cache.delete(key);
+    }
+  }
+  notify();
+}
+
+function dropByDeviceId(deviceId: string) {
+  let changed = false;
+  for (const [key, entry] of cache) {
+    if (entry.contact.otherDeviceId === deviceId) {
+      cache.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) notify();
+}
+
+function ensureRealtime() {
+  if (realtimeStarted) return;
+  realtimeStarted = true;
+  try {
+    supabase
+      .channel("resolved-contact-cache")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        (payload) => {
+          const next = (payload.new ?? {}) as { device_id?: string | null };
+          const prev = (payload.old ?? {}) as { device_id?: string | null };
+          const id = next.device_id ?? prev.device_id;
+          if (id) dropByDeviceId(id);
+        },
+      )
+      .subscribe();
+  } catch {
+    // Realtime isn't critical; TTL still keeps things fresh.
+    realtimeStarted = false;
+  }
+}
+
+function readCache(key: string): ResolvedContact | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.fetchedAt > TTL_MS) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.contact;
+}
+
+// ---------------------------------------------------------------------------
+// Hooks
+// ---------------------------------------------------------------------------
 
 /** React hook wrapper around resolveContact(). Re-runs when threadId or kind change. */
 export function useResolvedContact(
@@ -18,9 +103,21 @@ export function useResolvedContactState(
   kind: "direct" | "provider",
 ): { contact: ResolvedContact | null; loading: boolean } {
   const cacheKey = threadId && kind === "direct" ? `${kind}:${threadId}` : null;
-  const cached = cacheKey ? cache.get(cacheKey) ?? null : null;
+  const cached = cacheKey ? readCache(cacheKey) : null;
   const [contact, setContact] = useState<ResolvedContact | null>(cached);
   const [loading, setLoading] = useState<boolean>(!!cacheKey && !cached);
+  // Bump on cache invalidation so the effect below re-runs and refetches.
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    ensureRealtime();
+    const cb = () => setVersion((v) => v + 1);
+    subscribers.add(cb);
+    return () => {
+      subscribers.delete(cb);
+    };
+  }, []);
+
   useEffect(() => {
     if (!threadId || kind !== "direct") {
       setContact(null);
@@ -28,7 +125,7 @@ export function useResolvedContactState(
       return;
     }
     const key = `${kind}:${threadId}`;
-    const hit = cache.get(key);
+    const hit = readCache(key);
     if (hit) {
       setContact(hit);
       setLoading(false);
@@ -37,7 +134,7 @@ export function useResolvedContactState(
     setLoading(true);
     let cancelled = false;
     resolveContact(threadId, kind).then((c) => {
-      cache.set(key, c);
+      cache.set(key, { contact: c, fetchedAt: Date.now() });
       if (!cancelled) {
         setContact(c);
         setLoading(false);
@@ -46,6 +143,7 @@ export function useResolvedContactState(
     return () => {
       cancelled = true;
     };
-  }, [threadId, kind]);
+  }, [threadId, kind, version]);
+
   return { contact, loading };
 }
