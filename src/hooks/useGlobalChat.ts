@@ -83,10 +83,12 @@ export function useGlobalChat(activeThreadId?: string | null) {
             .maybeSingle();
           if (!part) return;
 
-          recompute();
-
-          // Suppress toast if user is actively reading this thread
+          // If the user is actively reading this thread, skip the recompute —
+          // markRead() will fire and keep the badge at 0. This is what
+          // prevents the temporary +1 bump for on-screen threads.
           if (activeThreadId && activeThreadId === m.thread_id) return;
+
+          recompute();
 
           // Look up sender display name for a richer overlay/toast
           const { data: senderRow } = await supabase
