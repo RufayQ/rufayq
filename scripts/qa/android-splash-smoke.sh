@@ -265,11 +265,11 @@ FAILED=0
 {
   echo "## Summary"
   echo
-  echo "| Row | Scenario | Status | Likely cause |"
-  echo "|-----|----------|--------|--------------|"
+  echo "| Row | Scenario | Status | React mounted | Splash hide requested | Fallback fired | Likely cause |"
+  echo "|-----|----------|--------|---------------|-----------------------|----------------|--------------|"
   for r in "${ROW_RESULTS[@]}"; do
-    IFS='|' read -r n name status reason category <<<"$r"
-    echo "| $n | $name | $status | ${category:-n/a} |"
+    IFS='|' read -r n name status reason category react_marker hide_marker timeout_marker <<<"$r"
+    echo "| $n | $name | $status | $react_marker | $hide_marker | $timeout_marker | ${category:-n/a} |"
     [ "$status" = "FAIL" ] && FAILED=$((FAILED+1))
   done
 } >> "$REPORT"
