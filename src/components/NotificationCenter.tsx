@@ -185,10 +185,19 @@ const NotificationCenter = ({
           </div>
 
           <div className="relative mt-5 flex gap-2 overflow-x-auto no-scrollbar">
-            {(["all", "chats", "alerts"] as Tab[]).map((tabName) => {
-              const count = tabName === "all" ? totalUnread : tabName === "chats" ? allowedChatUnread : visibleAlertUnread;
-              const labelEn = tabName === "all" ? "All" : tabName === "chats" ? "Messages" : "Alerts";
-              const labelAr = tabName === "all" ? "الكل" : tabName === "chats" ? "الرسائل" : "التنبيهات";
+            {(["all", "chats", "alerts", "history"] as Tab[]).map((tabName) => {
+              const count =
+                tabName === "all"
+                  ? totalUnread
+                  : tabName === "chats"
+                  ? allowedChatUnread
+                  : tabName === "alerts"
+                  ? visibleAlertUnread
+                  : 0;
+              const labelEn =
+                tabName === "all" ? "All" : tabName === "chats" ? "Messages" : tabName === "alerts" ? "Alerts" : "History";
+              const labelAr =
+                tabName === "all" ? "الكل" : tabName === "chats" ? "الرسائل" : tabName === "alerts" ? "التنبيهات" : "السجل";
               const isActive = tab === tabName;
               return (
                 <button
@@ -202,7 +211,7 @@ const NotificationCenter = ({
                   }}
                 >
                   <span>{showAr && !showEn ? labelAr : labelEn}</span>
-                  {count > 0 && (
+                  {count > 0 && tabName !== "history" && (
                     <span className="min-w-4 rounded-full bg-destructive px-1.5 text-center text-[9px] font-bold text-destructive-foreground">
                       {count > 9 ? "9+" : count}
                     </span>
@@ -210,7 +219,7 @@ const NotificationCenter = ({
                 </button>
               );
             })}
-            {filteredUnreadCount > 0 && tab !== "chats" && (
+            {filteredUnreadCount > 0 && tab !== "chats" && tab !== "history" && (
               <button onClick={markFilteredRead} className="ml-auto shrink-0 rounded-full border border-primary-foreground/30 bg-primary-foreground/15 px-3 py-2 text-[11px] font-semibold text-primary-foreground">
                 {showAr && !showEn ? `تعليم ${filteredUnreadCount} كمقروء` : `Mark ${filteredUnreadCount} read`}
               </button>
