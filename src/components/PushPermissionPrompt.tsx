@@ -24,9 +24,9 @@ export default function PushPermissionPrompt({ onDeepLink }: Props) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    console.info("[RufayqStartup] Push prompt mounted");
     if (!isNative) return;
     if (localStorage.getItem(FLAG)) return;
-    // Slight delay so the prompt doesn't fight with first-paint animations
     const t = setTimeout(() => setShow(true), 1500);
     return () => clearTimeout(t);
   }, []);
