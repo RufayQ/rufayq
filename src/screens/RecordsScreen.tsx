@@ -11,6 +11,7 @@ import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { useAuthUserId } from "@/hooks/useAuthUserId";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
 import TravelRecordsList from "@/components/records/TravelRecordsList";
+import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
 
 type RecordsSegment = "medical" | "travel";
