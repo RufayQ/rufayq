@@ -448,7 +448,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         threadId={humanThread.id}
         title={humanThread.title ?? "Conversation"}
         kind={humanThread.kind === "provider" ? "provider" : "direct"}
-        onBack={() => setView("human")}
+        onBack={() => setView(profileBackTo)}
       />
     );
   }
