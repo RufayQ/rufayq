@@ -79,7 +79,24 @@ export function useChatInbox() {
       : partsQuery.eq("device_id", deviceId);
     const { data: myParts } = await partsQuery;
     const ids = Array.from(new Set((myParts ?? []).map((p) => p.thread_id)));
-...
+    if (ids.length === 0) {
+      setThreads([]); setParticipants({}); setUnreadByThread({}); setLoading(false); return;
+    }
+    const { data: tRows } = await supabase
+      .from("chat_threads")
+      .select("id, kind, title, ai_persona, organization_id, last_message_at, last_message_preview")
+      .in("id", ids)
+      .order("last_message_at", { ascending: false });
+    setThreads((tRows ?? []) as ChatThreadRow[]);
+
+    const { data: allParts } = await supabase
+      .from("chat_participants")
+      .select("thread_id, device_id, organization_id, display_name, last_read_at")
+      .in("thread_id", ids);
+    const byThread: Record<string, ParticipantRow[]> = {};
+    for (const p of (allParts ?? []) as ParticipantRow[]) {
+      (byThread[p.thread_id] ||= []).push(p);
+    }
     setParticipants(byThread);
 
     // Single grouped RPC replaces the previous N+1 per-thread COUNT queries.
