@@ -65,6 +65,7 @@ export function useGlobalChat(activeThreadId?: string | null) {
   useEffect(() => { recompute(); }, [recompute]);
 
   useEffect(() => {
+    if (!enabled) return;
     const deviceId = getDeviceId();
     const ch = supabase
       .channel("global-chat-awareness")
