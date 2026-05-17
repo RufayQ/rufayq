@@ -63,6 +63,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const userId = useAuthUserId();
   const travelCount = useArtifactCount({ userId });
   const [travelStats, setTravelStats] = useState({ total: 0, translated: 0, newCount: 0 });
+  const [visibleTravelDocs, setVisibleTravelDocs] = useState<TransportAttachment[]>([]);
 
   // Local-only edits for demo (medical) records — they don't live in DB yet.
   const [renames, setRenames] = useState<Record<string, string>>({});
