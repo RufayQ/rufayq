@@ -16,6 +16,46 @@ interface Props {
   segments: TransportSegment[];
 }
 
+/* ─── Expiry helpers (MM/YY ⇄ ISO YYYY-MM-DD using last day of month) ─── */
+const formatMMYYInput = (raw: string): string => {
+  const digits = raw.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+};
+const mmyyToIso = (mmyy: string): string | null => {
+  const m = /^(\d{2})\/(\d{2})$/.exec(mmyy.trim());
+  if (!m) return null;
+  const month = parseInt(m[1], 10);
+  const year = 2000 + parseInt(m[2], 10);
+  if (month < 1 || month > 12) return null;
+  // Last day of the month (cards expire end-of-month).
+  const lastDay = new Date(year, month, 0).getDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+};
+const isoToMMYY = (iso?: string): string => {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(iso);
+  if (!m) return "";
+  return `${m[2]}/${m[1].slice(2)}`;
+};
+const formatExpMMYY = (iso?: string): string => isoToMMYY(iso);
+
+/* ─── Brand theming for the credit-card look ─── */
+const brandTheme = (program: string): { bg: string; tagline: string } => {
+  const p = program.toLowerCase();
+  if (p.includes("dragon"))
+    return { bg: "linear-gradient(135deg, #0f2e3d 0%, #0a4a5e 60%, #c5965a 140%)", tagline: "Lounge Access" };
+  if (p.includes("priority"))
+    return { bg: "linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 100%)", tagline: "Priority Pass" };
+  if (p.includes("visa"))
+    return { bg: "linear-gradient(135deg, #1a1f71 0%, #2e3a9e 100%)", tagline: "Airport Companion" };
+  if (p.includes("mastercard"))
+    return { bg: "linear-gradient(135deg, #1a1a1a 0%, #4a1f0a 100%)", tagline: "Travel Pass" };
+  if (p.includes("loungekey"))
+    return { bg: "linear-gradient(135deg, #2a2a2a 0%, #1a4a3e 100%)", tagline: "LoungeKey" };
+  return { bg: "linear-gradient(135deg, var(--header-dark-from), var(--header-teal-from))", tagline: "Lounge Card" };
+};
+
 /**
  * Lounge Access section rendered inside the Tickets tab. Stores Dragonpass /
  * Priority Pass / Visa Airport Companion / Mastercard Travel Pass / generic
@@ -64,31 +104,64 @@ const LoungeAccessSection = ({ segments }: Props) => {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {items.map((m) => {
             const linked = flightSegments.find((s) => s.id === m.linkedSegmentId);
+            const expMMYY = formatExpMMYY(m.expiresOn);
+            const brand = brandTheme(m.program);
             return (
               <button
                 key={m.id}
                 onClick={() => setQrTarget(m)}
-                className="w-full text-left rounded-2xl p-3 btn-press flex items-center gap-3"
-                style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}
+                className="relative w-full text-left rounded-2xl p-3.5 btn-press overflow-hidden"
+                style={{
+                  background: brand.bg,
+                  boxShadow: "0 6px 20px rgba(15,23,42,0.18)",
+                  color: "#fff",
+                }}
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl shrink-0" style={{ background: "linear-gradient(135deg, var(--header-dark-from), var(--header-teal-from))" }}>
-                  <CreditCard size={20} color="#fff" />
+                {/* decorative gradient orb */}
+                <div
+                  className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full opacity-25"
+                  style={{ background: "radial-gradient(circle, var(--gold) 0%, transparent 70%)" }}
+                />
+                <div className="relative flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-9 items-center justify-center rounded-md" style={{ background: "var(--gold)" }}>
+                      <CreditCard size={14} color="#1a2238" />
+                    </div>
+                    <div>
+                      <p className="text-[12px] font-bold leading-tight">{m.program}</p>
+                      <p className="font-mono text-[9px] tracking-widest opacity-70 uppercase">
+                        {brand.tagline}
+                      </p>
+                    </div>
+                  </div>
+                  <ScanLine size={16} style={{ color: "var(--gold)" }} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{m.program}</p>
-                  <p className="font-mono text-[11px] tracking-wider truncate" style={{ color: "var(--gray)" }}>
-                    {m.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
-                  </p>
-                  {linked && (
-                    <p className="mt-0.5 flex items-center gap-1 text-[9px]" style={{ color: "var(--teal-deep)" }}>
-                      <Plane size={9} /> {linked.airline || linked.flightNumber || "Flight"} · {linked.fromCode}→{linked.toCode}
-                    </p>
+
+                <p className="relative mt-3 font-mono text-[14px] tracking-[0.18em]">
+                  {m.membershipNumber.replace(/(.{4})/g, "$1 ").trim().slice(0, 24)}
+                </p>
+
+                <div className="relative mt-2.5 flex items-end justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-mono text-[8px] tracking-widest opacity-60 uppercase">Cardholder</p>
+                    <p className="text-[11px] font-bold truncate">{m.cardholderName}</p>
+                  </div>
+                  {expMMYY && (
+                    <div className="text-right shrink-0">
+                      <p className="font-mono text-[8px] tracking-widest opacity-60 uppercase">Exp</p>
+                      <p className="font-mono text-[11px] font-bold">{expMMYY}</p>
+                    </div>
                   )}
                 </div>
-                <ScanLine size={16} style={{ color: "var(--gold)" }} />
+
+                {linked && (
+                  <p className="relative mt-2 flex items-center gap-1 text-[9px]" style={{ color: "var(--gold)" }}>
+                    <Plane size={9} /> {linked.airline || linked.flightNumber || "Flight"} · {linked.fromCode}→{linked.toCode}
+                  </p>
+                )}
               </button>
             );
           })}
@@ -139,7 +212,7 @@ const LoungeFormSheet = ({
   const [membershipNumber, setMembershipNumber] = useState(initial?.membershipNumber || "");
   const [cardholderName, setCardholderName] = useState(initial?.cardholderName || "");
   const [cardLast4, setCardLast4] = useState(initial?.cardLast4 || "");
-  const [expiresOn, setExpiresOn] = useState(initial?.expiresOn || "");
+  const [mmyyDisplay, setMmyyDisplay] = useState(isoToMMYY(initial?.expiresOn));
   const [linkedSegmentId, setLinkedSegmentId] = useState(initial?.linkedSegmentId || "");
   const [notes, setNotes] = useState(initial?.notes || "");
 
@@ -149,13 +222,18 @@ const LoungeFormSheet = ({
       toast.error("Program, number and cardholder are required");
       return;
     }
+    const iso = mmyyToIso(mmyyDisplay);
+    if (mmyyDisplay && !iso) {
+      toast.error("Expiry must be MM/YY (e.g. 05/29)");
+      return;
+    }
     onSave({
       id: initial?.id,
       program: program.trim(),
       membershipNumber: membershipNumber.trim(),
       cardholderName: cardholderName.trim(),
       cardLast4: cardLast4.trim() || undefined,
-      expiresOn: expiresOn || undefined,
+      expiresOn: iso || undefined,
       linkedSegmentId: linkedSegmentId || undefined,
       notes: notes.trim() || undefined,
     });
@@ -201,8 +279,17 @@ const LoungeFormSheet = ({
             <Field label="Linked card last 4">
               <input value={cardLast4} onChange={(e) => setCardLast4(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="9607" inputMode="numeric" maxLength={4} className="w-full rounded-xl px-3 py-2 text-[13px] font-mono outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
             </Field>
-            <Field label="Expires">
-              <input type="date" value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} className="w-full rounded-xl px-3 py-2 text-[13px] outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+            <Field label="Expires (MM/YY) · تاريخ الانتهاء">
+              <input
+                value={mmyyDisplay}
+                onChange={(e) => setMmyyDisplay(formatMMYYInput(e.target.value))}
+                placeholder="MM/YY"
+                inputMode="numeric"
+                maxLength={5}
+                aria-label="Card expiry month and year"
+                className="w-full rounded-xl px-3 py-2 text-[13px] font-mono tracking-widest outline-none"
+                style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+              />
             </Field>
           </div>
 
@@ -283,7 +370,7 @@ const LoungeQrSheet = ({
           <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>{membership.cardholderName}</p>
           <div className="mt-2 flex gap-3 text-[10px]" style={{ color: "var(--gray)" }}>
             {membership.cardLast4 && <span>Linked card •••• {membership.cardLast4}</span>}
-            {membership.expiresOn && <span>Exp {membership.expiresOn}</span>}
+            {formatExpMMYY(membership.expiresOn) && <span>Exp {formatExpMMYY(membership.expiresOn)}</span>}
           </div>
         </div>
 
