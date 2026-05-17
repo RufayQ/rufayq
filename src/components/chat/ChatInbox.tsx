@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useChatInbox, type ChatThreadRow } from "@/hooks/useChatInbox";
 import { useResolvedContact, useResolvedContactState } from "@/hooks/useResolvedContact";
+import { computeInitialsFrom } from "@/lib/contactResolver";
 
 type Tab = "all" | "ai" | "care" | "people";
 
@@ -383,7 +384,15 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
         )}
         {results.map((r) => {
           const fallbackName = r.display_name?.trim() || r.rufayq_id?.trim() || "User";
-          const letter = (fallbackName.match(/\p{L}/u)?.[0] ?? "?").toUpperCase();
+          // Share the same Unicode-aware fallback chain as resolved threads:
+          // emoji/punctuation are stripped, names like "🌙 Dr. Sara" → "DS",
+          // empty/all-symbol names fall through to rufayq_id letters, then
+          // device-id hash, then "?". Guarantees a readable letter in every row.
+          const letter = computeInitialsFrom({
+            name: r.display_name,
+            rufayqId: r.rufayq_id,
+            deviceId: r.device_id,
+          });
           return (
           <button key={r.device_id} onClick={() => start(r.device_id)} className="w-full rounded-2xl px-3 py-2.5 flex items-center gap-3 btn-press" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
             <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
