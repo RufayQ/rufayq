@@ -344,6 +344,12 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<{ device_id: string; display_name: string | null; rufayq_id: string | null }[]>([]);
   const [searched, setSearched] = useState(false);
+  // Return focus to the last-tapped search result if the sheet re-opens
+  // (e.g. user cancels the started thread and comes back).
+  const peopleFocus = useFocusReturn<HTMLDivElement>("people-search", [
+    busy,
+    results.length,
+  ]);
 
   const looksLikeEmail = q.includes("@");
   const handleSearch = async () => {
