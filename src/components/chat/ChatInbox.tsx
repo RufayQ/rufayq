@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Plus, Sparkles, Stethoscope, User, X, ChevronRight, Loader2, Info } from "lucide-react";
+import { Search, Plus, Sparkles, Stethoscope, User, X, ChevronRight, Loader2, Info, MoreVertical, BellOff, Bell, MailOpen } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
