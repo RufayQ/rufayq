@@ -118,10 +118,12 @@ interface Props {
 const TravelRecordsList = ({ userId, searchQuery }: Props) => {
   const deviceId = getDeviceId();
   const [items, setItems] = useState<TransportAttachment[]>([]);
+  const [loungeCards, setLoungeCards] = useState<LoungeMembership[]>(() => listLoungeMemberships());
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
-  const [menuItem, setMenuItem] = useState<TransportAttachment | null>(null);
+  const [qrTarget, setQrTarget] = useState<LoungeMembership | null>(null);
+  const [menuItem, setMenuItem] = useState<UnifiedRow | null>(null);
   const [cat, setCat] = useState<TravelCat>("all");
   const [clearPinOpen, setClearPinOpen] = useState(false);
 
@@ -156,8 +158,24 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, deviceId]);
 
-  const counts = items.reduce<Record<TravelCat, number>>(
-    (acc, it) => { acc.all += 1; acc[classify(it)] += 1; return acc; },
+  // Lounge memberships live in localStorage — subscribe for real-time updates.
+  useEffect(() => {
+    setLoungeCards(listLoungeMemberships());
+    return subscribeLoungeMemberships(() => setLoungeCards(listLoungeMemberships()));
+  }, []);
+
+  // Merge attachments + lounge cards into one sorted list.
+  const unified: UnifiedRow[] = useMemo(() => {
+    const attachments: UnifiedRow[] = items.map((it) => ({ kind: "attachment" as const, ...it }));
+    const lounge: UnifiedRow[] = loungeCards.map(membershipToRow);
+    return [...lounge, ...attachments].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }, [items, loungeCards]);
+
+  const classifyRow = (r: UnifiedRow): TravelCat =>
+    r.kind === "lounge-card" ? "lounge" : classify(r);
+
+  const counts = unified.reduce<Record<TravelCat, number>>(
+    (acc, it) => { acc.all += 1; acc[classifyRow(it)] += 1; return acc; },
     { all: 0, passport: 0, visa: 0, booking: 0, lounge: 0, insurance: 0, other: 0 },
   );
 
@@ -190,19 +208,28 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     toast.success("All pins cleared · تم إلغاء كل التثبيتات", { duration: 1400 });
   };
 
-  const matchesSearch = (it: TransportAttachment) => {
+  const matchesSearch = (it: UnifiedRow) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    return it.label.toLowerCase().includes(q) || it.file_name.toLowerCase().includes(q);
+    if (it.label.toLowerCase().includes(q) || it.file_name.toLowerCase().includes(q)) return true;
+    if (it.kind === "lounge-card") {
+      const m = it.membership;
+      return (
+        m.program.toLowerCase().includes(q) ||
+        m.cardholderName.toLowerCase().includes(q) ||
+        m.membershipNumber.toLowerCase().includes(q)
+      );
+    }
+    return false;
   };
-  const matchesCat = (it: TransportAttachment) => cat === "all" || classify(it) === cat;
+  const matchesCat = (it: UnifiedRow) => cat === "all" || classifyRow(it) === cat;
 
   // Pinned section: respects search, ignores category (so user always sees them)
   const pinnedItems = pinnedIds
-    .map((id) => items.find((it) => it.id === id))
-    .filter((it): it is TransportAttachment => !!it && matchesSearch(it));
+    .map((id) => unified.find((it) => it.id === id))
+    .filter((it): it is UnifiedRow => !!it && matchesSearch(it));
 
-  const filtered = items.filter((it) => matchesCat(it) && matchesSearch(it) && !pinnedIds.includes(it.id));
+  const filtered = unified.filter((it) => matchesCat(it) && matchesSearch(it) && !pinnedIds.includes(it.id));
 
   const openPreview = async (item: TransportAttachment) => {
     const { data, error } = await supabase.storage
