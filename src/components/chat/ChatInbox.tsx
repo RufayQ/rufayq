@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useChatInbox, type ChatThreadRow } from "@/hooks/useChatInbox";
 import { useResolvedContact, useResolvedContactState } from "@/hooks/useResolvedContact";
+import { computeInitialsFrom } from "@/lib/contactResolver";
 
 type Tab = "all" | "ai" | "care" | "people";
 
