@@ -53,21 +53,43 @@ const NotificationCenter = ({
   const { items, unreadCount: alertUnread, markRead, markAllRead } = usePatientNotifications();
   const { threads, unreadByThread, totalUnread: chatUnread, participants } = useChatInbox();
   const { showEn, showAr } = useLanguage();
+  const { prefs, toggle: togglePref } = useNotificationPrefs();
 
   const [categoryFilter, setCategoryFilter] = useState<Category>("all");
+  const [prefsOpen, setPrefsOpen] = useState(false);
 
-  const totalUnread = alertUnread + chatUnread;
-  const unreadThreads = threads.filter((thread) => (unreadByThread[thread.id] ?? 0) > 0);
+  // Map an alert's kind → category id (for pref filtering).
+  const kindCategory = (kind: string): Exclude<NotificationCategoryId, "chats"> | null => {
+    for (const [cat, kinds] of Object.entries(CATEGORY_KINDS) as [Exclude<Category, "all">, string[]][]) {
+      if (kinds.includes(kind)) return cat;
+    }
+    return null;
+  };
+
+  // Apply per-category prefs FIRST, then the active tab filter.
+  const allowedAlerts = items.filter((n) => {
+    const cat = kindCategory(n.kind);
+    return cat ? prefs[cat] !== false : true; // unknown kinds always shown
+  });
+  const allowedChatUnread = prefs.chats === false ? 0 : chatUnread;
+  const totalUnread = allowedAlerts.filter((n) => !n.is_read).length + allowedChatUnread;
+  const visibleAlertUnread = allowedAlerts.filter((n) => !n.is_read).length;
+  const unreadThreads =
+    prefs.chats === false ? [] : threads.filter((thread) => (unreadByThread[thread.id] ?? 0) > 0);
+
   const filteredAlerts =
     categoryFilter === "all"
-      ? items
-      : items.filter((n) => CATEGORY_KINDS[categoryFilter].includes(n.kind));
+      ? allowedAlerts
+      : allowedAlerts.filter((n) => CATEGORY_KINDS[categoryFilter].includes(n.kind));
   const displayedAlerts = tab === "chats" ? [] : filteredAlerts;
   const displayedThreads = tab === "alerts" ? [] : unreadThreads;
   const filteredUnreadCount = filteredAlerts.filter((n) => !n.is_read).length;
   const markFilteredRead = () => {
     if (categoryFilter === "all") {
-      markAllRead();
+      // Mark only the currently-visible (pref-allowed) alerts.
+      allowedAlerts.forEach((n) => {
+        if (!n.is_read) markRead(n.id);
+      });
       return;
     }
     filteredAlerts.forEach((n) => {
@@ -76,6 +98,15 @@ const NotificationCenter = ({
   };
   const showCategoryRow = tab !== "chats";
   const activeCategory = CATEGORY_META.find((c) => c.id === categoryFilter)!;
+
+  // Bilingual labels for the prefs panel; mirrors CATEGORY_META plus chats.
+  const PREF_ROWS: { id: NotificationCategoryId; en: string; ar: string; Icon: typeof Bell }[] = [
+    { id: "chats", en: "Messages", ar: "الرسائل", Icon: MessageCircle },
+    { id: "appointments", en: "Appointments", ar: "المواعيد", Icon: CalendarClock },
+    { id: "meds", en: "Medications", ar: "الأدوية", Icon: Pill },
+    { id: "care", en: "Care updates", ar: "تحديثات الرعاية", Icon: Stethoscope },
+    { id: "billing", en: "Billing", ar: "الفواتير", Icon: Receipt },
+  ];
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
