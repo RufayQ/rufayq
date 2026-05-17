@@ -117,4 +117,5 @@ import.
 - `PushPermissionPrompt` is the ONLY path that calls `registerPush`, and it requires a user tap.
 - `src/lib/native/push.ts` dynamically imports `@capacitor/push-notifications`, wraps every native call in try/catch, and returns a structured `PushRegistrationResult` with reasons: `web | not_native | missing_plugin | permission_denied | firebase_not_configured | registration_failed | listener_setup_failed | already_registered | unknown`.
 - If `google-services.json` is missing or invalid on Android, `PushNotifications.register()` will fail safely with `firebase_not_configured` instead of crashing the WebView or the patient shell.
-- Smoke script classifies an `[RufayqStartup] ErrorBoundary rendered` log alongside `FirebaseApp` / `FCM` / `PushNotifications` as `LIKELY PUSH / FIREBASE STARTUP FAILURE`.
+- Smoke script classifies an `[RufayqStartup] ErrorBoundary rendered` log alongside `FirebaseApp` / `FCM` / `PushNotifications` as `LIKELY PUSH / FIREBASE STARTUP FAILURE`, and any row showing `Push registration attempt` without `Push token received` plus Firebase-related log tokens as `LIKELY FIREBASE NOT CONFIGURED`.
+- For full native verification (file presence, Gradle plugin, manifest permission, adb token capture), see [FCM verification runbook](fcm-verification.md).

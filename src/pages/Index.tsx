@@ -301,6 +301,7 @@ const Index = () => {
   // Subscribe to deep-link events once on mount.
   useEffect(() => {
     console.info("[RufayqStartup] Deep link listener setup start");
+    console.info("[RufayqStartup] Auto-push disabled, awaiting user opt-in");
     let unsub: (() => void) | undefined;
     onDeepLink((t) => routeDeepLink(t))
       .then((u) => { unsub = u; console.info("[RufayqStartup] Deep link listener setup success"); })
