@@ -116,7 +116,18 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             className="w-full text-left rounded-2xl px-3 py-3 flex items-center gap-3 btn-press"
             style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
           >
-            <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
+            {onOpenProfile && t.kind !== "ai" ? (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onOpenProfile(t); }}
+                className="rounded-full btn-press"
+                aria-label={`Open ${labelFor(t)} profile`}
+              >
+                <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
+              </button>
+            ) : (
+              <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-[14px] font-bold truncate" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{labelFor(t)}</p>
               <p className="text-[11px] truncate" style={{ color: unread > 0 ? "var(--navy)" : "var(--gray)", fontWeight: unread > 0 ? 600 : 400 }} dir="auto">
