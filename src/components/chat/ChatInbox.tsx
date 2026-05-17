@@ -162,11 +162,15 @@ function timeLabel(iso: string) {
 }
 
 function ThreadAvatar({ threadId, kind, persona }: { threadId: string; kind: ChatThreadRow["kind"]; persona: string | null }) {
-  const contact = useResolvedContact(kind === "direct" ? threadId : null, "direct");
+  const { contact, loading } = useResolvedContactState(kind === "direct" ? threadId : null, "direct");
   const bg = kind === "ai" ? "var(--navy)" : kind === "provider" ? "var(--teal-deep)" : "var(--teal-light)";
   const fg = kind === "direct" ? "var(--teal-deep)" : "#fff";
   const emoji = kind === "ai" ? (persona === "shopping" ? "🛍️" : persona === "tour" ? "🗺️" : "🩺") : null;
   const renderDirect = () => {
+    if (loading && !contact) {
+      // Skeleton shimmer while we resolve the participant's avatar/initials.
+      return <div className="w-full h-full animate-pulse" style={{ background: "var(--gray-light)" }} aria-label="Loading contact" />;
+    }
     if (contact?.avatarUrl) {
       return <img src={contact.avatarUrl} alt={contact.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />;
     }
