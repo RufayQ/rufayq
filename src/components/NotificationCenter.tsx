@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, BellRing, Check, MessageCircle, X } from "lucide-react";
+import { Bell, BellRing, CalendarClock, Check, MessageCircle, Pill, Receipt, Stethoscope, X } from "lucide-react";
 import { usePatientNotifications } from "@/hooks/usePatientNotifications";
 import { useChatInbox } from "@/hooks/useChatInbox";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -16,6 +16,22 @@ interface Props {
 }
 
 type Tab = "all" | "chats" | "alerts";
+type Category = "all" | "appointments" | "meds" | "care" | "billing";
+
+const CATEGORY_KINDS: Record<Exclude<Category, "all">, string[]> = {
+  appointments: ["appointment"],
+  meds: ["medication"],
+  care: ["admission", "instruction", "announcement", "consent_request"],
+  billing: ["invoice", "claim_request", "authorization", "credit_note"],
+};
+
+const CATEGORY_META: { id: Category; en: string; ar: string; Icon: typeof Bell }[] = [
+  { id: "all", en: "All", ar: "الكل", Icon: Bell },
+  { id: "appointments", en: "Appointments", ar: "المواعيد", Icon: CalendarClock },
+  { id: "meds", en: "Medications", ar: "الأدوية", Icon: Pill },
+  { id: "care", en: "Care updates", ar: "تحديثات الرعاية", Icon: Stethoscope },
+  { id: "billing", en: "Billing", ar: "الفواتير", Icon: Receipt },
+];
 
 const NotificationCenter = ({
   color = "hsl(var(--primary-foreground))",
@@ -37,16 +53,28 @@ const NotificationCenter = ({
   const { threads, unreadByThread, totalUnread: chatUnread, participants } = useChatInbox();
   const { showEn, showAr } = useLanguage();
 
+  const [categoryFilter, setCategoryFilter] = useState<Category>("all");
+
   const totalUnread = alertUnread + chatUnread;
   const unreadThreads = threads.filter((thread) => (unreadByThread[thread.id] ?? 0) > 0);
-  const displayedAlerts = tab === "chats" ? [] : items;
+  const filteredAlerts =
+    categoryFilter === "all"
+      ? items
+      : items.filter((n) => CATEGORY_KINDS[categoryFilter].includes(n.kind));
+  const displayedAlerts = tab === "chats" ? [] : filteredAlerts;
   const displayedThreads = tab === "alerts" ? [] : unreadThreads;
-
-  // Keyboard escape only. We intentionally do NOT lock `document.body.style.overflow`
-  // here — doing so previously left the underlying shell in a non-interactive
-  // state for a frame after close, which made it feel like the overlay was
-  // still blocking bottom-nav taps. The portal already covers the viewport
-  // visually, so locking body scroll adds no value on this 390px shell.
+  const filteredUnreadCount = filteredAlerts.filter((n) => !n.is_read).length;
+  const markFilteredRead = () => {
+    if (categoryFilter === "all") {
+      markAllRead();
+      return;
+    }
+    filteredAlerts.forEach((n) => {
+      if (!n.is_read) markRead(n.id);
+    });
+  };
+  const showCategoryRow = tab !== "chats";
+  const activeCategory = CATEGORY_META.find((c) => c.id === categoryFilter)!;
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -127,12 +155,44 @@ const NotificationCenter = ({
                 </button>
               );
             })}
-            {alertUnread > 0 && tab !== "chats" && (
-              <button onClick={markAllRead} className="ml-auto shrink-0 rounded-full border border-primary-foreground/30 bg-primary-foreground/15 px-3 py-2 text-[11px] font-semibold text-primary-foreground">
-                {showAr && !showEn ? `تعليم ${alertUnread} كمقروء` : `Mark ${alertUnread} read`}
+            {filteredUnreadCount > 0 && tab !== "chats" && (
+              <button onClick={markFilteredRead} className="ml-auto shrink-0 rounded-full border border-primary-foreground/30 bg-primary-foreground/15 px-3 py-2 text-[11px] font-semibold text-primary-foreground">
+                {showAr && !showEn ? `تعليم ${filteredUnreadCount} كمقروء` : `Mark ${filteredUnreadCount} read`}
               </button>
             )}
           </div>
+
+          {showCategoryRow && (
+            <div className="relative mt-3 flex gap-1.5 overflow-x-auto no-scrollbar">
+              {CATEGORY_META.map(({ id, en, ar, Icon }) => {
+                const unread =
+                  id === "all"
+                    ? alertUnread
+                    : items.filter((n) => CATEGORY_KINDS[id as Exclude<Category, "all">].includes(n.kind) && !n.is_read).length;
+                const isActive = categoryFilter === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setCategoryFilter(id)}
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition"
+                    style={{
+                      background: isActive ? "hsl(var(--accent))" : "hsl(var(--primary-foreground) / 0.08)",
+                      color: isActive ? "hsl(var(--accent-foreground))" : "hsl(var(--primary-foreground) / 0.85)",
+                      borderColor: isActive ? "hsl(var(--accent))" : "hsl(var(--primary-foreground) / 0.18)",
+                    }}
+                  >
+                    <Icon size={13} />
+                    <span>{showAr && !showEn ? ar : en}</span>
+                    {unread > 0 && (
+                      <span className="min-w-[14px] rounded-full bg-destructive px-1 text-center text-[9px] font-bold text-destructive-foreground">
+                        {unread > 9 ? "9+" : unread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
@@ -141,8 +201,23 @@ const NotificationCenter = ({
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-accent/30 bg-accent/10 text-accent">
                 <Bell size={30} />
               </div>
-              {showEn && <p className="font-display text-[24px] leading-tight text-card-foreground">You're all caught up</p>}
-              {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد تنبيهات جديدة</p>}
+              {categoryFilter !== "all" && tab !== "chats" ? (
+                <>
+                  {showEn && <p className="font-display text-[22px] leading-tight text-card-foreground">No {activeCategory.en.toLowerCase()} notifications</p>}
+                  {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد تنبيهات في {activeCategory.ar}</p>}
+                  <button
+                    onClick={() => setCategoryFilter("all")}
+                    className="mt-4 rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 text-[11px] font-semibold text-accent"
+                  >
+                    {showAr && !showEn ? "عرض الكل" : "Show all"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {showEn && <p className="font-display text-[24px] leading-tight text-card-foreground">You're all caught up</p>}
+                  {showAr && <p className="mt-1 font-arabic text-sm" dir="rtl">لا توجد تنبيهات جديدة</p>}
+                </>
+              )}
             </div>
           )}
 
