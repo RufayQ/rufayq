@@ -56,14 +56,14 @@ export default function VisualHarness() {
   const [params] = useSearchParams();
   const view = params.get("view") === "search" ? "search" : "inbox";
   const lang = params.get("lang") === "ar" ? "ar" : "en";
+  // Optional override so bidi tests can force an ambient RTL ancestor.
+  const dirParam = params.get("dir") === "rtl" ? "rtl" : "ltr";
 
-  // Pin the html direction for the test. The real app keeps html dir="ltr"
-  // and uses per-element dir="auto"; we do the same so this matches reality.
   useMemo(() => {
     document.documentElement.lang = lang;
-    document.documentElement.dir = "ltr";
+    document.documentElement.dir = dirParam;
     return null;
-  }, [lang]);
+  }, [lang, dirParam]);
 
   return (
     <div className="min-h-screen flex items-start justify-center bg-[color:var(--off-white)] py-6">
