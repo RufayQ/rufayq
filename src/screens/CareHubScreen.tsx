@@ -34,43 +34,91 @@ interface CareHubScreenProps {
   onNavigate?: (tab: string, context?: string) => void;
 }
 
+const SEG_KEY = "rufayq_carehub_segment";
+const TAB_KEY = "rufayq_carehub_subtab";
+
 const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
   const isGuest = useGuestMode();
-  const [segment, setSegment] = useState<Segment>("medical");
-  const [activeTab, setActiveTab] = useState<SubTab>("careplan");
+  const [segment, setSegment] = useState<Segment>(() => {
+    if (typeof window === "undefined") return "medical";
+    return (localStorage.getItem(SEG_KEY) as Segment) || "medical";
+  });
+  const [activeTab, setActiveTab] = useState<SubTab>(() => {
+    if (typeof window === "undefined") return "careplan";
+    return (localStorage.getItem(TAB_KEY) as SubTab) || "careplan";
+  });
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [addApptOpen, setAddApptOpen] = useState(false);
+  const [taskCount, setTaskCount] = useState(() => carePlanStore.list().length);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem(SEG_KEY, segment);
+  }, [segment]);
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem(TAB_KEY, activeTab);
+  }, [activeTab]);
+  useEffect(() => {
+    const sync = () => setTaskCount(carePlanStore.list().length);
+    sync();
+    return subscribeCarePlan(sync);
+  }, []);
+
   const handleBuddyChat = (context: string) => onNavigate?.("chat", context);
 
   const handleCopyCarePlan = () => {
-    navigator.clipboard.writeText("Care Plan Summary\nPost-Op Day 5 · Knee Replacement\nStatus: On Track\n\nFollow your prescribed exercises, medications, and follow-up appointments.");
-    toast.success("Care plan copied · تم نسخ خطة الرعاية", { duration: 2000 });
+    const tasks = carePlanStore.list();
+    if (tasks.length === 0) {
+      toast("No tasks yet · لا توجد مهام بعد", { duration: 1800 });
+      return;
+    }
+    const text = "Care Plan\n" + tasks.map((t) => `- ${t.en}${t.time ? ` (${t.time})` : ""}${t.done ? " ✓" : ""}`).join("\n");
+    navigator.clipboard.writeText(text);
+    toast.success("Care plan copied · تم نسخ خطة الرعاية", { duration: 1800 });
   };
 
   const handleShareCarePlan = () => {
-    const text = "Care Plan Summary — Post-Op Day 5 · Knee Replacement · Status: On Track";
+    const tasks = carePlanStore.list();
+    const text = tasks.length
+      ? "My care plan: " + tasks.map((t) => t.en).join(", ")
+      : "Care Plan Summary";
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
 
   const handleExportCarePlan = () => {
-    const text = "Care Plan — Post-Op Day 5\nKnee Replacement\n\nTasks:\n- Morning meds 8AM\n- Elevate leg 30 min\n- Cold compress\n- Breathing exercises\n- Evening meds 8PM\n- Log pain level";
+    const tasks = carePlanStore.list();
+    const text = tasks.length
+      ? "Care Plan\n\n" + tasks.map((t) => `- ${t.en}${t.ar ? ` / ${t.ar}` : ""}${t.time ? ` @ ${t.time}` : ""}${t.repeat ? ` (${t.repeat})` : ""}`).join("\n")
+      : "Care Plan (empty)";
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = "care-plan.txt"; a.click();
     URL.revokeObjectURL(url);
-    toast.success("Care plan exported · تم تصدير خطة الرعاية", { duration: 2000 });
+    toast.success("Care plan exported · تم التصدير", { duration: 1800 });
   };
 
-  const careMenuItems: HeaderMenuItem[] = [
-    { icon: <Copy size={14} />, label: "Copy Plan", labelAr: "نسخ الخطة", onClick: handleCopyCarePlan },
-    { icon: <Download size={14} />, label: "Export Plan", labelAr: "تصدير الخطة", onClick: handleExportCarePlan },
-    { icon: <Share2 size={14} />, label: "Share with Doctor", labelAr: "مشاركة مع الطبيب", onClick: handleShareCarePlan },
-  ];
+  const handleResetPlan = () => {
+    if (!confirm("Reset all care plan tasks?")) return;
+    carePlanStore.resetAll();
+    toast.success("Plan reset · تمت إعادة الضبط", { duration: 1800 });
+  };
 
-  // Note: Care Hub renders the full recovery experience for both signed-in
-  // users and guests. Earlier builds gated this behind an "empty" placeholder
-  // for non-guests; that placeholder was removed so all users see Care Plan,
-  // Videos, Education, FAQs, Nutrition and Exercises tabs.
+  const careMenuItems: HeaderMenuItem[] = taskCount === 0
+    ? [
+        { icon: <Sparkles size={14} />, label: "Start a care plan", labelAr: "ابدأ خطة الرعاية", onClick: () => { setSegment("medical"); setActiveTab("careplan"); setAddTaskOpen(true); } },
+        { icon: <CalendarPlus size={14} />, label: "Add appointment", labelAr: "إضافة موعد", onClick: () => setAddApptOpen(true) },
+        { icon: <GraduationCap size={14} />, label: "Browse education", labelAr: "تصفح التعليم", onClick: () => { setSegment("medical"); setActiveTab("education"); } },
+        { icon: <HelpCircle size={14} />, label: "Open FAQs", labelAr: "الأسئلة الشائعة", onClick: () => { setSegment("medical"); setActiveTab("faqs"); } },
+      ]
+    : [
+        { icon: <Plus size={14} />, label: "Add task", labelAr: "إضافة مهمة", onClick: () => setAddTaskOpen(true) },
+        { icon: <CalendarPlus size={14} />, label: "Add appointment", labelAr: "إضافة موعد", onClick: () => setAddApptOpen(true) },
+        { icon: <Copy size={14} />, label: "Copy plan", labelAr: "نسخ الخطة", onClick: handleCopyCarePlan },
+        { icon: <Download size={14} />, label: "Export plan", labelAr: "تصدير الخطة", onClick: handleExportCarePlan },
+        { icon: <Share2 size={14} />, label: "Share with doctor", labelAr: "مشاركة مع الطبيب", onClick: handleShareCarePlan },
+        { icon: <Trash2 size={14} />, label: "Reset plan", labelAr: "إعادة الضبط", onClick: handleResetPlan },
+      ];
 
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
@@ -90,7 +138,7 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
             <HeaderMenu items={careMenuItems} />
           </div>
         </div>
-        {/* Patient status — demo placeholder only shown to guests */}
+        {/* Status chip */}
         {isGuest ? (
           <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
             <span className="text-[14px]">🦽</span>
@@ -100,14 +148,27 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
             </div>
             <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: "rgba(61,170,110,0.2)", color: "#3DAA6E" }}>On Track</span>
           </div>
-        ) : (
+        ) : taskCount > 0 ? (
           <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
             <span className="text-[14px]">🩺</span>
             <div className="flex-1">
-              <p className="text-[11px] text-white font-medium">No active care plan yet</p>
-              <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "rgba(255,255,255,0.4)" }}>لا توجد خطة رعاية نشطة بعد</p>
+              <p className="text-[11px] text-white font-medium">{taskCount} task{taskCount === 1 ? "" : "s"} in your plan</p>
+              <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "rgba(255,255,255,0.4)" }}>مهام في خطتك</p>
             </div>
           </div>
+        ) : (
+          <button
+            onClick={() => { setSegment("medical"); setActiveTab("careplan"); setAddTaskOpen(true); }}
+            className="w-full flex items-center gap-2 mt-2 px-3 py-2 rounded-lg btn-press text-left"
+            style={{ background: "rgba(197,150,90,0.15)", border: "1px solid rgba(197,150,90,0.3)" }}
+          >
+            <Sparkles size={14} style={{ color: "var(--gold)" }} />
+            <div className="flex-1">
+              <p className="text-[11px] text-white font-medium">Start your care plan</p>
+              <p className="font-arabic text-[9px]" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>ابدأ خطة الرعاية</p>
+            </div>
+            <Plus size={14} style={{ color: "var(--gold)" }} />
+          </button>
         )}
       </div>
 
@@ -129,8 +190,9 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
                 key={s.key}
                 role="tab"
                 aria-selected={active}
+                aria-controls={`carehub-panel-${s.key}`}
                 onClick={() => setSegment(s.key)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold btn-press transition-all"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold btn-press transition-all focus:outline-none focus-visible:ring-2"
                 style={{
                   background: active ? "var(--teal-deep)" : "transparent",
                   color: active ? "#fff" : "var(--gray)",
@@ -146,26 +208,11 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
       </div>
 
       {segment === "lifestyle" ? (
-        <LifestyleTabs onChat={handleBuddyChat} />
-      ) : !isGuest ? (
-        <div className="flex-1 overflow-y-auto" style={{ background: "var(--off-white)" }}>
-          <div className="px-5 py-10 text-center max-w-sm mx-auto">
-            <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-4" style={{ background: "var(--teal-light)" }}>🩺</div>
-            <p className="text-[15px] font-bold mb-1" style={{ color: "var(--navy)" }}>Your recovery hub is ready</p>
-            <p className="font-arabic text-[12px] mb-4" dir="rtl" style={{ color: "var(--gray)" }}>مركز التعافي جاهز</p>
-            <p className="text-[12px] leading-relaxed mb-4" style={{ color: "var(--gray)" }}>
-              Your personalised care plan, education and exercises will appear here once your treating provider shares them, or after you complete an appointment.
-            </p>
-            <p className="font-arabic text-[11px] leading-relaxed" dir="rtl" style={{ color: "var(--gray)" }}>
-              ستظهر هنا خطة الرعاية والمحتوى التثقيفي والتمارين الخاصة بك بمجرد أن يشاركها الطبيب أو بعد إتمام موعدك.
-            </p>
-            <p className="text-[10px] mt-5" style={{ color: "var(--gray)" }}>
-              ⚠️ This app does not replace professional medical advice.
-            </p>
-          </div>
+        <div id="carehub-panel-lifestyle" className="flex-1 min-h-0 flex flex-col">
+          <LifestyleTabs onChat={handleBuddyChat} />
         </div>
       ) : (
-        <>
+        <div id="carehub-panel-medical" className="flex-1 min-h-0 flex flex-col">
           {/* Sub-tabs */}
           <div className="shrink-0 overflow-x-auto px-4 py-2 flex gap-2" style={{ background: "var(--white)", borderBottom: "1px solid var(--gray-light)", WebkitOverflowScrolling: "touch" }}>
             {subTabs.map(t => (
@@ -183,15 +230,18 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-            {activeTab === "careplan" && <CarePlanTab />}
+            {activeTab === "careplan" && <CarePlanTab onAddTask={() => setAddTaskOpen(true)} onAddAppointment={() => setAddApptOpen(true)} />}
             {activeTab === "videos" && <VideosTab />}
             {activeTab === "education" && <EducationTab />}
             {activeTab === "faqs" && <FAQsTab />}
             {activeTab === "nutrition" && <NutritionTab />}
             {activeTab === "exercises" && <ExercisesTab />}
           </div>
-        </>
+        </div>
       )}
+
+      <AddCarePlanTaskSheet open={addTaskOpen} onClose={() => setAddTaskOpen(false)} />
+      <AddAppointmentSheet open={addApptOpen} onClose={() => setAddApptOpen(false)} />
     </div>
   );
 };
