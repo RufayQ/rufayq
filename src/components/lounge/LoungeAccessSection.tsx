@@ -234,8 +234,17 @@ const LoungeFormSheet = ({
             <Field label="Linked card last 4">
               <input value={cardLast4} onChange={(e) => setCardLast4(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="9607" inputMode="numeric" maxLength={4} className="w-full rounded-xl px-3 py-2 text-[13px] font-mono outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
             </Field>
-            <Field label="Expires">
-              <input type="date" value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} className="w-full rounded-xl px-3 py-2 text-[13px] outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+            <Field label="Expires (MM/YY) · تاريخ الانتهاء">
+              <input
+                value={mmyyDisplay}
+                onChange={(e) => setMmyyDisplay(formatMMYYInput(e.target.value))}
+                placeholder="MM/YY"
+                inputMode="numeric"
+                maxLength={5}
+                aria-label="Card expiry month and year"
+                className="w-full rounded-xl px-3 py-2 text-[13px] font-mono tracking-widest outline-none"
+                style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+              />
             </Field>
           </div>
 
