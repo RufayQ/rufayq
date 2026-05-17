@@ -92,21 +92,17 @@ export function useChatInbox() {
     }
     setParticipants(byThread);
 
-    // Compute unread counts per thread (messages from others after my last_read_at)
+    // Single grouped RPC replaces the previous N+1 per-thread COUNT queries.
+    // Threads with zero unread don't appear in the result, so default to 0.
+    void lastReadByThread; // last_read_at is now evaluated server-side inside the RPC
     const unread: Record<string, number> = {};
-    await Promise.all(
-      ids.map(async (tid) => {
-        const since = lastReadByThread[tid] ?? new Date(0).toISOString();
-        const { count } = await supabase
-          .from("chat_messages")
-          .select("id", { count: "exact", head: true })
-          .eq("thread_id", tid)
-          .is("deleted_at", null)
-          .neq("sender_device_id", deviceId)
-          .gt("created_at", since);
-        unread[tid] = count ?? 0;
-      }),
-    );
+    for (const tid of ids) unread[tid] = 0;
+    const { data: unreadRows } = await supabase.rpc("chat_unread_counts_for_device", {
+      _device_id: deviceId,
+    });
+    for (const row of (unreadRows ?? []) as Array<{ thread_id: string; unread_count: number }>) {
+      unread[row.thread_id] = Number(row.unread_count) || 0;
+    }
     setUnreadByThread(unread);
     setLoading(false);
   }, []);
