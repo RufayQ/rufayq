@@ -53,16 +53,28 @@ const NotificationCenter = ({
   const { threads, unreadByThread, totalUnread: chatUnread, participants } = useChatInbox();
   const { showEn, showAr } = useLanguage();
 
+  const [categoryFilter, setCategoryFilter] = useState<Category>("all");
+
   const totalUnread = alertUnread + chatUnread;
   const unreadThreads = threads.filter((thread) => (unreadByThread[thread.id] ?? 0) > 0);
-  const displayedAlerts = tab === "chats" ? [] : items;
+  const filteredAlerts =
+    categoryFilter === "all"
+      ? items
+      : items.filter((n) => CATEGORY_KINDS[categoryFilter].includes(n.kind));
+  const displayedAlerts = tab === "chats" ? [] : filteredAlerts;
   const displayedThreads = tab === "alerts" ? [] : unreadThreads;
-
-  // Keyboard escape only. We intentionally do NOT lock `document.body.style.overflow`
-  // here — doing so previously left the underlying shell in a non-interactive
-  // state for a frame after close, which made it feel like the overlay was
-  // still blocking bottom-nav taps. The portal already covers the viewport
-  // visually, so locking body scroll adds no value on this 390px shell.
+  const filteredUnreadCount = filteredAlerts.filter((n) => !n.is_read).length;
+  const markFilteredRead = () => {
+    if (categoryFilter === "all") {
+      markAllRead();
+      return;
+    }
+    filteredAlerts.forEach((n) => {
+      if (!n.is_read) markRead(n.id);
+    });
+  };
+  const showCategoryRow = tab !== "chats";
+  const activeCategory = CATEGORY_META.find((c) => c.id === categoryFilter)!;
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
