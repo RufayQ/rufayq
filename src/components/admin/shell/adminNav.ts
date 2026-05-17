@@ -112,6 +112,18 @@ export const NAV_MODULES: NavGroup[] = [
     ],
   },
   {
+    key: "qc", label: "Quality Control", icon: ShieldCheck,
+    hint: "Testing, bugs, crash triage",
+    sections: ["Testing", "Bugs", "Automation"],
+    leaves: [
+      { key: "qc_runs",         label: "Test Runs",         icon: ClipboardCheck, section: "Testing" },
+      { key: "qc_smoke",        label: "Smoke Reports",     icon: FileSearch,     section: "Testing", pillTone: "new" },
+      { key: "qc_bugs",         label: "Bug Tracker",       icon: Bug,            section: "Bugs", badgeKey: "open_qc_bugs" },
+      { key: "qc_validations",  label: "Fix Validation",    icon: Shield,         section: "Bugs" },
+      { key: "qc_crash_events", label: "Automated Events",  icon: AlertTriangle,  section: "Automation", badgeKey: "new_qc_crash_events", pillTone: "new" },
+    ],
+  },
+  {
     key: "settings", label: "Settings", icon: Settings,
     hint: "Audit, configuration",
     sections: ["Workspace", "Security"],
