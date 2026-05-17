@@ -32,6 +32,9 @@ const WalletLedger = lazy(() => import("./pages/WalletLedger.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const ContactDivert = lazy(() => import("./pages/ContactDivert.tsx"));
 const SitemapPreview = lazy(() => import("./pages/SitemapPreview.tsx"));
+// Dev-only Playwright visual-regression harness. Tree-shaken in prod
+// because the route guard returns 404 and lazy() defers import.
+const VisualHarness = lazy(() => import("./pages/VisualHarness.tsx"));
 
 /* ── Lazy: heavy app-shell (QueryClient + Toaster + Tooltip + Currency).
    Only mounted for routes that actually need them. Keeps Landing's critical
@@ -116,6 +119,7 @@ const App = () => (
 
             {/* SEO QA tools (no /ar mirror — internal use only) */}
             <Route path="/sitemap-preview" element={<SitemapPreview />} />
+            <Route path="/visual/chat-inbox" element={<VisualHarness />} />
 
             {/* Soft-divert pages for retired/broken CTAs (e.g. old "Book a demo" → /contact). */}
             <Route path="/contact" element={<ContactDivert />} />
