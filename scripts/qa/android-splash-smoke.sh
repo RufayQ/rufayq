@@ -106,7 +106,12 @@ warm_launch() {
 start_logcat() {
   local path="$1"
   adb logcat -c
-  adb logcat -s Capacitor:* chromium:* CapacitorPlugins:* AndroidRuntime:E \
+  # Cast a wider net so we can categorise failures (network, JS, native crash,
+  # renderer crash, memory pressure) — not just Capacitor/chromium chatter.
+  adb logcat \
+      Capacitor:* CapacitorPlugins:* chromium:* \
+      AndroidRuntime:E ActivityManager:W WebViewChromium:W \
+      lowmemorykiller:* lmkd:* art:E *:F \
     > "$path" 2>/dev/null &
   echo $!
 }
@@ -114,6 +119,24 @@ start_logcat() {
 stop_logcat() {
   kill "$1" 2>/dev/null || true
   wait "$1" 2>/dev/null || true
+}
+
+# Inspect a logcat slice and emit a single likely-cause category.
+classify_logcat() {
+  local lc="$1"
+  if   grep -qiE 'ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION|net::ERR_|net::ERR_FAILED|WebViewClient.*error' "$lc"; then
+    echo "LIKELY NETWORK / REMOTE URL LOAD FAILURE"
+  elif grep -qiE 'ChunkLoadError|Loading chunk [0-9]+ failed|Failed to fetch dynamically imported module|Unexpected token|SyntaxError|ReferenceError' "$lc"; then
+    echo "LIKELY JS / CHUNK LOAD FAILURE"
+  elif grep -qiE 'FATAL EXCEPTION|AndroidRuntime: FATAL' "$lc"; then
+    echo "LIKELY NATIVE CRASH"
+  elif grep -qiE 'Renderer process .*gone|RenderProcessGone|render process .*killed|WebView .*crashed' "$lc"; then
+    echo "LIKELY WEBVIEW RENDERER CRASH"
+  elif grep -qiE 'OutOfMemoryError|lowmemorykiller|lmkd.*kill|Low on memory|onTrimMemory.*(CRITICAL|MODERATE)|Background concurrent .*GC freed' "$lc"; then
+    echo "POSSIBLE MEMORY PRESSURE"
+  else
+    echo "UNKNOWN: no clear indicator found"
+  fi
 }
 
 airplane_on()  { adb shell cmd connectivity airplane-mode enable  >/dev/null 2>&1 \
