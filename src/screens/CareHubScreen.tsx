@@ -1,9 +1,12 @@
-import { useState } from "react";
-import { ChevronDown, Star, Pin, Copy, Share2, Download, RefreshCw, Stethoscope, HeartPulse, CalendarClock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Star, Pin, Copy, Share2, Download, RefreshCw, Stethoscope, HeartPulse, CalendarClock, Plus, CalendarPlus, Sparkles, Trash2, GraduationCap, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import StepDetailsPanel from "@/components/timeline/StepDetailsPanel";
 import { useAuthUserId } from "@/hooks/useAuthUserId";
+import { carePlanStore, subscribeCarePlan, CARE_CATEGORIES, type CarePlanTask, type CarePlanCategory } from "@/features/carehub/careplan/carePlanStore";
+import AddCarePlanTaskSheet from "@/features/carehub/careplan/AddCarePlanTaskSheet";
+import AddAppointmentSheet from "@/features/carehub/careplan/AddAppointmentSheet";
 
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
