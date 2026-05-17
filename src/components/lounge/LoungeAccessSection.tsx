@@ -64,31 +64,64 @@ const LoungeAccessSection = ({ segments }: Props) => {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {items.map((m) => {
             const linked = flightSegments.find((s) => s.id === m.linkedSegmentId);
+            const expMMYY = formatExpMMYY(m.expiresOn);
+            const brand = brandTheme(m.program);
             return (
               <button
                 key={m.id}
                 onClick={() => setQrTarget(m)}
-                className="w-full text-left rounded-2xl p-3 btn-press flex items-center gap-3"
-                style={{ background: "var(--white)", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}
+                className="relative w-full text-left rounded-2xl p-3.5 btn-press overflow-hidden"
+                style={{
+                  background: brand.bg,
+                  boxShadow: "0 6px 20px rgba(15,23,42,0.18)",
+                  color: "#fff",
+                }}
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl shrink-0" style={{ background: "linear-gradient(135deg, var(--header-dark-from), var(--header-teal-from))" }}>
-                  <CreditCard size={20} color="#fff" />
+                {/* decorative gradient orb */}
+                <div
+                  className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full opacity-25"
+                  style={{ background: "radial-gradient(circle, var(--gold) 0%, transparent 70%)" }}
+                />
+                <div className="relative flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-9 items-center justify-center rounded-md" style={{ background: "var(--gold)" }}>
+                      <CreditCard size={14} color="#1a2238" />
+                    </div>
+                    <div>
+                      <p className="text-[12px] font-bold leading-tight">{m.program}</p>
+                      <p className="font-mono text-[9px] tracking-widest opacity-70 uppercase">
+                        {brand.tagline}
+                      </p>
+                    </div>
+                  </div>
+                  <ScanLine size={16} style={{ color: "var(--gold)" }} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold truncate" style={{ color: "var(--navy)" }}>{m.program}</p>
-                  <p className="font-mono text-[11px] tracking-wider truncate" style={{ color: "var(--gray)" }}>
-                    {m.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
-                  </p>
-                  {linked && (
-                    <p className="mt-0.5 flex items-center gap-1 text-[9px]" style={{ color: "var(--teal-deep)" }}>
-                      <Plane size={9} /> {linked.airline || linked.flightNumber || "Flight"} · {linked.fromCode}→{linked.toCode}
-                    </p>
+
+                <p className="relative mt-3 font-mono text-[14px] tracking-[0.18em]">
+                  {m.membershipNumber.replace(/(.{4})/g, "$1 ").trim().slice(0, 24)}
+                </p>
+
+                <div className="relative mt-2.5 flex items-end justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-mono text-[8px] tracking-widest opacity-60 uppercase">Cardholder</p>
+                    <p className="text-[11px] font-bold truncate">{m.cardholderName}</p>
+                  </div>
+                  {expMMYY && (
+                    <div className="text-right shrink-0">
+                      <p className="font-mono text-[8px] tracking-widest opacity-60 uppercase">Exp</p>
+                      <p className="font-mono text-[11px] font-bold">{expMMYY}</p>
+                    </div>
                   )}
                 </div>
-                <ScanLine size={16} style={{ color: "var(--gold)" }} />
+
+                {linked && (
+                  <p className="relative mt-2 flex items-center gap-1 text-[9px]" style={{ color: "var(--gold)" }}>
+                    <Plane size={9} /> {linked.airline || linked.flightNumber || "Flight"} · {linked.fromCode}→{linked.toCode}
+                  </p>
+                )}
               </button>
             );
           })}
