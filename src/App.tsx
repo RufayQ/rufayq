@@ -119,6 +119,7 @@ const App = () => (
 
             {/* SEO QA tools (no /ar mirror — internal use only) */}
             <Route path="/sitemap-preview" element={<SitemapPreview />} />
+            <Route path="/visual/chat-inbox" element={<VisualHarness />} />
 
             {/* Soft-divert pages for retired/broken CTAs (e.g. old "Book a demo" → /contact). */}
             <Route path="/contact" element={<ContactDivert />} />
