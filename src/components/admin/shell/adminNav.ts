@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Users, Building2, Briefcase, Activity, Shield, FileText,
   CreditCard, MessageSquare, Star, UserPlus, Globe, Settings, Sparkles, Headphones, Bell,
+  ShieldCheck, Bug, ClipboardCheck, FileSearch, AlertTriangle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
