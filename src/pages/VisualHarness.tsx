@@ -50,13 +50,9 @@ const SEARCH_FIXTURES: SearchFixture[] = [
 ];
 
 export default function VisualHarness() {
-  if (import.meta.env.PROD) {
-    return <div className="p-10 text-center">Not available in production</div>;
-  }
   const [params] = useSearchParams();
   const view = params.get("view") === "search" ? "search" : "inbox";
   const lang = params.get("lang") === "ar" ? "ar" : "en";
-  // Optional override so bidi tests can force an ambient RTL ancestor.
   const dirParam = params.get("dir") === "rtl" ? "rtl" : "ltr";
 
   useMemo(() => {
@@ -64,6 +60,10 @@ export default function VisualHarness() {
     document.documentElement.dir = dirParam;
     return null;
   }, [lang, dirParam]);
+
+  if (import.meta.env.PROD) {
+    return <div className="p-10 text-center">Not available in production</div>;
+  }
 
   return (
     <div className="min-h-screen flex items-start justify-center bg-[color:var(--off-white)] py-6">
