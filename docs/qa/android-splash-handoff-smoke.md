@@ -20,13 +20,26 @@ adb devices                       # device must be listed and "device", not "una
 adb shell settings get global airplane_mode_on    # 0 = off
 ```
 
-Install the release-candidate APK fresh (uninstall first to guarantee a cold
-launch with no cached state):
+Build an installable APK first (`npx cap sync android` alone does NOT assemble
+an APK — it only copies web assets into the Android project):
+
+```bash
+# Bundled mode (recommended — ships the local fix inside the APK):
+./scripts/build-android-apk.sh
+
+# Remote mode (only valid AFTER publishing the fix to rufayq.com):
+MODE=remote ./scripts/build-android-apk.sh
+```
+
+Then install fresh (uninstall first to guarantee a cold launch with no cached state):
 
 ```bash
 adb uninstall com.rufayq.app || true
-adb install -r android/app/build/outputs/apk/release/app-release.apk
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+Note: `scripts/build-android.sh` produces an **AAB** for Play submission, not
+an installable APK. Do not use it for local device smoke testing.
 
 ---
 
