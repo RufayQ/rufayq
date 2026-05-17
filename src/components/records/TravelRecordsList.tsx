@@ -445,7 +445,8 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange }: Props) => {
     );
   };
 
-  const nothingToShow = filtered.length === 0 && pinnedItems.length === 0;
+  const visibleCount = filtered.length + pinnedItems.length;
+  const nothingToShow = visibleCount === 0;
 
   if (nothingToShow) {
     return (
@@ -504,7 +505,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange }: Props) => {
 
       <div className="flex items-center justify-between mt-3">
         <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>
-          {searchQuery || cat !== "all" ? `RESULTS — ${filtered.length}` : `TRAVEL DOCUMENTS — ${filtered.length} FILES`}
+          {searchQuery || cat !== "all" ? `RESULTS — ${visibleCount}` : `TRAVEL DOCUMENTS — ${visibleCount} FILES`}
         </p>
       </div>
 
