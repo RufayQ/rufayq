@@ -112,13 +112,15 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
+      <div ref={inboxFocus.containerRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
         {loading && <p className="text-center text-[12px] mt-6" style={{ color: "var(--gray)" }}>Loading…</p>}
         {!loading && filtered.length === 0 && (
           <EmptyState onNewAi={onNewAi} onSearch={() => setNewSheet("people")} onCare={() => setNewSheet("care")} />
         )}
         {filtered.map((t) => {
           const unread = unreadByThread[t.id] ?? 0;
+          const rowKey = `row:${t.id}`;
+          const avatarKey = `avatar:${t.id}`;
           return (
           // Row is a div+role="button" (NOT a <button>) so the inner avatar
           // <button> for "Open profile" is valid HTML and gets its own focus
@@ -131,10 +133,12 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             // never mirrors, even if a future ancestor goes RTL. Inner text
             // blocks still use dir="auto" to read each name in its own script.
             dir="ltr"
-            onClick={() => onOpenThread(t)}
+            data-focus-key={rowKey}
+            onClick={() => { inboxFocus.remember(rowKey); onOpenThread(t); }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
+                inboxFocus.remember(rowKey);
                 onOpenThread(t);
               }
             }}
@@ -145,10 +149,14 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             {onOpenProfile && t.kind !== "ai" ? (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onOpenProfile(t); }}
+                data-focus-key={avatarKey}
+                onClick={(e) => { e.stopPropagation(); inboxFocus.remember(avatarKey); onOpenProfile(t); }}
                 onKeyDown={(e) => {
                   // Stop Enter/Space from also triggering the parent row.
-                  if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.stopPropagation();
+                    inboxFocus.remember(avatarKey);
+                  }
                 }}
                 className="rounded-full btn-press outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 style={{ ["--tw-ring-color" as string]: "var(--gold)" }}
