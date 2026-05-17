@@ -128,6 +128,60 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
     window.open(url, "_blank");
   };
 
+  // ── Travel-specific handlers (operate on the visible travel rows so search/category filter is honoured) ──
+  const buildTravelSummary = () => {
+    const lines = visibleTravelDocs.map((d) => {
+      const when = d.created_at ? new Date(d.created_at).toLocaleDateString() : "";
+      return `- ${d.label} — ${d.file_name}${when ? ` — Added ${when}` : ""}`;
+    }).join("\n");
+    return `Travel Documents Summary\nملخص وثائق السفر\n\n${lines}`;
+  };
+
+  const handleCopyTravelDocs = async () => {
+    if (visibleTravelDocs.length === 0) {
+      toast.info("No travel documents yet · لا توجد وثائق سفر بعد", { duration: 2000 });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(buildTravelSummary());
+      toast.success("Travel summary copied · تم نسخ ملخص السفر", { duration: 2000 });
+    } catch {
+      toast.error("Could not copy travel summary · تعذر نسخ ملخص السفر");
+    }
+  };
+
+  const handleExportTravelDocs = () => {
+    if (visibleTravelDocs.length === 0) {
+      toast.info("No travel documents yet · لا توجد وثائق سفر بعد", { duration: 2000 });
+      return;
+    }
+    try {
+      const blob = new Blob([buildTravelSummary()], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "travel-documents.txt"; a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Travel docs exported · تم تصدير وثائق السفر", { duration: 2000 });
+    } catch {
+      toast.error("Could not export travel docs · تعذر تصدير وثائق السفر");
+    }
+  };
+
+  const handleShareTravelDocs = async () => {
+    if (visibleTravelDocs.length === 0) {
+      toast.info("No travel documents yet · لا توجد وثائق سفر بعد", { duration: 2000 });
+      return;
+    }
+    const summary = buildTravelSummary();
+    try {
+      if (typeof navigator !== "undefined" && (navigator as Navigator & { share?: (d: ShareData) => Promise<void> }).share) {
+        await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share({ title: "Travel Documents", text: summary });
+        return;
+      }
+    } catch { /* user cancelled or unsupported */ }
+    window.open(`https://wa.me/?text=${encodeURIComponent(summary)}`, "_blank");
+  };
+
   // Tab-aware kebab: shared items + medical-only quick actions (+ Meds).
   const recordsMenuItems: HeaderMenuItem[] = segment === "medical"
     ? [
@@ -139,7 +193,9 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
       ]
     : [
         { icon: <ScanLine size={14} />, label: "Scan Travel Document", labelAr: "مسح وثيقة سفر", onClick: () => onOpenScanner?.() },
-        { icon: <Share2 size={14} />, label: "Share Travel Docs", labelAr: "مشاركة وثائق السفر", onClick: handleShareRecords },
+        { icon: <Copy size={14} />, label: "Copy Travel Summary", labelAr: "نسخ ملخص السفر", onClick: handleCopyTravelDocs },
+        { icon: <Download size={14} />, label: "Export Travel Docs (.txt)", labelAr: "تصدير وثائق السفر", onClick: handleExportTravelDocs },
+        { icon: <Share2 size={14} />, label: "Share Travel Docs", labelAr: "مشاركة وثائق السفر", onClick: handleShareTravelDocs },
       ];
 
   return (
