@@ -24,6 +24,14 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
   const [q, setQ] = useState("");
   const [newSheet, setNewSheet] = useState<null | "menu" | "people" | "care">(null);
 
+  // Focus return: when the user opens a thread/profile and comes back, snap
+  // focus to the row (or its avatar button) they last tapped. Re-runs when
+  // the list finishes loading or its length changes.
+  const inboxFocus = useFocusReturn<HTMLDivElement>("chat-inbox", [
+    loading,
+    threads.length,
+  ]);
+
   const filtered = useMemo(() => {
     return threads.filter((t) => {
       if (tab === "ai" && t.kind !== "ai") return false;
