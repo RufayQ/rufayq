@@ -157,10 +157,7 @@ export function useChatInbox() {
     };
   }, [load]);
 
-  const totalUnread = Object.values(unreadByThread).reduce(
-    (a, [tid, b]: [string, number] | any) => a + b,
-    0,
-  );
+  const totalUnread = Object.values(unreadByThread).reduce((a, b) => a + b, 0);
 
   // Actions ----------------------------------------------------------------
 
