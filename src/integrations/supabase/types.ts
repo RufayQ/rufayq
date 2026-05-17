@@ -1521,6 +1521,54 @@ export type Database = {
           },
         ]
       }
+      lounge_memberships: {
+        Row: {
+          card_last4: string | null
+          cardholder_name: string
+          created_at: string
+          deleted_at: string | null
+          device_id: string | null
+          expires_on: string | null
+          id: string
+          linked_segment_id: string | null
+          membership_number: string
+          notes: string | null
+          program: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          card_last4?: string | null
+          cardholder_name: string
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          expires_on?: string | null
+          id?: string
+          linked_segment_id?: string | null
+          membership_number: string
+          notes?: string | null
+          program: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          card_last4?: string | null
+          cardholder_name?: string
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string | null
+          expires_on?: string | null
+          id?: string
+          linked_segment_id?: string | null
+          membership_number?: string
+          notes?: string | null
+          program?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       manual_otp_codes: {
         Row: {
           code: string
@@ -7496,6 +7544,7 @@ export type Database = {
     }
     Functions: {
       _actor_email_safe: { Args: never; Returns: string }
+      _hdr_device_id: { Args: never; Returns: string }
       _journey_caller_owns: { Args: { _journey_id: string }; Returns: boolean }
       _journey_idem_lookup: {
         Args: { _key: string; _rpc: string }
