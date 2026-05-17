@@ -23,6 +23,7 @@ set -uo pipefail
 PKG="com.rufayq.app"
 LAUNCH_ACT="$PKG/.MainActivity"     # Capacitor default; override if renamed
 SPLASH_HEX="0B2A3A"                  # navy splash colour, no '#'
+BLACK_HEX="000000"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="qa-artifacts/$TIMESTAMP"
 REPORT="$OUT_DIR/report.md"
@@ -61,21 +62,26 @@ if [ -n "$RESOLVED_ACT" ] && [[ "$RESOLVED_ACT" == *"/"* ]]; then
 fi
 log "using launcher activity: $LAUNCH_ACT"
 
-# Pixel-sampling: capture a screenshot and check whether the centre pixel still
-# matches the navy splash colour. Returns 0 if still splash, 1 if handed off.
-is_still_splash() {
+hex_luma() {
+  local hex="${1:0:6}"
+  local r=$((16#${hex:0:2})) g=$((16#${hex:2:2})) b=$((16#${hex:4:2}))
+  echo $(((r * 299 + g * 587 + b * 114) / 1000))
+}
+
+# Pixel-sampling: capture a screenshot and check whether the average screen is
+# still solid navy/black. Returns 0 if blank/splash, 1 if handed off.
+is_blank_or_splash() {
   local png="$1"
   if command -v magick >/dev/null 2>&1; then
     local hex
     hex=$(magick "$png" -resize 1x1\! -format '%[hex:p{0,0}]' info: 2>/dev/null | tr 'a-f' 'A-F')
-    [ "$VERBOSE" = "1" ] && log "  centre pixel = $hex (splash = $SPLASH_HEX)"
-    # accept ±8 per channel tolerance
-    [ "${hex:0:6}" = "$SPLASH_HEX" ]
+    [ "$VERBOSE" = "1" ] && log "  average pixel = $hex (splash = $SPLASH_HEX, black = $BLACK_HEX)"
+    [ "${hex:0:6}" = "$SPLASH_HEX" ] || [ "$(hex_luma "$hex")" -lt 16 ]
     return $?
   elif command -v convert >/dev/null 2>&1; then
     local hex
     hex=$(convert "$png" -resize 1x1\! -format '%[hex:p{0,0}]' info: 2>/dev/null | tr 'a-f' 'A-F')
-    [ "${hex:0:6}" = "$SPLASH_HEX" ]
+    [ "${hex:0:6}" = "$SPLASH_HEX" ] || [ "$(hex_luma "$hex")" -lt 16 ]
     return $?
   else
     warn "ImageMagick not found — falling back to size heuristic (less precise)"
@@ -121,10 +127,18 @@ stop_logcat() {
   wait "$1" 2>/dev/null || true
 }
 
+# Inspect RufayQ startup markers emitted by the React boot path.
+has_marker() {
+  local marker="$1" lc="$2"
+  grep -qF "$marker" "$lc"
+}
+
 # Inspect a logcat slice and emit a single likely-cause category.
 classify_logcat() {
   local lc="$1"
-  if   grep -qiE 'ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION|net::ERR_|net::ERR_FAILED|WebViewClient.*error' "$lc"; then
+  if   ! has_marker '[RufayqStartup] React mounted' "$lc"; then
+    echo "JS DID NOT REACH REACT BOOT"
+  elif grep -qiE 'ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION|net::ERR_|net::ERR_FAILED|WebViewClient.*error' "$lc"; then
     echo "LIKELY NETWORK / REMOTE URL LOAD FAILURE"
   elif grep -qiE 'ChunkLoadError|Loading chunk [0-9]+ failed|Failed to fetch dynamically imported module|Unexpected token|SyntaxError|ReferenceError' "$lc"; then
     echo "LIKELY JS / CHUNK LOAD FAILURE"
@@ -135,7 +149,7 @@ classify_logcat() {
   elif grep -qiE 'OutOfMemoryError|lowmemorykiller|lmkd.*kill|Low on memory|onTrimMemory.*(CRITICAL|MODERATE)|Background concurrent .*GC freed' "$lc"; then
     echo "POSSIBLE MEMORY PRESSURE"
   else
-    echo "UNKNOWN: no clear indicator found"
+    echo "REACT RENDERED BLANK / STARTUP UI FAILURE"
   fi
 }
 
@@ -169,8 +183,12 @@ run_row() {
   stop_logcat "$lc_pid"
 
   local pre_splash=0 post_splash=0
-  is_still_splash "$OUT_DIR/row-$n-pre.png"  && pre_splash=1
-  is_still_splash "$OUT_DIR/row-$n-post.png" && post_splash=1
+  is_blank_or_splash "$OUT_DIR/row-$n-pre.png"  && pre_splash=1
+  is_blank_or_splash "$OUT_DIR/row-$n-post.png" && post_splash=1
+  local react_marker="no" hide_marker="no" timeout_marker="no"
+  has_marker '[RufayqStartup] React mounted' "$lc_path" && react_marker="yes"
+  has_marker '[RufayqStartup] SplashScreen.hide requested' "$lc_path" && hide_marker="yes"
+  has_marker '[RufayqStartup] Splash fallback timeout fired' "$lc_path" && timeout_marker="yes"
 
   local status="PASS" reason=""
   if [ "$require_handoff" = "1" ] && [ "$post_splash" = "1" ]; then
@@ -183,20 +201,31 @@ run_row() {
     fi
   fi
 
+  if [ "$status" = "PASS" ] && [ "$post_splash" = "1" ] && [ "$react_marker" = "yes" ]; then
+    status="FAIL"; reason="React booted but screen remained splash/blank after ${max_seconds}s"
+  fi
+
   local category="n/a"
   if [ "$status" = "FAIL" ]; then
-    category=$(classify_logcat "$lc_path")
+    if [ "$post_splash" = "1" ] && [ "$react_marker" = "yes" ]; then
+      category="REACT RENDERED BLANK / STARTUP UI FAILURE"
+    else
+      category=$(classify_logcat "$lc_path")
+    fi
   fi
 
   if [ "$status" = "PASS" ]; then ok "row $n PASS"
   else err "row $n FAIL — $reason ($category)"; fi
 
-  ROW_RESULTS+=("$n|$name|$status|$reason|$category")
+  ROW_RESULTS+=("$n|$name|$status|$reason|$category|$react_marker|$hide_marker|$timeout_marker")
   {
     echo "### Row $n — $name"
     echo "- status: **$status**"
     [ -n "$reason" ] && echo "- reason: $reason"
     [ "$category" != "n/a" ] && echo "- likely cause: **$category**"
+    echo "- React mounted marker: **$react_marker**"
+    echo "- SplashScreen.hide requested marker: **$hide_marker**"
+    echo "- splash fallback timeout marker: **$timeout_marker**"
     echo "- pre-screenshot: \`row-$n-pre.png\`"
     echo "- post-screenshot: \`row-$n-post.png\`"
     echo "- logcat slice: \`row-$n-logcat.txt\`"
@@ -246,11 +275,11 @@ FAILED=0
 {
   echo "## Summary"
   echo
-  echo "| Row | Scenario | Status | Likely cause |"
-  echo "|-----|----------|--------|--------------|"
+  echo "| Row | Scenario | Status | React mounted | Splash hide requested | Fallback fired | Likely cause |"
+  echo "|-----|----------|--------|---------------|-----------------------|----------------|--------------|"
   for r in "${ROW_RESULTS[@]}"; do
-    IFS='|' read -r n name status reason category <<<"$r"
-    echo "| $n | $name | $status | ${category:-n/a} |"
+    IFS='|' read -r n name status reason category react_marker hide_marker timeout_marker <<<"$r"
+    echo "| $n | $name | $status | $react_marker | $hide_marker | $timeout_marker | ${category:-n/a} |"
     [ "$status" = "FAIL" ] && FAILED=$((FAILED+1))
   done
 } >> "$REPORT"

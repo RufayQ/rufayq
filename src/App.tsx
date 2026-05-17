@@ -6,6 +6,7 @@ import { useSyncLanguageWithRoute } from "@/seo/useSyncLanguageWithRoute";
 import Landing from "./pages/Landing.tsx";
 import AppAuthGuard from "@/components/AppAuthGuard";
 import AppStartupFallback from "@/components/AppStartupFallback";
+import AppErrorBoundary from "@/components/AppErrorBoundary";
 
 /* ── Lazy: every non-landing route ───────────────────────────────────────── */
 const Index = lazy(() => import("./pages/Index.tsx"));
@@ -63,12 +64,13 @@ const Shelled = ({ children }: { children: React.ReactNode }) => (
 );
 
 const App = () => (
-  <HelmetProvider>
-    <LanguageProvider>
-      <BrowserRouter>
-        <RouteLanguageSync />
-        <Suspense fallback={<RouteFallback />}>
-          <Routes>
+  <AppErrorBoundary>
+    <HelmetProvider>
+      <LanguageProvider>
+        <BrowserRouter>
+          <RouteLanguageSync />
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
             {/* English (root = default language) — minimal critical chain */}
             <Route path="/" element={<Landing />} />
             <Route path="/about" element={<About />} />
@@ -133,11 +135,12 @@ const App = () => (
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </LanguageProvider>
-  </HelmetProvider>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </LanguageProvider>
+    </HelmetProvider>
+  </AppErrorBoundary>
 );
 
 export default App;

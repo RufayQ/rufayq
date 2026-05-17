@@ -114,9 +114,10 @@ const Highlight = ({ text, query }: { text: string; query: string }) => {
 interface Props {
   userId: string | null;
   searchQuery: string;
+  onCountsChange?: (counts: { total: number; translated: number; newCount: number }) => void;
 }
 
-const TravelRecordsList = ({ userId, searchQuery }: Props) => {
+const TravelRecordsList = ({ userId, searchQuery, onCountsChange }: Props) => {
   const deviceId = getDeviceId();
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loungeCards, setLoungeCards] = useState<LoungeMembership[]>(() => listLoungeMemberships());
@@ -179,6 +180,10 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     (acc, it) => { acc.all += 1; acc[classifyRow(it)] += 1; return acc; },
     { all: 0, passport: 0, visa: 0, booking: 0, lounge: 0, insurance: 0, other: 0 },
   );
+
+  useEffect(() => {
+    onCountsChange?.({ total: counts.all, translated: 0, newCount: 0 });
+  }, [counts.all, onCountsChange]);
 
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => readPins());
 
@@ -440,7 +445,8 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     );
   };
 
-  const nothingToShow = filtered.length === 0 && pinnedItems.length === 0;
+  const visibleCount = filtered.length + pinnedItems.length;
+  const nothingToShow = visibleCount === 0;
 
   if (nothingToShow) {
     return (
@@ -499,7 +505,7 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
 
       <div className="flex items-center justify-between mt-3">
         <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gray)" }}>
-          {searchQuery || cat !== "all" ? `RESULTS — ${filtered.length}` : `TRAVEL DOCUMENTS — ${filtered.length} FILES`}
+          {searchQuery || cat !== "all" ? `RESULTS — ${visibleCount}` : `TRAVEL DOCUMENTS — ${visibleCount} FILES`}
         </p>
       </div>
 

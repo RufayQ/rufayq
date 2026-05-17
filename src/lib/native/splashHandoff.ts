@@ -22,15 +22,16 @@ let handed = false;
 
 async function hideSplashOnce(reason: string) {
   if (handed) return;
-  handed = true;
+  console.info(`[RufayqStartup] SplashScreen.hide requested (${reason})`);
   try {
     await SplashScreen.hide({ fadeOutDuration: 200 });
+    handed = true;
     if (typeof console !== "undefined") {
       // eslint-disable-next-line no-console
-      console.info(`[splash] hidden (${reason})`);
+      console.info(`[RufayqStartup] SplashScreen.hide completed (${reason})`);
     }
-  } catch {
-    /* plugin unavailable — ignore */
+  } catch (error) {
+    console.warn(`[RufayqStartup] SplashScreen.hide failed (${reason})`, error);
   }
 }
 
@@ -54,6 +55,7 @@ export function initSplashHandoff() {
 
   // Fallback: never let the native splash stay past 2.5s.
   setTimeout(() => {
+    console.info("[RufayqStartup] Splash fallback timeout fired");
     void hideSplashOnce("fallback-timeout");
   }, 2500);
 }

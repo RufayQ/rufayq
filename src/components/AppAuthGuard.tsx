@@ -12,13 +12,13 @@
  * Reacts to Supabase auth state changes so sign-out triggers the redirect and
  * sign-in clears the gate without a flash.
  */
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { syncGoogleLinkage } from "@/lib/auth/googleLink";
 import AppStartupFallback from "@/components/AppStartupFallback";
 
-type Status = "checking" | "allow" | "redirecting";
+type Status = "checking" | "allow" | "redirecting" | "recovery";
 
 interface Props {
   children: ReactNode;
@@ -55,18 +55,49 @@ const RouteFallback = () => (
   />
 );
 
+const primaryButton: CSSProperties = {
+  border: "1px solid rgba(197,150,90,0.55)",
+  background: "var(--gold, #C5965A)",
+  color: "var(--scanner-bg, #06101A)",
+  borderRadius: 999,
+  padding: "10px 14px",
+  fontSize: 13,
+  fontWeight: 700,
+};
+
+const secondaryButton: CSSProperties = {
+  ...primaryButton,
+  background: "transparent",
+  color: "var(--white, #E8ECF0)",
+};
+
 const AppAuthGuard = ({ children }: Props) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const forceSignIn = searchParams.get("signin") === "1";
   const [status, setStatus] = useState<Status>("checking");
+  const [retryNonce, setRetryNonce] = useState(0);
+
+  const continueToSignIn = () => {
+    const dest = safeReturnTo(location.pathname, location.search);
+    const authPath = authPathFor(location.pathname);
+    navigate(`${authPath}?returnTo=${encodeURIComponent(dest)}`, { replace: true });
+  };
 
   useEffect(() => {
     let cancelled = false;
+    setStatus("checking");
+
+    const timeout = window.setTimeout(() => {
+      if (cancelled) return;
+      console.warn("[RufayqStartup] Auth guard timeout fired");
+      setStatus((current) => current === "checking" ? "recovery" : current);
+    }, 7000);
 
     const evaluate = (hasSession: boolean) => {
       if (cancelled) return;
+      window.clearTimeout(timeout);
       if (forceSignIn || hasGuestOk() || hasSession) {
         setStatus("allow");
         return;
@@ -82,7 +113,10 @@ const AppAuthGuard = ({ children }: Props) => {
     supabase.auth
       .getSession()
       .then(({ data: { session } }) => { evaluate(!!session?.user); if (session?.user) syncGoogleLinkage(session.user.id); })
-      .catch(() => evaluate(false));
+      .catch((error) => {
+        console.warn("[RufayqStartup] Auth session check failed", error);
+        evaluate(false);
+      });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       evaluate(!!session?.user);
@@ -91,12 +125,29 @@ const AppAuthGuard = ({ children }: Props) => {
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeout);
       sub.subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forceSignIn, location.pathname, location.search]);
+  }, [forceSignIn, location.pathname, location.search, retryNonce]);
 
   if (status === "allow") return <>{children}</>;
+  if (status === "recovery") {
+    return (
+      <AppStartupFallback
+        title="RufayQ"
+        message="Still preparing your secure session…"
+        messageAr="ما زلنا نجهّز جلستك الآمنة…"
+      >
+        <button type="button" style={primaryButton} onClick={() => setRetryNonce((n) => n + 1)}>
+          Retry
+        </button>
+        <button type="button" style={secondaryButton} onClick={continueToSignIn}>
+          Continue to sign-in
+        </button>
+      </AppStartupFallback>
+    );
+  }
   return <RouteFallback />;
 };
 
