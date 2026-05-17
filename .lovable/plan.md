@@ -1,291 +1,288 @@
-# One-command Android device QA script
-
-Wrap the existing pieces (`build-android-apk.sh` + `qa/android-splash-smoke.sh`) into a single entry point so a tester can run one command on a connected device.
-
-## New file
-
-`scripts/qa/android-device-qa.sh` — orchestrates:
-
-1. **Preflight**: assert `adb` is on PATH and exactly one authorised device is connected (mirrors the smoke script's check, but fails earlier).
-2. **Clean uninstall**: `adb uninstall com.rufayq.app` (suppress error if not installed).
-3. **Build APK**: invoke `MODE="$MODE" VARIANT="$VARIANT" ./scripts/build-android-apk.sh`. `MODE` defaults to `bundled`, `VARIANT` to `Debug`. Both overridable via env.
-4. **Install**: `adb install -r android/app/build/outputs/apk/<variant>/app-<variant>.apk` (path computed from `VARIANT`).
-5. **Run smoke test**: `APK=<path> ./scripts/qa/android-splash-smoke.sh`, forwarding `VERBOSE`.
-6. **Print report path**: locate the newest `qa-artifacts/<timestamp>/report.md`, print its absolute path, byte size, and the final classification line (last non-empty line of the report) so the tester sees pass/fail at a glance.
-
-The script uses `set -euo pipefail`, color-coded `[qa]` log prefixes consistent with the smoke script, and exits non-zero with a clear message if any phase fails (build, install, smoke). If smoke fails, the report path is still printed before exiting.
-
-## Usage
-
-```bash
-./scripts/qa/android-device-qa.sh                        # bundled debug APK
-MODE=remote ./scripts/qa/android-device-qa.sh            # remote-URL shell
-VARIANT=Release VERBOSE=1 ./scripts/qa/android-device-qa.sh
-```
-
-## Files touched
-
-- **new**: `scripts/qa/android-device-qa.sh` (executable, `chmod +x`)
-- **edit**: `docs/qa/android-splash-handoff-smoke.md` — add a "One-command run" section at the top pointing at the new script; keep the existing step-by-step instructions for advanced users.
-
-Please add a diagnostic APK artifact preflight to `scripts/build-android-apk.sh`.
+Please implement the safer `MODE=bundled` Capacitor server-stripping flow for Android APK builds.
 
 Important:
 
 - Only touch `scripts/build-android-apk.sh`.
 
-- Do not change Gradle files.
+- Do not modify `capacitor.config.ts`.
 
-- Do not change Capacitor config.
+- Do not modify Gradle files.
 
-- Do not change CI workflows.
+- Do not modify the smoke script.
 
-- Do not change the release AAB script/path.
+- Do not modify the device-QA wrapper.
 
-- This is only for APK build diagnostics.
+- Do not modify CI workflows.
 
-Context:
+- Do not modify the release AAB script unless separately requested.
 
-The script currently has a terse post-Gradle check like:
+- Do not change `MODE=remote` behavior.
+
+If `scripts/build-android-apk.sh` does not exist in this branch, stop and report that this change depends on that file. Do not silently apply this to another script.
+
+---
+
+## Problem to fix
+
+The current APK script’s bundled-mode flow mutates tracked source file `capacitor.config.ts` in place and relies on a `.bak` file plus `trap ... EXIT` to restore it.
+
+That is unsafe because:
+
+- `SIGKILL`, power loss, editor reload, or interrupted runs can leave `capacitor.config.ts` stripped.
+
+- A stale `capacitor.config.ts.bak` can cause the next run to back up an already-stripped file.
+
+- Concurrent builds can race on the same source file.
+
+- User edits during a build can be overwritten by the restore step.
+
+The build script must stop writing to `capacitor.config.ts`.
+
+---
+
+## Desired behavior
+
+For `MODE=bundled`:
+
+1. Build web assets as before.
+
+2. Verify `capacitor.config.ts` still contains the canonical remote server URL:
+
+   `https://rufayq.com`
+
+3. If a stale `capacitor.config.ts.bak` exists from the old script, recover it before any build work:
+
+   - If current `capacitor.config.ts` is missing the canonical server URL and `.bak` contains it, move `.bak` back to `capacitor.config.ts`.
+
+   - Print a warning:
+
+     `[qa] recovered capacitor.config.ts from stale capacitor.config.ts.bak`
+
+   - If both current file and backup are missing the server URL, fail loudly with:
+
+     `git checkout -- capacitor.config.ts`
+
+4. Run `npx cap sync android` normally. This generates:
+
+   `android/app/src/main/assets/capacitor.config.json`
+
+5. Patch only the generated Android JSON:
+
+   `android/app/src/main/assets/capacitor.config.json`
+
+6. Delete the top-level `server` key from that JSON using `node -e` with:
+
+   - `JSON.parse`
+
+   - `delete obj.server`
+
+   - `JSON.stringify(obj, null, 2)`
+
+7. Verify the patched JSON no longer has a `server` key.
+
+8. Print before/after top-level JSON keys so the operator can see that `server` was removed.
+
+9. Continue to Gradle APK build.
+
+10. No restore step is needed because `capacitor.config.ts` was never changed.
+
+For `MODE=remote`:
+
+- Keep behavior unchanged.
+
+- Run `npx cap sync android`.
+
+- Do not patch the generated JSON.
+
+- Verify the generated JSON still has `server.url`.
+
+---
+
+## Required implementation details
+
+Add constants/helpers near the top:
 
 ```bash
 
-[ -f "$OUT" ] || { echo "✗ APK not produced at $OUT"; exit 1; }
+CANONICAL_SERVER_URL="[https://rufayq.com](https://rufayq.com)"
 
-Please add a one-command Android device QA wrapper script.
+CAP_CONFIG_TS="capacitor.config.ts"
 
-Goal:
+CAP_CONFIG_BAK="capacitor.config.ts.bak"
 
-A tester with one connected Android device should be able to run a single command that:
+ANDROID_CAP_JSON="android/app/src/main/assets/capacitor.config.json"
 
-1. verifies adb/device state,
+## **Bundled mode JSON patch**
 
-2. clean-installs fresh APK,
+After npx cap sync android, if MODE=bundled, patch the generated Android JSON.
 
-3 builds APK,
+Use a function like:
 
-4. installs it,
+`patch_android_capacitor_json_for_bundled() {`  
+  `if [ ! -f "$ANDROID_CAP_JSON" ]; then`  
+    `echo "[qa] ✗ generated Capacitor JSON not found: $ANDROID_CAP_JSON" >&2`  
+    `echo "[qa] Did npx cap sync android complete successfully?" >&2`  
+    `exit 2`  
+  `fi`  
+  
+  `echo "[qa] Capacitor JSON keys before bundled patch:"`  
+  `node -e "`  
+    `const fs = require('fs');`  
+    `const p = process.argv[1];`  
+    `const obj = JSON.parse(fs.readFileSync(p, 'utf8'));`  
+    `console.log(Object.keys(obj).sort().join(', '));`  
+  `" "$ANDROID_CAP_JSON"`  
+  
+  `node -e "`  
+    `const fs = require('fs');`  
+    `const p = process.argv[1];`  
+    `const obj = JSON.parse(fs.readFileSync(p, 'utf8'));`  
+    `delete obj.server;`  
+    `fs.writeFileSync(p, JSON.stringify(obj, null, 2) + '\n');`  
+  `" "$ANDROID_CAP_JSON"`  
+  
+  `echo "[qa] Capacitor JSON keys after bundled patch:"`  
+  `node -e "`  
+    `const fs = require('fs');`  
+    `const p = process.argv[1];`  
+    `const obj = JSON.parse(fs.readFileSync(p, 'utf8'));`  
+    `console.log(Object.keys(obj).sort().join(', '));`  
+    `if (Object.prototype.hasOwnProperty.call(obj, 'server')) {`  
+      `console.error('[qa] ✗ bundled patch failed: generated JSON still contains server');`  
+      `process.exit(2);`  
+    `}`  
+  `" "$ANDROID_CAP_JSON"`  
+`}`  
 
-5. runs the Android splash test6 prints the report path and summary.
 
-Important current context:
+Call this only when:
 
-- This enhancement `scripts/build-androidk.sh` scripts/[buildandroid-apk.sh](http://buildandroid-apk.sh)` does not in the current branch, do silently invent incompatible behavior. Either:
+`if [ "$MODE" = "bundled" ]; then`  
+  `patch_android_capacitor_json_for_bundled`  
+`fi`  
 
- 1. and say this wrapper depends on that script,
-
-  . create/use it only it exists in theable branch APK builds supported.
-
-- Do not modify Gradle, Capacitor config, CI workflows, or the existing smoke script.
-
-- Do not change release AAB behavior.
-
-- Keep this scoped to local connected-device QA.
-
-Files to touch:
-
-1. New executable file:
-
-   `scripts/qa/android-device-qa.sh`
-
-2. Edit:
-
-   `docs/qa/android-splash-handoff-smoke.md`
-
-Do not touch unrelated files.
 
 ---
 
-## New script: `scripts/qa/android-device-qa.sh`
+## **Remote mode verification**
 
-Create an executable Bash script with:
+For MODE=remote, do not patch the JSON.
 
-```bash
+Optionally verify the generated JSON still has the canonical server URL:
 
-#!/usr/bin/env bash
+`verify_remote_json_has_server() {`  
+  `node -e "`  
+    `const fs = require('fs');`  
+    `const p = process.argv[1];`  
+    `const expected = process.argv[2];`  
+    `const obj = JSON.parse(fs.readFileSync(p, 'utf8'));`  
+    `if (!obj.server || obj.server.url !== expected) {`  
+      `console.error('[qa] ✗ remote mode expected server.url=' + expected);`  
+      `process.exit(2);`  
+    `}`  
+    `console.log('[qa] remote mode server.url=' + obj.server.url);`  
+  `" "$ANDROID_CAP_JSON" "$CANONICAL_SERVER_URL"`  
+`}`  
 
-set -euo pipefail
+
+Call this only when:
+
+`if [ "$MODE" = "remote" ]; then`  
+  `verify_remote_json_has_server`  
+`fi`  
+
 
 ---
 
-### **Logging**
+## **Remove old unsafe behavior**
 
-Use color-coded [qa] prefixes fall when helpersinfo "[qa }  
-{s $*"1; }
+Remove any code in scripts/build-android-apk.sh that does this:
 
-  
-`Optionally colorize:`  
-`- blue/info`  
-`- green/success`  
-`- red/failure`  
-`- yellow/warning`  
-  
-`### Preflight`  
-  
-`1. Verify adb exists:`  
-  
-````bash`  
-`command -v adb >/dev/null 2>&1 || fail "adb not found on PATH"`  
+`s=s.replace(/server:\s*\{[\s\S]*?\},?/m,'');`  
+`fs.writeFileSync('capacitor.config.ts.bak', ...);`  
+`fs.writeFileSync('capacitor.config.ts', s);`  
+`trap 'mv capacitor.config.ts.bak capacitor.config.ts ...' EXIT`  
 
 
-2. Verify exactly one authorized device is connected.
-
-Use:
-
-`adb devices`  
-
-
-Parse only lines where the second column is device.
-
-Fail clearly if:
-
-- zero devices are connected,
-- multiple devices are connected,
-- a device is una offline- adb device connected Connect a and accept USB-Multiple adb devices. Disconnect extras up for this script  
-line device. and accept the USB debugging prompt.`
-
-Print the selected device serial.
-
-### **Verify build script exists**
-
-Before building, verify:
-
-`[ -x scripts/build-android-apk.sh ]`  
-
-
-If missing or not executable, fail with:
-
-`scripts/build-android-apk.sh is required for android-qa. add/fix APK build script first.`  
-  
-`If present but not, clearly or run via bash scripts-android.sh`. failing clearly requested should be executable.`  
-  
- `Clean uninstallRun:`  
-  
-
-
-uninstall "$APP"2>& ||```
-
-Log were removed.
-
-:
-
-`MODEMODEIANT="$"scripts-android-apk.sh`` it, non a clear message Verify APK installAfter verify:`  
-  
-`bash[ - "$AP`  
-  
- `or empty- path,`  
-`- to IAN,`  
-`- hint that scripts/build-androidk.sh` produced it.`  
-  
- `Install APK`  
-  
-`Run:`  
-  
-`bashadb "$APK_PATH````  
-  
-`If install fails, non-zero with### Run smoke test`  
-  
-`:`  
-  
-`bashAPK="$_PATH VERBOSEVERBOSE" ./scripts/qa/android-splashoke.sh`  
-```  
-  
-`Important- Capture the smoke exit code- If smoke still the newest before exiting non- not smoke output.`  
-  
-`Implementation approach:`  
-  
-`bashset +e`  
-`="$APK" VERBOSEBOSE" ./scriptsqa/android-splashoke.sh`  
-`SMOKE_STATUS=$set -e`  
- `always report summary Print newest report summary`  
-  
-`Locate newest report:`  
-  
-
-
-REPORT="$(find-artifacts -path '/null | head -n 1 || true)"
-
-  
-`If found:`  
-`- print absolute path,`  
-`- print byte size,`  
-`- print final classification line.`  
-  
-`Absolute path:`  
-  
-`bash`  
-`REPORT_AB "$REPORT")" pwd)/ "$REPORTByte size:`  
-  
-`bash`  
-`BY="$(wc  | tr -d ' ')"`  
-
-
-Final:
-
-- last non-empty line of report:
-
-bashCLASSIFICATION="$(awk 'NF line=$0 END { line }' "$REPORT"  
-``Print:
-
-`[ Report:/to/report[qa] Report: 45[] Final classification: PASS`  
-
-
-If no report is found, print a warning but do not mask the original smoke status.
-
-### **Exit behavior**
-
-- If preflight/build/install fails: exit non-zero immediately with clear message.
-- If smoke fails:
-  - print report summary,
-  - exit with the smoke status.
-- If everything passes:
-  - print report summary,
-  - exit 0.
+The script must not write to capacitor.config.ts at all.
 
 ---
 
-## **Docs update**
+## **Logging requirements**
 
-Edit docs/qa/android-splash-handoff-smoke.md.
+Print clear phase logs:
 
-Add a new section near the top:
+`[qa] mode: bundled`  
+`[qa] variant: Debug`  
+`[qa] capacitor.config.ts source integrity: OK`  
+`[qa] running npx cap sync android`  
+`[qa] generated Capacitor JSON: android/app/src/main/assets/capacitor.config.json`  
+`[qa] Capacitor JSON keys before bundled patch: ...`  
+`[qa] Capacitor JSON keys after bundled patch: ...`  
+`[qa] bundled mode: server removed from generated Android JSON`  
 
-`## One-command device QA`  
+
+For remote mode:
+
+`[qa] mode: remote`  
+`[qa] remote mode: generated Android JSON keeps server.url=https://rufayq.com`  
+
+
+---
+
+## **Exit codes**
+
+Use exit 2 for preflight/config integrity failures:
+
+- source config missing canonical server URL,
+- stale backup cannot be recovered,
+- generated JSON missing,
+- bundled JSON still contains server after patch,
+- remote JSON missing server.url.
+
+Keep existing build/Gradle failure behavior unchanged.
+
+---
+
+## **Acceptance criteria**
+
+1. scripts/build-android-apk.sh no longer writes to capacitor.config.ts.
+2. scripts/build-android-apk.sh no longer relies on capacitor.config.ts.bak + trap for normal operation.
+3. If stale capacitor.config.ts.bak exists and can safely restore a stripped source config, the script recovers and warns.
+4. If capacitor.config.ts lacks https://rufayq.com, the script fails before build with:  
+git checkout -- capacitor.config.ts
+5. MODE=bundled runs npx cap sync android, then deletes server from:  
+android/app/src/main/assets/capacitor.config.json
+6. MODE=bundled verifies the generated JSON no longer contains server.
+7. MODE=remote behavior is unchanged and generated JSON keeps server.url=https://rufayq.com.
+8. Logs print before/after generated JSON top-level keys.
+9. bash -n scripts/build-android-apk.sh passes.
+
+10. No changes are made to:
+  - capacitor.config.ts
+  - Gradle files
+  - smoke script
+  - device QA wrapper
+  - CI workflows
+  - release AAB script
+
+`---`  
   
-`For local device QA use wrapper:`  
+`## My recommendation`  
   
-````bash`  
-`./scripts/qa-device-qa.sh`  
-
-
-:
-
-- MODE=bund  
-VARIANT= _ID=comufay
-
-Examples```bash  
-MODE= ./qaqa VERBOSEscriptsqa.sh that one authorized,  
-2. un.rufayq.app, 3. builds the APK through scripts/build-android-apk.sh, 4. installs the APK, 5. runs scripts/qa/android-splash-smoke.sh`,  
-6. prints the newest report path, size, and final classification.
-
-If smoke fails, the wrapper still prints the report path before exiting non-zero.
-
+`Approve this enhancement **for the APK script** if that script exists in Lovable’s branch. It is a strong safety improvement.`  
   
-`Keep the existing step-by-step instructions below for advanced/manual users.`  
+`But I would also add a follow-up ticket:`  
+  
+`> Apply the same “patch generated Android JSON, never mutate capacitor.config.ts” principle to scripts/build-android.sh, because the current release AAB script still mutates capacitor.config.ts and relies on .bak restoration. 【F:scripts/build-android.sh†L38-L50】`  
+  
+`That should be a separate scoped change because your enhancement explicitly says the release AAB script is out of scope.`  
   
 `---`  
   
-`## Acceptance criteria`  
+`## Checks I ran`  
   
-`1. scripts/qa/android-device-qa.sh exists and is executable.`  
-`2. bash -n scripts/qa/android-device-qa.sh passes with with..`  
-`.-apk.sh clearly does/s.`  
-`6. Script computes APK path from VARIANT.`  
-`7. Script forwards MODE, VARIANT, and VERBOSE.`  
-`8. Script prints newest smoke report absolute path, byte size, and final classification.`  
-`9. If smoke fails, the report summary is still printed before non-zero exit.`  
-`10. Documentation includes the one-command usage section.`  
-  
-Out of scope
+`* ✅ git status --short; if [ -f scripts/build-android-apk.sh ]; then nl -ba scripts/build-android-apk.sh | sed -n '1,180p'; else echo 'MISSING scripts/build-android-apk.sh'; fi; nl -ba scripts/build-android.sh | sed -n '38,58p'; nl -ba capacitor.config.ts | sed -n '20,30p'; find scripts -maxdepth 3 -type f -print | sort`  
 
-- No changes to `build-android-apk.sh`, the smoke script, Gradle, Capacitor config, or CI workflows.
+
+  
