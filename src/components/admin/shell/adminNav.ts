@@ -15,14 +15,15 @@ export type LeafKey =
   | "news" | "pages" | "website_cms"
   | "cms_seo" | "cms_media" | "cms_blog_cats"
   | "audit" | "wallet_audit"
-  | "settings_general" | "settings_team";
+  | "settings_general" | "settings_team"
+  | "qc_runs" | "qc_smoke" | "qc_bugs" | "qc_validations" | "qc_crash_events";
 
 export interface NavLeaf {
   key: LeafKey;
   label: string;
   icon?: LucideIcon;
   /** Counts shown as a numeric badge (action queues). */
-  badgeKey?: "open_tickets" | "pending_receipts" | "pending_apps" | "pending_claims";
+  badgeKey?: "open_tickets" | "pending_receipts" | "pending_apps" | "pending_claims" | "open_qc_bugs" | "new_qc_crash_events";
   /** Static dot indicator (e.g. NEW / BETA). */
   pillTone?: "new" | "beta" | "live";
   /** Optional section grouping inside a module (renders an expandable header). */
