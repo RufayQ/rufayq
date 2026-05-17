@@ -16,7 +16,7 @@ interface Props {
   onOpenChange?: (open: boolean) => void;
 }
 
-type Tab = "all" | "chats" | "alerts";
+type Tab = "all" | "chats" | "alerts" | "history";
 type Category = "all" | "appointments" | "meds" | "care" | "billing";
 
 const CATEGORY_KINDS: Record<Exclude<Category, "all">, string[]> = {
