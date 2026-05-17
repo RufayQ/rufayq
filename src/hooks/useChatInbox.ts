@@ -20,6 +20,41 @@ export type ParticipantRow = {
   last_read_at: string | null;
 };
 
+// Shared realtime channel across every mounted useChatInbox so multiple
+// inbox-aware components (ChatInbox, BottomNav badge, ChatHeadBubble, etc.)
+// don't each open their own Postgres subscription or trigger a full reload
+// per row change.
+type Reloader = () => void;
+const reloaders = new Set<Reloader>();
+let sharedChannel: ReturnType<typeof supabase.channel> | null = null;
+let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleReloadAll() {
+  if (reloadTimer) return;
+  // Coalesce bursts (a single message insert can fire 2-3 change events).
+  reloadTimer = setTimeout(() => {
+    reloadTimer = null;
+    reloaders.forEach((cb) => cb());
+  }, 120);
+}
+
+function ensureSharedChannel() {
+  if (sharedChannel) return;
+  sharedChannel = supabase
+    .channel("chat-inbox-shared")
+    .on("postgres_changes", { event: "*", schema: "public", table: "chat_threads" }, scheduleReloadAll)
+    .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, scheduleReloadAll)
+    .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, scheduleReloadAll)
+    .subscribe();
+}
+
+function teardownSharedChannel() {
+  if (reloaders.size > 0 || !sharedChannel) return;
+  if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = null; }
+  supabase.removeChannel(sharedChannel);
+  sharedChannel = null;
+}
+
 /** Lists every chat thread the current device participates in, with realtime updates. */
 export function useChatInbox() {
   const [threads, setThreads] = useState<ChatThreadRow[]>([]);
@@ -79,13 +114,12 @@ export function useChatInbox() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    const ch = supabase
-      .channel(`chat-inbox-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "chat_threads" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    reloaders.add(load);
+    ensureSharedChannel();
+    return () => {
+      reloaders.delete(load);
+      teardownSharedChannel();
+    };
   }, [load]);
 
   const totalUnread = Object.values(unreadByThread).reduce((a, b) => a + b, 0);
