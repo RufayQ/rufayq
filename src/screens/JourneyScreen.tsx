@@ -884,7 +884,10 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
             <p className="font-display text-xl text-white" style={{ fontWeight: 300 }}>Treatment Journey</p>
             <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.45)" }}>خريطة رحلتك العلاجية</p>
           </div>
-          <HeaderMenu items={journeyMenuItems} />
+          <div className="flex items-center gap-2">
+            <NotificationCenter color="#fff" onNavigate={onNavigate} />
+            <HeaderMenu items={journeyMenuItems} />
+          </div>
         </div>
         <div className="mt-3 rounded-lg px-3.5 py-2.5" style={{ background: "rgba(255,255,255,0.08)" }}>
           <div className="flex items-center gap-3">
