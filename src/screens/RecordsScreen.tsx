@@ -3,7 +3,7 @@ import { listScannedRecords, subscribeToScannedRecords } from "@/lib/scannedReco
 import { records as demoRecords, filterCategories, type DocRecord } from "@/constants/data";
 import { Share2, Download, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, Stethoscope, Plane, MoreVertical, Pill, ScanLine } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
-import NotificationBell from "@/components/NotificationBell";
+import NotificationCenter from "@/components/NotificationCenter";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import { useGuestMode } from "@/hooks/useGuestMode";
