@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.chat_message_dispatch_push() FROM PUBLIC, anon, authenticated;
