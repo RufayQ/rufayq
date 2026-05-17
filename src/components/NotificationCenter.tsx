@@ -350,17 +350,23 @@ const NotificationCenter = ({
                   onOpenThread?.(thread.id);
                   setOpen(false);
                 }}
-                className="flex w-full items-start gap-3 rounded-2xl border border-primary/20 bg-primary/10 p-3 text-left transition active:scale-[0.99]"
+                className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+                  isHistory ? "border-border bg-muted/35" : "border-primary/20 bg-primary/10"
+                }`}
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  isHistory ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground"
+                }`}>
                   <MessageCircle size={17} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-semibold text-card-foreground">{otherDisplay}</p>
-                    <span className="min-w-[18px] rounded-full bg-destructive px-1.5 text-center text-[10px] font-bold text-destructive-foreground">
-                      {count > 9 ? "9+" : count}
-                    </span>
+                    {!isHistory && count > 0 && (
+                      <span className="min-w-[18px] rounded-full bg-destructive px-1.5 text-center text-[10px] font-bold text-destructive-foreground">
+                        {count > 9 ? "9+" : count}
+                      </span>
+                    )}
                   </div>
                   {thread.last_message_preview && (
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">{thread.last_message_preview}</p>
