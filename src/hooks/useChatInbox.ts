@@ -23,6 +23,7 @@ export type ParticipantRow = {
   organization_id: string | null;
   display_name: string | null;
   last_read_at: string | null;
+  muted?: boolean | null;
 };
 
 // Shared realtime channel across every mounted useChatInbox so multiple
