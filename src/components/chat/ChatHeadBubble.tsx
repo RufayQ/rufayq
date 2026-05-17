@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Stethoscope, X } from "lucide-react";
 import { useActiveChatHead } from "@/hooks/useActiveChatHead";
+import { useResolvedContact } from "@/hooks/useResolvedContact";
 
 interface Props {
   /** Thread currently open in the chat tab — used to suppress its own bubble. */
