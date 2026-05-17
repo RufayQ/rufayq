@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa } from "lucide-react";
+import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet from "@/components/records/RecordActionsSheet";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const BUCKET = "transport-attachments";
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
