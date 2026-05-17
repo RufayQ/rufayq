@@ -7870,7 +7870,7 @@ export type Database = {
         | "physioNetwork"
         | "claimsConcierge"
       addon_status: "pending_admin" | "active" | "canceled" | "expired"
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "qc_tester"
       billing_cycle: "monthly" | "annual"
       chat_sender_kind: "patient" | "org_member" | "ai" | "system"
       chat_thread_kind: "ai" | "direct" | "provider"
@@ -8295,7 +8295,7 @@ export const Constants = {
         "claimsConcierge",
       ],
       addon_status: ["pending_admin", "active", "canceled", "expired"],
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "qc_tester"],
       billing_cycle: ["monthly", "annual"],
       chat_sender_kind: ["patient", "org_member", "ai", "system"],
       chat_thread_kind: ["ai", "direct", "provider"],
