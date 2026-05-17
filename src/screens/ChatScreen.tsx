@@ -415,6 +415,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
     return (
       <ChatInbox
         onOpenThread={handleOpenThread}
+        onOpenProfile={handleOpenProfileFromInbox}
         onNewAi={() => { setPersona(null); setMessages([]); setView("ai"); }}
       />
     );
