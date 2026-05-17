@@ -128,8 +128,8 @@ const NotificationCenter = ({
               );
             })}
             {alertUnread > 0 && tab !== "chats" && (
-              <button onClick={markAllRead} className="ml-auto shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold text-primary-foreground/80 underline underline-offset-4">
-                {showAr && !showEn ? "تعليم الكل" : "Mark read"}
+              <button onClick={markAllRead} className="ml-auto shrink-0 rounded-full border border-primary-foreground/30 bg-primary-foreground/15 px-3 py-2 text-[11px] font-semibold text-primary-foreground">
+                {showAr && !showEn ? `تعليم ${alertUnread} كمقروء` : `Mark ${alertUnread} read`}
               </button>
             )}
           </div>
