@@ -39,25 +39,17 @@ export function useGlobalChat(activeThreadId?: string | null) {
   const recompute = useCallback(async () => {
     if (!enabled) { setTotalUnread(0); return; }
     const deviceId = getDeviceId();
-    const { data: myParts } = await supabase
-      .from("chat_participants")
-      .select("thread_id, last_read_at")
-      .eq("device_id", deviceId);
-    if (!myParts || myParts.length === 0) { setTotalUnread(0); return; }
-
-    let total = 0;
-    await Promise.all(
-      myParts.map(async (p) => {
-        const since = p.last_read_at ?? new Date(0).toISOString();
-        const { count } = await supabase
-          .from("chat_messages")
-          .select("id", { count: "exact", head: true })
-          .eq("thread_id", p.thread_id)
-          .is("deleted_at", null)
-          .neq("sender_device_id", deviceId)
-          .gt("created_at", since);
-        total += count ?? 0;
-      }),
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id ?? null;
+    // One grouped query, user-scoped (with device fallback for guests), so
+    // reading on any signed-in device clears the badge everywhere.
+    const { data: rows } = await supabase.rpc("chat_unread_counts_for_device", {
+      _device_id: deviceId,
+      _user_id: userId,
+    });
+    const total = (rows ?? []).reduce(
+      (sum: number, r: { unread_count: number }) => sum + (Number(r.unread_count) || 0),
+      0,
     );
     setTotalUnread(total);
   }, [enabled]);
