@@ -1,11 +1,49 @@
-import { useEffect, useState } from "react";
-import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2, ScanLine, CreditCard } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet from "@/components/records/RecordActionsSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import {
+  listLoungeMemberships,
+  subscribeLoungeMemberships,
+  deleteLoungeMembership,
+  type LoungeMembership,
+} from "@/lib/loungeMemberships";
+
+/** Unified row shape so attachments and lounge memberships share render code. */
+type UnifiedRow =
+  | ({ kind: "attachment" } & TransportAttachment)
+  | {
+      kind: "lounge-card";
+      id: string; // synthetic: "lounge:<membershipId>"
+      label: string;
+      file_name: string;
+      created_at: string;
+      mime_type: null;
+      size_bytes: null;
+      membership: LoungeMembership;
+    };
+
+const loungeExpMMYY = (iso?: string): string => {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(iso);
+  return m ? `${m[2]}/${m[1].slice(2)}` : "";
+};
+
+const membershipToRow = (m: LoungeMembership): UnifiedRow => ({
+  kind: "lounge-card",
+  id: `lounge:${m.id}`,
+  label: `${m.program} · ${m.cardholderName}`,
+  file_name: m.membershipNumber,
+  created_at: m.createdAt,
+  mime_type: null,
+  size_bytes: null,
+  membership: m,
+});
 
 const BUCKET = "transport-attachments";
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
