@@ -16,6 +16,22 @@ interface Props {
 }
 
 type Tab = "all" | "chats" | "alerts";
+type Category = "all" | "appointments" | "meds" | "care" | "billing";
+
+const CATEGORY_KINDS: Record<Exclude<Category, "all">, string[]> = {
+  appointments: ["appointment"],
+  meds: ["medication"],
+  care: ["admission", "instruction", "announcement", "consent_request"],
+  billing: ["invoice", "claim_request", "authorization", "credit_note"],
+};
+
+const CATEGORY_META: { id: Category; en: string; ar: string; Icon: typeof Bell }[] = [
+  { id: "all", en: "All", ar: "الكل", Icon: Bell },
+  { id: "appointments", en: "Appointments", ar: "المواعيد", Icon: CalendarClock },
+  { id: "meds", en: "Medications", ar: "الأدوية", Icon: Pill },
+  { id: "care", en: "Care updates", ar: "تحديثات الرعاية", Icon: Stethoscope },
+  { id: "billing", en: "Billing", ar: "الفواتير", Icon: Receipt },
+];
 
 const NotificationCenter = ({
   color = "hsl(var(--primary-foreground))",
