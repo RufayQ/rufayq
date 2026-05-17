@@ -343,9 +343,13 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
     );
   }
 
-  const renderRow = (item: TransportAttachment, isPinned: boolean) => {
-    const itemCat = classify(item);
-    const isLounge = itemCat === "lounge";
+  const renderRow = (item: UnifiedRow, isPinned: boolean) => {
+    const isLounge = item.kind === "lounge-card";
+    const handleOpen = () => {
+      if (item.kind === "lounge-card") setQrTarget(item.membership);
+      else void openPreview(item);
+    };
+    const expMMYY = item.kind === "lounge-card" ? loungeExpMMYY(item.membership.expiresOn) : "";
     return (
       <div
         key={item.id}
@@ -356,14 +360,14 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
           boxShadow: isPinned ? "0 4px 14px rgba(197,150,90,0.18)" : "0 1px 6px rgba(0,0,0,0.04)",
         }}
       >
-        <button onClick={() => openPreview(item)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+        <button onClick={handleOpen} className="flex items-center gap-3 flex-1 min-w-0 text-left">
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: isLounge ? "rgba(45,138,158,0.12)" : "var(--gold-pale)" }}
           >
             {isLounge ? (
               <Sofa size={20} style={{ color: "var(--teal-deep)" }} />
-            ) : isImage(item.mime_type) ? (
+            ) : item.kind === "attachment" && isImage(item.mime_type) ? (
               <ImageIcon size={20} style={{ color: "var(--gold)" }} />
             ) : (
               <FileText size={20} style={{ color: "var(--gold)" }} />
@@ -373,14 +377,24 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
             <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
               <Highlight text={item.label} query={searchQuery} />
             </p>
-            <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
+            <p className="text-[11px] truncate font-mono" style={{ color: "var(--gray)" }}>
               <Highlight text={item.file_name} query={searchQuery} />
             </p>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               {isLounge ? (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(45,138,158,0.14)", color: "var(--teal-deep)" }}>
-                  <Sofa size={9} /> Lounge
-                </span>
+                <>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(45,138,158,0.14)", color: "var(--teal-deep)" }}>
+                    <Sofa size={9} /> Lounge Card · <span className="font-arabic">بطاقة صالة</span>
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(197,150,90,0.14)", color: "var(--gold)" }}>
+                    <ScanLine size={9} /> QR
+                  </span>
+                  {expMMYY && (
+                    <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
+                      Exp {expMMYY}
+                    </span>
+                  )}
+                </>
               ) : (
                 <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(197,150,90,0.12)", color: "var(--gold)" }}>
                   <Plane size={9} /> Travel
@@ -389,7 +403,7 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
               <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
                 {new Date(item.created_at).toLocaleDateString()}
               </span>
-              {item.size_bytes && (
+              {item.kind === "attachment" && item.size_bytes && (
                 <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
                   · {(item.size_bytes / 1024).toFixed(0)} KB
                 </span>
