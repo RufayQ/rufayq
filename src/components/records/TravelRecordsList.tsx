@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa } from "lucide-react";
+import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet from "@/components/records/RecordActionsSheet";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const BUCKET = "transport-attachments";
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
@@ -84,6 +85,7 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
   const [menuItem, setMenuItem] = useState<TransportAttachment | null>(null);
   const [cat, setCat] = useState<TravelCat>("all");
+  const [clearPinOpen, setClearPinOpen] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -142,6 +144,12 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
       writePins(next);
       return next;
     });
+  };
+
+  const clearAllPins = () => {
+    setPinnedIds([]);
+    writePins([]);
+    toast.success("All pins cleared · تم إلغاء كل التثبيتات", { duration: 1400 });
   };
 
   const matchesSearch = (it: TransportAttachment) => {
@@ -391,10 +399,20 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
 
       {pinnedItems.length > 0 && (
         <div className="mt-2">
-          <p className="font-mono text-[10px] tracking-widest mb-1.5 flex items-center gap-1" style={{ color: "var(--gold)" }}>
-            <Pin size={9} fill="var(--gold)" style={{ color: "var(--gold)" }} /> PINNED · <span className="font-arabic">مثبتة</span>
-            <span className="opacity-60">({pinnedItems.length}/{MAX_PINS})</span>
-          </p>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="font-mono text-[10px] tracking-widest flex items-center gap-1" style={{ color: "var(--gold)" }}>
+              <Pin size={9} fill="var(--gold)" style={{ color: "var(--gold)" }} /> PINNED · <span className="font-arabic">مثبتة</span>
+              <span className="opacity-60">({pinnedItems.length}/{MAX_PINS})</span>
+            </p>
+            <button
+              onClick={() => setClearPinOpen(true)}
+              className="flex items-center gap-1 text-[10px] font-semibold btn-press"
+              style={{ color: "var(--error)" }}
+              aria-label="Clear all pinned"
+            >
+              <Trash2 size={10} /> Clear pinned · <span className="font-arabic">إزالة التثبيت</span>
+            </button>
+          </div>
           <div className="space-y-2">{pinnedItems.map((it) => renderRow(it, true))}</div>
         </div>
       )}
@@ -437,6 +455,21 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={clearPinOpen}
+        title="Clear all pinned?"
+        titleAr="إزالة كل التثبيتات؟"
+        description="This will unpin all travel records and restore the normal list order."
+        descriptionAr="سيتم إلغاء تثبيت كل المستندات وإعادة الترتيب الطبيعي."
+        confirmLabel="Clear"
+        confirmLabelAr="إزالة"
+        cancelLabel="Cancel"
+        cancelLabelAr="إلغاء"
+        destructive
+        onConfirm={clearAllPins}
+        onClose={() => setClearPinOpen(false)}
+      />
 
       <RecordActionsSheet
         open={!!menuItem}
