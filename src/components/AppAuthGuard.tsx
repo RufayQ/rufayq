@@ -57,8 +57,8 @@ const RouteFallback = () => (
 
 const primaryButton: CSSProperties = {
   border: "1px solid rgba(197,150,90,0.55)",
-  background: "#C5965A",
-  color: "#06101A",
+  background: "var(--gold, #C5965A)",
+  color: "var(--scanner-bg, #06101A)",
   borderRadius: 999,
   padding: "10px 14px",
   fontSize: 13,
@@ -68,7 +68,7 @@ const primaryButton: CSSProperties = {
 const secondaryButton: CSSProperties = {
   ...primaryButton,
   background: "transparent",
-  color: "#E8ECF0",
+  color: "var(--white, #E8ECF0)",
 };
 
 const AppAuthGuard = ({ children }: Props) => {
