@@ -982,6 +982,7 @@ export type Database = {
       device_push_tokens: {
         Row: {
           created_at: string
+          device_id: string | null
           platform: string
           role_pref: string | null
           token: string
@@ -990,6 +991,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          device_id?: string | null
           platform: string
           role_pref?: string | null
           token: string
@@ -998,6 +1000,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          device_id?: string | null
           platform?: string
           role_pref?: string | null
           token?: string
