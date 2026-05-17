@@ -111,7 +111,10 @@ export function useGlobalChat(activeThreadId?: string | null) {
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, () => recompute())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // Optimistic clears: when the user marks a thread read, immediately
+    // refresh the total so the badge doesn't lag behind the DB round-trip.
+    const off = onThreadReadOptimistic(() => { recompute(); });
+    return () => { supabase.removeChannel(ch); off(); };
   }, [recompute, activeThreadId, enabled]);
 
   return { totalUnread, refresh: recompute };
