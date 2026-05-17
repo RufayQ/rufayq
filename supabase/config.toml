@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.lifestyle-buddy]
 verify_jwt = false
+
+[functions.chat-push]
+verify_jwt = false
