@@ -138,8 +138,13 @@ export function useChatInbox() {
   useEffect(() => {
     reloaders.add(load);
     ensureSharedChannel();
+    const off = onThreadReadOptimistic((tid) => {
+      // Zero this thread instantly; the eventual reload will reconcile.
+      setUnreadByThread((prev) => (prev[tid] === 0 ? prev : { ...prev, [tid]: 0 }));
+    });
     return () => {
       reloaders.delete(load);
+      off();
       teardownSharedChannel();
     };
   }, [load]);
