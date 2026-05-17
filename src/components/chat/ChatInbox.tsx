@@ -6,6 +6,7 @@ import { getDeviceId } from "@/hooks/useDeviceId";
 import { useChatInbox, type ChatThreadRow } from "@/hooks/useChatInbox";
 import { useResolvedContact, useResolvedContactState } from "@/hooks/useResolvedContact";
 import { computeInitialsFrom } from "@/lib/contactResolver";
+import { useFocusReturn } from "@/hooks/useFocusReturn";
 
 type Tab = "all" | "ai" | "care" | "people";
 
@@ -22,6 +23,14 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const [newSheet, setNewSheet] = useState<null | "menu" | "people" | "care">(null);
+
+  // Focus return: when the user opens a thread/profile and comes back, snap
+  // focus to the row (or its avatar button) they last tapped. Re-runs when
+  // the list finishes loading or its length changes.
+  const inboxFocus = useFocusReturn<HTMLDivElement>("chat-inbox", [
+    loading,
+    threads.length,
+  ]);
 
   const filtered = useMemo(() => {
     return threads.filter((t) => {
@@ -103,13 +112,15 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
+      <div ref={inboxFocus.containerRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
         {loading && <p className="text-center text-[12px] mt-6" style={{ color: "var(--gray)" }}>Loading…</p>}
         {!loading && filtered.length === 0 && (
           <EmptyState onNewAi={onNewAi} onSearch={() => setNewSheet("people")} onCare={() => setNewSheet("care")} />
         )}
         {filtered.map((t) => {
           const unread = unreadByThread[t.id] ?? 0;
+          const rowKey = `row:${t.id}`;
+          const avatarKey = `avatar:${t.id}`;
           return (
           // Row is a div+role="button" (NOT a <button>) so the inner avatar
           // <button> for "Open profile" is valid HTML and gets its own focus
@@ -122,10 +133,12 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             // never mirrors, even if a future ancestor goes RTL. Inner text
             // blocks still use dir="auto" to read each name in its own script.
             dir="ltr"
-            onClick={() => onOpenThread(t)}
+            data-focus-key={rowKey}
+            onClick={() => { inboxFocus.remember(rowKey); onOpenThread(t); }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
+                inboxFocus.remember(rowKey);
                 onOpenThread(t);
               }
             }}
@@ -136,10 +149,14 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             {onOpenProfile && t.kind !== "ai" ? (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onOpenProfile(t); }}
+                data-focus-key={avatarKey}
+                onClick={(e) => { e.stopPropagation(); inboxFocus.remember(avatarKey); onOpenProfile(t); }}
                 onKeyDown={(e) => {
                   // Stop Enter/Space from also triggering the parent row.
-                  if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.stopPropagation();
+                    inboxFocus.remember(avatarKey);
+                  }
                 }}
                 className="rounded-full btn-press outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 style={{ ["--tw-ring-color" as string]: "var(--gold)" }}
@@ -327,6 +344,12 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<{ device_id: string; display_name: string | null; rufayq_id: string | null }[]>([]);
   const [searched, setSearched] = useState(false);
+  // Return focus to the last-tapped search result if the sheet re-opens
+  // (e.g. user cancels the started thread and comes back).
+  const peopleFocus = useFocusReturn<HTMLDivElement>("people-search", [
+    busy,
+    results.length,
+  ]);
 
   const looksLikeEmail = q.includes("@");
   const handleSearch = async () => {
@@ -383,7 +406,7 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
         </div>
       </div>
 
-      <div className="mt-3 space-y-1.5">
+      <div ref={peopleFocus.containerRef} className="mt-3 space-y-1.5">
         {searched && !busy && results.length === 0 && (
           <p className="text-center text-[12px] py-4" style={{ color: "var(--gray)" }}>
             No discoverable user found · لم يتم العثور على مستخدم
@@ -403,7 +426,8 @@ function PeopleSearch({ onStarted }: { onStarted: (id: string) => void }) {
           return (
           <button
             key={r.device_id}
-            onClick={() => start(r.device_id)}
+            data-focus-key={r.device_id}
+            onClick={() => { peopleFocus.remember(r.device_id); start(r.device_id); }}
             // Row pinned LTR so avatar → name → chevron never mirrors.
             // The name <p> uses dir="auto" so Arabic names still read RTL
             // inside their truncation box.
