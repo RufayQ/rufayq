@@ -210,8 +210,8 @@ const NotificationCenter = ({
               {CATEGORY_META.map(({ id, en, ar, Icon }) => {
                 const unread =
                   id === "all"
-                    ? alertUnread
-                    : items.filter((n) => CATEGORY_KINDS[id as Exclude<Category, "all">].includes(n.kind) && !n.is_read).length;
+                    ? visibleAlertUnread
+                    : allowedAlerts.filter((n) => CATEGORY_KINDS[id as Exclude<Category, "all">].includes(n.kind) && !n.is_read).length;
                 const isActive = categoryFilter === id;
                 return (
                   <button
