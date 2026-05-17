@@ -23,7 +23,6 @@ import { EmrScreen } from "@/features/emr";
 import RoleSelectorScreen, { getStoredRole, clearStoredRole, type AppRolePref } from "@/screens/RoleSelectorScreen";
 import { validateLoginRole } from "@/lib/roleValidation";
 import { onDeepLink, type DeepLinkTarget } from "@/lib/native/deepLinks";
-import { registerPush } from "@/lib/native/push";
 import TrialLockBanner from "@/components/TrialLockBanner";
 import TourGuide from "@/components/TourGuide";
 import TourRunner from "@/components/TourRunner";
@@ -61,6 +60,7 @@ const toastMessages: Record<string, { en: string; ar: string }> = {
 };
 
 const Index = () => {
+  console.info("[RufayqStartup] Index render start");
   const { refresh: refreshTheme } = useTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
