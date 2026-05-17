@@ -173,6 +173,7 @@ const LoungeFormSheet = ({
   const [cardholderName, setCardholderName] = useState(initial?.cardholderName || "");
   const [cardLast4, setCardLast4] = useState(initial?.cardLast4 || "");
   const [mmyyDisplay, setMmyyDisplay] = useState(isoToMMYY(initial?.expiresOn));
+  const [linkedSegmentId, setLinkedSegmentId] = useState(initial?.linkedSegmentId || "");
   const [notes, setNotes] = useState(initial?.notes || "");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -197,8 +198,6 @@ const LoungeFormSheet = ({
       notes: notes.trim() || undefined,
     });
   };
-  // Silence unused-var lint while keeping setter available for future use.
-  void expiresOn; void setExpiresOn;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.45)" }} onClick={onClose}>
