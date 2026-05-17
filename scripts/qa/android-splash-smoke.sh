@@ -163,29 +163,13 @@ run_row() {
   } >> "$REPORT"
 }
 
-# Detect whether the local capacitor.config.ts is in remote-URL or bundled mode.
-# We cannot reliably introspect the installed APK from adb without unpacking it,
-# so we report the LOCAL config as a hint and label the installed app "unknown".
-detect_local_mode() {
-  if [ -f capacitor.config.ts ] && grep -qE 'server:\s*\{' capacitor.config.ts; then
-    if grep -qE "url:\s*['\"]https?://" capacitor.config.ts; then
-      echo "REMOTE URL (loads $(grep -oE "url:\s*['\"][^'\"]+" capacitor.config.ts | head -n1 | sed "s/url:[[:space:]]*['\"]//"))"
-    else
-      echo "REMOTE URL (server block present, no URL parsed)"
-    fi
-  else
-    echo "BUNDLED / OFFLINE (no server block — loads dist/ via file://)"
-  fi
-}
-
 # ── execute matrix ──────────────────────────────────────────────────────────
 {
   echo "# Android Splash Handoff Smoke — $TIMESTAMP"
   echo
-  echo "Device: $(adb shell getprop ro.product.model 2>/dev/null | tr -d '\r') "\
-       "(Android $(adb shell getprop ro.build.version.release 2>/dev/null | tr -d '\r'))"
+  echo "Device: $(device_summary)"
   echo "Package: \`$PKG\`  Activity: \`$LAUNCH_ACT\`"
-  echo "Local capacitor.config.ts mode: **$(detect_local_mode)**"
+  echo "Local capacitor.config.ts mode: **$(local_capacitor_mode)**"
   echo "Installed app mode: _unknown_ (not introspected from APK)"
   echo
 } > "$REPORT"
