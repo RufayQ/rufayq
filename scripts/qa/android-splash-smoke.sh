@@ -23,6 +23,7 @@ set -uo pipefail
 PKG="com.rufayq.app"
 LAUNCH_ACT="$PKG/.MainActivity"     # Capacitor default; override if renamed
 SPLASH_HEX="0B2A3A"                  # navy splash colour, no '#'
+BLACK_HEX="000000"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="qa-artifacts/$TIMESTAMP"
 REPORT="$OUT_DIR/report.md"
@@ -61,21 +62,26 @@ if [ -n "$RESOLVED_ACT" ] && [[ "$RESOLVED_ACT" == *"/"* ]]; then
 fi
 log "using launcher activity: $LAUNCH_ACT"
 
-# Pixel-sampling: capture a screenshot and check whether the centre pixel still
-# matches the navy splash colour. Returns 0 if still splash, 1 if handed off.
-is_still_splash() {
+hex_luma() {
+  local hex="${1:0:6}"
+  local r=$((16#${hex:0:2})) g=$((16#${hex:2:2})) b=$((16#${hex:4:2}))
+  echo $(((r * 299 + g * 587 + b * 114) / 1000))
+}
+
+# Pixel-sampling: capture a screenshot and check whether the average screen is
+# still solid navy/black. Returns 0 if blank/splash, 1 if handed off.
+is_blank_or_splash() {
   local png="$1"
   if command -v magick >/dev/null 2>&1; then
     local hex
     hex=$(magick "$png" -resize 1x1\! -format '%[hex:p{0,0}]' info: 2>/dev/null | tr 'a-f' 'A-F')
-    [ "$VERBOSE" = "1" ] && log "  centre pixel = $hex (splash = $SPLASH_HEX)"
-    # accept ±8 per channel tolerance
-    [ "${hex:0:6}" = "$SPLASH_HEX" ]
+    [ "$VERBOSE" = "1" ] && log "  average pixel = $hex (splash = $SPLASH_HEX, black = $BLACK_HEX)"
+    [ "${hex:0:6}" = "$SPLASH_HEX" ] || [ "$(hex_luma "$hex")" -lt 16 ]
     return $?
   elif command -v convert >/dev/null 2>&1; then
     local hex
     hex=$(convert "$png" -resize 1x1\! -format '%[hex:p{0,0}]' info: 2>/dev/null | tr 'a-f' 'A-F')
-    [ "${hex:0:6}" = "$SPLASH_HEX" ]
+    [ "${hex:0:6}" = "$SPLASH_HEX" ] || [ "$(hex_luma "$hex")" -lt 16 ]
     return $?
   else
     warn "ImageMagick not found — falling back to size heuristic (less precise)"
