@@ -110,29 +110,38 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
         {filtered.map((t) => {
           const unread = unreadByThread[t.id] ?? 0;
           return (
-          <button
+          // Row is a div+role="button" (NOT a <button>) so the inner avatar
+          // <button> for "Open profile" is valid HTML and gets its own focus
+          // ring + screen-reader name.
+          <div
             key={t.id}
+            role="button"
+            tabIndex={0}
             onClick={() => onOpenThread(t)}
-            className="w-full text-left rounded-2xl px-3 py-3 flex items-center gap-3 btn-press"
-            style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpenThread(t);
+              }
+            }}
+            aria-label={`Open conversation with ${labelFor(t)}`}
+            className="w-full text-left rounded-2xl px-3 py-3 flex items-center gap-3 btn-press cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+            style={{ background: "var(--white)", border: "1px solid var(--gray-light)", ["--tw-ring-color" as string]: "var(--teal-deep)" }}
           >
             {onOpenProfile && t.kind !== "ai" ? (
-              <span
-                role="button"
-                tabIndex={0}
+              <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); onOpenProfile(t); }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onOpenProfile(t);
-                  }
+                  // Stop Enter/Space from also triggering the parent row.
+                  if (e.key === "Enter" || e.key === " ") e.stopPropagation();
                 }}
-                className="rounded-full btn-press"
-                aria-label={`Open ${labelFor(t)} profile`}
+                className="rounded-full btn-press outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                style={{ ["--tw-ring-color" as string]: "var(--gold)" }}
+                aria-label={`Open ${labelFor(t)} profile · فتح الملف الشخصي`}
               >
                 <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
-              </span>
+              </button>
             ) : (
               <ThreadAvatar threadId={t.id} kind={t.kind} persona={t.ai_persona} />
             )}
@@ -143,19 +152,20 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
               </p>
             </div>
             <div className="text-right shrink-0 flex flex-col items-end gap-1">
-              <p className="font-mono text-[9px]" style={{ color: unread > 0 ? "var(--teal-deep)" : "var(--gray)" }}>{timeLabel(t.last_message_at)}</p>
+              <p className="font-mono text-[9px]" style={{ color: unread > 0 ? "var(--teal-deep)" : "var(--gray)" }} aria-hidden>{timeLabel(t.last_message_at)}</p>
               {unread > 0 ? (
                 <span
                   className="min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center"
                   style={{ background: "var(--teal-deep)", color: "#fff" }}
+                  aria-label={`${unread} unread`}
                 >
                   {unread > 99 ? "99+" : unread}
                 </span>
               ) : (
-                <ChevronRight size={14} style={{ color: "var(--teal-deep)" }} />
+                <ChevronRight size={14} style={{ color: "var(--teal-deep)" }} aria-hidden />
               )}
             </div>
-          </button>
+          </div>
           );
         })}
       </div>
