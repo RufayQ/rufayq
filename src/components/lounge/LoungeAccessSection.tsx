@@ -172,9 +172,7 @@ const LoungeFormSheet = ({
   const [membershipNumber, setMembershipNumber] = useState(initial?.membershipNumber || "");
   const [cardholderName, setCardholderName] = useState(initial?.cardholderName || "");
   const [cardLast4, setCardLast4] = useState(initial?.cardLast4 || "");
-  const [expiresOn, setExpiresOn] = useState(initial?.expiresOn || "");
   const [mmyyDisplay, setMmyyDisplay] = useState(isoToMMYY(initial?.expiresOn));
-  const [linkedSegmentId, setLinkedSegmentId] = useState(initial?.linkedSegmentId || "");
   const [notes, setNotes] = useState(initial?.notes || "");
 
   const handleSubmit = (e: React.FormEvent) => {
