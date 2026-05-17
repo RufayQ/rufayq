@@ -5,6 +5,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { useSyncLanguageWithRoute } from "@/seo/useSyncLanguageWithRoute";
 import Landing from "./pages/Landing.tsx";
 import AppAuthGuard from "@/components/AppAuthGuard";
+import AppStartupFallback from "@/components/AppStartupFallback";
 
 /* ── Lazy: every non-landing route ───────────────────────────────────────── */
 const Index = lazy(() => import("./pages/Index.tsx"));
@@ -42,7 +43,10 @@ const VisualHarness = lazy(() => import("./pages/VisualHarness.tsx"));
 const AppShell = lazy(() => import("./AppShell.tsx"));
 
 const RouteFallback = () => (
-  <div style={{ minHeight: "100vh", background: "#06101A" }} />
+  <AppStartupFallback
+    message="Loading securely…"
+    messageAr="جارٍ التحميل بأمان…"
+  />
 );
 
 /** Keeps <html lang/dir> + LanguageContext in sync with /ar/* paths. */

@@ -106,7 +106,12 @@ warm_launch() {
 start_logcat() {
   local path="$1"
   adb logcat -c
-  adb logcat -s Capacitor:* chromium:* CapacitorPlugins:* AndroidRuntime:E \
+  # Cast a wider net so we can categorise failures (network, JS, native crash,
+  # renderer crash, memory pressure) — not just Capacitor/chromium chatter.
+  adb logcat \
+      Capacitor:* CapacitorPlugins:* chromium:* \
+      AndroidRuntime:E ActivityManager:W WebViewChromium:W \
+      lowmemorykiller:* lmkd:* art:E *:F \
     > "$path" 2>/dev/null &
   echo $!
 }
@@ -114,6 +119,24 @@ start_logcat() {
 stop_logcat() {
   kill "$1" 2>/dev/null || true
   wait "$1" 2>/dev/null || true
+}
+
+# Inspect a logcat slice and emit a single likely-cause category.
+classify_logcat() {
+  local lc="$1"
+  if   grep -qiE 'ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION|net::ERR_|net::ERR_FAILED|WebViewClient.*error' "$lc"; then
+    echo "LIKELY NETWORK / REMOTE URL LOAD FAILURE"
+  elif grep -qiE 'ChunkLoadError|Loading chunk [0-9]+ failed|Failed to fetch dynamically imported module|Unexpected token|SyntaxError|ReferenceError' "$lc"; then
+    echo "LIKELY JS / CHUNK LOAD FAILURE"
+  elif grep -qiE 'FATAL EXCEPTION|AndroidRuntime: FATAL' "$lc"; then
+    echo "LIKELY NATIVE CRASH"
+  elif grep -qiE 'Renderer process .*gone|RenderProcessGone|render process .*killed|WebView .*crashed' "$lc"; then
+    echo "LIKELY WEBVIEW RENDERER CRASH"
+  elif grep -qiE 'OutOfMemoryError|lowmemorykiller|lmkd.*kill|Low on memory|onTrimMemory.*(CRITICAL|MODERATE)|Background concurrent .*GC freed' "$lc"; then
+    echo "POSSIBLE MEMORY PRESSURE"
+  else
+    echo "UNKNOWN: no clear indicator found"
+  fi
 }
 
 airplane_on()  { adb shell cmd connectivity airplane-mode enable  >/dev/null 2>&1 \
@@ -160,19 +183,40 @@ run_row() {
     fi
   fi
 
-  if [ "$status" = "PASS" ]; then ok "row $n PASS"
-  else err "row $n FAIL — $reason"; fi
+  local category="n/a"
+  if [ "$status" = "FAIL" ]; then
+    category=$(classify_logcat "$lc_path")
+  fi
 
-  ROW_RESULTS+=("$n|$name|$status|$reason")
+  if [ "$status" = "PASS" ]; then ok "row $n PASS"
+  else err "row $n FAIL — $reason ($category)"; fi
+
+  ROW_RESULTS+=("$n|$name|$status|$reason|$category")
   {
     echo "### Row $n — $name"
     echo "- status: **$status**"
     [ -n "$reason" ] && echo "- reason: $reason"
+    [ "$category" != "n/a" ] && echo "- likely cause: **$category**"
     echo "- pre-screenshot: \`row-$n-pre.png\`"
     echo "- post-screenshot: \`row-$n-post.png\`"
     echo "- logcat slice: \`row-$n-logcat.txt\`"
     echo
   } >> "$REPORT"
+}
+
+# Detect whether the local capacitor.config.ts is in remote-URL or bundled mode.
+# We cannot reliably introspect the installed APK from adb without unpacking it,
+# so we report the LOCAL config as a hint and label the installed app "unknown".
+detect_local_mode() {
+  if [ -f capacitor.config.ts ] && grep -qE 'server:\s*\{' capacitor.config.ts; then
+    if grep -qE "url:\s*['\"]https?://" capacitor.config.ts; then
+      echo "REMOTE URL (loads $(grep -oE "url:\s*['\"][^'\"]+" capacitor.config.ts | head -n1 | sed "s/url:[[:space:]]*['\"]//"))"
+    else
+      echo "REMOTE URL (server block present, no URL parsed)"
+    fi
+  else
+    echo "BUNDLED / OFFLINE (no server block — loads dist/ via file://)"
+  fi
 }
 
 # ── execute matrix ──────────────────────────────────────────────────────────
@@ -182,6 +226,8 @@ run_row() {
   echo "Device: $(adb shell getprop ro.product.model 2>/dev/null | tr -d '\r') "\
        "(Android $(adb shell getprop ro.build.version.release 2>/dev/null | tr -d '\r'))"
   echo "Package: \`$PKG\`  Activity: \`$LAUNCH_ACT\`"
+  echo "Local capacitor.config.ts mode: **$(detect_local_mode)**"
+  echo "Installed app mode: _unknown_ (not introspected from APK)"
   echo
 } > "$REPORT"
 
@@ -200,11 +246,11 @@ FAILED=0
 {
   echo "## Summary"
   echo
-  echo "| Row | Scenario | Status |"
-  echo "|-----|----------|--------|"
+  echo "| Row | Scenario | Status | Likely cause |"
+  echo "|-----|----------|--------|--------------|"
   for r in "${ROW_RESULTS[@]}"; do
-    IFS='|' read -r n name status reason <<<"$r"
-    echo "| $n | $name | $status |"
+    IFS='|' read -r n name status reason category <<<"$r"
+    echo "| $n | $name | $status | ${category:-n/a} |"
     [ "$status" = "FAIL" ] && FAILED=$((FAILED+1))
   done
 } >> "$REPORT"
