@@ -36,7 +36,9 @@ export type PushRegistrationResult =
 
 let registered = false;
 
-function classifyError(err: unknown): PushRegistrationResult["ok"] extends true ? never : Extract<PushRegistrationResult, { ok: false }>["reason"] {
+type FailureReason = Extract<PushRegistrationResult, { ok: false }>["reason"];
+
+function classifyError(err: unknown): FailureReason {
   const m = String((err as { message?: string } | null)?.message ?? err ?? "").toLowerCase();
   if (m.includes("firebase") || m.includes("google-services") || m.includes("default firebaseapp")) return "firebase_not_configured";
   if (m.includes("not implemented") || m.includes("plugin")) return "missing_plugin";
