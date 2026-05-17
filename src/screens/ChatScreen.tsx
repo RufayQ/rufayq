@@ -77,6 +77,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const [upgradeCtx, setUpgradeCtx] = useState<{ variant: "guest" | "subscriber"; plan?: string; resetsAt?: Date | string | null }>({ variant: "guest", resetsAt: null });
   const [view, setView] = useState<"inbox" | "ai" | "human" | "profile">("inbox");
   const [humanThread, setHumanThread] = useState<ChatThreadRow | null>(null);
+  // Where ConversationProfile's back button returns to. Set when we open it.
+  const [profileBackTo, setProfileBackTo] = useState<"inbox" | "human">("human");
   const [persona, setPersona] = useState<ChatPersona | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
