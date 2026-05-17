@@ -72,6 +72,7 @@ const Admin = () => {
       if (res.data?.user) {
         if (res.data.roles.includes("admin")) setRole("admin");
         else if (res.data.roles.includes("moderator")) setRole("moderator");
+        else if ((res.data.roles as string[]).includes("qc_tester")) setRole("qc_tester");
       }
       setAuthChecked(true);
     })();
