@@ -65,17 +65,23 @@ export async function resolveContact(
 }
 
 /**
- * Always returns 1–2 readable letters for a direct-chat avatar fallback.
- * Tries: first+last word of EN name → Arabic name → rufayq_id → device-id hash → "?".
- * Strips emoji, digits and punctuation so we don't render junk inside the circle.
+ * Always returns 1–2 readable letters for an avatar fallback. Used both by
+ * resolved chat threads and by raw people-search results.
+ *
+ * Tries, in order: name (EN) → nameAr → rufayqId → deviceId → "?".
+ * Strips emoji, digits and punctuation so we never render junk inside the
+ * circle (e.g. `🌙 Dr. Sara` → `DS`, `أحمد محمد` → `أم`, `!!!` → rufayq_id
+ * letters, falling all the way to device-id hash if needed).
+ *
+ * Exported so search results, contact suggestions, etc. share the exact
+ * same fallback chain as the inbox.
  */
-function computeInitials(
-  name: string,
-  nameAr: string | null,
-  rufayqId: string | null,
-  deviceId: string | null,
-): string {
-  // Letter = any Unicode letter (Latin, Arabic, etc.)
+export function computeInitialsFrom(args: {
+  name?: string | null;
+  nameAr?: string | null;
+  rufayqId?: string | null;
+  deviceId?: string | null;
+}): string {
   const LETTER = /\p{L}/u;
   const cleanWords = (s: string) =>
     s
@@ -91,27 +97,36 @@ function computeInitials(
     return (words[0][0] + words[words.length - 1][0]).toUpperCase();
   };
 
-  // Skip generic placeholders so we fall through to better sources.
   const GENERIC = new Set(["conversation", "careprovider", "care provider", "user", "unknown"]);
-  if (name && !GENERIC.has(name.trim().toLowerCase())) {
+  const name = (args.name ?? "").trim();
+  if (name && !GENERIC.has(name.toLowerCase())) {
     const ini = fromWords(name);
     if (ini) return ini;
   }
-  if (nameAr) {
-    const ini = fromWords(nameAr);
+  if (args.nameAr) {
+    const ini = fromWords(args.nameAr);
     if (ini) return ini;
   }
-  if (rufayqId) {
-    const letters = rufayqId.replace(/[^\p{L}]/gu, "");
+  if (args.rufayqId) {
+    const letters = args.rufayqId.replace(/[^\p{L}]/gu, "");
     if (letters) return letters.slice(0, 2).toUpperCase();
-    const alnum = rufayqId.replace(/[^\p{L}\p{N}]/gu, "");
+    const alnum = args.rufayqId.replace(/[^\p{L}\p{N}]/gu, "");
     if (alnum) return alnum.slice(0, 2).toUpperCase();
   }
-  if (deviceId) {
-    const hex = deviceId.replace(/[^a-zA-Z0-9]/g, "");
+  if (args.deviceId) {
+    const hex = args.deviceId.replace(/[^a-zA-Z0-9]/g, "");
     if (hex) return hex.slice(0, 2).toUpperCase();
   }
-  // Last resort: use the first char of the (generic) name if any, else "?".
-  const fallback = fromWords(name);
-  return fallback || "?";
+  // Last resort: any letter at all in the original (possibly generic) name.
+  const anyLetter = name.match(/\p{L}/u)?.[0];
+  return (anyLetter ?? "?").toUpperCase();
+}
+
+function computeInitials(
+  name: string,
+  nameAr: string | null,
+  rufayqId: string | null,
+  deviceId: string | null,
+): string {
+  return computeInitialsFrom({ name, nameAr, rufayqId, deviceId });
 }
