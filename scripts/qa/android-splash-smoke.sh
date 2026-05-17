@@ -117,7 +117,9 @@ start_logcat() {
   adb logcat \
       Capacitor:* CapacitorPlugins:* chromium:* \
       AndroidRuntime:E ActivityManager:W WebViewChromium:W \
-      lowmemorykiller:* lmkd:* art:E *:F \
+      lowmemorykiller:* lmkd:* art:E \
+      FirebaseApp:* FirebaseMessaging:* FirebaseInstanceId:* FA:* GoogleApiManager:* \
+      PushNotifications:* *:F \
     > "$path" 2>/dev/null &
   echo $!
 }
@@ -191,10 +193,12 @@ run_row() {
   local pre_splash=0 post_splash=0
   is_blank_or_splash "$OUT_DIR/row-$n-pre.png"  && pre_splash=1
   is_blank_or_splash "$OUT_DIR/row-$n-post.png" && post_splash=1
-  local react_marker="no" hide_marker="no" timeout_marker="no"
+  local react_marker="no" hide_marker="no" timeout_marker="no" boundary_marker="no" push_attempt="no"
   has_marker '[RufayqStartup] React mounted' "$lc_path" && react_marker="yes"
   has_marker '[RufayqStartup] SplashScreen.hide requested' "$lc_path" && hide_marker="yes"
   has_marker '[RufayqStartup] Splash fallback timeout fired' "$lc_path" && timeout_marker="yes"
+  has_marker '[RufayqStartup] ErrorBoundary rendered' "$lc_path" && boundary_marker="yes"
+  has_marker '[RufayqStartup] Push registration attempt' "$lc_path" && push_attempt="yes"
 
   local status="PASS" reason=""
   if [ "$require_handoff" = "1" ] && [ "$post_splash" = "1" ]; then
