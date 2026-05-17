@@ -431,7 +431,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         subtitle={subtitle}
         kind={humanThread.kind === "provider" ? "provider" : "direct"}
         onBack={() => { setHumanThread(null); setView("inbox"); }}
-        onOpenProfile={() => setView("profile")}
+        onOpenProfile={() => { setProfileBackTo("human"); setView("profile"); }}
         onMinimize={() => {
           pinChatHead(humanThread.id);
           setHumanThread(null);
