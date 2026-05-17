@@ -399,10 +399,20 @@ const TravelRecordsList = ({ userId, searchQuery }: Props) => {
 
       {pinnedItems.length > 0 && (
         <div className="mt-2">
-          <p className="font-mono text-[10px] tracking-widest mb-1.5 flex items-center gap-1" style={{ color: "var(--gold)" }}>
-            <Pin size={9} fill="var(--gold)" style={{ color: "var(--gold)" }} /> PINNED · <span className="font-arabic">مثبتة</span>
-            <span className="opacity-60">({pinnedItems.length}/{MAX_PINS})</span>
-          </p>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="font-mono text-[10px] tracking-widest flex items-center gap-1" style={{ color: "var(--gold)" }}>
+              <Pin size={9} fill="var(--gold)" style={{ color: "var(--gold)" }} /> PINNED · <span className="font-arabic">مثبتة</span>
+              <span className="opacity-60">({pinnedItems.length}/{MAX_PINS})</span>
+            </p>
+            <button
+              onClick={() => setClearPinOpen(true)}
+              className="flex items-center gap-1 text-[10px] font-semibold btn-press"
+              style={{ color: "var(--error)" }}
+              aria-label="Clear all pinned"
+            >
+              <Trash2 size={10} /> Clear pinned · <span className="font-arabic">إزالة التثبيت</span>
+            </button>
+          </div>
           <div className="space-y-2">{pinnedItems.map((it) => renderRow(it, true))}</div>
         </div>
       )}
