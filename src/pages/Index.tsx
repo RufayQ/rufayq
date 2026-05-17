@@ -264,10 +264,11 @@ const Index = () => {
         finishPatientEntryNavigation();
         break;
     }
-    registerPush({
-      rolePref: stored,
-      onDeepLink: routeDeepLink,
-    }).catch((e) => console.warn("[push] register skipped", e));
+    // Note: native push registration is intentionally NOT triggered here.
+    // It now happens ONLY via an explicit user tap on <PushPermissionPrompt/>
+    // so a misconfigured Firebase / missing google-services.json can never
+    // crash app startup. See src/lib/native/push.ts.
+    console.info("[RufayqStartup] Login finalize complete; push registration deferred to user action");
   };
 
   const handleRolePicked = (role: AppRolePref) => {

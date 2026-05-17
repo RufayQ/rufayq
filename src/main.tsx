@@ -5,6 +5,7 @@ import "./index.css";
 import { registerOfflineSW } from "./lib/registerSW";
 import { initSplashHandoff } from "./lib/native/splashHandoff";
 
+console.info("[RufayqStartup] main.tsx render start");
 createRoot(document.getElementById("root")!).render(<App />);
 console.info("[RufayqStartup] React mounted");
 registerOfflineSW();
