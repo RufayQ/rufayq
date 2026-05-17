@@ -86,6 +86,8 @@ npx cap sync android
    to Firebase.
 3. Store the FCM server key as `FCM_SERVER_KEY` in Lovable Cloud secrets so
    our edge functions can dispatch.
+4. Verify the native setup with the
+   [FCM verification runbook](qa/fcm-verification.md).
 
 ## Troubleshooting
 
