@@ -143,78 +143,109 @@ const LoungeAccessSection = ({ segments }: Props) => {
               const numberSpaced = m.membershipNumber.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim();
               const numberDisplay = revealed[m.id] ? numberSpaced : maskNumber(m.membershipNumber);
               const refreshDisplay = formatRefreshDate(m.entitlementRefreshOn) || formatExpMMYY(m.expiresOn);
+              const isExpanded = !!expanded[m.id];
+              const last4 = m.membershipNumber.replace(/\D/g, "").slice(-4);
               return (
-                <button
+                <div
                   key={m.id}
-                  onClick={() => setQrTarget(m)}
-                  className="relative w-full text-left rounded-2xl overflow-hidden btn-press"
+                  className="relative w-full rounded-2xl overflow-hidden"
                   style={{
                     background: "var(--white)",
                     border: "1px solid var(--gray-light)",
                     boxShadow: "0 6px 20px rgba(15,23,42,0.10)",
                   }}
                 >
-                  {/* White header bar */}
+                  {/* Header / collapsed summary row — always visible */}
                   <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2.5">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Plane size={16} style={{ color: "#1a1f71" }} strokeWidth={2.4} />
-                      <div className="leading-tight">
-                        <p className="text-[11px] font-bold" style={{ color: "#1a1f71" }}>Visa Airport</p>
-                        <p className="text-[11px] font-bold" style={{ color: "#1a1f71" }}>Companion</p>
+                      <div className="leading-tight min-w-0">
+                        <p className="text-[11px] font-bold truncate" style={{ color: "#1a1f71" }}>Visa Airport Companion</p>
+                        {!isExpanded && (
+                          <p className="font-mono text-[10px] tracking-[0.12em] truncate" style={{ color: "var(--gray)" }}>
+                            •••• {last4} · {m.cardholderName}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-[12px] font-bold tracking-[0.12em]" style={{ color: "var(--navy)" }}>DRAGONPASS</span>
-                      <IdCard size={13} style={{ color: "var(--navy)" }} />
-                    </div>
-                  </div>
-
-                  {/* Navy QR panel */}
-                  <div className="mx-3 mb-3 rounded-xl px-4 py-4 flex flex-col items-center" style={{ background: "#0f1f3a" }}>
-                    <div className="rounded-lg bg-white p-2" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }}>
-                      {m.qrImageUrl ? (
-                        <img src={m.qrImageUrl} alt="Lounge QR" width={150} height={150} style={{ display: "block" }} />
-                      ) : (
-                        <QRCodeSVG value={buildQrPayload(m)} size={150} level="M" includeMargin={false} />
-                      )}
-                    </div>
-                    <div className="mt-3 flex items-center gap-2 w-full justify-center">
-                      <p className="font-mono text-[13px] tracking-[0.18em] text-white">{numberDisplay}</p>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="font-mono text-[11px] font-bold tracking-[0.12em]" style={{ color: "var(--navy)" }}>DRAGONPASS</span>
+                      <IdCard size={12} style={{ color: "var(--navy)" }} />
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); toggleReveal(m.id); }}
-                        className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full btn-press"
-                        style={{ background: "rgba(255,255,255,0.12)", color: "var(--gold)" }}
-                        aria-label={revealed[m.id] ? "Hide card number" : "Show card number"}
-                        aria-pressed={!!revealed[m.id]}
+                        onClick={() => toggleExpanded(m.id)}
+                        aria-label={isExpanded ? "Collapse card" : "Expand card"}
+                        aria-expanded={isExpanded}
+                        className="ml-1 flex h-7 w-7 items-center justify-center rounded-full btn-press"
+                        style={{ background: "var(--off-white)", color: "var(--navy)" }}
                       >
-                        {revealed[m.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+                        <ChevronDown
+                          size={14}
+                          style={{ transition: "transform 0.2s ease", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
+                        />
                       </button>
                     </div>
                   </div>
 
-                  {/* Footer */}
-                  <div className="px-4 pb-3 pt-1 flex items-end justify-between gap-3" style={{ background: "var(--off-white)" }}>
-                    <div className="min-w-0">
-                      <p className="text-[9px] tracking-wide uppercase" style={{ color: "var(--gray)" }}>Cardholder name</p>
-                      <p className="font-arabic text-[9px] leading-tight" dir="rtl" style={{ color: "var(--gray)", opacity: 0.7 }}>اسم حامل البطاقة</p>
-                      <p className="text-[12px] font-bold truncate" style={{ color: "var(--navy)" }}>{m.cardholderName}</p>
-                    </div>
-                    {refreshDisplay && (
-                      <div className="text-right shrink-0">
-                        <p className="text-[9px] tracking-wide uppercase" style={{ color: "var(--gray)" }}>Entitlement refresh</p>
-                        <p className="font-arabic text-[9px] leading-tight" dir="rtl" style={{ color: "var(--gray)", opacity: 0.7 }}>تاريخ التجديد</p>
-                        <p className="font-mono text-[12px] font-bold" style={{ color: "var(--navy)" }}>{refreshDisplay}</p>
-                      </div>
-                    )}
-                  </div>
+                  {isExpanded && (
+                    <>
+                      {/* Navy QR panel — tapping opens fullscreen QR sheet */}
+                      <button
+                        type="button"
+                        onClick={() => setQrTarget(m)}
+                        className="block w-full text-left btn-press"
+                      >
+                        <div className="mx-3 mb-3 rounded-xl px-4 py-4 flex flex-col items-center" style={{ background: "#0f1f3a" }}>
+                          <div className="rounded-lg bg-white p-2" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }}>
+                            {m.qrImageUrl ? (
+                              <img src={m.qrImageUrl} alt="Lounge QR" width={150} height={150} style={{ display: "block" }} />
+                            ) : (
+                              <QRCodeSVG value={buildQrPayload(m)} size={150} level="M" includeMargin={false} />
+                            )}
+                          </div>
+                          <div className="mt-3 flex items-center gap-2 w-full justify-center">
+                            <p className="font-mono text-[13px] tracking-[0.18em] text-white">{numberDisplay}</p>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleReveal(m.id); }}
+                              className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full btn-press"
+                              style={{ background: "rgba(255,255,255,0.12)", color: "var(--gold)" }}
+                              aria-label={revealed[m.id] ? "Hide card number" : "Show card number"}
+                              aria-pressed={!!revealed[m.id]}
+                            >
+                              {revealed[m.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+                            </button>
+                          </div>
+                          <p className="mt-2 inline-flex items-center gap-1 text-[10px]" style={{ color: "var(--gold)" }}>
+                            <Maximize2 size={10} /> Tap to scan in full screen · اضغط للمسح بملء الشاشة
+                          </p>
+                        </div>
+                      </button>
 
-                  {linked && (
-                    <p className="px-4 pb-2 flex items-center gap-1 text-[9px]" style={{ color: "var(--teal-deep)", background: "var(--off-white)" }}>
-                      <Plane size={9} /> {linked.airline || linked.flightNumber || "Flight"} · {linked.fromCode}→{linked.toCode}
-                    </p>
+                      {/* Footer */}
+                      <div className="px-4 pb-3 pt-1 flex items-end justify-between gap-3" style={{ background: "var(--off-white)" }}>
+                        <div className="min-w-0">
+                          <p className="text-[9px] tracking-wide uppercase" style={{ color: "var(--gray)" }}>Cardholder name</p>
+                          <p className="font-arabic text-[9px] leading-tight" dir="rtl" style={{ color: "var(--gray)", opacity: 0.7 }}>اسم حامل البطاقة</p>
+                          <p className="text-[12px] font-bold truncate" style={{ color: "var(--navy)" }}>{m.cardholderName}</p>
+                        </div>
+                        {refreshDisplay && (
+                          <div className="text-right shrink-0">
+                            <p className="text-[9px] tracking-wide uppercase" style={{ color: "var(--gray)" }}>Entitlement refresh</p>
+                            <p className="font-arabic text-[9px] leading-tight" dir="rtl" style={{ color: "var(--gray)", opacity: 0.7 }}>تاريخ التجديد</p>
+                            <p className="font-mono text-[12px] font-bold" style={{ color: "var(--navy)" }}>{refreshDisplay}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {linked && (
+                        <p className="px-4 pb-2 flex items-center gap-1 text-[9px]" style={{ color: "var(--teal-deep)", background: "var(--off-white)" }}>
+                          <Plane size={9} /> {linked.airline || linked.flightNumber || "Flight"} · {linked.fromCode}→{linked.toCode}
+                        </p>
+                      )}
+                    </>
                   )}
-                </button>
+                </div>
               );
             }
 
