@@ -140,7 +140,9 @@ type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | 
 
 const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
   const authUserId = useAuthUserId();
+  const { isReady: authReady } = useAuthSession();
   const isGuest = useGuestMode();
+  const showAuthSkeleton = !isGuest && !authReady;
   const { categories: guestCats } = useGuestCategories();
   const { items: appointmentRows, save: saveAppointment } = useAppointments();
   const persistedAppointments = useMemo(() => sortAppointmentRowsByStart(appointmentRows).map((row) => appointmentRowToAppointment(row)), [appointmentRows]);
