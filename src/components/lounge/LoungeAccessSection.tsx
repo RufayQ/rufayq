@@ -84,7 +84,9 @@ const LoungeAccessSection = ({ segments }: Props) => {
   const [adding, setAdding] = useState(false);
   const [qrTarget, setQrTarget] = useState<LoungeMembership | null>(null);
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggleReveal = (id: string) => setRevealed((s) => ({ ...s, [id]: !s[id] }));
+  const toggleExpanded = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
   const maskNumber = (raw: string) => {
     const digits = raw.replace(/\D/g, "");
     if (digits.length <= 4) return raw;
