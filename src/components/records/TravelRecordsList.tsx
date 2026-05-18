@@ -14,6 +14,12 @@ import {
   fetchLoungeMemberships,
   type LoungeMembership,
 } from "@/lib/loungeMemberships";
+import {
+  listTravelScannedRecords,
+  removeTravelScannedRecord,
+  subscribeToTravelScannedRecords,
+  type TravelScannedRecord,
+} from "@/lib/travelScannedRecordsStore";
 
 /** Unified row shape so attachments and lounge memberships share render code. */
 type UnifiedRow =
