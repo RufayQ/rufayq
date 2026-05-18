@@ -268,40 +268,86 @@ const Landing = () => {
 
           <div className="relative max-w-6xl mx-auto px-6 py-20 md:py-32 grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-mono mb-7" style={{ background: "rgba(197,150,90,0.08)", color: GOLD, border: `1px solid ${BORDER}` }}>
+              {/* Eyebrow — hairline-flanked, bilingual aware */}
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full text-[10px] font-mono mb-7" style={{ background: "rgba(197,150,90,0.08)", color: GOLD, border: `1px solid ${BORDER}` }}>
                 <SparklesIcon size={11} />
-                {mode === "en" && "AI COMPANION · MEDICAL, CULTURAL & BEYOND"}
-                {mode === "ar" && <span dir="rtl" className="font-arabic">رُفَيِّق · رفيقك الذكي في كل رحلة</span>}
-                {isBoth && <>AI COMPANION · <span dir="rtl" className="font-arabic">رُفَيِّق</span></>}
+                <span className="inline-block w-3 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD})` }} aria-hidden />
+                {mode === "en" && <span className="tracking-[0.18em]">{eyebrowEn}</span>}
+                {mode === "ar" && <span dir="rtl" className="font-arabic tracking-wide">{eyebrowAr}</span>}
+                {isBoth && (
+                  <>
+                    <span className="tracking-[0.18em]">{eyebrowEn.split("·")[0]?.trim() || "AI COMPANION"}</span>
+                    <span className="opacity-50" aria-hidden>·</span>
+                    <span dir="rtl" className="font-arabic">رُفَيِّق</span>
+                  </>
+                )}
+                <span className="inline-block w-3 h-px" style={{ background: `linear-gradient(270deg, transparent, ${GOLD})` }} aria-hidden />
               </div>
 
-              <h1 className="font-display text-5xl md:text-7xl leading-[1.05] mb-7 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-                {mode === "en" && (<>Your AI Companion for<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Every Journey</span></>)}
-                {mode === "ar" && (<span dir="rtl" className="font-arabic">رُفَيِّقك الذكي في<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>كل رحلة</span></span>)}
-                {isBoth && (<>Your AI Companion for<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Every Journey</span><span dir="rtl" className="font-arabic block text-3xl md:text-4xl mt-3" style={{ opacity: 0.85 }}>رُفَيِّقك الذكي في كل رحلة</span></>)}
+              {/* Headline — display serif, gradient highlight, optional bilingual companion line */}
+              <h1 className="font-display text-5xl md:text-7xl leading-[1.04] mb-6 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
+                {mode === "en" && (
+                  <>
+                    {title1En}<br />
+                    <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{highEn}</span>
+                  </>
+                )}
+                {mode === "ar" && (
+                  <span dir="rtl" className="font-arabic">
+                    {title1Ar}<br />
+                    <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{highAr}</span>
+                  </span>
+                )}
+                {isBoth && (
+                  <>
+                    {title1En}<br />
+                    <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{highEn}</span>
+                    <span dir="rtl" className="font-arabic block text-3xl md:text-4xl mt-3" style={{ opacity: 0.85 }}>
+                      {title1Ar} <span style={{ color: GOLD_BRIGHT }}>{highAr}</span>
+                    </span>
+                  </>
+                )}
               </h1>
 
+              {/* Gold hairline accent */}
+              <div className="h-px w-16 mb-6" style={{ background: `linear-gradient(90deg, ${GOLD}, transparent)` }} aria-hidden />
+
               {mode !== "ar" && (
-                <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED }}>
-                  The bilingual AI companion for Gulf patients and travellers worldwide seeking treatment away from home. Track tickets, medications &amp; appointments — and ask anything about your records.
-                </p>
+                <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED }}>{subEn}</p>
               )}
               {mode !== "en" && (
-                <p className="font-arabic text-sm md:text-base mb-9 leading-relaxed max-w-md" dir="rtl" style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)" }}>
-                  رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج. تابع التذاكر والأدوية والمواعيد، واسأل عن أي تفصيل في سجلاتك الطبية.
-                </p>
+                <p className="font-arabic text-sm md:text-base mb-9 leading-relaxed max-w-md" dir="rtl" style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)" }}>{subAr}</p>
               )}
 
-              <div className="flex mt-4" style={{ minHeight: 56 }}>
-                <button onClick={() => navigate(lp("/auth"))} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02] w-full sm:w-auto" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
-                  {ctaPrimaryLabel} <ArrowRightIcon size={15} />
+              {/* CTAs — primary gold + secondary ghost */}
+              <div className="flex flex-wrap items-center gap-3 mt-4" style={{ minHeight: 56 }}>
+                <button onClick={() => navigate(lp(primaryLink))} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02]" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
+                  {primaryLabel} <ArrowRightIcon size={15} />
                 </button>
+                {secondaryLabel && (
+                  <a
+                    href={secondaryLink.startsWith("/#") ? secondaryLink.slice(1) : undefined}
+                    onClick={(e) => {
+                      if (secondaryLink.startsWith("#") || secondaryLink.startsWith("/#")) return;
+                      e.preventDefault();
+                      navigate(lp(secondaryLink));
+                    }}
+                    className="px-6 py-4 rounded-full text-sm font-semibold flex items-center gap-2 btn-press transition-all hover:bg-white/[0.04]"
+                    style={{ color: TEXT, border: `1px solid ${GOLD}55` }}
+                  >
+                    {secondaryLabel}
+                    <ChevronDownIcon size={13} />
+                  </a>
+                )}
               </div>
 
-              <div className="flex flex-wrap gap-5 mt-10" style={{ minHeight: 18 }}>
+              {/* Trust badges — refined row with hairline separators */}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 mt-10" style={{ minHeight: 18 }}>
                 {trustPoints.map((t, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <t.Icon size={13} color={GOLD} />
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(197,150,90,0.10)", border: `1px solid ${GOLD}33` }}>
+                      <t.Icon size={11} color={GOLD} />
+                    </span>
                     <span className="text-[11px] font-mono tracking-wide" style={{ color: TEXT_MUTED }}>
                       {isAr ? <span className="font-arabic">{t.ar}</span> : t.en}
                     </span>
