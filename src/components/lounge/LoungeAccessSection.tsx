@@ -552,7 +552,7 @@ const LoungeFormSheet = ({
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => handleQrFile(e.target.files?.[0] || null)}
+                    onChange={(e) => { handleQrFile(e.target.files?.[0] || null); e.target.value = ""; }}
                   />
                   <button
                     type="button"
