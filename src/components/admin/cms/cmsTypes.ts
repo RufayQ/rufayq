@@ -143,7 +143,6 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
           highlight: "Every Journey",
           subtitle: "The bilingual AI companion for Gulf patients and travellers worldwide seeking treatment away from home. Track tickets, medications & appointments — and ask anything about your records.",
           primaryCta: { label: "Start free", link: "/auth" },
-          secondaryCta: { label: "Explore pricing", link: "/#pricing" },
           badges: [
             { text: "End-to-end encrypted", icon: "lock" },
             { text: "Bilingual EN / AR", icon: "globe" },
