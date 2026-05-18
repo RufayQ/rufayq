@@ -89,6 +89,7 @@ const Landing = () => {
     primaryCta?: { label?: string; link?: string };
     secondaryCta?: { label?: string; link?: string };
     badges?: { text: string; icon?: string }[];
+    mockupCards?: { icon?: string; title: string; subtitle?: string; accent?: "gold" | "teal" }[];
   };
   const heroEn = getSection<HeroCms>("hero", "en");
   const heroAr = getSection<HeroCms>("hero", "ar");
