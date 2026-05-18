@@ -55,6 +55,7 @@ import DuplicateTicketDialog from "@/components/DuplicateTicketDialog";
 import TicketsFilterBar, { defaultTicketsFilterState, loadTicketsFilterState, type TicketsFilterState, type TicketQuickFilter } from "@/components/TicketsFilterBar";
 import JourneyHelicopterTimeline from "@/components/JourneyHelicopterTimeline";
 import LoungeAccessSection from "@/components/lounge/LoungeAccessSection";
+import { listLoungeMemberships, fetchLoungeMemberships, subscribeLoungeMemberships } from "@/lib/loungeMemberships";
 import { appointmentFormToRowInput, appointmentRowToAppointment, sortAppointmentRowsByStart, type AppointmentCardModel } from "@/lib/appointmentRows";
 import { type DuplicateMatch } from "@/lib/transportTickets";
 
@@ -1334,6 +1335,11 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
   const [highlightId, setHighlightId] = useState<string | null>(null);
   // Filter UI state
   const [filters, setFilters] = useState<TicketsFilterState>(() => loadTicketsFilterState());
+  const [loungeCount, setLoungeCount] = useState<number>(() => listLoungeMemberships().length);
+  useEffect(() => {
+    void fetchLoungeMemberships().then(() => setLoungeCount(listLoungeMemberships().length));
+    return subscribeLoungeMemberships(() => setLoungeCount(listLoungeMemberships().length));
+  }, []);
 
   const handleToggleAlarm = (segId: string, minutes: number) => {
     setTicketAlarms((prev) => {
@@ -1393,6 +1399,14 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
         segments={segments}
         filteredCount={filteredSegments.length}
         onClear={() => setFilters(defaultTicketsFilterState)}
+        loungeCount={loungeCount}
+        onJumpToLounges={() => {
+          const el = document.getElementById("lounge-access-section");
+          if (!el) return;
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          el.style.boxShadow = "0 0 0 2px var(--gold), 0 14px 38px rgba(197,150,90,0.32)";
+          window.setTimeout(() => { el.style.boxShadow = ""; }, 1400);
+        }}
       />
       <LoungeAccessSection segments={segments} />
       {filteredSegments.length === 0 && (
