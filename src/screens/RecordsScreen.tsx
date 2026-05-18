@@ -703,6 +703,18 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         }}
       />
 
+      <TravelDocsPreviewSheet
+        open={!!travelPreviewAction}
+        action={travelPreviewAction}
+        docs={visibleTravelDocs}
+        onClose={() => setTravelPreviewAction(null)}
+        onContinue={() => {
+          const a = travelPreviewAction;
+          setTravelPreviewAction(null);
+          if (a) setTravelAction(a);
+        }}
+      />
+
       <TravelSummaryLanguageSheet
         open={!!travelAction}
         action={travelAction}
