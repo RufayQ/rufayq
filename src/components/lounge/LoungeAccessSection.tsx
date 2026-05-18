@@ -335,6 +335,22 @@ const LoungeFormSheet = ({
   const [mmyyDisplay, setMmyyDisplay] = useState(isoToMMYY(initial?.expiresOn));
   const [linkedSegmentId, setLinkedSegmentId] = useState(initial?.linkedSegmentId || "");
   const [notes, setNotes] = useState(initial?.notes || "");
+  const [qrSecret, setQrSecret] = useState(initial?.qrSecret || "");
+  const [entitlementRefreshOn, setEntitlementRefreshOn] = useState(initial?.entitlementRefreshOn || "");
+  const [qrImageUrl, setQrImageUrl] = useState(initial?.qrImageUrl || "");
+  const qrFileRef = useRef<HTMLInputElement>(null);
+  const vac = isVAC(program);
+
+  const handleQrFile = (file: File | null) => {
+    if (!file) return;
+    if (file.size > 1.5 * 1024 * 1024) {
+      toast.error("QR image too large (max 1.5MB)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setQrImageUrl(typeof reader.result === "string" ? reader.result : "");
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -356,6 +372,9 @@ const LoungeFormSheet = ({
       expiresOn: iso || undefined,
       linkedSegmentId: linkedSegmentId || undefined,
       notes: notes.trim() || undefined,
+      qrSecret: vac ? (qrSecret.trim() || undefined) : undefined,
+      entitlementRefreshOn: vac ? (entitlementRefreshOn || undefined) : undefined,
+      qrImageUrl: vac ? (qrImageUrl || undefined) : undefined,
     });
   };
 
