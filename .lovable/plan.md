@@ -1,42 +1,55 @@
-# Two changes: Lounge card masking + Pinned-as-circles
+# Share attachments from My Records in AI Chat (Companion+)
 
-## 1. Hide / unhide the lounge card number
+## Goal
+In the Chat → Upload sheet, add a new source: **"From My Records"**. Companion and Family subscribers can pick any document they've already saved (travel attachments + scanned medical records) and attach it to the AI chat. Free and Starter users see an upgrade prompt instead.
 
-The card number is sensitive (16 digits, same shape as a credit card). Today it's printed in full on every card row.
+Camera / Files uploads stay free and unchanged.
 
-**File:** `src/components/lounge/LoungeAccessSection.tsx`
+## Tier gating
 
-- Add per-card local state `revealed: Record<membershipId, boolean>` (in-memory only, no persistence — reveal resets on page reload, which is the right default for sensitive numbers).
-- Default render of the number becomes masked: keep the last 4 digits visible, replace the rest with `•` in groups of 4 → `•••• •••• •••• 0979`. The reveal state shows the existing formatted full number.
-- Add a small toggle button at the right end of the number row using `Eye` / `EyeOff` (lucide), styled to match the gold/teal palette already used on the card. Stops click propagation so it doesn't open the QR sheet.
-- Accessibility: `aria-label="Show card number"` / `"Hide card number"` and `aria-pressed`.
+Plan codes from `useSubscription()` (`src/data/subscriptionPlans.ts`):
+- `FREE`, `STARTER` → blocked, show `<UpgradePrompt variant="subscriber" plan="COMPANION" />` with copy framing it as a Companion/Elite feature.
+- `COMPANION`, `FAMILY` → open the records picker.
+- No subscription loaded yet → treat as FREE (safer default).
 
-**Out of scope for the lounge card change:**
-- The full-screen QR sheet (line ~372) still shows the full number — that view is the explicit "I want to use this card" surface, so masking it there would defeat the purpose.
-- `TravelRecordsList.tsx` row that shows `m.membershipNumber` as a generic file label is left alone (it's a record list, not the card art).
+The existing `UpgradePrompt` component is reused — no new modal. We pass a context message via a new optional prop `feature?: string` so the header can read "Attach from My Records — Companion+ feature" (small additive change).
 
-## 2. Pinned records as small circles (like Helicopter View)
+## New component
 
-Today the pinned section in `TravelRecordsList` renders pinned items as full-width card rows above the rest of the list. The request: make pins look like the small circles in the Helicopter View (gold ring on selected, simple white circle with icon otherwise), and let the main records list scroll vertically underneath as it already does.
+`src/components/chat/ChatRecordsPicker.tsx` — bottom sheet that:
 
-**File:** `src/components/records/TravelRecordsList.tsx`
+1. Loads two record sources in parallel:
+   - **Travel attachments**: `supabase.from("transport_attachments").select(...).eq("device_id", deviceId).is("deleted_at", null).order("created_at", { ascending: false }).limit(100)` — uses the same shape as `RelatedDocumentsCard` / `TravelRecordsList`.
+   - **Medical scanned records**: `listScannedRecords()` from `src/lib/scannedRecordsStore.ts` (already a local store).
+2. Renders unified rows: icon (FileText / ImageIcon), label, file_name, date, source chip (`Travel` gold / `Medical` teal). Search input at the top filters by label/file_name. Empty state if both sources return nothing.
+3. On tap → calls `onPick({ kind, label, file_name, sourceLabelEn, sourceLabelAr, signedUrl? })` and closes. For travel attachments we generate a signed URL via `supabase.storage.from("transport-attachments").createSignedUrl(file_path, 3600)` so the AI text message can include a viewable link.
 
-- Replace the existing pinned section block (~lines 501–519) with a horizontal **pin strip**:
-  - One round chip per pinned item, **44×44 px** circle, white background, soft shadow, gold 1.5px ring (matches helicopter "selected" treatment).
-  - Icon inside the circle: `Sofa` for lounge cards, `ImageIcon` for image attachments, `FileText` for everything else. Same iconography used by the row renderer today.
-  - Below each circle, a 2-line truncated label (10px font, navy) so the user can identify the pin without opening it. Width capped at ~64px so circles stay tight.
-- Strip layout: `flex gap-3 overflow-x-auto` with hidden scrollbar, snap-x, horizontal padding so the first/last chip clears the edge. This matches the Helicopter View's horizontal feel.
-- Header row stays: `PINNED · مثبتة (n/MAX)` on the left, `Clear pinned` on the right.
-- Tap behaviour:
-  - **Tap circle** → opens the same preview / lounge QR sheet the full row currently opens (reuse `setQrTarget(m.membership)` for lounge, `openPreview(item)` for attachments).
-  - **Long-press or tap-and-hold** is not added — keep it simple. To unpin, the user opens the item's row in the main list and taps the existing pin icon (unchanged flow). Alternative considered (small × on the circle) rejected as too noisy at 44px.
-- The records list below the strip continues to scroll vertically inside the existing scroll root — no layout change there.
+Props:
+```ts
+{ open: boolean; onClose: () => void; onPick: (pick: PickedRecord) => void; }
+```
 
-**Out of scope:**
-- Increasing `MAX_PINS` beyond 2 (kept at current value; user can ask separately if they want more circle slots).
-- Drag-to-reorder pins.
-- Changing the medical records segment (pins there, if any, are out of scope of this request).
-- Pin circles on the Records header chip strip (`All / Passport / Visas / …`) — those are category filters, not pins.
+## Wire-up in `src/screens/ChatScreen.tsx`
 
-## Visual reference
-The pin circles mirror the Helicopter View pattern from the second screenshot: white circle, soft shadow, gold ring on the active/highlighted one. We'll apply the gold ring to every pinned circle (since being pinned == "highlighted" by definition).
+- Import `useSubscription` + `ChatRecordsPicker`.
+- New state: `selectedRecord: PickedRecord | null`, `showRecordsPicker: boolean`.
+- Add a **third button** in the source row (currently Camera + Files) labelled `📂 My Records · سجلاتي`. On click:
+  - If plan ∈ {COMPANION, FAMILY} → `setShowRecordsPicker(true)`.
+  - Else → `setUpgradeCtx({ variant: "subscriber", plan: "COMPANION" })` and `setShowUpgrade(true)`. Toast a short bilingual "Companion feature · ميزة كومبانيون" hint as a fallback if upgrade prompt is dismissed.
+- When the picker resolves, store the result in `selectedRecord` and render a compact preview card directly below the source row (separate from the file `<FileUploadPreview>` block) showing icon, label, file_name, source chip, and an `X` to clear.
+- `handleUploadSend` is extended so either `uploadedFile` OR `selectedRecord` is sent. For a record, the message body becomes:
+  ```
+  📎 From my records: <label> — <file_name>
+  <signedUrl if present>
+  <uploadInstruction or "أرفقت سجلًا للمراجعة">
+  ```
+  After send, clear both `uploadedFile` and `selectedRecord`.
+- The Send button text/visibility condition updates from `if (uploadedFile)` to `if (uploadedFile || selectedRecord)`.
+
+## Out of scope
+
+- Multi-select: pick one record at a time (matches single-file upload behavior).
+- Re-uploading the record's binary into the AI request. The chat pipeline today sends only text; we send a signed URL + label, which the AI can reference. A real file-binary path is a separate task.
+- New plan codes or pricing changes.
+- Gating Camera/Files (those stay free as today).
+- Admin-side review of which records get shared.
