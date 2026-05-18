@@ -332,7 +332,12 @@ const LoungeAccessSection = ({ segments }: Props) => {
           onClose={() => { setAdding(false); setEditing(null); }}
           onSave={(input) => {
             saveLoungeMembership(input);
-            toast.success(editing ? "Membership updated · تم التحديث" : "Membership added · تمت الإضافة", { duration: 1800 });
+            notify({
+              kind: "success",
+              en: editing ? "Membership updated" : "Membership added",
+              ar: editing ? "تم التحديث" : "تمت الإضافة",
+              duration: 1800,
+            });
             setAdding(false);
             setEditing(null);
           }}
