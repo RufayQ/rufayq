@@ -46,6 +46,9 @@ type DbRow = {
   expires_on: string | null;
   linked_segment_id: string | null;
   notes: string | null;
+  qr_secret: string | null;
+  entitlement_refresh_on: string | null;
+  qr_image_url: string | null;
   created_at: string;
   deleted_at: string | null;
 };
@@ -59,6 +62,9 @@ const rowToMembership = (r: DbRow): LoungeMembership => ({
   expiresOn: r.expires_on ?? undefined,
   linkedSegmentId: r.linked_segment_id ?? undefined,
   notes: r.notes ?? undefined,
+  qrSecret: r.qr_secret ?? undefined,
+  entitlementRefreshOn: r.entitlement_refresh_on ?? undefined,
+  qrImageUrl: r.qr_image_url ?? undefined,
   createdAt: r.created_at,
 });
 
