@@ -365,15 +365,17 @@ const Landing = () => {
                     <RufayQLogo size={26} variant="light" />
                     <span className="text-[10px] font-mono" style={{ color: TEXT_MUTED }}>9:41</span>
                   </div>
-                  <p className="font-display text-2xl mb-1" style={{ color: TEXT, fontWeight: 300 }}>{isAr ? <span className="font-arabic">صباح الخير،</span> : "Good morning,"}</p>
+                  <p className="font-display text-2xl mb-1" style={{ color: TEXT, fontWeight: 300 }}>
+                    {isAr ? <span className="font-arabic">{greeting.ar}،</span> : `${greeting.en},`}
+                  </p>
                   <p className="text-sm mb-7" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">محمد</span> : "Mohammed"}</p>
 
                   <div className="space-y-2.5">
                     {[
-                      { ic: "✈️", t: "Flight to Cleveland", tAr: "رحلة إلى كليفلاند", s: "in 2 days · 8:30 AM", sAr: "بعد يومين · 8:30 ص", accent: TEAL },
-                      { ic: "💊", t: "Take Metformin", tAr: "تناول ميتفورمين", s: "Due now · 8:00 AM", sAr: "الآن · 8:00 ص", accent: GOLD },
-                      { ic: "🏥", t: "Dr. Smith — Cardiology", tAr: "د. سميث — قلب", s: "Tomorrow · 11:00 AM", sAr: "غداً · 11:00 ص", accent: TEAL },
-                      { ic: "📄", t: "Lab results ready", tAr: "نتائج التحاليل جاهزة", s: "Tap to view", sAr: "اضغط للعرض", accent: GOLD },
+                      { ic: "🛫", t: "Business · LH 770 → Frankfurt", tAr: "أعمال · LH 770 → فرانكفورت", s: "Boarding 22:40 · Gate A22", sAr: "الصعود 22:40 · بوابة A22", accent: TEAL },
+                      { ic: "🛋️", t: "Lounge ready · Visa Companion", tAr: "الصالة جاهزة · رفيق فيزا", s: "DXB · Concourse B", sAr: "دبي · مبنى B", accent: GOLD },
+                      { ic: "🩺", t: "Prof. Klein — Cleveland Clinic", tAr: "البروفيسور كلاين — كليفلاند", s: "Tomorrow · 11:00 AM", sAr: "غداً · 11:00 ص", accent: TEAL },
+                      { ic: "🚘", t: "Chauffeur to The Ritz-Carlton", tAr: "سائق خاص إلى ريتز كارلتون", s: "On arrival · 06:20", sAr: "عند الوصول · 06:20", accent: GOLD },
                     ].map((card, i) => (
                       <div key={i} className="rounded-xl p-3 flex items-center gap-3 backdrop-blur-sm" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: `${card.accent}20`, border: `1px solid ${card.accent}40` }}>{card.ic}</div>
