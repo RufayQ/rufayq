@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard";
-import UniversalDocumentPreview, { isImage, isPdf, isOffice } from "@/components/records/UniversalDocumentPreview";
+import UniversalDocumentPreview, { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
 
 export interface TransportAttachment {
   id: string;
