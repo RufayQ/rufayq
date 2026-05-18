@@ -153,9 +153,23 @@ const LoungeAccessSection = ({ segments }: Props) => {
                   <ScanLine size={16} style={{ color: "var(--gold)" }} />
                 </div>
 
-                <p className="relative mt-3 font-mono text-[14px] tracking-[0.18em]">
-                  {m.membershipNumber.replace(/(.{4})/g, "$1 ").trim().slice(0, 24)}
-                </p>
+                <div className="relative mt-3 flex items-center justify-between gap-2">
+                  <p className="font-mono text-[14px] tracking-[0.18em]">
+                    {revealed[m.id]
+                      ? m.membershipNumber.replace(/(.{4})/g, "$1 ").trim().slice(0, 24)
+                      : maskNumber(m.membershipNumber).slice(0, 24)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleReveal(m.id); }}
+                    className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full btn-press"
+                    style={{ background: "rgba(255,255,255,0.12)", color: "var(--gold)" }}
+                    aria-label={revealed[m.id] ? "Hide card number" : "Show card number"}
+                    aria-pressed={!!revealed[m.id]}
+                  >
+                    {revealed[m.id] ? <EyeOff size={13} /> : <Eye size={13} />}
+                  </button>
+                </div>
 
                 <div className="relative mt-2.5 flex items-end justify-between gap-2">
                   <div className="min-w-0">
