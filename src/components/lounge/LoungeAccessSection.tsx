@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
 import type { TransportSegment } from "@/components/TransportCard";
 import {
@@ -11,6 +11,7 @@ import {
   fetchLoungeMemberships,
   type LoungeMembership,
 } from "@/lib/loungeMemberships";
+import QrImageEditor from "./QrImageEditor";
 
 interface Props {
   /** Flight segments shown in the linker dropdown so the user can tag a card to a flight. */
@@ -83,7 +84,9 @@ const LoungeAccessSection = ({ segments }: Props) => {
   const [adding, setAdding] = useState(false);
   const [qrTarget, setQrTarget] = useState<LoungeMembership | null>(null);
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggleReveal = (id: string) => setRevealed((s) => ({ ...s, [id]: !s[id] }));
+  const toggleExpanded = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
   const maskNumber = (raw: string) => {
     const digits = raw.replace(/\D/g, "");
     if (digits.length <= 4) return raw;
@@ -140,78 +143,109 @@ const LoungeAccessSection = ({ segments }: Props) => {
               const numberSpaced = m.membershipNumber.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim();
               const numberDisplay = revealed[m.id] ? numberSpaced : maskNumber(m.membershipNumber);
               const refreshDisplay = formatRefreshDate(m.entitlementRefreshOn) || formatExpMMYY(m.expiresOn);
+              const isExpanded = !!expanded[m.id];
+              const last4 = m.membershipNumber.replace(/\D/g, "").slice(-4);
               return (
-                <button
+                <div
                   key={m.id}
-                  onClick={() => setQrTarget(m)}
-                  className="relative w-full text-left rounded-2xl overflow-hidden btn-press"
+                  className="relative w-full rounded-2xl overflow-hidden"
                   style={{
                     background: "var(--white)",
                     border: "1px solid var(--gray-light)",
                     boxShadow: "0 6px 20px rgba(15,23,42,0.10)",
                   }}
                 >
-                  {/* White header bar */}
+                  {/* Header / collapsed summary row — always visible */}
                   <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2.5">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Plane size={16} style={{ color: "#1a1f71" }} strokeWidth={2.4} />
-                      <div className="leading-tight">
-                        <p className="text-[11px] font-bold" style={{ color: "#1a1f71" }}>Visa Airport</p>
-                        <p className="text-[11px] font-bold" style={{ color: "#1a1f71" }}>Companion</p>
+                      <div className="leading-tight min-w-0">
+                        <p className="text-[11px] font-bold truncate" style={{ color: "#1a1f71" }}>Visa Airport Companion</p>
+                        {!isExpanded && (
+                          <p className="font-mono text-[10px] tracking-[0.12em] truncate" style={{ color: "var(--gray)" }}>
+                            •••• {last4} · {m.cardholderName}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-[12px] font-bold tracking-[0.12em]" style={{ color: "var(--navy)" }}>DRAGONPASS</span>
-                      <IdCard size={13} style={{ color: "var(--navy)" }} />
-                    </div>
-                  </div>
-
-                  {/* Navy QR panel */}
-                  <div className="mx-3 mb-3 rounded-xl px-4 py-4 flex flex-col items-center" style={{ background: "#0f1f3a" }}>
-                    <div className="rounded-lg bg-white p-2" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }}>
-                      {m.qrImageUrl ? (
-                        <img src={m.qrImageUrl} alt="Lounge QR" width={150} height={150} style={{ display: "block" }} />
-                      ) : (
-                        <QRCodeSVG value={buildQrPayload(m)} size={150} level="M" includeMargin={false} />
-                      )}
-                    </div>
-                    <div className="mt-3 flex items-center gap-2 w-full justify-center">
-                      <p className="font-mono text-[13px] tracking-[0.18em] text-white">{numberDisplay}</p>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="font-mono text-[11px] font-bold tracking-[0.12em]" style={{ color: "var(--navy)" }}>DRAGONPASS</span>
+                      <IdCard size={12} style={{ color: "var(--navy)" }} />
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); toggleReveal(m.id); }}
-                        className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full btn-press"
-                        style={{ background: "rgba(255,255,255,0.12)", color: "var(--gold)" }}
-                        aria-label={revealed[m.id] ? "Hide card number" : "Show card number"}
-                        aria-pressed={!!revealed[m.id]}
+                        onClick={() => toggleExpanded(m.id)}
+                        aria-label={isExpanded ? "Collapse card" : "Expand card"}
+                        aria-expanded={isExpanded}
+                        className="ml-1 flex h-7 w-7 items-center justify-center rounded-full btn-press"
+                        style={{ background: "var(--off-white)", color: "var(--navy)" }}
                       >
-                        {revealed[m.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+                        <ChevronDown
+                          size={14}
+                          style={{ transition: "transform 0.2s ease", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
+                        />
                       </button>
                     </div>
                   </div>
 
-                  {/* Footer */}
-                  <div className="px-4 pb-3 pt-1 flex items-end justify-between gap-3" style={{ background: "var(--off-white)" }}>
-                    <div className="min-w-0">
-                      <p className="text-[9px] tracking-wide uppercase" style={{ color: "var(--gray)" }}>Cardholder name</p>
-                      <p className="font-arabic text-[9px] leading-tight" dir="rtl" style={{ color: "var(--gray)", opacity: 0.7 }}>اسم حامل البطاقة</p>
-                      <p className="text-[12px] font-bold truncate" style={{ color: "var(--navy)" }}>{m.cardholderName}</p>
-                    </div>
-                    {refreshDisplay && (
-                      <div className="text-right shrink-0">
-                        <p className="text-[9px] tracking-wide uppercase" style={{ color: "var(--gray)" }}>Entitlement refresh</p>
-                        <p className="font-arabic text-[9px] leading-tight" dir="rtl" style={{ color: "var(--gray)", opacity: 0.7 }}>تاريخ التجديد</p>
-                        <p className="font-mono text-[12px] font-bold" style={{ color: "var(--navy)" }}>{refreshDisplay}</p>
-                      </div>
-                    )}
-                  </div>
+                  {isExpanded && (
+                    <>
+                      {/* Navy QR panel — tapping opens fullscreen QR sheet */}
+                      <button
+                        type="button"
+                        onClick={() => setQrTarget(m)}
+                        className="block w-full text-left btn-press"
+                      >
+                        <div className="mx-3 mb-3 rounded-xl px-4 py-4 flex flex-col items-center" style={{ background: "#0f1f3a" }}>
+                          <div className="rounded-lg bg-white p-2" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }}>
+                            {m.qrImageUrl ? (
+                              <img src={m.qrImageUrl} alt="Lounge QR" width={150} height={150} style={{ display: "block" }} />
+                            ) : (
+                              <QRCodeSVG value={buildQrPayload(m)} size={150} level="M" includeMargin={false} />
+                            )}
+                          </div>
+                          <div className="mt-3 flex items-center gap-2 w-full justify-center">
+                            <p className="font-mono text-[13px] tracking-[0.18em] text-white">{numberDisplay}</p>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleReveal(m.id); }}
+                              className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full btn-press"
+                              style={{ background: "rgba(255,255,255,0.12)", color: "var(--gold)" }}
+                              aria-label={revealed[m.id] ? "Hide card number" : "Show card number"}
+                              aria-pressed={!!revealed[m.id]}
+                            >
+                              {revealed[m.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+                            </button>
+                          </div>
+                          <p className="mt-2 inline-flex items-center gap-1 text-[10px]" style={{ color: "var(--gold)" }}>
+                            <Maximize2 size={10} /> Tap to scan in full screen · اضغط للمسح بملء الشاشة
+                          </p>
+                        </div>
+                      </button>
 
-                  {linked && (
-                    <p className="px-4 pb-2 flex items-center gap-1 text-[9px]" style={{ color: "var(--teal-deep)", background: "var(--off-white)" }}>
-                      <Plane size={9} /> {linked.airline || linked.flightNumber || "Flight"} · {linked.fromCode}→{linked.toCode}
-                    </p>
+                      {/* Footer */}
+                      <div className="px-4 pb-3 pt-1 flex items-end justify-between gap-3" style={{ background: "var(--off-white)" }}>
+                        <div className="min-w-0">
+                          <p className="text-[9px] tracking-wide uppercase" style={{ color: "var(--gray)" }}>Cardholder name</p>
+                          <p className="font-arabic text-[9px] leading-tight" dir="rtl" style={{ color: "var(--gray)", opacity: 0.7 }}>اسم حامل البطاقة</p>
+                          <p className="text-[12px] font-bold truncate" style={{ color: "var(--navy)" }}>{m.cardholderName}</p>
+                        </div>
+                        {refreshDisplay && (
+                          <div className="text-right shrink-0">
+                            <p className="text-[9px] tracking-wide uppercase" style={{ color: "var(--gray)" }}>Entitlement refresh</p>
+                            <p className="font-arabic text-[9px] leading-tight" dir="rtl" style={{ color: "var(--gray)", opacity: 0.7 }}>تاريخ التجديد</p>
+                            <p className="font-mono text-[12px] font-bold" style={{ color: "var(--navy)" }}>{refreshDisplay}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {linked && (
+                        <p className="px-4 pb-2 flex items-center gap-1 text-[9px]" style={{ color: "var(--teal-deep)", background: "var(--off-white)" }}>
+                          <Plane size={9} /> {linked.airline || linked.flightNumber || "Flight"} · {linked.fromCode}→{linked.toCode}
+                        </p>
+                      )}
+                    </>
                   )}
-                </button>
+                </div>
               );
             }
 
@@ -339,6 +373,7 @@ const LoungeFormSheet = ({
   const [qrSecretError, setQrSecretError] = useState<string | null>(null);
   const [entitlementRefreshOn, setEntitlementRefreshOn] = useState(initial?.entitlementRefreshOn || "");
   const [qrImageUrl, setQrImageUrl] = useState(initial?.qrImageUrl || "");
+  const [pendingQrSrc, setPendingQrSrc] = useState<string | null>(null);
   const qrFileRef = useRef<HTMLInputElement>(null);
   const vac = isVAC(program);
 
@@ -353,12 +388,15 @@ const LoungeFormSheet = ({
 
   const handleQrFile = (file: File | null) => {
     if (!file) return;
-    if (file.size > 1.5 * 1024 * 1024) {
-      toast.error("QR image too large (max 1.5MB)");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("QR image too large (max 5MB)");
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setQrImageUrl(typeof reader.result === "string" ? reader.result : "");
+    reader.onload = () => {
+      const src = typeof reader.result === "string" ? reader.result : "";
+      if (src) setPendingQrSrc(src);
+    };
     reader.readAsDataURL(file);
   };
 
@@ -514,7 +552,7 @@ const LoungeFormSheet = ({
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => handleQrFile(e.target.files?.[0] || null)}
+                    onChange={(e) => { handleQrFile(e.target.files?.[0] || null); e.target.value = ""; }}
                   />
                   <button
                     type="button"
@@ -562,6 +600,17 @@ const LoungeFormSheet = ({
           </button>
         </div>
       </form>
+      {pendingQrSrc && (
+        <QrImageEditor
+          src={pendingQrSrc}
+          onCancel={() => setPendingQrSrc(null)}
+          onSave={(dataUrl) => {
+            setQrImageUrl(dataUrl);
+            setPendingQrSrc(null);
+            toast.success("QR image updated · تم تحديث صورة الرمز", { duration: 1400 });
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -577,6 +626,65 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 const LoungeQrSheet = ({
   membership, onClose, onEdit,
 }: { membership: LoungeMembership; onClose: () => void; onEdit: () => void }) => {
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // Try to boost screen brightness while open (best-effort, no-op on web).
+  useEffect(() => {
+    const root = document.documentElement;
+    const prev = root.style.filter;
+    if (fullscreen) root.style.filter = "brightness(1.08)";
+    return () => { root.style.filter = prev; };
+  }, [fullscreen]);
+
+  if (fullscreen) {
+    // Maximum-area, high-density QR for officer scanning.
+    const side = Math.min(
+      typeof window !== "undefined" ? window.innerWidth - 32 : 320,
+      typeof window !== "undefined" ? window.innerHeight - 200 : 480,
+      560,
+    );
+    return (
+      <div
+        className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4"
+        style={{ background: "#ffffff" }}
+        onClick={() => setFullscreen(false)}
+      >
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setFullscreen(false); }}
+          aria-label="Exit fullscreen"
+          className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full btn-press"
+          style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+        >
+          <Minimize2 size={16} />
+        </button>
+        <p className="mb-3 text-[12px] font-bold tracking-wide uppercase" style={{ color: "var(--navy)" }}>
+          {membership.program}
+        </p>
+        <div onClick={(e) => e.stopPropagation()} className="rounded-2xl bg-white p-4" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
+          {membership.qrImageUrl ? (
+            <img
+              src={membership.qrImageUrl}
+              alt="Lounge QR fullscreen"
+              width={side}
+              height={side}
+              style={{ display: "block", imageRendering: "pixelated" }}
+            />
+          ) : (
+            <QRCodeSVG value={buildQrPayload(membership)} size={side} level="H" includeMargin={false} />
+          )}
+        </div>
+        <p className="mt-4 font-mono text-[14px] tracking-[0.22em]" style={{ color: "var(--navy)" }}>
+          {membership.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
+        </p>
+        <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>{membership.cardholderName}</p>
+        <p className="mt-3 text-center text-[10px]" style={{ color: "var(--gray)" }}>
+          Tap anywhere to exit · اضغط للخروج
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.6)" }} onClick={onClose}>
       <div
@@ -591,6 +699,9 @@ const LoungeQrSheet = ({
             <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>اعرض الرمز لموظف الصالة للمسح</p>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setFullscreen(true)} aria-label="Fullscreen QR" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)" }}>
+              <Maximize2 size={13} />
+            </button>
             <button onClick={onEdit} aria-label="Edit" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)" }}>
               <Pencil size={13} />
             </button>
@@ -600,44 +711,24 @@ const LoungeQrSheet = ({
           </div>
         </div>
 
-        <div className="rounded-2xl p-5 flex flex-col items-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+        <button
+          type="button"
+          onClick={() => setFullscreen(true)}
+          className="w-full rounded-2xl p-5 flex flex-col items-center btn-press"
+          style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+          aria-label="Open QR in full screen"
+        >
           <div className="rounded-xl bg-white p-3" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
             {membership.qrImageUrl ? (
               <img src={membership.qrImageUrl} alt="Lounge QR" width={196} height={196} style={{ display: "block" }} />
             ) : (
-              <QRCodeSVG value={buildQrPayload(membership)} size={196} level="M" includeMargin={false} />
+              <QRCodeSVG value={buildQrPayload(membership)} size={196} level="H" includeMargin={false} />
             )}
           </div>
-          {membership.qrImageUrl && (
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await saveLoungeMembership({
-                    id: membership.id,
-                    program: membership.program,
-                    membershipNumber: membership.membershipNumber,
-                    cardholderName: membership.cardholderName,
-                    cardLast4: membership.cardLast4,
-                    expiresOn: membership.expiresOn,
-                    linkedSegmentId: membership.linkedSegmentId,
-                    notes: membership.notes,
-                    qrSecret: membership.qrSecret,
-                    entitlementRefreshOn: membership.entitlementRefreshOn,
-                    qrImageUrl: undefined,
-                  });
-                  toast.success("Custom QR removed · تم حذف الرمز المخصص", { duration: 1600 });
-                } catch {
-                  toast.error("Couldn't remove QR · تعذر الحذف");
-                }
-              }}
-              className="mt-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press"
-              style={{ background: "rgba(217,79,79,0.10)", color: "var(--error)" }}
-            >
-              <Trash2 size={11} /> Remove custom QR · استخدم الرمز التلقائي
-            </button>
-          )}
-          <p className="mt-3 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
+          <p className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold" style={{ color: "var(--teal-deep)" }}>
+            <Maximize2 size={11} /> Tap for full screen · ملء الشاشة
+          </p>
+          <p className="mt-2 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
             {membership.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
           </p>
           <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>{membership.cardholderName}</p>
@@ -645,7 +736,37 @@ const LoungeQrSheet = ({
             {membership.cardLast4 && <span>Linked card •••• {membership.cardLast4}</span>}
             {formatExpMMYY(membership.expiresOn) && <span>Exp {formatExpMMYY(membership.expiresOn)}</span>}
           </div>
-        </div>
+        </button>
+
+        {membership.qrImageUrl && (
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await saveLoungeMembership({
+                  id: membership.id,
+                  program: membership.program,
+                  membershipNumber: membership.membershipNumber,
+                  cardholderName: membership.cardholderName,
+                  cardLast4: membership.cardLast4,
+                  expiresOn: membership.expiresOn,
+                  linkedSegmentId: membership.linkedSegmentId,
+                  notes: membership.notes,
+                  qrSecret: membership.qrSecret,
+                  entitlementRefreshOn: membership.entitlementRefreshOn,
+                  qrImageUrl: undefined,
+                });
+                toast.success("Custom QR removed · تم حذف الرمز المخصص", { duration: 1600 });
+              } catch {
+                toast.error("Couldn't remove QR · تعذر الحذف");
+              }
+            }}
+            className="mt-3 mx-auto flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press"
+            style={{ background: "rgba(217,79,79,0.10)", color: "var(--error)" }}
+          >
+            <Trash2 size={11} /> Remove custom QR · استخدم الرمز التلقائي
+          </button>
+        )}
 
         <p className="mt-3 text-center text-[10px]" style={{ color: "var(--gray)" }}>
           Brightness is automatic on most devices · يتم رفع سطوع الشاشة تلقائياً
