@@ -539,9 +539,9 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
           </button>
         </div>
        </div>
-        {scannedFields.length > 0 && (
+        {cardFields.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
-            {scannedFields.slice(0, 6).map((f, idx) => (
+            {cardFields.slice(0, 6).map((f, idx) => (
               <span
                 key={idx}
                 className="text-[10px] px-2 py-1 rounded-full"
