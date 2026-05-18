@@ -350,6 +350,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
         {step === 4 && !skipAiForFlight && (
           <Step4AIReview
             category={selectedCategory}
+            subcategory={selectedSub}
             fileName={capturedFile?.name || "document"}
             realFile={realFile}
             onParsed={setScannedPayload}
