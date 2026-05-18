@@ -974,6 +974,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
 
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6 relative" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
+        {showAuthSkeleton ? (
+          <JourneyContentSkeleton />
+        ) : (<>
         {activeSubTab === "overview" && (
           <>
             {activeTrip ? (
