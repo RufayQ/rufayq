@@ -62,6 +62,10 @@ const RadioOption = ({
 
 const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const stored = JSON.parse(localStorage.getItem("rufayq_settings") || "{}");
+  const [subscreen, setSubscreen] = useState<null | "notifications">(null);
+  if (subscreen === "notifications") {
+    return <NotificationSettingsScreen onBack={() => setSubscreen(null)} />;
+  }
   const { mode: langMode, setMode: setLangMode } = useLanguage();
   const isGuest = useGuestMode();
   const { categories: guestCats, setCategory: setGuestCat, resetAll: resetGuestCats } = useGuestCategories();
