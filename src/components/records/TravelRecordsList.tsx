@@ -149,6 +149,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
   const deviceId = getDeviceId();
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loungeCards, setLoungeCards] = useState<LoungeMembership[]>(() => listLoungeMemberships());
+  const [scannedTravel, setScannedTravel] = useState<TravelScannedRecord[]>(() => listTravelScannedRecords());
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
@@ -194,12 +195,18 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     return subscribeLoungeMemberships(() => setLoungeCards(listLoungeMemberships()));
   }, []);
 
-  // Merge attachments + lounge cards into one sorted list.
+  // Scanner-saved travel docs (visas, etc.) also live in localStorage.
+  useEffect(() => {
+    return subscribeToTravelScannedRecords(() => setScannedTravel(listTravelScannedRecords()));
+  }, []);
+
+  // Merge attachments + lounge cards + scanned travel docs into one sorted list.
   const unified: UnifiedRow[] = useMemo(() => {
     const attachments: UnifiedRow[] = items.map((it) => ({ kind: "attachment" as const, ...it }));
     const lounge: UnifiedRow[] = loungeCards.map(membershipToRow);
-    return [...lounge, ...attachments].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }, [items, loungeCards]);
+    const scanned: UnifiedRow[] = scannedTravel.map(scannedToRow);
+    return [...lounge, ...scanned, ...attachments].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }, [items, loungeCards, scannedTravel]);
 
   const classifyRow = (r: UnifiedRow): TravelCat =>
     r.kind === "lounge-card" ? "lounge" : classify(r);
