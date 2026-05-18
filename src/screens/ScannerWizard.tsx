@@ -382,7 +382,18 @@ const ScannerWizard = ({
             fileName={capturedFile?.name || "document"}
             realFile={realFile}
             onParsed={setScannedPayload}
-            onSave={() => setStep(5)}
+            onSave={() => {
+              if (attachmentMode) {
+                // Skip Step 5 success screen — flush parsed snapshot and save.
+                // scannedPayload was just set via onParsed; read on next tick.
+                setTimeout(() => {
+                  onSave?.(selectedCategory, enrichedPayload(scannedPayloadRef.current ?? scannedPayload));
+                  onClose();
+                }, 0);
+              } else {
+                setStep(5);
+              }
+            }}
           />
         )}
         {step === 5 && (
