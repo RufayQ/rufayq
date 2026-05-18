@@ -5,6 +5,8 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import UpgradePrompt from "@/components/UpgradePrompt";
+import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
+import { useSubscription } from "@/hooks/useSubscription";
 import { quickPrompts } from "@/constants/data";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useGuestMode } from "@/hooks/useGuestMode";
@@ -89,6 +91,13 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadInstruction, setUploadInstruction] = useState("");
+  const [showRecordsPicker, setShowRecordsPicker] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<PickedRecord | null>(null);
+  const { subscription } = useSubscription();
+  const canAttachFromRecords = ((): boolean => {
+    const code = (subscription?.plan || "").toString().toUpperCase();
+    return code === "COMPANION" || code === "FAMILY";
+  })();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordedAudio, setRecordedAudio] = useState<{ duration: number } | null>(null);
@@ -331,10 +340,31 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const handleUploadSend = () => {
     if (uploadedFile) {
       sendMessage(`📎 ${uploadedFile.name}\n${uploadInstruction || "ارفع وثيقة"}`);
-      setUploadedFile(null);
-      setUploadInstruction("");
-      setShowUploadSheet(false);
+    } else if (selectedRecord) {
+      const lines = [
+        `📎 From my records: ${selectedRecord.label} — ${selectedRecord.file_name}`,
+        `(${selectedRecord.sourceLabelEn} · ${selectedRecord.sourceLabelAr})`,
+      ];
+      if (selectedRecord.signedUrl) lines.push(selectedRecord.signedUrl);
+      lines.push(uploadInstruction || "أرفقت سجلًا للمراجعة");
+      sendMessage(lines.join("\n"));
+    } else {
+      return;
     }
+    setUploadedFile(null);
+    setSelectedRecord(null);
+    setUploadInstruction("");
+    setShowUploadSheet(false);
+  };
+
+  const handleOpenRecords = () => {
+    if (!canAttachFromRecords) {
+      setUpgradeCtx({ variant: "subscriber", plan: "COMPANION" });
+      setShowUpgrade(true);
+      toast.info("Companion feature · ميزة كومبانيون", { duration: 2200 });
+      return;
+    }
+    setShowRecordsPicker(true);
   };
 
   const handleCopyChat = () => {
@@ -835,13 +865,62 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
                   <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>{s.ar}</span>
                 </button>
               ))}
+              <button
+                onClick={handleOpenRecords}
+                className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl card-press relative"
+                style={{
+                  background: canAttachFromRecords ? "var(--off-white)" : "var(--gold-pale)",
+                  border: canAttachFromRecords ? "1px solid var(--gray-light)" : "1px solid var(--gold)",
+                }}
+              >
+                <span className="text-xl">📂</span>
+                <span className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>My Records</span>
+                <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>سجلاتي</span>
+                {!canAttachFromRecords && (
+                  <span
+                    className="absolute top-1 right-1 text-[8px] font-mono px-1 rounded"
+                    style={{ background: "var(--gold)", color: "white" }}
+                  >
+                    ELITE
+                  </span>
+                )}
+              </button>
             </div>
             {uploadedFile && (
               <div className="mx-5 mt-3">
                 <FileUploadPreview file={uploadedFile} onRemove={() => setUploadedFile(null)} lang="both" maxHeight={180} />
               </div>
             )}
-            {uploadedFile && (
+            {selectedRecord && !uploadedFile && (
+              <div className="mx-5 mt-3">
+                <div
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                  style={{ background: "var(--off-white)", border: "1px solid var(--gold)" }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                    style={{
+                      background: selectedRecord.kind === "travel" ? "var(--gold-pale)" : "var(--teal-light)",
+                      color: selectedRecord.kind === "travel" ? "var(--gold)" : "var(--teal-deep)",
+                    }}
+                  >
+                    {selectedRecord.kind === "travel" ? "✈️" : "🩺"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
+                      {selectedRecord.label}
+                    </p>
+                    <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
+                      {selectedRecord.file_name} · {selectedRecord.sourceLabelEn}
+                    </p>
+                  </div>
+                  <button onClick={() => setSelectedRecord(null)} className="btn-press shrink-0" aria-label="Remove">
+                    <X size={16} style={{ color: "var(--gray)" }} />
+                  </button>
+                </div>
+              </div>
+            )}
+            {(uploadedFile || selectedRecord) && (
               <div className="mx-5 mt-2">
                 <textarea
                   value={uploadInstruction}
@@ -854,7 +933,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
                 />
               </div>
             )}
-            {uploadedFile && (
+            {(uploadedFile || selectedRecord) && (
               <div className="px-5 mt-3">
                 <button onClick={handleUploadSend} className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 btn-press" style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
                   <RufayQLogo size={16} variant="light" />
@@ -876,6 +955,17 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         variant={upgradeCtx.variant}
         plan={upgradeCtx.plan}
         resetsAt={upgradeCtx.resetsAt}
+      />
+
+      <ChatRecordsPicker
+        open={showRecordsPicker}
+        onClose={() => setShowRecordsPicker(false)}
+        onPick={(rec) => {
+          setSelectedRecord(rec);
+          setUploadedFile(null);
+          setShowRecordsPicker(false);
+          toast.success("Record attached · تم إرفاق السجل", { duration: 1800 });
+        }}
       />
     </div>
   );
