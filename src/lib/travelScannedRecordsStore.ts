@@ -27,6 +27,8 @@ export interface TravelScannedRecord {
   keyFields?: { label: string; value: string }[];
   /** Captured page images (data URLs) used for in-app preview / fullscreen. */
   pageImages?: string[];
+  /** Optional source PDF URL (signed/blob/data) used when pageImages is empty. */
+  pdfUrl?: string;
 }
 
 const read = (): TravelScannedRecord[] => {
@@ -59,6 +61,7 @@ export const addTravelScannedRecord = (input: {
   pageCount?: number;
   keyFields?: { label: string; value: string }[];
   pageImages?: string[];
+  pdfUrl?: string;
 }): TravelScannedRecord => {
   const id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
     ? crypto.randomUUID()
@@ -78,6 +81,7 @@ export const addTravelScannedRecord = (input: {
     pageCount: input.pageCount || (input.pageImages?.length || 1),
     keyFields: input.keyFields,
     pageImages: input.pageImages,
+    pdfUrl: input.pdfUrl,
   };
   write([rec, ...read()]);
   return rec;

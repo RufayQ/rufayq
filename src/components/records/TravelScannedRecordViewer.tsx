@@ -146,6 +146,21 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
                   </>
                 )}
               </div>
+            ) : record.pdfUrl ? (
+              <object
+                data={`${record.pdfUrl}#view=FitH&toolbar=1`}
+                type="application/pdf"
+                aria-label={`${record.title} PDF preview`}
+                className="block w-full bg-white"
+                style={{ height: "60dvh" }}
+              >
+                <iframe
+                  src={record.pdfUrl}
+                  title={`${record.title} PDF`}
+                  className="block w-full bg-white"
+                  style={{ height: "60dvh", border: 0 }}
+                />
+              </object>
             ) : (
               <div className="px-4 py-8 text-center">
                 <p className="text-[12px]" style={{ color: "var(--gray)" }}>
