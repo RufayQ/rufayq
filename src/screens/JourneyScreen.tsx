@@ -1072,6 +1072,11 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
           </>
         )}
         {activeSubTab === "stay" && <StayTab onAdd={() => setShowAddStay(true)} onScan={() => onOpenScanner?.("hotel")} />}
+        {activeSubTab === "lounge" && (
+          <div className="pt-3">
+            <LoungeAccessSection segments={transportSegments} />
+          </div>
+        )}
         {activeSubTab === "appointments" && (
           <AppointmentsTab
             onOpenScanner={onOpenScanner}
