@@ -94,16 +94,16 @@ const Landing = () => {
   const heroAr = getSection<HeroCms>("hero", "ar");
   const heroPrimary = isAr ? heroAr : heroEn;
 
-  // ── Elite bilingual defaults (rebrand-aligned) ──────────────────────
+  // ── Elite bilingual defaults (rebrand-aligned: medical, travel & more) ──
   const D = {
-    eyebrowEn: "AI COMPANION · MEDICAL, CULTURAL & BEYOND",
-    eyebrowAr: "رُفَيِّق · رفيقك الذكي في كل رحلة",
-    title1En: "Your AI Companion for",
-    title1Ar: "رُفَيِّقك الذكي في",
-    highlightEn: "Every Journey",
-    highlightAr: "كل رحلة",
-    subtitleEn: "The bilingual AI companion for Gulf patients and travellers worldwide seeking treatment away from home. Track tickets, medications & appointments — and ask anything about your records.",
-    subtitleAr: "رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج. تابع التذاكر والأدوية والمواعيد، واسأل عن أي تفصيل في سجلاتك الطبية.",
+    eyebrowEn: "AI COMPANION · MEDICAL, TRAVEL & MORE",
+    eyebrowAr: "رُفَيِّق · للسفر العلاجي وأكثر",
+    title1En: "Your AI Travel Companion",
+    title1Ar: "رفيقك الذكي للسفر",
+    highlightEn: "& More",
+    highlightAr: "وأكثر",
+    subtitleEn: "From medical journeys to lifestyle, RufayQ guides Gulf travellers worldwide — bilingual vault, journey, tickets, medications and 24/7 AI support.",
+    subtitleAr: "من الرحلات العلاجية إلى أسلوب الحياة، يرافقك رُفَيِّق حول العالم — خزانة طبية ثنائية اللغة، رحلات، تذاكر، أدوية ودعم ذكي على مدار الساعة.",
     primaryEn: "Start free",
     primaryAr: "ابدأ مجاناً",
     secondaryEn: "Explore pricing",
@@ -121,13 +121,47 @@ const Landing = () => {
   const primaryLabel   = heroPrimary?.primaryCta?.label   || (isAr ? D.primaryAr   : D.primaryEn);
   const primaryLink    = heroPrimary?.primaryCta?.link    || "/auth";
 
+  // ── Mobile mockup cards (CMS-driven, EN + AR parity) ───────────────
+  type MockCard = { icon?: string; title: string; subtitle?: string; accent?: "gold" | "teal" };
+  const defaultMockEn: MockCard[] = [
+    { icon: "🛫", title: "Business · LH 770 → Frankfurt", subtitle: "Boarding 22:40 · Gate A22", accent: "teal" },
+    { icon: "🛋️", title: "Lounge ready · Visa Companion", subtitle: "DXB · Concourse B", accent: "gold" },
+    { icon: "🩺", title: "Prof. Klein — Cleveland Clinic", subtitle: "Tomorrow · 11:00 AM", accent: "teal" },
+    { icon: "🚘", title: "Chauffeur to The Ritz-Carlton", subtitle: "On arrival · 06:20", accent: "gold" },
+  ];
+  const defaultMockAr: MockCard[] = [
+    { icon: "🛫", title: "أعمال · LH 770 → فرانكفورت", subtitle: "الصعود 22:40 · بوابة A22", accent: "teal" },
+    { icon: "🛋️", title: "الصالة جاهزة · رفيق فيزا", subtitle: "دبي · مبنى B", accent: "gold" },
+    { icon: "🩺", title: "البروفيسور كلاين — كليفلاند", subtitle: "غداً · 11:00 ص", accent: "teal" },
+    { icon: "🚘", title: "سائق خاص إلى ريتز كارلتون", subtitle: "عند الوصول · 06:20", accent: "gold" },
+  ];
+  const mockEn: MockCard[] = (heroEn?.mockupCards as MockCard[] | undefined)?.length
+    ? (heroEn!.mockupCards as MockCard[]) : defaultMockEn;
+  const mockAr: MockCard[] = (heroAr?.mockupCards as MockCard[] | undefined)?.length
+    ? (heroAr!.mockupCards as MockCard[]) : defaultMockAr;
+
   // ── Dynamic, locale-aware greeting (visitor's local time) ───────────
-  // Recomputes on mount so SSR/cached HTML doesn't freeze the phrase.
+  // Recomputes on mount, every 60s, on tab focus, on visibility change, and
+  // on the next exact hour boundary so transitions (e.g. 11:59 → 12:00) are
+  // instant rather than up to a minute late.
   const [greeting, setGreeting] = useState<{ en: string; ar: string }>(() => getGreeting());
   useEffect(() => {
-    setGreeting(getGreeting());
-    const id = window.setInterval(() => setGreeting(getGreeting()), 60_000);
-    return () => clearInterval(id);
+    const recompute = () => setGreeting(getGreeting());
+    recompute();
+    const interval = window.setInterval(recompute, 60_000);
+    const now = new Date();
+    const msToNextHour =
+      (60 - now.getMinutes()) * 60_000 - now.getSeconds() * 1000 - now.getMilliseconds();
+    const hourTimeout = window.setTimeout(recompute, Math.max(msToNextHour, 1000));
+    const onVisible = () => { if (document.visibilityState === "visible") recompute(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", recompute);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(hourTimeout);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", recompute);
+    };
   }, []);
 
   const defaultTrust = [
