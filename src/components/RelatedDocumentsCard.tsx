@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, FileText, Image as ImageIcon, X, Eye, Loader2, FolderOpen, Pencil, Share2, Check } from "lucide-react";
+import { Plus, FileText, Image as ImageIcon, X, Eye, Loader2, FolderOpen, Pencil, Share2, Check, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard";
 
 export interface TransportAttachment {
   id: string;
