@@ -46,8 +46,28 @@ interface Props {
 const BUCKET = "transport-attachments";
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
 const COMMON_LABELS = ["VISA", "Passport", "Insurance", "Hotel", "Other"];
+// Sub-category mapping per common label so the scanner picks the right schema.
+const LABEL_TO_SUBCATEGORY: Record<string, string> = {
+  VISA: "Visa",
+  Passport: "Passport",
+  Insurance: "Travel Insurance Card",
+  Hotel: "Other",
+  Other: "Other",
+};
 
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
+const isPdf = (mime?: string | null, name?: string) =>
+  mime === "application/pdf" || (!!name && /\.pdf$/i.test(name));
+const isOffice = (mime?: string | null, name?: string) => {
+  if (mime) {
+    if (
+      mime === "application/msword" ||
+      mime.startsWith("application/vnd.openxmlformats-officedocument") ||
+      mime.startsWith("application/vnd.ms-")
+    ) return true;
+  }
+  return !!name && /\.(docx?|xlsx?|pptx?)$/i.test(name);
+};
 
 /**
  * RelatedDocumentsCard — durable attachments for a transport segment / ticket.
