@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/hooks/useTheme";
-import StatusBar from "@/components/StatusBar";
+
 import BottomNav from "@/components/BottomNav";
 import HomeScreen from "@/screens/HomeScreen";
 import JourneyScreen from "@/screens/JourneyScreen";
