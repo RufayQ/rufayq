@@ -50,10 +50,10 @@ describe("TravelScannedRecordViewer · Visa", () => {
     const onUpdated = vi.fn();
     render(<TravelScannedRecordViewer record={record} onClose={() => {}} onUpdated={onUpdated} />);
 
-    // All visa-specific labels render in read mode.
+    // All visa-specific labels render in read mode (values may repeat).
     for (const f of visaKeyFields) {
       expect(screen.getByText(f.label)).toBeInTheDocument();
-      expect(screen.getByText(f.value)).toBeInTheDocument();
+      expect(screen.getAllByText(f.value).length).toBeGreaterThan(0);
     }
 
     // Edit "Exit before" and "Visa number" → save → persisted in store.
