@@ -107,10 +107,12 @@ const NotificationCenter = ({
       : allowedAlerts.filter((n) => CATEGORY_KINDS[categoryFilter].includes(n.kind));
   const historyAlertsAll = [...filteredAlerts]
     .filter((n) => n.is_read)
+    .filter((n) => historyFilter !== "chats" && matchesHistoryFilter(n.kind))
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
   const historyThreadsAll = prefs.chats === false
     ? []
     : [...threads]
+        .filter(() => historyFilter === "all" || historyFilter === "chats")
         .sort((a, b) => Date.parse(b.last_message_at) - Date.parse(a.last_message_at));
   const historyAlerts = historyAlertsAll.slice(0, historyAlertsLimit);
   const historyThreads = historyThreadsAll.slice(0, historyThreadsLimit);
