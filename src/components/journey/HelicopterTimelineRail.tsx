@@ -356,12 +356,9 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--gray-light)" }} />
             <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Sparkles size={12} style={{ color: "var(--gold)" }} />
-                <div>
-                  <p className="text-[14px] font-bold leading-tight" style={{ color: "var(--navy)" }}>Refine timeline</p>
-                  <p className="font-arabic text-[11px] leading-tight" dir="rtl" style={{ color: "var(--gray)" }}>تنقية الخط الزمني</p>
-                </div>
+              <div>
+                <p className="text-[14px] font-bold leading-tight" style={{ color: "var(--navy)" }}>Refine timeline</p>
+                <p className="font-arabic text-[11px] leading-tight" dir="rtl" style={{ color: "var(--gray)" }}>تنقية الخط الزمني</p>
               </div>
               <button
                 onClick={() => setFilterOpen(false)}
