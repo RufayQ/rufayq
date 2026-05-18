@@ -620,6 +620,47 @@ const RelatedDocumentsCard = ({
                 alt={previewItem.label}
                 className="max-w-full max-h-full object-contain rounded-lg"
               />
+            ) : isPdf(previewItem.mime_type, previewItem.file_name) ? (
+              <object
+                data={`${previewUrl}#view=FitH&toolbar=1`}
+                type="application/pdf"
+                className="w-full h-full rounded-lg bg-white"
+              >
+                <iframe
+                  src={previewUrl}
+                  title={previewItem.file_name}
+                  className="w-full h-full rounded-lg bg-white"
+                />
+              </object>
+            ) : isOffice(previewItem.mime_type, previewItem.file_name) ? (
+              <div className="w-full h-full flex flex-col items-center justify-center text-center px-6 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+                <FileText size={48} className="opacity-70 text-white mb-3" />
+                <p className="text-[13px] font-bold text-white mb-1">{previewItem.file_name}</p>
+                <p className="text-[11px] text-white/70 mb-4">
+                  Office documents can't be previewed inline.
+                  <br />
+                  <span dir="rtl" className="font-arabic">لا يمكن معاينة مستندات Office داخل التطبيق</span>
+                </p>
+                <div className="flex gap-2">
+                  <a
+                    href={previewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-xl text-[12px] font-bold flex items-center gap-1.5 text-white"
+                    style={{ background: "var(--gold)" }}
+                  >
+                    <Eye size={13} /> Open
+                  </a>
+                  <a
+                    href={previewUrl}
+                    download={previewItem.file_name}
+                    className="px-4 py-2 rounded-xl text-[12px] font-bold flex items-center gap-1.5"
+                    style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
+                  >
+                    <Download size={13} /> Download
+                  </a>
+                </div>
+              </div>
             ) : (
               <iframe
                 src={previewUrl}
