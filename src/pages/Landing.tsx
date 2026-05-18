@@ -385,15 +385,15 @@ const Landing = () => {
                 </button>
               </div>
 
-              {/* Trust badges — refined row with hairline separators */}
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 mt-10" style={{ minHeight: 18 }}>
+              {/* Trust badges — refined row with hairline separators (RTL-aware) */}
+              <div className={`flex flex-wrap items-center gap-y-3 mt-10 ${isAr ? "flex-row-reverse gap-x-6 justify-end" : "gap-x-5"}`} style={{ minHeight: 18 }}>
                 {trustPoints.map((t, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div key={i} className={`flex items-center gap-2 ${isAr ? "flex-row-reverse" : ""}`}>
                     <span className="flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(197,150,90,0.10)", border: `1px solid ${GOLD}33` }}>
                       <t.Icon size={11} color={GOLD} />
                     </span>
-                    <span className="text-[11px] font-mono tracking-wide" style={{ color: TEXT_MUTED }}>
-                      {isAr ? <span className="font-arabic">{t.ar}</span> : t.en}
+                    <span className={`text-[11px] ${isAr ? "font-arabic" : "font-mono tracking-wide"}`} style={{ color: TEXT_MUTED }}>
+                      {isAr ? t.ar : t.en}
                     </span>
                   </div>
                 ))}
@@ -403,31 +403,39 @@ const Landing = () => {
             {/* Phone mockup — desktop only. Mobile users skip this paint entirely. */}
             <div className="relative hidden md:flex justify-center">
               <div className="relative w-[290px] h-[580px] rounded-[48px] overflow-hidden" style={{ background: "#000", boxShadow: `0 50px 100px rgba(0,0,0,0.6), 0 0 0 9px ${BG_DARK_2}, 0 0 0 11px ${GOLD}40, 0 0 60px ${TEAL}30` }}>
-                <div className="absolute inset-2.5 rounded-[40px] p-5 flex flex-col" style={{ background: `linear-gradient(180deg, ${BG_DARK} 0%, #0F2530 30%, ${BG_DARK_2} 100%)` }}>
+                <div className="absolute inset-2.5 rounded-[40px] p-5 flex flex-col" style={{ background: `linear-gradient(180deg, ${BG_DARK} 0%, #0F2530 30%, ${BG_DARK_2} 100%)` }} dir={isAr ? "rtl" : "ltr"}>
                   <div className="flex items-center justify-between mb-6">
                     <RufayQLogo size={26} variant="light" />
                     <span className="text-[10px] font-mono" style={{ color: TEXT_MUTED }}>9:41</span>
                   </div>
-                  <p className="font-display text-2xl mb-1" style={{ color: TEXT, fontWeight: 300 }}>
-                    {isAr ? <span className="font-arabic">{greeting.ar}،</span> : `${greeting.en},`}
-                  </p>
-                  <p className="text-sm mb-7" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">محمد</span> : "Mohammed"}</p>
+                  {isAr ? (
+                    <p className="font-arabic font-display text-[26px] mb-1 leading-snug" style={{ color: TEXT, fontWeight: 400, letterSpacing: 0 }}>
+                      {greeting.ar}،
+                    </p>
+                  ) : (
+                    <p className="font-display text-2xl mb-1" style={{ color: TEXT, fontWeight: 300 }}>
+                      {greeting.en},
+                    </p>
+                  )}
+                  <p className={`text-sm mb-7 ${isAr ? "font-arabic" : ""}`} style={{ color: TEXT_MUTED }}>{isAr ? "محمد" : "Mohammed"}</p>
 
                   <div className="space-y-2.5">
-                    {[
-                      { ic: "🛫", t: "Business · LH 770 → Frankfurt", tAr: "أعمال · LH 770 → فرانكفورت", s: "Boarding 22:40 · Gate A22", sAr: "الصعود 22:40 · بوابة A22", accent: TEAL },
-                      { ic: "🛋️", t: "Lounge ready · Visa Companion", tAr: "الصالة جاهزة · رفيق فيزا", s: "DXB · Concourse B", sAr: "دبي · مبنى B", accent: GOLD },
-                      { ic: "🩺", t: "Prof. Klein — Cleveland Clinic", tAr: "البروفيسور كلاين — كليفلاند", s: "Tomorrow · 11:00 AM", sAr: "غداً · 11:00 ص", accent: TEAL },
-                      { ic: "🚘", t: "Chauffeur to The Ritz-Carlton", tAr: "سائق خاص إلى ريتز كارلتون", s: "On arrival · 06:20", sAr: "عند الوصول · 06:20", accent: GOLD },
-                    ].map((card, i) => (
-                      <div key={i} className="rounded-xl p-3 flex items-center gap-3 backdrop-blur-sm" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: `${card.accent}20`, border: `1px solid ${card.accent}40` }}>{card.ic}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-semibold truncate" style={{ color: TEXT }}>{isAr ? <span className="font-arabic">{card.tAr}</span> : card.t}</p>
-                          <p className="text-[9px] truncate" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">{card.sAr}</span> : card.s}</p>
+                    {mockEn.map((cardEn, i) => {
+                      const cardAr = mockAr[i] ?? cardEn;
+                      const card = isAr ? cardAr : cardEn;
+                      const accentColor = card.accent === "gold" ? GOLD : TEAL;
+                      return (
+                        <div key={i} className={`rounded-xl p-3 flex items-center gap-3 backdrop-blur-sm ${isAr ? "flex-row-reverse" : ""}`} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: `${accentColor}20`, border: `1px solid ${accentColor}40` }}>{card.icon}</div>
+                          <div className={`flex-1 min-w-0 ${isAr ? "text-right" : ""}`}>
+                            <p className={`text-[11px] font-semibold truncate ${isAr ? "font-arabic" : ""}`} style={{ color: TEXT }}>{card.title}</p>
+                            {card.subtitle && (
+                              <p className={`text-[9px] truncate ${isAr ? "font-arabic" : ""}`} style={{ color: TEXT_MUTED }}>{card.subtitle}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
