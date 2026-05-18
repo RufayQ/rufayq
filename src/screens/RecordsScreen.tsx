@@ -10,7 +10,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { useAuthUserId } from "@/hooks/useAuthUserId";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
-import TravelRecordsList from "@/components/records/TravelRecordsList";
+import TravelRecordsList, { CAT_DEFS, classify, type TravelCat } from "@/components/records/TravelRecordsList";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
 import TravelSummaryLanguageSheet, { type SummaryLang } from "@/components/records/TravelSummaryLanguageSheet";
