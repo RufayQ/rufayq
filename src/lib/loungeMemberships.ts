@@ -26,6 +26,9 @@ export interface LoungeMembership {
   expiresOn?: string;       // YYYY-MM-DD
   linkedSegmentId?: string;
   notes?: string;
+  qrSecret?: string;            // number after "=" in the DragonPass QR
+  entitlementRefreshOn?: string; // YYYY-MM-DD — "Entitlement refresh" date
+  qrImageUrl?: string;          // optional user-uploaded QR image (data URL or remote URL)
   createdAt: string;        // ISO
 }
 
