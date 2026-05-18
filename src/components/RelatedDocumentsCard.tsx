@@ -19,6 +19,9 @@ export interface TransportAttachment {
   ticket_id?: string | null;
   source_document_id?: string | null;
   deleted_at?: string | null;
+  // Structured fields & subtype (added by the scanner-unification migration)
+  subcategory?: string | null;
+  key_fields?: { label: string; value: string }[] | null;
 }
 
 interface Props {
