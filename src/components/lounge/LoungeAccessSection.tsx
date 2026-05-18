@@ -68,6 +68,15 @@ const LoungeAccessSection = ({ segments }: Props) => {
   const [editing, setEditing] = useState<LoungeMembership | null>(null);
   const [adding, setAdding] = useState(false);
   const [qrTarget, setQrTarget] = useState<LoungeMembership | null>(null);
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const toggleReveal = (id: string) => setRevealed((s) => ({ ...s, [id]: !s[id] }));
+  const maskNumber = (raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length <= 4) return raw;
+    const last4 = digits.slice(-4);
+    const hiddenGroups = Math.max(0, Math.ceil((digits.length - 4) / 4));
+    return `${"•••• ".repeat(hiddenGroups).trim()} ${last4}`.trim();
+  };
 
   useEffect(() => {
     void fetchLoungeMemberships().then(() => setItems(listLoungeMemberships()));
