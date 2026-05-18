@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy, Sparkles, PlayCircle, CalendarClock, Plane, Hotel, Pill, Scan, FlaskConical, RotateCcw, Wallet, MessageSquare, AtSign, Phone } from "lucide-react";
+import { ArrowLeft, Globe, Bell, Moon, Sun, Smartphone, Share2, Volume2, Clock, Shield, Palette, ExternalLink, FileText, CreditCard, Mail, LifeBuoy, Sparkles, PlayCircle, CalendarClock, Plane, Hotel, Pill, Scan, FlaskConical, RotateCcw, Wallet, MessageSquare, AtSign, Phone, ChevronRight } from "lucide-react";
+import NotificationSettingsScreen from "@/screens/NotificationSettingsScreen";
 import { toast } from "sonner";
 import { useLanguage, type LangMode } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,6 +62,10 @@ const RadioOption = ({
 
 const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
   const stored = JSON.parse(localStorage.getItem("rufayq_settings") || "{}");
+  const [subscreen, setSubscreen] = useState<null | "notifications">(null);
+  if (subscreen === "notifications") {
+    return <NotificationSettingsScreen onBack={() => setSubscreen(null)} />;
+  }
   const { mode: langMode, setMode: setLangMode } = useLanguage();
   const isGuest = useGuestMode();
   const { categories: guestCats, setCategory: setGuestCat, resetAll: resetGuestCats } = useGuestCategories();
@@ -235,39 +240,28 @@ const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
           </div>
         )}
 
-        {/* Notifications */}
+        {/* Notifications — opens dedicated screen */}
         <div className="mx-4 mt-5">
           <div className="flex items-center gap-2 mb-1.5 px-1">
             <Bell size={13} style={{ color: "var(--gold)" }} />
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>NOTIFICATIONS · الإشعارات</p>
           </div>
-          <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            <ToggleRow
-              icon={<Bell size={15} style={{ color: "var(--teal-deep)" }} />}
-              label="Push Notifications" labelAr="الإشعارات الفورية"
-              on={pushNotif} onChange={(v) => { update("pushNotif", setPushNotif)(v); toast(v ? "Notifications enabled · الإشعارات مفعلة" : "Notifications disabled · الإشعارات معطلة"); }}
-            />
-            <ToggleRow
-              icon={<Clock size={15} style={{ color: "var(--warning)" }} />}
-              label="Medication Reminders" labelAr="تذكيرات الأدوية"
-              on={medReminder} onChange={update("medReminder", setMedReminder)} color="var(--warning)"
-            />
-            <ToggleRow
-              icon={<Share2 size={15} style={{ color: "var(--teal-mid)" }} />}
-              label="Appointment Alerts" labelAr="تنبيهات المواعيد"
-              on={appointmentAlert} onChange={update("appointmentAlert", setAppointmentAlert)}
-            />
-            <ToggleRow
-              icon={<Volume2 size={15} style={{ color: "var(--navy)" }} />}
-              label="Sound" labelAr="الصوت"
-              on={soundEnabled} onChange={update("soundEnabled", setSoundEnabled)}
-            />
-            <ToggleRow
-              icon={<Moon size={15} style={{ color: "var(--gray)" }} />}
-              label="Quiet Hours (10PM–7AM)" labelAr="ساعات الهدوء (١٠م–٧ص)"
-              on={quietHours} onChange={update("quietHours", setQuietHours)}
-            />
-          </div>
+          <button
+            onClick={() => setSubscreen("notifications")}
+            className="w-full flex items-center justify-between py-3 px-4 rounded-xl btn-press"
+            style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+          >
+            <div className="flex items-center gap-3">
+              <Bell size={15} style={{ color: "var(--teal-deep)" }} />
+              <div className="text-left">
+                <p className="text-[13px]" style={{ color: "var(--navy)" }}>Notification Settings</p>
+                <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>
+                  إعدادات الإشعارات
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--gray)" }} />
+          </button>
         </div>
 
         {/* Chat Discovery */}
