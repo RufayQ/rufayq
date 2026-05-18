@@ -445,6 +445,72 @@ const LoungeFormSheet = ({
             </Field>
           )}
 
+
+          {vac && (
+            <>
+              <Field label="QR verifier · الرقم التحققي للرمز">
+                <input
+                  value={qrSecret}
+                  onChange={(e) => setQrSecret(e.target.value.replace(/\D/g, "").slice(0, 20))}
+                  placeholder="e.g. 5310572473"
+                  inputMode="numeric"
+                  className="w-full rounded-xl px-3 py-2 text-[13px] font-mono outline-none"
+                  style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+                />
+                <p className="mt-1 text-[10px]" style={{ color: "var(--gray)" }}>
+                  Number that appears after the “=” in your DragonPass QR.
+                </p>
+              </Field>
+
+              <Field label="Entitlement refresh · تاريخ التجديد">
+                <input
+                  type="date"
+                  value={entitlementRefreshOn}
+                  onChange={(e) => setEntitlementRefreshOn(e.target.value)}
+                  className="w-full rounded-xl px-3 py-2 text-[13px] font-mono outline-none"
+                  style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+                />
+              </Field>
+
+              <Field label="Custom QR image (optional) · صورة الرمز">
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={qrFileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleQrFile(e.target.files?.[0] || null)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => qrFileRef.current?.click()}
+                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-bold btn-press"
+                    style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+                  >
+                    <Upload size={12} /> {qrImageUrl ? "Replace image" : "Upload QR image"}
+                  </button>
+                  {qrImageUrl && (
+                    <>
+                      <img src={qrImageUrl} alt="QR preview" className="h-10 w-10 rounded-md object-cover" style={{ border: "1px solid var(--gray-light)" }} />
+                      <button
+                        type="button"
+                        onClick={() => setQrImageUrl("")}
+                        aria-label="Remove QR image"
+                        className="flex h-7 w-7 items-center justify-center rounded-full"
+                        style={{ background: "var(--off-white)", color: "var(--error)" }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </>
+                  )}
+                </div>
+                <p className="mt-1 text-[10px]" style={{ color: "var(--gray)" }}>
+                  Use your real lounge QR picture instead of the generated one.
+                </p>
+              </Field>
+            </>
+          )}
+
           <Field label="Notes (optional)">
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-xl px-3 py-2 text-[12px] outline-none resize-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
           </Field>
