@@ -581,9 +581,14 @@ const Step2Review = ({
   const [brightness, setBrightness] = useState(100); // %
   const [contrast, setContrast] = useState(100); // %
   const [grayscale, setGrayscale] = useState(0); // 0 or 100
-  const [cropPct, setCropPct] = useState(0); // 0 = none; 10 = trim 10% from each edge
+  // Independent crop edges as percentages 0..45 (sides) of the visible image.
+  const [crop, setCrop] = useState<{ top: number; right: number; bottom: number; left: number }>(
+    { top: 0, right: 0, bottom: 0, left: 0 },
+  );
+  const [cropMode, setCropMode] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
+  const imgWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!realFile || !realFile.type.startsWith("image/")) { setImageUrl(null); return; }
@@ -594,7 +599,44 @@ const Step2Review = ({
 
   const filterCss = `brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%)`;
   const isPureImage = !!realFile && realFile.type.startsWith("image/") && !!imageUrl;
-  const hasEdits = rotation !== 0 || brightness !== 100 || contrast !== 100 || grayscale !== 0 || cropPct !== 0;
+  const cropActive = crop.top + crop.right + crop.bottom + crop.left > 0;
+  const hasEdits = rotation !== 0 || brightness !== 100 || contrast !== 100 || grayscale !== 0 || cropActive;
+
+  // Drag a single crop handle. `edge` controls which side(s) the pointer moves.
+  const startDrag = (
+    edge: "tl" | "tr" | "bl" | "br" | "t" | "b" | "l" | "r",
+    e: React.PointerEvent,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const wrap = imgWrapRef.current;
+    if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      const xPct = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
+      const yPct = Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100));
+      setCrop((prev) => {
+        let { top, right, bottom, left } = prev;
+        if (edge.includes("l")) left = Math.min(xPct, 100 - right - 10);
+        if (edge.includes("r")) right = Math.min(100 - xPct, 100 - left - 10);
+        if (edge.includes("t")) top = Math.min(yPct, 100 - bottom - 10);
+        if (edge.includes("b")) bottom = Math.min(100 - yPct, 100 - top - 10);
+        return {
+          top: Math.max(0, top),
+          right: Math.max(0, right),
+          bottom: Math.max(0, bottom),
+          left: Math.max(0, left),
+        };
+      });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
 
   // Rasterize the current edits into a new File using a canvas.
   const rasterizeAndConfirm = async () => {
@@ -608,22 +650,22 @@ const Step2Review = ({
         img.onerror = () => rej(new Error("img-load-failed"));
         img.src = imageUrl!;
       });
-      const trim = Math.max(0, Math.min(40, cropPct)) / 100;
-      const sx = img.naturalWidth * trim;
-      const sy = img.naturalHeight * trim;
-      const sw = img.naturalWidth - sx * 2;
-      const sh = img.naturalHeight - sy * 2;
+      const sx = img.naturalWidth * (crop.left / 100);
+      const sy = img.naturalHeight * (crop.top / 100);
+      const sw = img.naturalWidth - sx - img.naturalWidth * (crop.right / 100);
+      const sh = img.naturalHeight - sy - img.naturalHeight * (crop.bottom / 100);
       const rotated = rotation % 180 !== 0;
       const cw = rotated ? sh : sw;
       const ch = rotated ? sw : sh;
       const canvas = document.createElement("canvas");
-      canvas.width = cw; canvas.height = ch;
+      canvas.width = Math.max(1, Math.round(cw));
+      canvas.height = Math.max(1, Math.round(ch));
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("no-canvas");
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, cw, ch);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.filter = filterCss;
-      ctx.translate(cw / 2, ch / 2);
+      ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.drawImage(img, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
       const blob: Blob = await new Promise((res, rej) =>
@@ -643,7 +685,14 @@ const Step2Review = ({
   const tools = [
     { icon: <Sun size={18} />, label: "Brightness", active: brightness !== 100, onClick: () => setBrightness((v) => (v >= 140 ? 80 : v + 20)) },
     { icon: <Contrast size={18} />, label: "Contrast", active: contrast !== 100, onClick: () => setContrast((v) => (v >= 140 ? 80 : v + 20)) },
-    { icon: <Crop size={18} />, label: "Crop", active: cropPct !== 0, onClick: () => setCropPct((v) => (v >= 20 ? 0 : v + 5)) },
+    { icon: <Crop size={18} />, label: "Crop", active: cropMode || cropActive, onClick: () => {
+      setCropMode((v) => {
+        const next = !v;
+        // Entering crop mode with no crop yet — seed a small inset so handles are visible.
+        if (next && !cropActive) setCrop({ top: 8, right: 8, bottom: 8, left: 8 });
+        return next;
+      });
+    } },
     { icon: <RotateCw size={18} />, label: "Rotate", active: rotation !== 0, onClick: () => setRotation((v) => (v + 90) % 360) },
     { icon: <Palette size={18} />, label: "B&W", active: grayscale > 0, onClick: () => setGrayscale((v) => (v > 0 ? 0 : 100)) },
   ];
