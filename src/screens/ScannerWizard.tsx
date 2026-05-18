@@ -1163,7 +1163,7 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
           setTimeout(() => !cancelRef.current && setProcessStep(4), 1500),
           setTimeout(() => {
             if (cancelRef.current || runRef.current !== myRun) return;
-            setGenericFields(emptyGenericFields(category));
+            setGenericFields(emptyGenericFields(category, subcategory));
             setOcrStatus("success");
           }, 1800),
         ];
