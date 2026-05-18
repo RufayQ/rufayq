@@ -710,7 +710,15 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         }}
         onDelete={() => {
           if (!menuTarget) return;
-          setHidden((s) => new Set(s).add(menuTarget.key));
+          // If this is a scanner-created record (has a stable id), remove it
+          // from the persisted store so it doesn't reappear on refresh. For
+          // demo records we still fall back to local hide.
+          const scannedId = (menuTarget.doc as Partial<ScannedRecord>).id;
+          if (scannedId && listScannedRecords().some((r) => r.id === scannedId)) {
+            removeScannedRecord(scannedId);
+          } else {
+            setHidden((s) => new Set(s).add(menuTarget.key));
+          }
         }}
       />
 
