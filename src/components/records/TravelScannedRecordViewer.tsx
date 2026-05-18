@@ -315,17 +315,16 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
       </div>
 
       {/* Fullscreen image overlay */}
-      {fullscreen && currentImage && (
+      {fullscreen && (currentImage || fallbackUrl) && (
         <div
           className="fixed inset-0 z-[1200] flex items-center justify-center bg-black"
           onClick={() => setFullscreen(false)}
         >
-          <img
-            src={currentImage}
-            alt={`${record.title} – fullscreen`}
-            className="max-h-[100dvh] max-w-full"
-            style={{ objectFit: "contain" }}
-          />
+          {currentImage ? (
+            <img src={currentImage} alt={`${record.title} – fullscreen`} className="max-h-[100dvh] max-w-full" style={{ objectFit: "contain" }} />
+          ) : fallbackUrl ? (
+            <UniversalDocumentPreview url={fallbackUrl} fileName={record.fileName} title={record.title} mimeType={previewMime} page={page + 1} className="h-[100dvh] w-full max-w-[960px] bg-white" />
+          ) : null}
           <button
             onClick={() => setFullscreen(false)}
             aria-label="Exit fullscreen"
