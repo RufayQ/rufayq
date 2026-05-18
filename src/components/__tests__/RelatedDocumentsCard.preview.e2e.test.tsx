@@ -85,36 +85,32 @@ beforeEach(() => {
 });
 
 describe("RelatedDocumentsCard preview", () => {
-  it("renders PDF inline via <object>/<iframe> and Word as Open/Download fallback", async () => {
+  it("renders PDF inline via <object>/<iframe> with the signed URL", async () => {
     render(<RelatedDocumentsCard segmentRef="seg-1" userId={null} />);
-
-    // Wait for items to load.
     const pdfTile = await screen.findByTitle("Visa");
-    const docTile = await screen.findByTitle("Discharge");
-
-    // ── PDF preview ──────────────────────────────────────────────────────
     fireEvent.click(pdfTile);
+
     const pdfObject = await waitFor(() => {
       const el = document.querySelector('object[type="application/pdf"]') as HTMLObjectElement | null;
       expect(el).not.toBeNull();
       return el!;
     });
     expect(pdfObject.getAttribute("data")).toContain(PDF_URL);
-    // Iframe fallback nested inside object.
     expect(within(pdfObject as unknown as HTMLElement).getByTitle("visa.pdf")).toBeInTheDocument();
+  });
 
-    // Close preview.
-    fireEvent.click(screen.getAllByLabelText(/close/i)[0] ?? screen.getByRole("button", { name: "" }));
-
-    // ── Word fallback ────────────────────────────────────────────────────
+  it("renders Office documents with Open + Download fallback (no inline preview)", async () => {
+    render(<RelatedDocumentsCard segmentRef="seg-1" userId={null} />);
+    const docTile = await screen.findByTitle("Discharge");
     fireEvent.click(docTile);
+
     const openLink = await screen.findByRole("link", { name: /Open/i });
     const downloadLink = await screen.findByRole("link", { name: /Download/i });
     expect(openLink).toHaveAttribute("href", DOC_URL);
     expect(openLink).toHaveAttribute("target", "_blank");
     expect(downloadLink).toHaveAttribute("href", DOC_URL);
     expect(downloadLink).toHaveAttribute("download", "letter.docx");
-    // No inline pdf object for Office docs.
+    // Office docs must NOT trigger the inline PDF object preview.
     expect(document.querySelector('object[type="application/pdf"]')).toBeNull();
   });
 });
