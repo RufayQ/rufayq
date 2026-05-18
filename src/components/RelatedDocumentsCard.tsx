@@ -106,6 +106,8 @@ const RelatedDocumentsCard = ({
   const [poolLoading, setPoolLoading] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  // Smart-scan flow: when set, opens ScannerWizard with this file pre-seeded.
+  const [scanFile, setScanFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
 
