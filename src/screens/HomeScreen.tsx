@@ -8,7 +8,7 @@ import { useJourneyOverview } from "@/hooks/useJourneyOverview";
 import { useJourneys } from "@/hooks/useJourneys";
 import { useMedicalRecords } from "@/hooks/useMedicalRecords";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
-import { useAuthUserId } from "@/hooks/useAuthUserId";
+import { useAuthSession } from "@/hooks/useAuthUserId";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
@@ -32,20 +32,26 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const overview = useJourneyOverview({ isGuest });
   const { journeys } = useJourneys(isGuest ? [] : []);
   const { items: recordItems } = useMedicalRecords();
-  const authUserId = useAuthUserId();
-  const attachmentCount = useArtifactCount({ userId: authUserId });
+  const { userId: authUserId, isReady: authReady } = useAuthSession();
+  const attachmentCount = useArtifactCount({
+    userId: authUserId,
+    enabled: isGuest || authReady,
+  });
   const [notificationOpen, setNotificationOpen] = useState(false);
   const {
     activeTrip, milestones, alerts, dayN, totalDays, upcomingAppointments,
   } = overview;
   const phase = activeTrip ? derivePhase(dayN, totalDays) : undefined;
 
+  // While auth is still restoring, surface a placeholder ("—") instead of
+  // hard zeros so signed-in users don't see a misleading empty dashboard.
+  const dataReady = isGuest || authReady;
   const stats = useMemo(() => ({
-    trips: journeys.length || (activeTrip ? 1 : 0),
-    reminders: alerts.length,
-    records: recordItems.length + attachmentCount,
-    plannedAhead: upcomingAppointments.length,
-  }), [journeys.length, activeTrip, alerts.length, recordItems.length, attachmentCount, upcomingAppointments.length]);
+    trips: dataReady ? (journeys.length || (activeTrip ? 1 : 0)) : null,
+    reminders: dataReady ? alerts.length : null,
+    records: dataReady ? (recordItems.length + attachmentCount) : null,
+    plannedAhead: dataReady ? upcomingAppointments.length : null,
+  }), [dataReady, journeys.length, activeTrip, alerts.length, recordItems.length, attachmentCount, upcomingAppointments.length]);
 
   // Default selection: the "current" milestone (or first upcoming, then first).
   const defaultSelectedId = useMemo(() => {

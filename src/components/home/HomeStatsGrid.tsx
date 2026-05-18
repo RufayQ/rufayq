@@ -3,7 +3,7 @@ import { Briefcase, Bell, FolderOpen, CalendarCheck } from "lucide-react";
 interface StatItem {
   key: string;
   icon: React.ReactNode;
-  value: number;
+  value: number | null;
   en: string;
   ar: string;
   color: string;
@@ -11,10 +11,10 @@ interface StatItem {
 }
 
 interface Props {
-  trips: number;
-  reminders: number;
-  records: number;
-  plannedAhead: number;
+  trips: number | null;
+  reminders: number | null;
+  records: number | null;
+  plannedAhead: number | null;
   onNavigate: (tab: string) => void;
 }
 
@@ -67,7 +67,7 @@ const HomeStatsGrid = ({ trips, reminders, records, plannedAhead, onNavigate }: 
             {it.icon}
           </span>
           <span className="text-[22px] font-bold leading-none" style={{ color: "var(--navy)" }}>
-            {it.value}
+            {it.value ?? "—"}
           </span>
           <span className="block text-[11px] font-semibold" style={{ color: "var(--navy)" }}>
             {it.en}
