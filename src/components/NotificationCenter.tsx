@@ -57,6 +57,16 @@ const NotificationCenter = ({
 
   const [categoryFilter, setCategoryFilter] = useState<Category>("all");
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const ALERTS_PAGE = 50;
+  const THREADS_PAGE = 30;
+  const [historyAlertsLimit, setHistoryAlertsLimit] = useState(ALERTS_PAGE);
+  const [historyThreadsLimit, setHistoryThreadsLimit] = useState(THREADS_PAGE);
+
+  // Reset history pagination when tab or category filter changes.
+  useEffect(() => {
+    setHistoryAlertsLimit(ALERTS_PAGE);
+    setHistoryThreadsLimit(THREADS_PAGE);
+  }, [tab, categoryFilter]);
 
   // Map an alert's kind → category id (for pref filtering).
   const kindCategory = (kind: string): Exclude<NotificationCategoryId, "chats"> | null => {
@@ -81,15 +91,17 @@ const NotificationCenter = ({
     categoryFilter === "all"
       ? allowedAlerts
       : allowedAlerts.filter((n) => CATEGORY_KINDS[categoryFilter].includes(n.kind));
-  const historyAlerts = [...filteredAlerts]
+  const historyAlertsAll = [...filteredAlerts]
     .filter((n) => n.is_read)
-    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
-    .slice(0, 50);
-  const historyThreads = prefs.chats === false
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+  const historyThreadsAll = prefs.chats === false
     ? []
     : [...threads]
-        .sort((a, b) => Date.parse(b.last_message_at) - Date.parse(a.last_message_at))
-        .slice(0, 30);
+        .sort((a, b) => Date.parse(b.last_message_at) - Date.parse(a.last_message_at));
+  const historyAlerts = historyAlertsAll.slice(0, historyAlertsLimit);
+  const historyThreads = historyThreadsAll.slice(0, historyThreadsLimit);
+  const hasMoreHistoryAlerts = historyAlertsAll.length > historyAlerts.length;
+  const hasMoreHistoryThreads = historyThreadsAll.length > historyThreads.length;
   const displayedAlerts =
     tab === "chats" ? [] : tab === "history" ? historyAlerts : filteredAlerts;
   const displayedThreads =
@@ -415,6 +427,18 @@ const NotificationCenter = ({
               )}
             </div>
           ))}
+
+          {isHistory && (hasMoreHistoryAlerts || hasMoreHistoryThreads) && (
+            <button
+              onClick={() => {
+                if (hasMoreHistoryAlerts) setHistoryAlertsLimit((n) => n + ALERTS_PAGE);
+                if (hasMoreHistoryThreads) setHistoryThreadsLimit((n) => n + THREADS_PAGE);
+              }}
+              className="mt-2 w-full rounded-2xl border border-border bg-muted/40 px-4 py-3 text-[12px] font-semibold text-card-foreground transition hover:bg-muted"
+            >
+              {showAr && !showEn ? "تحميل المزيد" : "Load older notifications"}
+            </button>
+          )}
         </div>
       </div>
     </div>,
