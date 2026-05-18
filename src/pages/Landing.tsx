@@ -68,25 +68,64 @@ const Landing = () => {
   const isBoth = mode === "both";
   const routeIsAr = location.pathname === "/ar" || location.pathname.startsWith("/ar/");
 
-  // ── CMS overrides (Phase 1: hero CTAs + trust badges) ───────────────
+  // ── CMS overrides — full hero is now admin-editable per locale ──────
   // Hardcoded defaults below remain as fallback when CMS is empty / loading.
   const { getSection } = useCmsPage("home");
-  const heroCms = getSection<{
+  type HeroCms = {
+    eyebrow?: string;
+    titleLine1?: string;
+    titleLine2?: string;
+    highlight?: string;
+    subtitle?: string;
     primaryCta?: { label?: string; link?: string };
     secondaryCta?: { label?: string; link?: string };
-    badges?: { text: string }[];
-  }>("hero", isAr ? "ar" : "en");
+    badges?: { text: string; icon?: string }[];
+  };
+  const heroEn = getSection<HeroCms>("hero", "en");
+  const heroAr = getSection<HeroCms>("hero", "ar");
+  const heroPrimary = isAr ? heroAr : heroEn;
+
+  // ── Elite bilingual defaults (rebrand-aligned) ──────────────────────
+  const D = {
+    eyebrowEn: "AI COMPANION · MEDICAL, CULTURAL & BEYOND",
+    eyebrowAr: "رُفَيِّق · رفيقك الذكي في كل رحلة",
+    title1En: "Your AI Companion for",
+    title1Ar: "رُفَيِّقك الذكي في",
+    highlightEn: "Every Journey",
+    highlightAr: "كل رحلة",
+    subtitleEn: "The bilingual AI companion for Gulf patients and travellers worldwide seeking treatment away from home. Track tickets, medications & appointments — and ask anything about your records.",
+    subtitleAr: "رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج. تابع التذاكر والأدوية والمواعيد، واسأل عن أي تفصيل في سجلاتك الطبية.",
+    primaryEn: "Start free",
+    primaryAr: "ابدأ مجاناً",
+    secondaryEn: "Explore pricing",
+    secondaryAr: "استعرض الأسعار",
+  };
+
+  const eyebrowEn = heroEn?.eyebrow || D.eyebrowEn;
+  const eyebrowAr = heroAr?.eyebrow || D.eyebrowAr;
+  const title1En  = heroEn?.titleLine1 || D.title1En;
+  const title1Ar  = heroAr?.titleLine1 || D.title1Ar;
+  const highEn    = heroEn?.highlight || D.highlightEn;
+  const highAr    = heroAr?.highlight || D.highlightAr;
+  const subEn     = heroEn?.subtitle || D.subtitleEn;
+  const subAr     = heroAr?.subtitle || D.subtitleAr;
+  const primaryLabel   = heroPrimary?.primaryCta?.label   || (isAr ? D.primaryAr   : D.primaryEn);
+  const primaryLink    = heroPrimary?.primaryCta?.link    || "/auth";
+  const secondaryLabel = heroPrimary?.secondaryCta?.label || (isAr ? D.secondaryAr : D.secondaryEn);
+  const secondaryLink  = heroPrimary?.secondaryCta?.link  || "/#pricing";
 
   const defaultTrust = [
-    { Icon: LockIcon, en: "End-to-end encrypted", ar: "تشفير كامل" },
-    { Icon: GlobeIcon, en: "Bilingual EN / AR", ar: "ثنائي اللغة عربي/إنجليزي" },
-    { Icon: HeartIcon, en: "For Gulf & global patients", ar: "لمرضى الخليج والعالم" },
+    { icon: "lock",     en: "End-to-end encrypted",       ar: "تشفير كامل" },
+    { icon: "globe",    en: "Bilingual EN / AR",          ar: "ثنائي اللغة عربي/إنجليزي" },
+    { icon: "heart",    en: "For Gulf & global patients", ar: "لمرضى الخليج والعالم" },
   ];
-  const trustPoints = (heroCms?.badges?.length ?? 0) > 0
-    ? heroCms!.badges!.map((b) => ({ Icon: LockIcon, en: b.text, ar: b.text }))
-    : defaultTrust;
-
-  const ctaPrimaryLabel = heroCms?.primaryCta?.label || (isAr ? "ابدأ مجاناً" : "Start free");
+  const cmsBadges = (isAr ? heroAr : heroEn)?.badges ?? [];
+  const trustPoints = cmsBadges.length > 0
+    ? cmsBadges.map((b) => ({
+        Icon: (b.icon && BADGE_ICONS[b.icon.toLowerCase()]) || LockIcon,
+        en: b.text, ar: b.text,
+      }))
+    : defaultTrust.map((d) => ({ Icon: BADGE_ICONS[d.icon], en: d.en, ar: d.ar }));
 
   const navLinks: { en: string; ar: string; href: string; isRoute?: boolean; anchorId?: string }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
