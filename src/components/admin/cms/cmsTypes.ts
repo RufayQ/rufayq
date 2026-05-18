@@ -176,10 +176,11 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
             { text: "لمرضى الخليج والعالم", icon: "heart" },
           ],
           mockupCards: [
-            { icon: "🛫", title: "أعمال · LH 770 → فرانكفورت", subtitle: "الصعود 22:40 · بوابة A22", accent: "teal" },
-            { icon: "🛋️", title: "الصالة جاهزة · رفيق فيزا", subtitle: "دبي · مبنى B", accent: "gold" },
-            { icon: "🩺", title: "البروفيسور كلاين — كليفلاند", subtitle: "غداً · 11:00 ص", accent: "teal" },
-            { icon: "🚘", title: "سائق خاص إلى ريتز كارلتون", subtitle: "عند الوصول · 06:20", accent: "gold" },
+            { icon: "✈️", title: "موعد شاريتيه مؤكّد", subtitle: "طيران الإمارات EK 049 → برلين · 02:15", accent: "gold" },
+            { icon: "🛂", title: "البوابة B22 · ملفّك الطبي جاهز", subtitle: "للمشاركة الآمنة مع طبيبك", accent: "teal" },
+            { icon: "🩺", title: "تمت مراجعة خطة الخروج", subtitle: "اعتمدها اختصاصيّك · كل شيء على ما يرام", accent: "gold" },
+            { icon: "🏛️", title: "العائلة في جزيرة المتاحف", subtitle: "مرشد TourAI · أثناء راحتك", accent: "teal" },
+            { icon: "💚", title: "اليوم ١٤ من التعافي · ٩٢٪", subtitle: "طبيبك في السعودية على اطّلاع كامل", accent: "gold" },
           ],
         },
       };
