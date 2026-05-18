@@ -94,14 +94,14 @@ const Landing = () => {
 
   // ── Elite bilingual defaults (rebrand-aligned: medical, travel & more) ──
   const D = {
-    eyebrowEn: "AI COMPANION · MEDICAL, TRAVEL & MORE",
-    eyebrowAr: "رُفَيِّق · للسفر العلاجي وأكثر",
-    title1En: "Your AI Travel Companion",
-    title1Ar: "رفيقك الذكي للسفر",
-    highlightEn: "& More",
-    highlightAr: "وأكثر",
-    subtitleEn: "From medical journeys to lifestyle, RufayQ guides Gulf travellers worldwide — bilingual vault, journey, tickets, medications and 24/7 AI support.",
-    subtitleAr: "من الرحلات العلاجية إلى أسلوب الحياة، يرافقك رُفَيِّق حول العالم — خزانة طبية ثنائية اللغة، رحلات، تذاكر، أدوية ودعم ذكي على مدار الساعة.",
+    eyebrowEn: "AI Companion · Medical, Cultural & Beyond",
+    eyebrowAr: "رُفَيِّق · طبي، ثقافي، وأكثر",
+    title1En: "Your AI Companion",
+    title1Ar: "رُفَيِّقك الذكي في",
+    highlightEn: "for Every Journey",
+    highlightAr: "كل رحلة",
+    subtitleEn: "From medical treatment to cultural discovery — RufayQ guides you and your family in Arabic and English with vault, journey tracker, and 6 specialized AI companions.",
+    subtitleAr: "من رحلة العلاج إلى الاستكشاف الثقافي — رُفَيِّق يرافقك وعائلتك بالعربية والإنجليزية مع ٦ رُفَيِّقات ذكاء اصطناعي متخصصين.",
     primaryEn: "Start free",
     primaryAr: "ابدأ مجاناً",
     secondaryEn: "Explore pricing",
