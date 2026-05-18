@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { listScannedRecords, subscribeToScannedRecords } from "@/lib/scannedRecordsStore";
+import { listScannedRecords, removeScannedRecord, subscribeToScannedRecords, type ScannedRecord } from "@/lib/scannedRecordsStore";
 import { records as demoRecords, filterCategories, type DocRecord } from "@/constants/data";
 import { Share2, Download, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, Stethoscope, Plane, MoreVertical, Pill, ScanLine } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
