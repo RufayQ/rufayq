@@ -50,6 +50,12 @@ export interface ScannerSavePayload {
   };
   /** Resolved destinations the user actually opted into — drives Step 5 list. */
   selectedDestinations?: { en: string; ar: string; route: string }[];
+  /** Generic / non-flight manually-entered fields (e.g. visa number, expiry). */
+  manualFields?: { label: string; value: string }[];
+  /** Sub-category chosen in Step 3 (e.g. "Visa", "Passport"). */
+  subcategory?: string | null;
+  /** Original captured file name — used as fallback for record titles. */
+  fileName?: string;
 }
 
 interface ScannerWizardProps {
