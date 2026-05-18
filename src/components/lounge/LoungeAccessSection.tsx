@@ -783,9 +783,10 @@ const LoungeQrSheet = ({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); void handleShare(); }}
-          aria-label="Share HD QR · مشاركة"
+          aria-label="Share lounge QR image · مشاركة صورة رمز الصالة"
+          title="Share lounge QR image · مشاركة صورة رمز الصالة"
           data-testid="qr-fullscreen-share"
-          className="absolute top-4 left-16 flex h-10 w-10 items-center justify-center rounded-full btn-press"
+          className="absolute top-4 left-16 flex h-11 w-11 items-center justify-center rounded-full btn-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           style={{
             background: "linear-gradient(135deg, var(--teal-deep) 0%, #0a4a5e 100%)",
             color: "white",
@@ -793,7 +794,9 @@ const LoungeQrSheet = ({
             boxShadow: "0 4px 14px rgba(15,46,61,0.22)",
           }}
         >
-          <Share2 size={16} />
+          <Share2 size={16} aria-hidden="true" />
+          <span className="sr-only">Share lounge QR image</span>
+          <span className="sr-only font-arabic" lang="ar" dir="rtl">مشاركة صورة رمز الصالة</span>
         </button>
         <button
           type="button"
