@@ -24,7 +24,8 @@ import {
   type DuplicateTicketMatch,
 } from "@/lib/transportTickets";
 import { getDeviceId } from "@/hooks/useDeviceId";
-import { useAuthUserId } from "@/hooks/useAuthUserId";
+import { useAuthUserId, useAuthSession } from "@/hooks/useAuthUserId";
+import JourneyContentSkeleton from "@/components/journey/JourneyContentSkeleton";
 import { useAppointments } from "@/hooks/useAppointments";
 import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/useProviderAppointments";
@@ -139,7 +140,9 @@ type JourneyIntent = "new-trip" | "view" | "appointments" | "new-appointment" | 
 
 const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandled }: { onOpenScanner?: (cat?: string) => void; onNavigate?: (tab: string, context?: string) => void; initialIntent?: JourneyIntent; onIntentHandled?: () => void }) => {
   const authUserId = useAuthUserId();
+  const { isReady: authReady } = useAuthSession();
   const isGuest = useGuestMode();
+  const showAuthSkeleton = !isGuest && !authReady;
   const { categories: guestCats } = useGuestCategories();
   const { items: appointmentRows, save: saveAppointment } = useAppointments();
   const persistedAppointments = useMemo(() => sortAppointmentRowsByStart(appointmentRows).map((row) => appointmentRowToAppointment(row)), [appointmentRows]);
@@ -971,6 +974,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
 
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6 relative" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
+        {showAuthSkeleton ? (
+          <JourneyContentSkeleton />
+        ) : (<>
         {activeSubTab === "overview" && (
           <>
             {activeTrip ? (
@@ -1108,6 +1114,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         )}
 
         {/* MilestoneSheet is rendered inline beneath the helicopter canvas in the overview tab. */}
+        </>)}
       </div>
 
       <PaywallModal

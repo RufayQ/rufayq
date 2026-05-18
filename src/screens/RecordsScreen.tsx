@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { useGuestCategories } from "@/hooks/useGuestCategories";
-import { useAuthUserId } from "@/hooks/useAuthUserId";
+import { useAuthUserId, useAuthSession } from "@/hooks/useAuthUserId";
+import RecordsContentSkeleton from "@/components/records/RecordsContentSkeleton";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
 import TravelRecordsList, { CAT_DEFS, classify, type TravelCat } from "@/components/records/TravelRecordsList";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
@@ -63,6 +64,8 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
     return () => window.removeEventListener("rufayq:records-segment", handler);
   }, []);
   const userId = useAuthUserId();
+  const { isReady: authReady } = useAuthSession();
+  const showAuthSkeleton = !isGuest && !authReady;
   const travelCount = useArtifactCount({ userId });
   const [travelStats, setTravelStats] = useState({ total: 0, translated: 0, newCount: 0 });
   const [visibleTravelDocs, setVisibleTravelDocs] = useState<TransportAttachment[]>([]);
@@ -385,7 +388,9 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
 
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-        {segment === "travel" ? (
+        {showAuthSkeleton ? (
+          <RecordsContentSkeleton />
+        ) : segment === "travel" ? (
           <TravelRecordsList userId={userId} searchQuery={searchQuery} onCountsChange={setTravelStats} onVisibleItemsChange={setVisibleTravelDocs} />
         ) : (<>
         {/* Featured Discharge Pack */}
