@@ -727,15 +727,15 @@ const Step2Review = ({
     { icon: <Sun size={18} />, label: "Brightness", active: brightness !== 100, onClick: () => setBrightness((v) => (v >= 140 ? 80 : v + 20)) },
     { icon: <Contrast size={18} />, label: "Contrast", active: contrast !== 100, onClick: () => setContrast((v) => (v >= 140 ? 80 : v + 20)) },
     { icon: <Crop size={18} />, label: "Crop", active: cropMode || cropActive, onClick: () => {
-      setCropMode((v) => {
-        const next = !v;
-        // Entering crop mode with no crop yet — seed a small inset so handles are visible.
-        if (next && !cropActive) setCrop({ top: 8, right: 8, bottom: 8, left: 8 });
-        return next;
-      });
+      const turningOn = !cropMode;
+      if (turningOn && !cropActive) {
+        // Seed a visible inset before flipping the mode so handles render immediately.
+        setCrop({ top: 8, right: 8, bottom: 8, left: 8 });
+      }
+      setCropMode(turningOn);
     } },
     { icon: <RotateCw size={18} />, label: "Rotate", active: rotation !== 0, onClick: () => setRotation((v) => (v + 90) % 360) },
-    { icon: <Palette size={18} />, label: "B&W", active: grayscale > 0, onClick: () => setGrayscale((v) => (v > 0 ? 0 : 100)) },
+    { icon: <Palette size={18} />, label: grayscale > 0 ? "Color" : "Grayscale", active: grayscale > 0, onClick: () => setGrayscale((v) => (v > 0 ? 0 : 100)) },
   ];
 
   return (
