@@ -340,10 +340,31 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const handleUploadSend = () => {
     if (uploadedFile) {
       sendMessage(`📎 ${uploadedFile.name}\n${uploadInstruction || "ارفع وثيقة"}`);
-      setUploadedFile(null);
-      setUploadInstruction("");
-      setShowUploadSheet(false);
+    } else if (selectedRecord) {
+      const lines = [
+        `📎 From my records: ${selectedRecord.label} — ${selectedRecord.file_name}`,
+        `(${selectedRecord.sourceLabelEn} · ${selectedRecord.sourceLabelAr})`,
+      ];
+      if (selectedRecord.signedUrl) lines.push(selectedRecord.signedUrl);
+      lines.push(uploadInstruction || "أرفقت سجلًا للمراجعة");
+      sendMessage(lines.join("\n"));
+    } else {
+      return;
     }
+    setUploadedFile(null);
+    setSelectedRecord(null);
+    setUploadInstruction("");
+    setShowUploadSheet(false);
+  };
+
+  const handleOpenRecords = () => {
+    if (!canAttachFromRecords) {
+      setUpgradeCtx({ variant: "subscriber", plan: "COMPANION" });
+      setShowUpgrade(true);
+      toast.info("Companion feature · ميزة كومبانيون", { duration: 2200 });
+      return;
+    }
+    setShowRecordsPicker(true);
   };
 
   const handleCopyChat = () => {
