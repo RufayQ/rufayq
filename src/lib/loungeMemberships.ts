@@ -26,6 +26,9 @@ export interface LoungeMembership {
   expiresOn?: string;       // YYYY-MM-DD
   linkedSegmentId?: string;
   notes?: string;
+  qrSecret?: string;            // number after "=" in the DragonPass QR
+  entitlementRefreshOn?: string; // YYYY-MM-DD — "Entitlement refresh" date
+  qrImageUrl?: string;          // optional user-uploaded QR image (data URL or remote URL)
   createdAt: string;        // ISO
 }
 
@@ -43,6 +46,9 @@ type DbRow = {
   expires_on: string | null;
   linked_segment_id: string | null;
   notes: string | null;
+  qr_secret: string | null;
+  entitlement_refresh_on: string | null;
+  qr_image_url: string | null;
   created_at: string;
   deleted_at: string | null;
 };
@@ -56,6 +62,9 @@ const rowToMembership = (r: DbRow): LoungeMembership => ({
   expiresOn: r.expires_on ?? undefined,
   linkedSegmentId: r.linked_segment_id ?? undefined,
   notes: r.notes ?? undefined,
+  qrSecret: r.qr_secret ?? undefined,
+  entitlementRefreshOn: r.entitlement_refresh_on ?? undefined,
+  qrImageUrl: r.qr_image_url ?? undefined,
   createdAt: r.created_at,
 });
 
@@ -179,6 +188,9 @@ export const saveLoungeMembership = async (
     expires_on: input.expiresOn ?? null,
     linked_segment_id: input.linkedSegmentId ?? null,
     notes: input.notes ?? null,
+    qr_secret: input.qrSecret ?? null,
+    entitlement_refresh_on: input.entitlementRefreshOn ?? null,
+    qr_image_url: input.qrImageUrl ?? null,
   };
 
   if (input.id) {

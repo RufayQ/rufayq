@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard } from "lucide-react";
 import { toast } from "sonner";
 import type { TransportSegment } from "@/components/TransportCard";
 import {
@@ -40,6 +40,20 @@ const isoToMMYY = (iso?: string): string => {
   return `${m[2]}/${m[1].slice(2)}`;
 };
 const formatExpMMYY = (iso?: string): string => isoToMMYY(iso);
+
+/** DragonPass-style QR payload: "<membership><6 spaces>=<secret>" — falls back to just the number. */
+const buildQrPayload = (m: { membershipNumber: string; qrSecret?: string }): string =>
+  m.qrSecret ? `${m.membershipNumber}      =${m.qrSecret}` : m.membershipNumber;
+
+/** Format YYYY-MM-DD as "01 Jan 2027". */
+const formatRefreshDate = (iso?: string): string => {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+const isVAC = (program: string) => program.trim().toLowerCase() === "visa airport companion";
 
 /* ─── Brand theming for the credit-card look ─── */
 const brandTheme = (program: string): { bg: string; tagline: string } => {
@@ -122,6 +136,85 @@ const LoungeAccessSection = ({ segments }: Props) => {
             const linked = flightSegments.find((s) => s.id === m.linkedSegmentId);
             const expMMYY = formatExpMMYY(m.expiresOn);
             const brand = brandTheme(m.program);
+            if (isVAC(m.program)) {
+              const numberSpaced = m.membershipNumber.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim();
+              const numberDisplay = revealed[m.id] ? numberSpaced : maskNumber(m.membershipNumber);
+              const refreshDisplay = formatRefreshDate(m.entitlementRefreshOn) || formatExpMMYY(m.expiresOn);
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setQrTarget(m)}
+                  className="relative w-full text-left rounded-2xl overflow-hidden btn-press"
+                  style={{
+                    background: "var(--white)",
+                    border: "1px solid var(--gray-light)",
+                    boxShadow: "0 6px 20px rgba(15,23,42,0.10)",
+                  }}
+                >
+                  {/* White header bar */}
+                  <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <Plane size={16} style={{ color: "#1a1f71" }} strokeWidth={2.4} />
+                      <div className="leading-tight">
+                        <p className="text-[11px] font-bold" style={{ color: "#1a1f71" }}>Visa Airport</p>
+                        <p className="text-[11px] font-bold" style={{ color: "#1a1f71" }}>Companion</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-[12px] font-bold tracking-[0.12em]" style={{ color: "var(--navy)" }}>DRAGONPASS</span>
+                      <IdCard size={13} style={{ color: "var(--navy)" }} />
+                    </div>
+                  </div>
+
+                  {/* Navy QR panel */}
+                  <div className="mx-3 mb-3 rounded-xl px-4 py-4 flex flex-col items-center" style={{ background: "#0f1f3a" }}>
+                    <div className="rounded-lg bg-white p-2" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }}>
+                      {m.qrImageUrl ? (
+                        <img src={m.qrImageUrl} alt="Lounge QR" width={150} height={150} style={{ display: "block" }} />
+                      ) : (
+                        <QRCodeSVG value={buildQrPayload(m)} size={150} level="M" includeMargin={false} />
+                      )}
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 w-full justify-center">
+                      <p className="font-mono text-[13px] tracking-[0.18em] text-white">{numberDisplay}</p>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleReveal(m.id); }}
+                        className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full btn-press"
+                        style={{ background: "rgba(255,255,255,0.12)", color: "var(--gold)" }}
+                        aria-label={revealed[m.id] ? "Hide card number" : "Show card number"}
+                        aria-pressed={!!revealed[m.id]}
+                      >
+                        {revealed[m.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-4 pb-3 pt-1 flex items-end justify-between gap-3" style={{ background: "var(--off-white)" }}>
+                    <div className="min-w-0">
+                      <p className="text-[9px] tracking-wide uppercase" style={{ color: "var(--gray)" }}>Cardholder name</p>
+                      <p className="font-arabic text-[9px] leading-tight" dir="rtl" style={{ color: "var(--gray)", opacity: 0.7 }}>اسم حامل البطاقة</p>
+                      <p className="text-[12px] font-bold truncate" style={{ color: "var(--navy)" }}>{m.cardholderName}</p>
+                    </div>
+                    {refreshDisplay && (
+                      <div className="text-right shrink-0">
+                        <p className="text-[9px] tracking-wide uppercase" style={{ color: "var(--gray)" }}>Entitlement refresh</p>
+                        <p className="font-arabic text-[9px] leading-tight" dir="rtl" style={{ color: "var(--gray)", opacity: 0.7 }}>تاريخ التجديد</p>
+                        <p className="font-mono text-[12px] font-bold" style={{ color: "var(--navy)" }}>{refreshDisplay}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {linked && (
+                    <p className="px-4 pb-2 flex items-center gap-1 text-[9px]" style={{ color: "var(--teal-deep)", background: "var(--off-white)" }}>
+                      <Plane size={9} /> {linked.airline || linked.flightNumber || "Flight"} · {linked.fromCode}→{linked.toCode}
+                    </p>
+                  )}
+                </button>
+              );
+            }
+
             return (
               <button
                 key={m.id}
@@ -242,6 +335,22 @@ const LoungeFormSheet = ({
   const [mmyyDisplay, setMmyyDisplay] = useState(isoToMMYY(initial?.expiresOn));
   const [linkedSegmentId, setLinkedSegmentId] = useState(initial?.linkedSegmentId || "");
   const [notes, setNotes] = useState(initial?.notes || "");
+  const [qrSecret, setQrSecret] = useState(initial?.qrSecret || "");
+  const [entitlementRefreshOn, setEntitlementRefreshOn] = useState(initial?.entitlementRefreshOn || "");
+  const [qrImageUrl, setQrImageUrl] = useState(initial?.qrImageUrl || "");
+  const qrFileRef = useRef<HTMLInputElement>(null);
+  const vac = isVAC(program);
+
+  const handleQrFile = (file: File | null) => {
+    if (!file) return;
+    if (file.size > 1.5 * 1024 * 1024) {
+      toast.error("QR image too large (max 1.5MB)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setQrImageUrl(typeof reader.result === "string" ? reader.result : "");
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,6 +372,9 @@ const LoungeFormSheet = ({
       expiresOn: iso || undefined,
       linkedSegmentId: linkedSegmentId || undefined,
       notes: notes.trim() || undefined,
+      qrSecret: vac ? (qrSecret.trim() || undefined) : undefined,
+      entitlementRefreshOn: vac ? (entitlementRefreshOn || undefined) : undefined,
+      qrImageUrl: vac ? (qrImageUrl || undefined) : undefined,
     });
   };
 
@@ -333,6 +445,72 @@ const LoungeFormSheet = ({
             </Field>
           )}
 
+
+          {vac && (
+            <>
+              <Field label="QR verifier · الرقم التحققي للرمز">
+                <input
+                  value={qrSecret}
+                  onChange={(e) => setQrSecret(e.target.value.replace(/\D/g, "").slice(0, 20))}
+                  placeholder="e.g. 5310572473"
+                  inputMode="numeric"
+                  className="w-full rounded-xl px-3 py-2 text-[13px] font-mono outline-none"
+                  style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+                />
+                <p className="mt-1 text-[10px]" style={{ color: "var(--gray)" }}>
+                  Number that appears after the “=” in your DragonPass QR.
+                </p>
+              </Field>
+
+              <Field label="Entitlement refresh · تاريخ التجديد">
+                <input
+                  type="date"
+                  value={entitlementRefreshOn}
+                  onChange={(e) => setEntitlementRefreshOn(e.target.value)}
+                  className="w-full rounded-xl px-3 py-2 text-[13px] font-mono outline-none"
+                  style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+                />
+              </Field>
+
+              <Field label="Custom QR image (optional) · صورة الرمز">
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={qrFileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleQrFile(e.target.files?.[0] || null)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => qrFileRef.current?.click()}
+                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-bold btn-press"
+                    style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+                  >
+                    <Upload size={12} /> {qrImageUrl ? "Replace image" : "Upload QR image"}
+                  </button>
+                  {qrImageUrl && (
+                    <>
+                      <img src={qrImageUrl} alt="QR preview" className="h-10 w-10 rounded-md object-cover" style={{ border: "1px solid var(--gray-light)" }} />
+                      <button
+                        type="button"
+                        onClick={() => setQrImageUrl("")}
+                        aria-label="Remove QR image"
+                        className="flex h-7 w-7 items-center justify-center rounded-full"
+                        style={{ background: "var(--off-white)", color: "var(--error)" }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </>
+                  )}
+                </div>
+                <p className="mt-1 text-[10px]" style={{ color: "var(--gray)" }}>
+                  Use your real lounge QR picture instead of the generated one.
+                </p>
+              </Field>
+            </>
+          )}
+
           <Field label="Notes (optional)">
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-xl px-3 py-2 text-[12px] outline-none resize-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
           </Field>
@@ -389,7 +567,11 @@ const LoungeQrSheet = ({
 
         <div className="rounded-2xl p-5 flex flex-col items-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
           <div className="rounded-xl bg-white p-3" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
-            <QRCodeSVG value={membership.membershipNumber} size={196} level="M" includeMargin={false} />
+            {membership.qrImageUrl ? (
+              <img src={membership.qrImageUrl} alt="Lounge QR" width={196} height={196} style={{ display: "block" }} />
+            ) : (
+              <QRCodeSVG value={buildQrPayload(membership)} size={196} level="M" includeMargin={false} />
+            )}
           </div>
           <p className="mt-3 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
             {membership.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
