@@ -373,6 +373,7 @@ const LoungeFormSheet = ({
   const [qrSecretError, setQrSecretError] = useState<string | null>(null);
   const [entitlementRefreshOn, setEntitlementRefreshOn] = useState(initial?.entitlementRefreshOn || "");
   const [qrImageUrl, setQrImageUrl] = useState(initial?.qrImageUrl || "");
+  const [pendingQrSrc, setPendingQrSrc] = useState<string | null>(null);
   const qrFileRef = useRef<HTMLInputElement>(null);
   const vac = isVAC(program);
 
@@ -387,12 +388,15 @@ const LoungeFormSheet = ({
 
   const handleQrFile = (file: File | null) => {
     if (!file) return;
-    if (file.size > 1.5 * 1024 * 1024) {
-      toast.error("QR image too large (max 1.5MB)");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("QR image too large (max 5MB)");
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setQrImageUrl(typeof reader.result === "string" ? reader.result : "");
+    reader.onload = () => {
+      const src = typeof reader.result === "string" ? reader.result : "";
+      if (src) setPendingQrSrc(src);
+    };
     reader.readAsDataURL(file);
   };
 
