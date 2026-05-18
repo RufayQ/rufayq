@@ -10,7 +10,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { useAuthUserId } from "@/hooks/useAuthUserId";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
-import TravelRecordsList from "@/components/records/TravelRecordsList";
+import TravelRecordsList, { CAT_DEFS, classify, type TravelCat } from "@/components/records/TravelRecordsList";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
 import TravelSummaryLanguageSheet, { type SummaryLang } from "@/components/records/TravelSummaryLanguageSheet";
@@ -133,17 +133,59 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const [travelAction, setTravelAction] = useState<null | "copy" | "export" | "share">(null);
 
   const buildTravelSummary = (lang: SummaryLang) => {
-    const lines = visibleTravelDocs.map((d) => {
-      const date = d.created_at ? new Date(d.created_at) : null;
-      const enWhen = date ? date.toLocaleDateString("en-GB") : "";
-      const arWhen = date ? date.toLocaleDateString("ar-EG") : "";
-      if (lang === "en") return `- ${d.label} — ${d.file_name}${enWhen ? ` — Added ${enWhen}` : ""}`;
-      if (lang === "ar") return `- ${d.label} — ${d.file_name}${arWhen ? ` — أُضيفت ${arWhen}` : ""}`;
-      return `- ${d.label} — ${d.file_name}${date ? ` — Added ${enWhen} · أُضيفت ${arWhen}` : ""}`;
-    }).join("\n");
-    if (lang === "en") return `Travel Documents Summary\n\n${lines}`;
-    if (lang === "ar") return `ملخص وثائق السفر\n\n${lines}`;
-    return `Travel Documents Summary\nملخص وثائق السفر\n\n${lines}`;
+    const fmtEn = (d: Date) =>
+      d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    const fmtAr = (d: Date) =>
+      d.toLocaleDateString("ar-SA", { day: "2-digit", month: "long", year: "numeric" });
+
+    // Group visible docs by category, preserving CAT_DEFS order.
+    const groups = new Map<TravelCat, TransportAttachment[]>();
+    for (const def of CAT_DEFS) {
+      if (def.key === "all") continue;
+      groups.set(def.key, []);
+    }
+    for (const d of visibleTravelDocs) {
+      const cat = classify(d);
+      groups.get(cat)?.push(d);
+    }
+
+    const total = visibleTravelDocs.length;
+    const now = new Date();
+
+    const renderBlock = (l: "en" | "ar") => {
+      const isAr = l === "ar";
+      const title = isAr ? "ملخص وثائق السفر" : "Travel Documents Summary";
+      const genLabel = isAr ? "تاريخ الإنشاء" : "Generated";
+      const totalLabel = isAr ? "الإجمالي" : "Total";
+      const itemsWord = isAr ? (total === 1 ? "عنصر" : "عناصر") : total === 1 ? "item" : "items";
+      const addedLabel = isAr ? "أُضيفت" : "Added";
+      const mark = isAr ? "[✓]" : "[x]";
+      const fmt = isAr ? fmtAr : fmtEn;
+
+      const out: string[] = [];
+      out.push(title);
+      out.push(`${genLabel}: ${fmt(now)}`);
+      out.push(`${totalLabel}: ${total} ${itemsWord}`);
+
+      for (const def of CAT_DEFS) {
+        if (def.key === "all") continue;
+        const items = groups.get(def.key) ?? [];
+        if (items.length === 0) continue;
+        const heading = isAr ? def.ar : def.en;
+        out.push("");
+        out.push(`${heading} (${items.length})`);
+        for (const it of items) {
+          const date = it.created_at ? new Date(it.created_at) : null;
+          const when = date ? ` — ${addedLabel} ${fmt(date)}` : "";
+          out.push(`  ${mark} ${it.label} — ${it.file_name}${when}`);
+        }
+      }
+      return out.join("\n");
+    };
+
+    if (lang === "en") return renderBlock("en");
+    if (lang === "ar") return renderBlock("ar");
+    return `${renderBlock("en")}\n\n────────────────────\n\n${renderBlock("ar")}`;
   };
 
   const runTravelAction = async (action: "copy" | "export" | "share", lang: SummaryLang) => {

@@ -49,9 +49,9 @@ const membershipToRow = (m: LoungeMembership): UnifiedRow => ({
 const BUCKET = "transport-attachments";
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
 
-type TravelCat = "all" | "passport" | "visa" | "booking" | "insurance" | "lounge" | "other";
+export type TravelCat = "all" | "passport" | "visa" | "booking" | "insurance" | "lounge" | "other";
 
-const CAT_DEFS: { key: TravelCat; en: string; ar: string }[] = [
+export const CAT_DEFS: { key: TravelCat; en: string; ar: string }[] = [
   { key: "all",       en: "All",       ar: "الكل" },
   { key: "passport",  en: "Passport",  ar: "جواز" },
   { key: "visa",      en: "Visas",     ar: "تأشيرات" },
@@ -61,7 +61,7 @@ const CAT_DEFS: { key: TravelCat; en: string; ar: string }[] = [
   { key: "other",     en: "Other",     ar: "أخرى" },
 ];
 
-const classify = (it: { label: string; file_name: string }): TravelCat => {
+export const classify = (it: { label: string; file_name: string }): TravelCat => {
   const s = `${it.label} ${it.file_name}`.toLowerCase();
   if (/(passport|iqama|id\b|جواز|هوية|إقامة)/.test(s)) return "passport";
   if (/(visa|تأشير|فيزا)/.test(s)) return "visa";
