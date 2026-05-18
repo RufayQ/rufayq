@@ -58,6 +58,8 @@ const NotificationCenter = ({
 
   const [categoryFilter, setCategoryFilter] = useState<Category>("all");
   const [prefsOpen, setPrefsOpen] = useState(false);
+  type HistoryFilter = "all" | "system" | "meds" | "followup" | "chats";
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
   const ALERTS_PAGE = 50;
   const THREADS_PAGE = 30;
   const [historyAlertsLimit, setHistoryAlertsLimit] = useState(ALERTS_PAGE);
@@ -67,7 +69,18 @@ const NotificationCenter = ({
   useEffect(() => {
     setHistoryAlertsLimit(ALERTS_PAGE);
     setHistoryThreadsLimit(THREADS_PAGE);
-  }, [tab, categoryFilter]);
+  }, [tab, categoryFilter, historyFilter]);
+
+  // Map an alert's kind → history filter bucket.
+  const HISTORY_KINDS: Record<Exclude<HistoryFilter, "all" | "chats">, string[]> = {
+    system: ["admission", "instruction", "announcement", "consent_request"],
+    meds: ["medication"],
+    followup: ["appointment"],
+  };
+  const matchesHistoryFilter = (kind: string) => {
+    if (historyFilter === "all" || historyFilter === "chats") return true;
+    return HISTORY_KINDS[historyFilter].includes(kind);
+  };
 
   // Map an alert's kind → category id (for pref filtering).
   const kindCategory = (kind: string): Exclude<NotificationCategoryId, "chats"> | null => {
