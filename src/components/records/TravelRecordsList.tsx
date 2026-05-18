@@ -18,9 +18,11 @@ import {
   listTravelScannedRecords,
   removeTravelScannedRecord,
   subscribeToTravelScannedRecords,
+  updateTravelScannedRecord,
   type TravelScannedRecord,
 } from "@/lib/travelScannedRecordsStore";
 import TravelScannedRecordViewer from "@/components/records/TravelScannedRecordViewer";
+import UniversalDocumentPreview, { isImage } from "@/components/records/UniversalDocumentPreview";
 
 /** Unified row shape so attachments and lounge memberships share render code. */
 type UnifiedRow =
@@ -75,7 +77,6 @@ const scannedToRow = (r: TravelScannedRecord): UnifiedRow => ({
 });
 
 const BUCKET = "transport-attachments";
-const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
 
 export type TravelCat = "all" | "passport" | "visa" | "booking" | "insurance" | "lounge" | "other";
 
@@ -367,6 +368,19 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     }
   };
 
+  const renameScanned = (record: TravelScannedRecord, newName: string) => {
+    const next = updateTravelScannedRecord(record.id, { title: newName });
+    if (next) setScannedTravel(listTravelScannedRecords());
+  };
+
+  const shareScanned = async (record: TravelScannedRecord) => {
+    const url = record.fileUrl || record.pdfUrl;
+    const text = `📄 ${record.title} — ${record.fileName}${url ? `\n${url}` : ""}`;
+    if (navigator.share) await navigator.share({ title: record.title, text, url }).catch(() => {});
+    else if (url) window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    else await navigator.clipboard.writeText(text);
+  };
+
   const applyToMilestone = async (
     item: TransportAttachment,
     m: { id: string; refId: string; kind: string },
@@ -631,6 +645,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
               const handleOpen = () => {
                 if (item.kind === "lounge-card") setQrTarget(item.membership);
                 else if (item.kind === "attachment") void openPreview(item);
+                else if (item.kind === "scanned-travel") setScannedViewer(item.record);
               };
               return (
                 <div
@@ -726,7 +741,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
             {isImage(previewItem.mime_type) ? (
               <img src={previewUrl} alt={previewItem.label} className="max-w-full max-h-full object-contain rounded-lg" />
             ) : (
-              <iframe src={previewUrl} title={previewItem.file_name} className="w-full h-full rounded-lg bg-white" />
+              <UniversalDocumentPreview url={previewUrl} fileName={previewItem.file_name} title={previewItem.label} mimeType={previewItem.mime_type} className="w-full h-full rounded-lg bg-white" />
             )}
           </div>
         </div>
@@ -760,11 +775,15 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
         onRename={
           menuItem && menuItem.kind === "attachment"
             ? (newName) => renameItem(menuItem, newName)
+            : menuItem && menuItem.kind === "scanned-travel"
+              ? (newName) => renameScanned(menuItem.record, newName)
             : undefined
         }
         onShare={
           menuItem && menuItem.kind === "attachment"
             ? () => shareItem(menuItem)
+            : menuItem && menuItem.kind === "scanned-travel"
+              ? () => shareScanned(menuItem.record)
             : undefined
         }
         onApplyToMilestone={

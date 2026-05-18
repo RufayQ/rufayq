@@ -30,6 +30,12 @@ export interface ScannedRecord extends DocRecord {
   id: string;
   createdAt: string;
   scannedCategory: string;
+  /** Object URL / signed URL for the uploaded source file so records can be previewed. */
+  fileUrl?: string;
+  /** MIME type for PDF/Office/image preview fallback routing. */
+  mimeType?: string | null;
+  /** Original uploaded filename. */
+  fileName?: string;
 }
 
 const read = (): ScannedRecord[] => {
@@ -62,6 +68,9 @@ export const addScannedRecord = (input: {
   meta?: string;
   pageCount?: number;
   keyFields?: { label: string; value: string }[];
+  fileUrl?: string;
+  mimeType?: string | null;
+  fileName?: string;
 }): ScannedRecord => {
   const id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
     ? crypto.randomUUID()
@@ -88,6 +97,9 @@ export const addScannedRecord = (input: {
     source: input.source || "RufayQ Scanner",
     translationStatus: "none",
     keyFields: input.keyFields,
+    fileUrl: input.fileUrl,
+    mimeType: input.mimeType ?? null,
+    fileName: input.fileName,
   };
   const next = [rec, ...read()];
   write(next);

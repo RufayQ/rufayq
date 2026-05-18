@@ -10,8 +10,9 @@
  */
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronLeft, ChevronRight, Maximize2, Save, Plus, Trash2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Maximize2, Save, Plus, Trash2, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import UniversalDocumentPreview, { isPdf } from "@/components/records/UniversalDocumentPreview";
 import {
   type TravelScannedRecord,
   updateTravelScannedRecord,
@@ -33,6 +34,9 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
   const images = record.pageImages ?? [];
   const hasImages = images.length > 0;
   const currentImage = hasImages ? images[Math.min(page, images.length - 1)] : null;
+  const fallbackUrl = record.fileUrl || record.pdfUrl || null;
+  const previewMime = record.mimeType || (record.pdfUrl || /\.pdf$/i.test(record.fileName) ? "application/pdf" : null);
+  const totalPages = hasImages ? images.length : Math.max(1, record.pageCount || 1);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -40,12 +44,21 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
         if (fullscreen) setFullscreen(false);
         else onClose();
       }
-      if (e.key === "ArrowLeft" && hasImages) setPage((p) => Math.max(0, p - 1));
-      if (e.key === "ArrowRight" && hasImages) setPage((p) => Math.min(images.length - 1, p + 1));
+      if (e.key === "ArrowLeft" && (hasImages || fallbackUrl)) setPage((p) => Math.max(0, p - 1));
+      if (e.key === "ArrowRight" && (hasImages || fallbackUrl)) setPage((p) => Math.min(totalPages - 1, p + 1));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [fullscreen, hasImages, images.length, onClose]);
+  }, [fullscreen, hasImages, fallbackUrl, totalPages, onClose]);
+
+  const handleShare = async () => {
+    const text = `📄 ${title || record.title} — ${record.fileName}${fallbackUrl ? `\n${fallbackUrl}` : ""}`;
+    try {
+      if (navigator.share) await navigator.share({ title: title || record.title, text, url: fallbackUrl || undefined });
+      else if (fallbackUrl) window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+      else await navigator.clipboard.writeText(text);
+    } catch { /* user cancelled */ }
+  };
 
   const handleSave = () => {
     const cleaned = fields
@@ -93,7 +106,7 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
               {record.subcategory || record.category} · {record.fileName}
             </p>
           </div>
-          {hasImages && (
+          {(hasImages || fallbackUrl) && (
             <button
               onClick={() => setFullscreen(true)}
               aria-label="Fullscreen"
@@ -117,7 +130,7 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
                   className="block w-full"
                   style={{ maxHeight: "60dvh", objectFit: "contain", background: "#000" }}
                 />
-                {images.length > 1 && (
+                {totalPages > 1 && (
                   <>
                     <button
                       onClick={() => setPage((p) => Math.max(0, p - 1))}
@@ -129,8 +142,8 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
                       <ChevronLeft size={18} />
                     </button>
                     <button
-                      onClick={() => setPage((p) => Math.min(images.length - 1, p + 1))}
-                      disabled={page === images.length - 1}
+                      onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                      disabled={page === totalPages - 1}
                       aria-label="Next page"
                       className="absolute right-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-30"
                       style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
@@ -141,26 +154,22 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
                       className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-0.5 font-mono text-[10px]"
                       style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
                     >
-                      {page + 1} / {images.length}
+                      {page + 1} / {totalPages}
                     </span>
                   </>
                 )}
               </div>
-            ) : record.pdfUrl ? (
-              <object
-                data={`${record.pdfUrl}#view=FitH&toolbar=1`}
-                type="application/pdf"
-                aria-label={`${record.title} PDF preview`}
-                className="block w-full bg-white"
-                style={{ height: "60dvh" }}
-              >
-                <iframe
-                  src={record.pdfUrl}
-                  title={`${record.title} PDF`}
-                  className="block w-full bg-white"
-                  style={{ height: "60dvh", border: 0 }}
-                />
-              </object>
+            ) : fallbackUrl ? (
+              <div className="relative" style={{ height: "60dvh" }}>
+                <UniversalDocumentPreview url={fallbackUrl} fileName={record.fileName} title={record.title} mimeType={previewMime} page={page + 1} className="h-full w-full bg-white" />
+                {isPdf(previewMime, record.fileName) && totalPages > 1 && (
+                  <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full px-2 py-1" style={{ background: "rgba(0,0,0,0.6)", color: "var(--white)" }}>
+                    <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} aria-label="Previous page" className="px-2 disabled:opacity-35">‹</button>
+                    <span className="font-mono text-[10px]">{page + 1} / {totalPages}</span>
+                    <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1} aria-label="Next page" className="px-2 disabled:opacity-35">›</button>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="px-4 py-8 text-center">
                 <p className="text-[12px]" style={{ color: "var(--gray)" }}>
@@ -199,6 +208,17 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
                   <Save size={12} /> Save
                 </button>
               )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {fallbackUrl && (
+                <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" download={record.fileName} className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold btn-press" style={{ background: "var(--gold)", color: "var(--white)" }}>
+                  <Download size={13} /> Open / Download
+                </a>
+              )}
+              <button onClick={handleShare} className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold btn-press" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)", gridColumn: fallbackUrl ? undefined : "1 / -1" }}>
+                <Share2 size={13} /> Share
+              </button>
             </div>
 
             {/* Title */}
@@ -295,17 +315,16 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
       </div>
 
       {/* Fullscreen image overlay */}
-      {fullscreen && currentImage && (
+      {fullscreen && (currentImage || fallbackUrl) && (
         <div
           className="fixed inset-0 z-[1200] flex items-center justify-center bg-black"
           onClick={() => setFullscreen(false)}
         >
-          <img
-            src={currentImage}
-            alt={`${record.title} – fullscreen`}
-            className="max-h-[100dvh] max-w-full"
-            style={{ objectFit: "contain" }}
-          />
+          {currentImage ? (
+            <img src={currentImage} alt={`${record.title} – fullscreen`} className="max-h-[100dvh] max-w-full" style={{ objectFit: "contain" }} />
+          ) : fallbackUrl ? (
+            <UniversalDocumentPreview url={fallbackUrl} fileName={record.fileName} title={record.title} mimeType={previewMime} page={page + 1} className="h-[100dvh] w-full max-w-[960px] bg-white" />
+          ) : null}
           <button
             onClick={() => setFullscreen(false)}
             aria-label="Exit fullscreen"
