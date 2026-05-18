@@ -652,8 +652,8 @@ const Step2Review = ({
     <div className="flex flex-col h-full" style={{ background: "var(--scanner-bg)" }}>
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
         {isPureImage ? (
-          <div className="w-full rounded-xl overflow-hidden flex items-center justify-center" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", maxHeight: 420 }}>
-            <div className="overflow-hidden" style={{ maxHeight: 420, padding: `${cropPct}%` }}>
+          <div className="w-full rounded-xl overflow-hidden flex items-center justify-center relative" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", maxHeight: 420 }}>
+            <div className="relative w-full" style={{ maxHeight: 420 }}>
               <img
                 src={imageUrl!}
                 alt={file.name}
@@ -662,8 +662,19 @@ const Step2Review = ({
                   filter: filterCss,
                   transform: `rotate(${rotation}deg)`,
                   maxHeight: 380,
+                  clipPath: cropPct > 0 ? `inset(${cropPct}% ${cropPct}% ${cropPct}% ${cropPct}%)` : undefined,
                 }}
               />
+              {cropPct > 0 && (
+                <div
+                  className="pointer-events-none absolute"
+                  style={{
+                    inset: `${cropPct}%`,
+                    border: "2px dashed var(--gold)",
+                    boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
+                  }}
+                />
+              )}
             </div>
           </div>
         ) : realFile ? (
