@@ -93,11 +93,9 @@ describe("ScannerWizard · Step2Review crop", () => {
     //    Wrapper rect is 400×600 → 50% = (200, 300).
     fireEvent.pointerDown(brHandle, { clientX: 368, clientY: 552, pointerId: 1 });
     await act(async () => {
-      const move = new MouseEvent("pointermove", { bubbles: true });
-      Object.assign(move, { clientX: 200, clientY: 300, pointerId: 1 });
+      const move = new MouseEvent("pointermove", { bubbles: true, clientX: 200, clientY: 300 });
       window.dispatchEvent(move);
       const up = new MouseEvent("pointerup", { bubbles: true });
-      Object.assign(up, { pointerId: 1 });
       window.dispatchEvent(up);
     });
 
