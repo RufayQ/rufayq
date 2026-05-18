@@ -1114,6 +1114,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         )}
 
         {/* MilestoneSheet is rendered inline beneath the helicopter canvas in the overview tab. */}
+        </>)}
       </div>
 
       <PaywallModal
