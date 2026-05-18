@@ -447,7 +447,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
         </button>
         <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={() => togglePin(item.id)}
+            onClick={() => togglePin(item.id, item.label)}
             className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
             style={{ background: isPinned ? "rgba(197,150,90,0.18)" : "var(--off-white)" }}
             aria-label={isPinned ? "Unpin" : "Pin to top"}
