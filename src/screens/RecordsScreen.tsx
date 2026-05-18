@@ -226,12 +226,10 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
     window.open(`https://wa.me/?text=${encodeURIComponent(summary)}`, "_blank");
   };
 
+  const [travelPreviewAction, setTravelPreviewAction] = useState<null | "copy" | "export" | "share">(null);
+
   const openTravelAction = (action: "copy" | "export" | "share") => {
-    if (visibleTravelDocs.length === 0) {
-      toast.info("No travel documents yet · لا توجد وثائق سفر بعد", { duration: 2000 });
-      return;
-    }
-    setTravelAction(action);
+    setTravelPreviewAction(action);
   };
 
   // Tab-aware kebab: shared items + medical-only quick actions (+ Meds).
