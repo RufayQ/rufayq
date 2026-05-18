@@ -50,4 +50,48 @@ describe("notify() bilingual toast", () => {
     expect(en.parentElement).toBe(ar.parentElement);
     expect(en.parentElement?.className).toMatch(/flex-col/);
   });
+
+  it("keeps Arabic RTL alignment stable after the enter animation completes", async () => {
+    notify({ en: "Saved", ar: "تم الحفظ", kind: "success" });
+    await flush();
+    // Wait for sonner's enter animation to fully settle (data-mounted="true").
+    await act(async () => { await new Promise((r) => setTimeout(r, 450)); });
+    const toastEl = document.querySelector("[data-sonner-toast]") as HTMLElement | null;
+    expect(toastEl).not.toBeNull();
+    expect(toastEl!.getAttribute("data-mounted")).toBe("true");
+    const ar = screen.getByText("تم الحفظ");
+    // RTL contract — wrapping/alignment classes must survive the animation.
+    expect(ar.getAttribute("dir")).toBe("rtl");
+    expect(ar.getAttribute("lang")).toBe("ar");
+    expect(ar.className).toMatch(/text-right/);
+    expect(ar.className).toMatch(/font-arabic/);
+  });
+
+  it("keeps Arabic RTL alignment stable during the exit animation", async () => {
+    const id = notify({ en: "Removed", ar: "تم الحذف", kind: "success" });
+    await flush();
+    await act(async () => { await new Promise((r) => setTimeout(r, 450)); });
+    // Trigger the exit animation but inspect alignment BEFORE it fully unmounts.
+    sonnerToast.dismiss(id as string | number);
+    await act(async () => { await new Promise((r) => setTimeout(r, 80)); });
+    const ar = document.querySelector('[lang="ar"]') as HTMLElement | null;
+    // Element should still be in the DOM during sonner's exit animation.
+    expect(ar).not.toBeNull();
+    expect(ar!.getAttribute("dir")).toBe("rtl");
+    expect(ar!.className).toMatch(/text-right/);
+    expect(ar!.className).toMatch(/font-arabic/);
+  });
+
+  it("preserves the parent flex-col container across the full animation lifecycle", async () => {
+    notify({ en: "Synced", ar: "تمت المزامنة" });
+    await flush();
+    await act(async () => { await new Promise((r) => setTimeout(r, 450)); });
+    const en = screen.getByText("Synced");
+    const ar = screen.getByText("تمت المزامنة");
+    // Layout root must remain a vertical flex container so wrapping never
+    // shifts mid-animation (no row/column reflow between enter and exit).
+    expect(en.parentElement).toBe(ar.parentElement);
+    expect(en.parentElement?.className).toMatch(/flex-col/);
+    expect(en.parentElement?.className).toMatch(/w-full/);
+  });
 });
