@@ -61,6 +61,7 @@ export const addTravelScannedRecord = (input: {
   pageCount?: number;
   keyFields?: { label: string; value: string }[];
   pageImages?: string[];
+  pdfUrl?: string;
 }): TravelScannedRecord => {
   const id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
     ? crypto.randomUUID()
@@ -80,6 +81,7 @@ export const addTravelScannedRecord = (input: {
     pageCount: input.pageCount || (input.pageImages?.length || 1),
     keyFields: input.keyFields,
     pageImages: input.pageImages,
+    pdfUrl: input.pdfUrl,
   };
   write([rec, ...read()]);
   return rec;
