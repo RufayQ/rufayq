@@ -358,14 +358,24 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
     setShowUploadSheet(false);
   };
 
+  /** Records sharing is free for all tiers. */
   const handleOpenRecords = () => {
-    if (!canAttachFromRecords) {
+    setShowRecordsPicker(true);
+  };
+
+  /** Device camera/file uploads are gated to Companion+. */
+  const handleOpenDeviceUpload = (capture: boolean) => {
+    if (!canUploadDeviceFiles) {
       setUpgradeCtx({ variant: "subscriber", plan: "COMPANION" });
       setShowUpgrade(true);
       toast.info("Companion feature · ميزة كومبانيون", { duration: 2200 });
       return;
     }
-    setShowRecordsPicker(true);
+    if (fileInputRef.current) {
+      if (capture) fileInputRef.current.setAttribute("capture", "environment");
+      else fileInputRef.current.removeAttribute("capture");
+      fileInputRef.current.click();
+    }
   };
 
   const handleCopyChat = () => {
