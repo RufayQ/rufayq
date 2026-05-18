@@ -51,7 +51,7 @@ const NotificationCenter = ({
   };
 
   const { items, unreadCount: alertUnread, markRead, markAllRead } = usePatientNotifications();
-  const { threads, unreadByThread, totalUnread: chatUnread, participants } = useChatInbox();
+  const { threads, unreadByThread, totalUnread: chatUnread, participants, markAllThreadsRead } = useChatInbox();
   const { showEn, showAr } = useLanguage();
   const { prefs, toggle: togglePref } = useNotificationPrefs();
 
