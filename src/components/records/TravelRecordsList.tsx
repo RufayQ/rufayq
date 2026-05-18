@@ -575,7 +575,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
               const isImg = item.kind === "attachment" && isImage(item.mime_type);
               const handleOpen = () => {
                 if (item.kind === "lounge-card") setQrTarget(item.membership);
-                else void openPreview(item);
+                else if (item.kind === "attachment") void openPreview(item);
               };
               return (
                 <div
