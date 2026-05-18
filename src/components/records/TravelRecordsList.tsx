@@ -699,7 +699,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
         onPreview={() => {
           if (!menuItem) return;
           if (menuItem.kind === "lounge-card") setQrTarget(menuItem.membership);
-          else void openPreview(menuItem);
+          else if (menuItem.kind === "attachment") void openPreview(menuItem);
         }}
         onRename={
           menuItem && menuItem.kind === "attachment"
@@ -721,6 +721,9 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
           if (menuItem.kind === "lounge-card") {
             deleteLoungeMembership(menuItem.membership.id);
             toast.success("Lounge card removed · تم الحذف", { duration: 1400 });
+          } else if (menuItem.kind === "scanned-travel") {
+            removeTravelScannedRecord(menuItem.record.id);
+            toast.success("Document removed · تم الحذف", { duration: 1400 });
           } else {
             void deleteItem(menuItem);
           }
