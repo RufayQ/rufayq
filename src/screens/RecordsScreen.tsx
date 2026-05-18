@@ -388,7 +388,9 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
 
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 space-y-3" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
-        {segment === "travel" ? (
+        {showAuthSkeleton ? (
+          <RecordsContentSkeleton />
+        ) : segment === "travel" ? (
           <TravelRecordsList userId={userId} searchQuery={searchQuery} onCountsChange={setTravelStats} onVisibleItemsChange={setVisibleTravelDocs} />
         ) : (<>
         {/* Featured Discharge Pack */}
