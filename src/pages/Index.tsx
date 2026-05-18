@@ -563,16 +563,21 @@ const Index = () => {
           boxShadow: "0 40px 120px rgba(0,0,0,0.7), 0 0 0 8px var(--phone-ring), 0 0 0 10px var(--phone-frame)",
         }}
       >
-        {showStatusBar && (
-          <div style={{ background: appView === "login" ? "var(--off-white)" : "linear-gradient(135deg, var(--header-teal-from), var(--header-teal-to))" }}>
-            <StatusBar dark={appView === "login"} />
-          </div>
-        )}
+        {/* Marketing notch — desktop-only mockup detail; hidden on mobile viewports */}
+        <div
+          className="absolute top-2 left-1/2 -translate-x-1/2 z-40 pointer-events-none w-[88px] h-[22px] rounded-full max-[500px]:hidden"
+          style={{ background: "#000" }}
+          aria-hidden="true"
+        />
 
         <div
           ref={contentSwipeRef}
           className="flex-1 flex flex-col overflow-hidden min-h-0"
-          style={{ background: "var(--off-white)", paddingBottom: showNav ? 64 : 0 }}
+          style={{
+            background: "var(--off-white)",
+            paddingBottom: showNav ? 64 : 0,
+            paddingTop: "env(safe-area-inset-top, 0px)",
+          }}
         >
           {appView === "main" && <TrialLockBanner onUpgrade={() => setAppView("pricing")} />}
           <TabErrorBoundary tabKey={`${appView}:${activeTab}`} onError={handleTabRenderError}>
