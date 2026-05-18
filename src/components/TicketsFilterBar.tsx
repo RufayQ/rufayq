@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, X, SlidersHorizontal, Filter } from "lucide-react";
+import { Search, X, SlidersHorizontal, Crown, Sparkles } from "lucide-react";
 import type { TransportSegment } from "@/components/TransportCard";
 
 export type TicketQuickFilter = "all" | "upcoming" | "current" | "past" | "family" | "scanned" | "manual";
@@ -19,6 +19,10 @@ interface Props {
   segments: TransportSegment[];
   filteredCount: number;
   onClear: () => void;
+  /** Optional count of lounge memberships — shown on the Lounges chip. */
+  loungeCount?: number;
+  /** Optional callback fired when the user taps the Lounges chip. */
+  onJumpToLounges?: () => void;
 }
 
 const storageKey = "rufayq.tickets.filters";
@@ -78,7 +82,7 @@ const typeOptions: { key: TransportSegment["type"]; label: string; ar: string; i
   { key: "medical", label: "Medical", ar: "طبي", icon: "🚑" },
 ];
 
-const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }: Props) => {
+const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear, loungeCount, onJumpToLounges }: Props) => {
   const [draftSearch, setDraftSearch] = useState(value.search);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -137,20 +141,47 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
     setMenuOpen(false);
   };
 
+  // Visible quick-chip subset (the rest live inside the advanced menu).
+  const visibleChips: TicketQuickFilter[] = ["all", "upcoming", "current", "past"];
+
   return (
     <div
-      className="sticky top-0 z-20 px-4 py-3"
-      style={{ background: "rgba(248,246,241,0.96)", borderBottom: "1px solid var(--gray-light)", backdropFilter: "blur(10px)" }}
+      className="sticky top-0 z-20 px-4 pt-3 pb-3"
+      style={{
+        background: "linear-gradient(180deg, rgba(248,246,241,0.98) 0%, rgba(248,246,241,0.94) 100%)",
+        borderBottom: "1px solid rgba(197,150,90,0.18)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+      }}
     >
+      {/* Elite eyebrow */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <Sparkles size={10} style={{ color: "var(--gold)" }} />
+          <p className="font-mono text-[8px] tracking-[0.22em]" style={{ color: "var(--teal-deep)" }}>
+            CURATE YOUR JOURNEY
+          </p>
+        </div>
+        <p className="font-mono text-[8px] tracking-widest" style={{ color: "var(--gray)" }}>
+          {filteredCount}/{segments.length}
+        </p>
+      </div>
+
+      {/* Search + advanced trigger */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" color="var(--gray)" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" color="var(--teal-deep)" />
           <input
             value={draftSearch}
             onChange={(e) => setDraftSearch(e.target.value)}
-            placeholder="Search airline, flight #, city, PNR… · بحث"
-            className="w-full rounded-xl py-2 pl-9 pr-9 text-[12px] outline-none"
-            style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+            placeholder="Search airline, flight #, city, PNR…"
+            className="w-full rounded-full py-2.5 pl-9 pr-9 text-[12px] outline-none transition-shadow"
+            style={{
+              background: "var(--white)",
+              border: "1px solid rgba(15,46,61,0.10)",
+              color: "var(--navy)",
+              boxShadow: "0 1px 2px rgba(15,46,61,0.04), inset 0 0 0 0 transparent",
+            }}
           />
           {draftSearch && (
             <button onClick={() => setDraftSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1" aria-label="Clear search">
@@ -164,18 +195,24 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
             onClick={() => setMenuOpen((v) => !v)}
             aria-haspopup="menu"
             aria-expanded={menuOpen}
-            aria-label="Filters"
-            className="relative flex h-9 w-9 items-center justify-center rounded-xl btn-press"
+            aria-label="Advanced filters"
+            className="relative flex h-10 items-center gap-1.5 rounded-full px-3 btn-press transition-all"
             style={{
-              background: activeCount ? "var(--teal-deep)" : "var(--white)",
-              border: "1px solid var(--gray-light)",
+              background: activeCount
+                ? "linear-gradient(135deg, var(--teal-deep) 0%, #0a4a5e 100%)"
+                : "var(--white)",
+              border: `1px solid ${activeCount ? "var(--teal-deep)" : "rgba(15,46,61,0.10)"}`,
               color: activeCount ? "white" : "var(--navy)",
+              boxShadow: activeCount
+                ? "0 4px 14px rgba(15,46,61,0.22)"
+                : "0 1px 2px rgba(15,46,61,0.04)",
             }}
           >
-            <Filter size={15} />
+            <SlidersHorizontal size={13} />
+            <span className="text-[10px] font-bold tracking-wider uppercase">Refine</span>
             {activeCount > 0 && (
               <span
-                className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold"
+                className="flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold"
                 style={{ background: "var(--gold)", color: "white" }}
               >
                 {activeCount}
@@ -186,12 +223,16 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 bottom-full mb-2 w-72 rounded-2xl p-3 space-y-3 shadow-xl"
-              style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+              className="absolute right-0 top-full mt-2 w-[19rem] rounded-2xl p-3.5 space-y-3.5"
+              style={{
+                background: "var(--white)",
+                border: "1px solid rgba(197,150,90,0.25)",
+                boxShadow: "0 18px 48px rgba(15,46,61,0.22), 0 2px 6px rgba(15,46,61,0.08)",
+              }}
             >
               {/* Status */}
               <div>
-                <p className="font-mono text-[8px] tracking-widest mb-1.5" style={{ color: "var(--gray)" }}>
+                <p className="font-mono text-[8px] tracking-[0.18em] mb-1.5" style={{ color: "var(--teal-deep)" }}>
                   STATUS · <span className="font-arabic">الحالة</span>
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -223,7 +264,7 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
 
               {/* Date range */}
               <div>
-                <p className="font-mono text-[8px] tracking-widest mb-1.5" style={{ color: "var(--gray)" }}>
+                <p className="font-mono text-[8px] tracking-[0.18em] mb-1.5" style={{ color: "var(--teal-deep)" }}>
                   DATE · <span className="font-arabic">التاريخ</span>
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -252,7 +293,7 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
 
               {/* Transport types */}
               <div>
-                <p className="font-mono text-[8px] tracking-widest mb-1.5" style={{ color: "var(--gray)" }}>
+                <p className="font-mono text-[8px] tracking-[0.18em] mb-1.5" style={{ color: "var(--teal-deep)" }}>
                   TYPE · <span className="font-arabic">النوع</span>
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -296,10 +337,69 @@ const TicketsFilterBar = ({ value, onChange, segments, filteredCount, onClear }:
         </div>
       </div>
 
-      <p className="mt-2 font-mono text-[9px]" style={{ color: "var(--gray)" }}>
-        <SlidersHorizontal size={9} className="inline mr-1" />
-        Showing {filteredCount} of {segments.length}
-      </p>
+      {/* Quick chip rail — elite segmented row + Lounges entry */}
+      <div className="mt-2.5 -mx-1 flex items-center gap-1.5 overflow-x-auto pb-1 px-1" style={{ scrollbarWidth: "none" }}>
+        {visibleChips.map((key) => {
+          const q = quickFilters.find((x) => x.key === key)!;
+          const active = value.quick === key;
+          const count = counts.get(key) || 0;
+          return (
+            <button
+              key={key}
+              onClick={() => update({ quick: key })}
+              className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold btn-press transition-all"
+              style={{
+                background: active
+                  ? "linear-gradient(135deg, var(--teal-deep) 0%, #0a4a5e 100%)"
+                  : "var(--white)",
+                color: active ? "white" : "var(--navy)",
+                border: `1px solid ${active ? "var(--teal-deep)" : "rgba(15,46,61,0.10)"}`,
+                boxShadow: active
+                  ? "0 4px 12px rgba(15,46,61,0.18)"
+                  : "0 1px 2px rgba(15,46,61,0.04)",
+              }}
+            >
+              {q.en}
+              <span
+                className="ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                style={{
+                  background: active ? "rgba(255,255,255,0.20)" : "var(--off-white)",
+                  color: active ? "white" : "var(--gray)",
+                }}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+
+        {/* Elite divider */}
+        <div className="shrink-0 mx-1 h-5 w-px" style={{ background: "rgba(197,150,90,0.30)" }} />
+
+        {/* Lounges chip — gold accent for premium feel */}
+        {onJumpToLounges && (
+          <button
+            onClick={onJumpToLounges}
+            aria-label="Jump to lounge cards"
+            className="shrink-0 group flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press transition-all"
+            style={{
+              background: "linear-gradient(135deg, #c5965a 0%, #b07f43 100%)",
+              color: "white",
+              border: "1px solid rgba(197,150,90,0.55)",
+              boxShadow: "0 4px 14px rgba(197,150,90,0.32)",
+            }}
+          >
+            <Crown size={12} />
+            Lounges <span className="font-arabic font-normal opacity-90">صالات</span>
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+              style={{ background: "rgba(255,255,255,0.22)" }}
+            >
+              {loungeCount ?? 0}
+            </span>
+          </button>
+        )}
+      </div>
     </div>
   );
 };
