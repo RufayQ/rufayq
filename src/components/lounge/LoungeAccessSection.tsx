@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard, ChevronDown, Maximize2, Minimize2, Download } from "lucide-react";
 import { toast } from "sonner";
 import type { TransportSegment } from "@/components/TransportCard";
 import {
@@ -176,6 +177,7 @@ const LoungeAccessSection = ({ segments }: Props) => {
                         onClick={() => toggleExpanded(m.id)}
                         aria-label={isExpanded ? "Collapse card" : "Expand card"}
                         aria-expanded={isExpanded}
+                        data-testid={`lounge-card-expand-${m.id}`}
                         className="ml-1 flex h-7 w-7 items-center justify-center rounded-full btn-press"
                         style={{ background: "var(--off-white)", color: "var(--navy)" }}
                       >
@@ -623,6 +625,61 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 );
 
 /* ─── QR display sheet ─── */
+const HD_SIZE = 1024;
+
+const slugifyProgram = (s: string): string =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "card";
+
+const triggerDownload = (dataUrl: string, filename: string): void => {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
+
+const loadImage = (src: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image load failed"));
+    img.src = src;
+  });
+
+const drawToCanvasPng = (img: HTMLImageElement, size = HD_SIZE): string => {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas unsupported");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, size, size);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, 0, 0, size, size);
+  return canvas.toDataURL("image/png");
+};
+
+const generatedQrToPng = async (payload: string): Promise<string> => {
+  const svgMarkup = renderToStaticMarkup(
+    <QRCodeSVG value={payload} size={HD_SIZE} level="H" includeMargin />,
+  );
+  const svgBlob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(svgBlob);
+  try {
+    const img = await loadImage(url);
+    return drawToCanvasPng(img, HD_SIZE);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+};
+
+const uploadedQrToPng = async (src: string): Promise<string> => {
+  const img = await loadImage(src);
+  return drawToCanvasPng(img, HD_SIZE);
+};
+
 const LoungeQrSheet = ({
   membership, onClose, onEdit,
 }: { membership: LoungeMembership; onClose: () => void; onEdit: () => void }) => {
@@ -636,6 +693,20 @@ const LoungeQrSheet = ({
     return () => { root.style.filter = prev; };
   }, [fullscreen]);
 
+  const handleDownload = async () => {
+    try {
+      const dataUrl = membership.qrImageUrl
+        ? await uploadedQrToPng(membership.qrImageUrl)
+        : await generatedQrToPng(buildQrPayload(membership));
+      const last4 = membership.membershipNumber.replace(/\D/g, "").slice(-4) || "card";
+      const filename = `rufayq-lounge-${slugifyProgram(membership.program)}-${last4}.png`;
+      triggerDownload(dataUrl, filename);
+      toast.success("Saved to downloads · تم الحفظ", { duration: 1800 });
+    } catch {
+      toast.error("Couldn't save QR · تعذر الحفظ");
+    }
+  };
+
   if (fullscreen) {
     // Maximum-area, high-density QR for officer scanning.
     const side = Math.min(
@@ -648,7 +719,18 @@ const LoungeQrSheet = ({
         className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4"
         style={{ background: "#ffffff" }}
         onClick={() => setFullscreen(false)}
+        data-testid="qr-fullscreen"
       >
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); void handleDownload(); }}
+          aria-label="Download HD QR"
+          data-testid="qr-fullscreen-download"
+          className="absolute top-4 left-4 flex h-10 w-10 items-center justify-center rounded-full btn-press"
+          style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+        >
+          <Download size={16} />
+        </button>
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setFullscreen(false); }}
@@ -668,10 +750,11 @@ const LoungeQrSheet = ({
               alt="Lounge QR fullscreen"
               width={side}
               height={side}
+              data-testid="qr-uploaded"
               style={{ display: "block", imageRendering: "pixelated" }}
             />
           ) : (
-            <QRCodeSVG value={buildQrPayload(membership)} size={side} level="H" includeMargin={false} />
+            <QRCodeSVG value={buildQrPayload(membership)} size={side} level="H" includeMargin={false} data-testid="qr-generated" />
           )}
         </div>
         <p className="mt-4 font-mono text-[14px] tracking-[0.22em]" style={{ color: "var(--navy)" }}>
@@ -717,6 +800,7 @@ const LoungeQrSheet = ({
           className="w-full rounded-2xl p-5 flex flex-col items-center btn-press"
           style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
           aria-label="Open QR in full screen"
+          data-testid="qr-open-fullscreen"
         >
           <div className="rounded-xl bg-white p-3" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
             {membership.qrImageUrl ? (
