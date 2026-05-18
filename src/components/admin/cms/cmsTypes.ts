@@ -15,6 +15,13 @@ export type PageStatus = "draft" | "published" | "scheduled" | "archived";
 
 export interface CtaConfig { label: string; link: string }
 
+export interface HeroMockupCard {
+  icon?: string;
+  title: string;
+  subtitle?: string;
+  accent?: "gold" | "teal";
+}
+
 export interface HeroContent {
   eyebrow?: string;
   titleLine1?: string;
@@ -24,6 +31,7 @@ export interface HeroContent {
   primaryCta?: CtaConfig;
   secondaryCta?: CtaConfig;
   badges?: { text: string; icon?: string }[];
+  mockupCards?: HeroMockupCard[];
 }
 
 export interface FeaturesContent {
