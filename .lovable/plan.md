@@ -1,70 +1,51 @@
-# Travel Summary v2 — Dates, Counts & Checklist Format
+# Travel Docs Preview Step
 
 ## Goal
-Upgrade the text emitted by Copy / Export / Share Travel Docs from a flat dashed list into a structured checklist with per-category counts, total count, generation date, and properly formatted "added" dates per item — in English, Arabic, or Bilingual.
+Before any Copy / Export / Share runs, show a quick review of the documents that will be included so I can confirm or cancel.
 
-## Current vs. new shape
+## Flow
 
-**Today (per language):**
 ```
-Travel Documents Summary
-- Passport scan — passport.pdf — Added 18/05/2026
-- ...
+kebab → [Preview sheet] → Continue → [Language sheet] → action runs
+                       ↘ Cancel/close
 ```
 
-**New (English example):**
+The Preview sheet is the new first step. The existing `TravelSummaryLanguageSheet` is unchanged and still the second step.
+
+## New component
+`src/components/records/TravelDocsPreviewSheet.tsx` — bottom sheet, same shell/tokens as `TravelSummaryLanguageSheet` (390px, rounded-t-3xl, dark-mode safe).
+
+Contents:
+- Header chip: `REVIEW · مراجعة` + action title in EN/AR (reuses an `ACTION_LABEL` map matching the language sheet).
+- Total count line: `7 items will be included · سيتم تضمين ٧ عناصر` (Arabic numerals via `toLocaleString("ar-EG")`).
+- Empty-state: `No travel documents to include · لا توجد وثائق سفر` with only a Close button (Continue disabled). This matches the existing empty-state toast guard but keeps the user inside the sheet for clarity.
+- Grouped scrollable list (`max-h-[55vh] overflow-y-auto`) using the exported `CAT_DEFS` / `classify` from `TravelRecordsList`:
+  - Section heading per non-empty category: `Passport (2) · جواز`
+  - Rows: small file icon, label, file name muted, `Added <date>` in EN-GB short format. Two-line layout, no thumbnails (keeps it light, no Supabase round-trips).
+- Footer: `Continue · متابعة` primary button (teal) + `Cancel · إلغاء` ghost button.
+
+Props:
+```ts
+{
+  open: boolean;
+  action: "copy" | "export" | "share" | null;
+  docs: TransportAttachment[];
+  onClose: () => void;
+  onContinue: () => void;
+}
 ```
-Travel Documents Summary
-Generated: 18 May 2026
-Total: 7 items
 
-Passport (2)
-  [x] Passport scan — passport.pdf — Added 18 May 2026
-  [x] Iqama front — iqama.jpg — Added 12 May 2026
+No data fetching inside — it just renders the `visibleTravelDocs` array passed in.
 
-Visas (1)
-  [x] UK visa — visa-uk.pdf — Added 14 May 2026
-
-Bookings (3)
-  [x] Hotel London — booking.pdf — Added 14 May 2026
-  ...
-
-Other (1)
-  [x] Misc — note.pdf — Added 10 May 2026
-```
-
-**Arabic mirrors this** with `ملخص وثائق السفر`, `تاريخ الإنشاء`, `الإجمالي`, Arabic category labels (reusing `CAT_DEFS` from `TravelRecordsList`), and `[✓]` checkbox glyph that renders consistently RTL.
-
-**Bilingual** stacks the English block, a separator (`────────`), then the Arabic block, so each side stays readable on its own.
-
-## Format details
-
-- Checklist marker: `[x]` for EN, `[✓]` for AR (avoids mixing Latin "x" inside RTL text). All items are present in the vault so all boxes are checked.
-- Category sections only appear if they contain items; counts reflect the **currently visible** filtered list (search + category filter already applied via `visibleTravelDocs`).
-- Date formatting:
-  - EN: `toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })` → `18 May 2026`
-  - AR: `toLocaleDateString("ar-SA", { day: "2-digit", month: "long", year: "numeric" })`
-- Header line `Generated:` / `تاريخ الإنشاء:` uses the same formatter with "now".
-- Section order matches `CAT_DEFS` order (Passport → Visas → Bookings → Lounge → Insurance → Other) so output is deterministic.
-- Indentation is two spaces under each category to give the checklist visual structure in plain-text viewers (WhatsApp, Notes, email).
-
-## Implementation
-
-All work in two existing files. No new files, no backend.
-
-**`src/components/records/TravelRecordsList.tsx`**
-- Export the existing `classify` function and `CAT_DEFS` so the summary builder can reuse the exact same buckets the UI shows. Pure refactor — no behaviour change.
-
-**`src/screens/RecordsScreen.tsx`** (`buildTravelSummary`)
-- Group `visibleTravelDocs` with the exported `classify` into a `Map<TravelCat, TransportAttachment[]>` while iterating in `CAT_DEFS` order.
-- Build EN and AR blocks via small helpers (`renderBlock(lang)`).
-- Return EN / AR / EN + separator + AR based on the picked language.
-- Export file names stay `travel-documents.txt`, `travel-documents-ar.txt`, `travel-documents-bilingual.txt`.
-
-The language picker sheet, the kebab entries, and the empty-state toast all stay exactly as they are.
+## `src/screens/RecordsScreen.tsx`
+- Add state: `travelPreviewAction: "copy" | "export" | "share" | null`.
+- `recordsMenuItems` for the travel segment now sets `travelPreviewAction` instead of `travelAction`. The empty-state toast guard moves into the preview sheet itself (so the user sees *why* nothing happens).
+- Render `<TravelDocsPreviewSheet open={!!travelPreviewAction} action={travelPreviewAction} docs={visibleTravelDocs} onClose={…} onContinue={…} />`.
+- `onContinue` closes the preview and opens the existing language sheet by setting `travelAction = travelPreviewAction`.
+- Language sheet, `buildTravelSummary`, and `runTravelAction` are untouched.
 
 ## Out of scope
-- Translating user-entered `label` / `file_name` (kept verbatim, as before).
-- New PDF/HTML export formats — still `.txt`.
-- Medical Records summary (separate handler, unchanged).
-- Sorting items inside a category beyond the existing visible order.
+- Per-item include/exclude checkboxes (preview only).
+- Thumbnails / signed-URL previews of the files.
+- Medical Records summary (no preview added there).
+- Any change to the summary format itself.
