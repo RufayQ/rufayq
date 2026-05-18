@@ -94,14 +94,14 @@ const Landing = () => {
 
   // ── Elite bilingual defaults (rebrand-aligned: medical, travel & more) ──
   const D = {
-    eyebrowEn: "AI COMPANION · MEDICAL, TRAVEL & MORE",
-    eyebrowAr: "رُفَيِّق · للسفر العلاجي وأكثر",
-    title1En: "Your AI Travel Companion",
-    title1Ar: "رفيقك الذكي للسفر",
-    highlightEn: "& More",
-    highlightAr: "وأكثر",
-    subtitleEn: "From medical journeys to lifestyle, RufayQ guides Gulf travellers worldwide — bilingual vault, journey, tickets, medications and 24/7 AI support.",
-    subtitleAr: "من الرحلات العلاجية إلى أسلوب الحياة، يرافقك رُفَيِّق حول العالم — خزانة طبية ثنائية اللغة، رحلات، تذاكر، أدوية ودعم ذكي على مدار الساعة.",
+    eyebrowEn: "AI Companion · Medical, Cultural & Beyond",
+    eyebrowAr: "رُفَيِّق · طبي، ثقافي، وأكثر",
+    title1En: "Your AI Companion",
+    title1Ar: "رُفَيِّقك الذكي في",
+    highlightEn: "for Every Journey",
+    highlightAr: "كل رحلة",
+    subtitleEn: "From medical treatment to cultural discovery — RufayQ guides you and your family in Arabic and English with vault, journey tracker, and 6 specialized AI companions.",
+    subtitleAr: "من رحلة العلاج إلى الاستكشاف الثقافي — رُفَيِّق يرافقك وعائلتك بالعربية والإنجليزية مع ٦ رُفَيِّقات ذكاء اصطناعي متخصصين.",
     primaryEn: "Start free",
     primaryAr: "ابدأ مجاناً",
     secondaryEn: "Explore pricing",
@@ -151,9 +151,10 @@ const Landing = () => {
   const greeting = { en: greetingEn, ar: greetingAr };
 
   const defaultTrust = [
-    { icon: "lock",     en: "End-to-end encrypted",       ar: "تشفير كامل" },
-    { icon: "globe",    en: "Bilingual EN / AR",          ar: "ثنائي اللغة عربي/إنجليزي" },
-    { icon: "heart",    en: "For Gulf & global patients", ar: "لمرضى الخليج والعالم" },
+    { icon: "heart",  en: "Trusted by Saudi families", ar: "موثوق من العائلات السعودية" },
+    { icon: "globe",  en: "Arabic-first support",      ar: "دعم عربي أولاً" },
+    { icon: "lock",   en: "Medical + cultural AI",     ar: "ذكاء اصطناعي طبي وثقافي" },
+    { icon: "heart",  en: "6 AI companions",           ar: "٦ رُفَيِّقات ذكاء اصطناعي" },
   ];
   const cmsBadges = (isAr ? heroAr : heroEn)?.badges ?? [];
   const trustPoints = cmsBadges.length > 0
@@ -185,10 +186,10 @@ const Landing = () => {
   return (
     <>
       <SeoLazy
-        title={isAr ? "رُفَيِّق — رفيقك الطبي ثنائي اللغة للسفر للعلاج" : "RufayQ — Bilingual AI Medical Travel Companion"}
+        title={isAr ? "رُفَيِّق — رُفَيِّقك الذكي في كل رحلة" : "RufayQ — Your AI Companion for Every Journey"}
         description={isAr
-          ? "رُفَيِّق هو الرفيق الذكي ثنائي اللغة لمرضى الخليج المسافرين للعلاج. تتبّع الرحلات، الأدوية، المواعيد، وكل تقاريرك الطبية."
-          : "RufayQ is the bilingual EN/AR AI companion for Gulf patients travelling for treatment. Track flights, medications, appointments, and every medical report."}
+          ? "رُفَيِّق — رفيقك الذكي ثنائي اللغة لكل رحلة، طبيًا وثقافيًا وأكثر. خزنة وثائق وتتبع رحلات و٦ مرافقين بالذكاء الاصطناعي."
+          : "Bilingual EN/AR AI companion for patients and families traveling abroad — medical, cultural & beyond. Vault, journey tracker, and 6 AI companions."}
       />
       <div className="min-h-screen" style={{ background: BG_DARK, color: TEXT, fontFamily: "'DM Sans', system-ui" }} dir={isAr ? "rtl" : "ltr"}>
         {/* NAV */}
