@@ -336,10 +336,20 @@ const LoungeFormSheet = ({
   const [linkedSegmentId, setLinkedSegmentId] = useState(initial?.linkedSegmentId || "");
   const [notes, setNotes] = useState(initial?.notes || "");
   const [qrSecret, setQrSecret] = useState(initial?.qrSecret || "");
+  const [qrSecretError, setQrSecretError] = useState<string | null>(null);
   const [entitlementRefreshOn, setEntitlementRefreshOn] = useState(initial?.entitlementRefreshOn || "");
   const [qrImageUrl, setQrImageUrl] = useState(initial?.qrImageUrl || "");
   const qrFileRef = useRef<HTMLInputElement>(null);
   const vac = isVAC(program);
+
+  /** Numeric, 6–20 digits. Empty is allowed (field is optional). */
+  const validateQrSecret = (raw: string): string | null => {
+    const v = raw.trim();
+    if (!v) return null;
+    if (!/^\d+$/.test(v)) return "QR verifier must be digits only · أرقام فقط";
+    if (v.length < 6 || v.length > 20) return "QR verifier must be 6–20 digits · من 6 إلى 20 رقمًا";
+    return null;
+  };
 
   const handleQrFile = (file: File | null) => {
     if (!file) return;
@@ -362,6 +372,14 @@ const LoungeFormSheet = ({
     if (mmyyDisplay && !iso) {
       toast.error("Expiry must be MM/YY (e.g. 05/29)");
       return;
+    }
+    if (vac) {
+      const err = validateQrSecret(qrSecret);
+      if (err) {
+        setQrSecretError(err);
+        toast.error(err);
+        return;
+      }
     }
     onSave({
       id: initial?.id,
@@ -451,15 +469,32 @@ const LoungeFormSheet = ({
               <Field label="QR verifier · الرقم التحققي للرمز">
                 <input
                   value={qrSecret}
-                  onChange={(e) => setQrSecret(e.target.value.replace(/\D/g, "").slice(0, 20))}
+                  onChange={(e) => {
+                    const next = e.target.value.replace(/\D/g, "").slice(0, 20);
+                    setQrSecret(next);
+                    setQrSecretError(validateQrSecret(next));
+                  }}
+                  onBlur={() => setQrSecretError(validateQrSecret(qrSecret))}
                   placeholder="e.g. 5310572473"
                   inputMode="numeric"
+                  aria-invalid={!!qrSecretError}
+                  aria-describedby="qr-secret-help"
                   className="w-full rounded-xl px-3 py-2 text-[13px] font-mono outline-none"
-                  style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+                  style={{
+                    background: "var(--off-white)",
+                    border: `1px solid ${qrSecretError ? "var(--error)" : "var(--gray-light)"}`,
+                    color: "var(--navy)",
+                  }}
                 />
-                <p className="mt-1 text-[10px]" style={{ color: "var(--gray)" }}>
-                  Number that appears after the “=” in your DragonPass QR.
-                </p>
+                {qrSecretError ? (
+                  <p id="qr-secret-help" className="mt-1 text-[10px] font-bold" style={{ color: "var(--error)" }}>
+                    {qrSecretError}
+                  </p>
+                ) : (
+                  <p id="qr-secret-help" className="mt-1 text-[10px]" style={{ color: "var(--gray)" }}>
+                    Numbers only, 6–20 digits. Found after the “=” in your DragonPass QR.
+                  </p>
+                )}
               </Field>
 
               <Field label="Entitlement refresh · تاريخ التجديد">
@@ -573,6 +608,35 @@ const LoungeQrSheet = ({
               <QRCodeSVG value={buildQrPayload(membership)} size={196} level="M" includeMargin={false} />
             )}
           </div>
+          {membership.qrImageUrl && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await saveLoungeMembership({
+                    id: membership.id,
+                    program: membership.program,
+                    membershipNumber: membership.membershipNumber,
+                    cardholderName: membership.cardholderName,
+                    cardLast4: membership.cardLast4,
+                    expiresOn: membership.expiresOn,
+                    linkedSegmentId: membership.linkedSegmentId,
+                    notes: membership.notes,
+                    qrSecret: membership.qrSecret,
+                    entitlementRefreshOn: membership.entitlementRefreshOn,
+                    qrImageUrl: undefined,
+                  });
+                  toast.success("Custom QR removed · تم حذف الرمز المخصص", { duration: 1600 });
+                } catch {
+                  toast.error("Couldn't remove QR · تعذر الحذف");
+                }
+              }}
+              className="mt-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press"
+              style={{ background: "rgba(217,79,79,0.10)", color: "var(--error)" }}
+            >
+              <Trash2 size={11} /> Remove custom QR · استخدم الرمز التلقائي
+            </button>
+          )}
           <p className="mt-3 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
             {membership.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
           </p>
