@@ -89,12 +89,13 @@ const phases = [
   { key: "after", label: "After Return", labelAr: "بعد العودة", color: "var(--teal-bright)" },
 ];
 
-const subTabs = [
-  { key: "overview", icon: "🗺️", label: "Map" },
-  { key: "tickets", icon: "✈️", label: "Tickets" },
-  { key: "stay", icon: "🏨", label: "Stay" },
-  { key: "appointments", icon: "🩺", label: "Appts" },
-  { key: "steps", icon: "📋", label: "Steps" },
+const subTabs: { key: string; Icon: LucideIcon; en: string; ar: string; premium?: boolean }[] = [
+  { key: "overview", Icon: MapIcon, en: "Map", ar: "الخريطة" },
+  { key: "tickets", Icon: Plane, en: "Tickets", ar: "التذاكر" },
+  { key: "stay", Icon: BedDouble, en: "Stay", ar: "الإقامة" },
+  { key: "appointments", Icon: Stethoscope, en: "Appts", ar: "المواعيد" },
+  { key: "lounge", Icon: Crown, en: "Lounge", ar: "الصالات", premium: true },
+  { key: "steps", Icon: ClipboardList, en: "Steps", ar: "الخطوات" },
 ];
 
 const defaultTrip: TripData = {
