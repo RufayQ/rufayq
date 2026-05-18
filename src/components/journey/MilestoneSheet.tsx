@@ -1,4 +1,5 @@
-import { ArrowUpRight, CalendarClock, FlaskConical, Home, MoreHorizontal, Pill, PlaneTakeoff, Stethoscope, Activity } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight, CalendarClock, ChevronDown, FlaskConical, MoreHorizontal, Pill, PlaneTakeoff, Stethoscope, Activity, FlaskConical as _ } from "lucide-react";
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
 import { formatChipDate } from "@/lib/journeyOverview";
 import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
@@ -12,7 +13,7 @@ export interface SheetItem {
   kind: SheetItemKind;
   title: string;
   subtitle?: string;
-  state?: string;        // e.g. "Now", "14:00", "Pending"
+  state?: string;
   tone?: SheetItemTone;
   cancelled?: boolean;
 }
@@ -20,19 +21,15 @@ export interface SheetItem {
 interface MilestoneSheetProps {
   milestone: JourneyMilestone | null;
   items?: SheetItem[];
-  /** Optional location label rendered in the sub-meta row. */
   location?: string;
   onReschedule?: () => void;
   onOpenMilestone?: () => void;
   onShowAll?: () => void;
-  /** Flight ticket id for the milestone (departure/return) — when provided,
-   *  the sheet renders an inline per-ticket attachments panel so each ticket
-   *  keeps its own documents without leaving the sheet. */
   flightTicketId?: string | null;
-  /** Optional segment ref backing the ticket — falls back to `flight-<ticketId>`. */
   flightSegmentRef?: string | null;
-  /** Current signed-in user id (null/undefined ⇒ device-scoped). */
   userId?: string | null;
+  /** Initial expanded state. Defaults to collapsed (false) per design spec. */
+  defaultExpanded?: boolean;
 }
 
 const KIND_BG: Record<SheetItemKind, { bg: string; fg: string; Icon: any }> = {
@@ -52,8 +49,8 @@ const TONE_BG: Record<SheetItemTone, { bg: string; fg: string; border?: string }
 };
 
 const headerPill = (state: JourneyMilestone["state"]) => {
-  if (state === "current") return { label: "Today", bg: "var(--kind-rad-bg)", fg: "var(--kind-rad-fg)" };
-  if (state === "done")    return { label: "Past",  bg: "var(--kind-consult-bg)", fg: "var(--kind-consult-fg)" };
+  if (state === "current") return { label: "Today", bg: "linear-gradient(135deg, rgba(197,150,90,0.18), rgba(197,150,90,0.08))", fg: "var(--gold)", border: "1px solid rgba(197,150,90,0.35)" };
+  if (state === "done")    return { label: "Past",  bg: "var(--kind-consult-bg)", fg: "var(--kind-consult-fg)", border: "1px solid transparent" };
   return                       { label: "Upcoming", bg: "var(--off-white)", fg: "var(--gray)", border: "1px solid var(--gray-light)" };
 };
 
@@ -67,13 +64,14 @@ const MilestoneSheet = ({
   flightTicketId,
   flightSegmentRef,
   userId,
+  defaultExpanded = false,
 }: MilestoneSheetProps) => {
-  // Hooks must run unconditionally — call before any early return.
   const attachmentCount = useArtifactCount({
     userId: userId ?? null,
     segmentRef: flightSegmentRef || (flightTicketId ? `flight-${flightTicketId}` : null),
     ticketId: flightTicketId ?? null,
   });
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   if (!milestone) return null;
   const visible = items.slice(0, 4);
@@ -86,31 +84,41 @@ const MilestoneSheet = ({
       : milestone.date
       ? formatChipDate(milestone.date)
       : "TBD";
+  const hasExpandable = visible.length > 0 || !!flightTicketId;
 
   return (
     <section
-      className="mx-4 mt-3 stagger-2"
+      className="mx-4 mt-3 stagger-2 relative overflow-hidden"
       data-testid="milestone-sheet"
       aria-label={`${milestone.title} details`}
       style={{
-        background: "var(--white)",
-        borderRadius: 18,
+        background: "linear-gradient(180deg, #ffffff 0%, #fbfaf6 100%)",
+        borderRadius: 20,
         border: "1px solid var(--gray-light)",
-        boxShadow: "0 12px 28px -16px rgba(0,77,91,0.18)",
-        padding: "12px 18px 18px",
+        boxShadow: "0 18px 40px -22px rgba(0,77,91,0.22), 0 2px 6px -2px rgba(0,77,91,0.06)",
+        padding: "14px 18px 16px",
       }}
     >
+      {/* Elite gold accent strip */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute", top: 0, left: 18, right: 18, height: 2,
+          background: "linear-gradient(90deg, transparent, var(--gold) 50%, transparent)",
+          opacity: 0.55,
+        }}
+      />
       {/* Drag handle */}
       <div
         aria-hidden
-        style={{ width: 34, height: 4, borderRadius: 999, background: "var(--gray-light)", margin: "0 auto 10px" }}
+        style={{ width: 34, height: 4, borderRadius: 999, background: "var(--gray-light)", margin: "4px auto 12px" }}
       />
 
       {/* Header */}
       <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3
-            className="text-[15px] font-semibold leading-tight tracking-[-0.01em] truncate"
+            className="text-[16px] font-semibold leading-tight tracking-[-0.01em] truncate"
             style={{ color: "var(--navy)", fontFamily: "var(--font-display)" }}
           >
             {milestone.title}
@@ -143,92 +151,84 @@ const MilestoneSheet = ({
         </span>
       </header>
 
-      {/* Artifacts */}
-      {visible.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-1.5" data-testid="milestone-sheet-items">
-          {visible.map((it) => {
-            const k = KIND_BG[it.kind];
-            const tone = TONE_BG[it.tone ?? "soon"];
-            const Icon = k.Icon;
-            return (
-              <li
-                key={it.id}
-                className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg"
-                style={{
-                  background: "var(--off-white)",
-                  opacity: it.cancelled ? 0.5 : 1,
-                }}
-              >
-                <span
-                  className="flex items-center justify-center flex-shrink-0"
-                  style={{ width: 24, height: 24, borderRadius: 6, background: k.bg, color: k.fg }}
-                  aria-hidden
-                >
-                  <Icon size={12} strokeWidth={2.2} />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p
-                    className="text-[11px] font-medium leading-tight truncate"
-                    style={{ color: "var(--navy)", textDecoration: it.cancelled ? "line-through" : undefined }}
+      {/* Expandable content */}
+      {expanded && (
+        <>
+          {visible.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-1.5 animate-fade-in" data-testid="milestone-sheet-items">
+              {visible.map((it) => {
+                const k = KIND_BG[it.kind];
+                const tone = TONE_BG[it.tone ?? "soon"];
+                const Icon = k.Icon;
+                return (
+                  <li
+                    key={it.id}
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg"
+                    style={{ background: "var(--off-white)", opacity: it.cancelled ? 0.5 : 1 }}
                   >
-                    {it.title}
-                  </p>
-                  {it.subtitle && (
-                    <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>
-                      {it.subtitle}
-                    </p>
-                  )}
-                </div>
-                {it.state && (
-                  <span
-                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                    style={{
-                      background: tone.bg,
-                      color: tone.fg,
-                      border: tone.border,
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    {it.state}
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                    <span
+                      className="flex items-center justify-center flex-shrink-0"
+                      style={{ width: 24, height: 24, borderRadius: 6, background: k.bg, color: k.fg }}
+                      aria-hidden
+                    >
+                      <Icon size={12} strokeWidth={2.2} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-[11px] font-medium leading-tight truncate"
+                        style={{ color: "var(--navy)", textDecoration: it.cancelled ? "line-through" : undefined }}
+                      >
+                        {it.title}
+                      </p>
+                      {it.subtitle && (
+                        <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>{it.subtitle}</p>
+                      )}
+                    </div>
+                    {it.state && (
+                      <span
+                        className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        style={{ background: tone.bg, color: tone.fg, border: tone.border, letterSpacing: "0.04em" }}
+                      >
+                        {it.state}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
 
-      {overflow > 0 && (
-        <button
-          onClick={onShowAll}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 text-[11px] font-medium py-1.5 rounded-md btn-press"
-          style={{ color: "var(--teal-deep)", background: "var(--off-white)" }}
-        >
-          <MoreHorizontal size={12} /> +{overflow} more
-        </button>
-      )}
+          {overflow > 0 && (
+            <button
+              onClick={onShowAll}
+              className="mt-2 w-full flex items-center justify-center gap-1.5 text-[11px] font-medium py-1.5 rounded-md btn-press"
+              style={{ color: "var(--teal-deep)", background: "var(--off-white)" }}
+            >
+              <MoreHorizontal size={12} /> +{overflow} more
+            </button>
+          )}
 
-      {/* Per-ticket attachments (flight milestones only). Each ticket id keeps
-       *  its own document scope so a user with 3 tickets sees 3 distinct sets. */}
-      {flightTicketId && (
-        <div className="mt-3 -mx-2">
-          <RelatedDocumentsCard
-            segmentRef={flightSegmentRef || `flight-${flightTicketId}`}
-            ticketId={flightTicketId}
-            userId={userId ?? null}
-            compact
-          />
-        </div>
+          {flightTicketId && (
+            <div className="mt-3 -mx-2 animate-fade-in">
+              <RelatedDocumentsCard
+                segmentRef={flightSegmentRef || `flight-${flightTicketId}`}
+                ticketId={flightTicketId}
+                userId={userId ?? null}
+                compact
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* CTAs */}
-      <div className="flex gap-1.5 mt-3">
+      <div className="flex gap-1.5 mt-3 items-stretch">
         <button
           onClick={onReschedule}
           disabled={!onReschedule}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold btn-press"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-semibold btn-press"
           style={{
-            background: "transparent",
+            background: "var(--white)",
             border: "1px solid var(--gray-light)",
             color: onReschedule ? "var(--navy)" : "var(--gray)",
             opacity: onReschedule ? 1 : 0.6,
@@ -238,11 +238,34 @@ const MilestoneSheet = ({
         </button>
         <button
           onClick={onOpenMilestone}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold btn-press"
-          style={{ background: "var(--kind-rad-fg)", color: "#fff", border: "1px solid var(--kind-rad-fg)" }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-semibold btn-press text-white"
+          style={{
+            background: "linear-gradient(135deg, var(--navy) 0%, var(--teal-deep) 100%)",
+            boxShadow: "0 6px 14px -6px rgba(0,77,91,0.45)",
+          }}
         >
           <ArrowUpRight size={12} /> Open milestone
         </button>
+        {hasExpandable && (
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? "Collapse milestone details" : "Expand milestone details"}
+            data-testid="milestone-sheet-expand"
+            className="flex items-center justify-center rounded-xl btn-press flex-shrink-0"
+            style={{
+              width: 40,
+              background: "var(--white)",
+              border: "1px solid var(--gray-light)",
+              color: "var(--teal-deep)",
+            }}
+          >
+            <ChevronDown
+              size={14}
+              style={{ transition: "transform 220ms ease", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
+            />
+          </button>
+        )}
       </div>
     </section>
   );
