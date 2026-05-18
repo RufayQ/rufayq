@@ -13,6 +13,7 @@ import { useArtifactCount } from "@/hooks/useArtifactCount";
 import TravelRecordsList from "@/components/records/TravelRecordsList";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
+import TravelSummaryLanguageSheet, { type SummaryLang } from "@/components/records/TravelSummaryLanguageSheet";
 
 type RecordsSegment = "medical" | "travel";
 
