@@ -357,6 +357,7 @@ const Index = () => {
           fileName: payload?.fileName,
           pageCount: payload?.pageImages?.length || 1,
           keyFields: keyFields.length ? keyFields : undefined,
+          pageImages: payload?.pageImages,
         });
       } catch (e) { console.warn("[scanner] could not store travel record", e); }
     } else if (isMedicalCategory(category)) {

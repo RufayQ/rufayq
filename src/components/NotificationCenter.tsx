@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, BellRing, CalendarClock, Check, CheckCheck, MessageCircle, Pill, Receipt, Settings2, Stethoscope, X } from "lucide-react";
+import { Bell, BellRing, CalendarClock, Check, CheckCheck, MessageCircle, Pill, Receipt, Settings2, Stethoscope, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { usePatientNotifications } from "@/hooks/usePatientNotifications";
 import { useChatInbox } from "@/hooks/useChatInbox";
@@ -51,7 +51,7 @@ const NotificationCenter = ({
     onOpenChange?.(next);
   };
 
-  const { items, unreadCount: alertUnread, markRead, markAllRead } = usePatientNotifications();
+  const { items, unreadCount: alertUnread, markRead, markAllRead, clearAll } = usePatientNotifications();
   const { threads, unreadByThread, totalUnread: chatUnread, participants, markAllThreadsRead } = useChatInbox();
   const { showEn, showAr } = useLanguage();
   const { prefs, toggle: togglePref } = useNotificationPrefs();
@@ -208,6 +208,24 @@ const NotificationCenter = ({
                 >
                   <CheckCheck size={14} />
                   <span>{showAr && !showEn ? "تعليم الكل" : "Mark all"}</span>
+                </button>
+              )}
+              {items.length > 0 && (
+                <button
+                  onClick={async () => {
+                    if (!confirm(showAr && !showEn ? "مسح كل الإشعارات؟" : "Clear all notifications?")) return;
+                    try {
+                      await clearAll();
+                      toast.success(showAr && !showEn ? "تم مسح الإشعارات" : "Notifications cleared");
+                    } catch {
+                      toast.error(showAr && !showEn ? "تعذر المسح" : "Could not clear");
+                    }
+                  }}
+                  aria-label={showAr && !showEn ? "مسح الكل" : "Clear all"}
+                  title={showAr && !showEn ? "مسح الكل" : "Clear all"}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-primary-foreground/15 bg-primary-foreground/10 text-primary-foreground"
+                >
+                  <Trash2 size={16} />
                 </button>
               )}
               <button

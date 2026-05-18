@@ -20,6 +20,7 @@ import {
   subscribeToTravelScannedRecords,
   type TravelScannedRecord,
 } from "@/lib/travelScannedRecordsStore";
+import TravelScannedRecordViewer from "@/components/records/TravelScannedRecordViewer";
 
 /** Unified row shape so attachments and lounge memberships share render code. */
 type UnifiedRow =
@@ -155,6 +156,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
   const [qrTarget, setQrTarget] = useState<LoungeMembership | null>(null);
   const [menuItem, setMenuItem] = useState<UnifiedRow | null>(null);
+  const [scannedViewer, setScannedViewer] = useState<TravelScannedRecord | null>(null);
   const [cat, setCat] = useState<TravelCat>("all");
   const [clearPinOpen, setClearPinOpen] = useState(false);
 
@@ -417,7 +419,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     const handleOpen = () => {
       if (item.kind === "lounge-card") setQrTarget(item.membership);
       else if (item.kind === "attachment") void openPreview(item);
-      // scanned-travel: no file URL yet — opening just dismisses the menu.
+      else if (item.kind === "scanned-travel") setScannedViewer(item.record);
     };
     const expMMYY = item.kind === "lounge-card" ? loungeExpMMYY(item.membership.expiresOn) : "";
     const scannedFields = isScanned && item.kind === "scanned-travel" ? (item.record.keyFields ?? []).filter((f) => f.value.trim().length > 0) : [];
@@ -724,6 +726,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
           if (!menuItem) return;
           if (menuItem.kind === "lounge-card") setQrTarget(menuItem.membership);
           else if (menuItem.kind === "attachment") void openPreview(menuItem);
+          else if (menuItem.kind === "scanned-travel") setScannedViewer(menuItem.record);
         }}
         onRename={
           menuItem && menuItem.kind === "attachment"
@@ -797,6 +800,16 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
             </div>
           </div>
         </div>
+      )}
+      {scannedViewer && (
+        <TravelScannedRecordViewer
+          record={scannedViewer}
+          onClose={() => setScannedViewer(null)}
+          onUpdated={(next) => {
+            setScannedTravel((prev) => prev.map((r) => (r.id === next.id ? next : r)));
+            setScannedViewer(next);
+          }}
+        />
       )}
     </>
   );

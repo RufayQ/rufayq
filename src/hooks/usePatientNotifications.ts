@@ -59,5 +59,26 @@ export const usePatientNotifications = () => {
     setItems(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
-  return { items, loading, unreadCount: items.filter(n => !n.is_read).length, markRead, markAllRead, reload: load };
+  /** Permanently remove a single notification from the inbox. */
+  const dismiss = async (id: string) => {
+    setItems(prev => prev.filter(n => n.id !== id));
+    await supabase.from("patient_notifications").delete().eq("id", id);
+  };
+
+  /** Clear every notification on this device (both read and unread). */
+  const clearAll = async () => {
+    setItems([]);
+    await supabase.from("patient_notifications").delete().eq("patient_device_id", deviceId);
+  };
+
+  return {
+    items,
+    loading,
+    unreadCount: items.filter(n => !n.is_read).length,
+    markRead,
+    markAllRead,
+    dismiss,
+    clearAll,
+    reload: load,
+  };
 };

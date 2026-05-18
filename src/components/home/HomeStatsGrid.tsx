@@ -1,4 +1,5 @@
 import { Briefcase, Bell, FolderOpen, CalendarCheck } from "lucide-react";
+import SkeletonBar from "@/components/ui/skeleton-bar";
 
 interface StatItem {
   key: string;
@@ -66,9 +67,13 @@ const HomeStatsGrid = ({ trips, reminders, records, plannedAhead, onNavigate }: 
           >
             {it.icon}
           </span>
-          <span className="text-[22px] font-bold leading-none" style={{ color: "var(--navy)" }}>
-            {it.value ?? "—"}
-          </span>
+          {it.value === null ? (
+            <SkeletonBar width={28} height={22} rounded={6} />
+          ) : (
+            <span className="text-[22px] font-bold leading-none" style={{ color: "var(--navy)" }}>
+              {it.value}
+            </span>
+          )}
           <span className="block text-[11px] font-semibold" style={{ color: "var(--navy)" }}>
             {it.en}
           </span>
