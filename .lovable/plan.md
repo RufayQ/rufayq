@@ -1,69 +1,70 @@
-# Travel Summary — Language Option for Share & Export
+# Travel Summary v2 — Dates, Counts & Checklist Format
 
 ## Goal
-Today the Travel tab's kebab has fixed "Copy / Export / Share Travel Docs" actions that always emit the same bilingual-header + English-body summary. Users want to pick the language of the summary (Arabic, English, or both) when they share or export it.
+Upgrade the text emitted by Copy / Export / Share Travel Docs from a flat dashed list into a structured checklist with per-category counts, total count, generation date, and properly formatted "added" dates per item — in English, Arabic, or Bilingual.
 
-## Approach
-Add a lightweight **language picker bottom sheet** that opens when the user taps Copy / Export / Share Travel Docs in the Records kebab. Keep the kebab compact instead of tripling its entries.
+## Current vs. new shape
 
-All work stays in `src/screens/RecordsScreen.tsx` plus one small new presentational component.
+**Today (per language):**
+```
+Travel Documents Summary
+- Passport scan — passport.pdf — Added 18/05/2026
+- ...
+```
 
-## UX
+**New (English example):**
+```
+Travel Documents Summary
+Generated: 18 May 2026
+Total: 7 items
 
-1. User opens Records → Travel → kebab → "Copy / Export / Share Travel Docs".
-2. A bottom sheet slides up titled **"Summary language · لغة الملخص"** with three pill options:
-   - **English** · الإنجليزية
-   - **العربية** · Arabic
-   - **Bilingual** · ثنائي اللغة (default highlighted)
-3. Picking an option immediately runs the original action (copy / download / share) with the summary rendered in that language, then closes the sheet.
-4. Toast confirms in the same bilingual style already used elsewhere.
+Passport (2)
+  [x] Passport scan — passport.pdf — Added 18 May 2026
+  [x] Iqama front — iqama.jpg — Added 12 May 2026
 
-The sheet uses the existing teal/gold tokens, the 390 px mobile shell width, and respects dark mode. No new dependencies.
+Visas (1)
+  [x] UK visa — visa-uk.pdf — Added 14 May 2026
 
-## Summary content per language
+Bookings (3)
+  [x] Hotel London — booking.pdf — Added 14 May 2026
+  ...
 
-`buildTravelSummary(lang)` returns:
+Other (1)
+  [x] Misc — note.pdf — Added 10 May 2026
+```
 
-- **en**
-  ```
-  Travel Documents Summary
+**Arabic mirrors this** with `ملخص وثائق السفر`, `تاريخ الإنشاء`, `الإجمالي`, Arabic category labels (reusing `CAT_DEFS` from `TravelRecordsList`), and `[✓]` checkbox glyph that renders consistently RTL.
 
-  - {label} — {file_name} — Added {date}
-  ```
-- **ar** (wrapped `dir="rtl"` only matters for share targets that honor it; the text itself is Arabic)
-  ```
-  ملخص وثائق السفر
+**Bilingual** stacks the English block, a separator (`────────`), then the Arabic block, so each side stays readable on its own.
 
-  - {label} — {file_name} — أُضيفت {date-ar}
-  ```
-  Dates formatted with `toLocaleDateString("ar")`. Document `label` / `file_name` are user-entered free text and stay as-is in both languages (we do not translate user content).
-- **both** (current behaviour, preserved as default)
-  ```
-  Travel Documents Summary
-  ملخص وثائق السفر
+## Format details
 
-  - {label} — {file_name} — Added {en-date} · أُضيفت {ar-date}
-  ```
-
-Export filename varies: `travel-documents.txt`, `travel-documents-ar.txt`, `travel-documents-bilingual.txt`.
-
-Share sheet `title` also switches: `Travel Documents` / `وثائق السفر` / `Travel Documents · وثائق السفر`.
+- Checklist marker: `[x]` for EN, `[✓]` for AR (avoids mixing Latin "x" inside RTL text). All items are present in the vault so all boxes are checked.
+- Category sections only appear if they contain items; counts reflect the **currently visible** filtered list (search + category filter already applied via `visibleTravelDocs`).
+- Date formatting:
+  - EN: `toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })` → `18 May 2026`
+  - AR: `toLocaleDateString("ar-SA", { day: "2-digit", month: "long", year: "numeric" })`
+- Header line `Generated:` / `تاريخ الإنشاء:` uses the same formatter with "now".
+- Section order matches `CAT_DEFS` order (Passport → Visas → Bookings → Lounge → Insurance → Other) so output is deterministic.
+- Indentation is two spaces under each category to give the checklist visual structure in plain-text viewers (WhatsApp, Notes, email).
 
 ## Implementation
 
-**New component** `src/components/records/TravelSummaryLanguageSheet.tsx`
-- Props: `open`, `onClose`, `onPick(lang: "en" | "ar" | "both")`.
-- Fixed-position overlay + bottom card, three pill buttons, cancel chip. Pure presentational, no state outside `open`.
+All work in two existing files. No new files, no backend.
 
-**`src/screens/RecordsScreen.tsx`**
-- Add state: `travelAction: null | "copy" | "export" | "share"`.
-- Refactor `buildTravelSummary` to accept `lang` and produce the three variants above.
-- Refactor `handleCopyTravelDocs`, `handleExportTravelDocs`, `handleShareTravelDocs` into a single `runTravelAction(action, lang)` helper; the existing menu handlers now just set `travelAction` to open the sheet (after the empty-state toast guard).
-- Render `<TravelSummaryLanguageSheet open={!!travelAction} onClose={() => setTravelAction(null)} onPick={(lang) => { runTravelAction(travelAction!, lang); setTravelAction(null); }} />`.
+**`src/components/records/TravelRecordsList.tsx`**
+- Export the existing `classify` function and `CAT_DEFS` so the summary builder can reuse the exact same buckets the UI shows. Pure refactor — no behaviour change.
 
-No backend, database, hook, or other screen is touched. The Medical-tab kebab actions are unchanged.
+**`src/screens/RecordsScreen.tsx`** (`buildTravelSummary`)
+- Group `visibleTravelDocs` with the exported `classify` into a `Map<TravelCat, TransportAttachment[]>` while iterating in `CAT_DEFS` order.
+- Build EN and AR blocks via small helpers (`renderBlock(lang)`).
+- Return EN / AR / EN + separator + AR based on the picked language.
+- Export file names stay `travel-documents.txt`, `travel-documents-ar.txt`, `travel-documents-bilingual.txt`.
+
+The language picker sheet, the kebab entries, and the empty-state toast all stay exactly as they are.
 
 ## Out of scope
-- Translating user-entered document labels / filenames.
-- Language picker for the Medical Records summary (can be added later with the same pattern if requested).
-- PDF/HTML export formats — still plain `.txt`.
+- Translating user-entered `label` / `file_name` (kept verbatim, as before).
+- New PDF/HTML export formats — still `.txt`.
+- Medical Records summary (separate handler, unchanged).
+- Sorting items inside a category beyond the existing visible order.
