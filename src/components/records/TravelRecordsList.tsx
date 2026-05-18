@@ -447,7 +447,11 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
       else if (item.kind === "scanned-travel") setScannedViewer(item.record);
     };
     const expMMYY = item.kind === "lounge-card" ? loungeExpMMYY(item.membership.expiresOn) : "";
+    const attachmentFields = item.kind === "attachment" && Array.isArray((item as any).key_fields)
+      ? ((item as any).key_fields as { label: string; value: string }[]).filter((f) => f?.value?.trim().length > 0)
+      : [];
     const scannedFields = isScanned && item.kind === "scanned-travel" ? (item.record.keyFields ?? []).filter((f) => f.value.trim().length > 0) : [];
+    const cardFields = scannedFields.length ? scannedFields : attachmentFields;
     return (
       <div
         key={item.id}
