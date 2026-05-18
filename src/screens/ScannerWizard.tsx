@@ -702,27 +702,59 @@ const Step2Review = ({
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
         {isPureImage ? (
           <div className="w-full rounded-xl overflow-hidden flex items-center justify-center relative" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", maxHeight: 420 }}>
-            <div className="relative w-full" style={{ maxHeight: 420 }}>
+            <div ref={imgWrapRef} className="relative w-full" style={{ maxHeight: 420, touchAction: cropMode ? "none" : undefined }}>
               <img
                 src={imageUrl!}
                 alt={file.name}
-                className="w-full object-contain transition-all"
+                className="w-full object-contain transition-all select-none"
+                draggable={false}
                 style={{
                   filter: filterCss,
                   transform: `rotate(${rotation}deg)`,
                   maxHeight: 380,
-                  clipPath: cropPct > 0 ? `inset(${cropPct}% ${cropPct}% ${cropPct}% ${cropPct}%)` : undefined,
+                  clipPath: cropActive
+                    ? `inset(${crop.top}% ${crop.right}% ${crop.bottom}% ${crop.left}%)`
+                    : undefined,
                 }}
               />
-              {cropPct > 0 && (
-                <div
-                  className="pointer-events-none absolute"
-                  style={{
-                    inset: `${cropPct}%`,
-                    border: "2px dashed var(--gold)",
-                    boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
-                  }}
-                />
+              {cropMode && (
+                <>
+                  {/* Dim mask + crop window outline */}
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      top: `${crop.top}%`,
+                      right: `${crop.right}%`,
+                      bottom: `${crop.bottom}%`,
+                      left: `${crop.left}%`,
+                      border: "2px dashed var(--gold)",
+                      boxShadow: "0 0 0 9999px rgba(0,0,0,0.55)",
+                    }}
+                  />
+                  {/* Corner + edge handles */}
+                  {([
+                    { k: "tl", style: { top: `${crop.top}%`, left: `${crop.left}%`, transform: "translate(-50%,-50%)", cursor: "nwse-resize" } },
+                    { k: "tr", style: { top: `${crop.top}%`, right: `${crop.right}%`, transform: "translate(50%,-50%)", cursor: "nesw-resize" } },
+                    { k: "bl", style: { bottom: `${crop.bottom}%`, left: `${crop.left}%`, transform: "translate(-50%,50%)", cursor: "nesw-resize" } },
+                    { k: "br", style: { bottom: `${crop.bottom}%`, right: `${crop.right}%`, transform: "translate(50%,50%)", cursor: "nwse-resize" } },
+                  ] as const).map((h) => (
+                    <div
+                      key={h.k}
+                      onPointerDown={(e) => startDrag(h.k, e)}
+                      className="absolute rounded-full"
+                      style={{
+                        ...h.style,
+                        width: 22,
+                        height: 22,
+                        background: "var(--gold)",
+                        border: "2px solid #fff",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.45)",
+                        touchAction: "none",
+                      }}
+                      aria-label={`Crop handle ${h.k}`}
+                    />
+                  ))}
+                </>
               )}
             </div>
           </div>
