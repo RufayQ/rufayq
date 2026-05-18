@@ -73,7 +73,7 @@ export function useArtifactCount({ userId, segmentRef, ticketId, enabled = true 
       cancelled = true;
       void supabase.removeChannel(channel);
     };
-  }, [userId, segmentRef, ticketId, deviceId]);
+  }, [userId, segmentRef, ticketId, deviceId, enabled]);
 
   return count;
 }

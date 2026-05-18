@@ -3,6 +3,7 @@ import { journeyApi, type JourneyRow } from "@/lib/api/journeyApi";
 import { dbJourneyToTrip, tripToDbJourneyInput } from "@/lib/journeyMappers";
 import type { TripData } from "@/components/AddTripSheet";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { useAuthSession } from "@/hooks/useAuthUserId";
 
 export interface UseJourneysResult {
   journeys: TripData[];
@@ -19,6 +20,7 @@ export interface UseJourneysResult {
  */
 export function useJourneys(guestSeed: TripData[] = []): UseJourneysResult {
   const isGuest = useGuestMode();
+  const { isReady: authReady } = useAuthSession();
   const [rows, setRows] = useState<JourneyRow[]>(() => {
     try {
       return (journeyApi as any).listCached?.() ?? [];
@@ -46,8 +48,11 @@ export function useJourneys(guestSeed: TripData[] = []): UseJourneysResult {
   }, [isGuest]);
 
   useEffect(() => {
+    // Avoid the auth-restore race: signed-in users must wait until Supabase
+    // has restored the session, otherwise RLS returns an empty list.
+    if (!isGuest && !authReady) return;
     void refresh();
-  }, [refresh]);
+  }, [refresh, isGuest, authReady]);
 
   const journeys = useMemo<TripData[]>(() => {
     if (isGuest) return guestSeed;
