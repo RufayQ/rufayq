@@ -14,6 +14,7 @@ import TravelRecordsList, { CAT_DEFS, classify, type TravelCat } from "@/compone
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
 import TravelSummaryLanguageSheet, { type SummaryLang } from "@/components/records/TravelSummaryLanguageSheet";
+import TravelDocsPreviewSheet from "@/components/records/TravelDocsPreviewSheet";
 
 type RecordsSegment = "medical" | "travel";
 
