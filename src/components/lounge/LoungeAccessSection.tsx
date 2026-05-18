@@ -626,6 +626,65 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 const LoungeQrSheet = ({
   membership, onClose, onEdit,
 }: { membership: LoungeMembership; onClose: () => void; onEdit: () => void }) => {
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // Try to boost screen brightness while open (best-effort, no-op on web).
+  useEffect(() => {
+    const root = document.documentElement;
+    const prev = root.style.filter;
+    if (fullscreen) root.style.filter = "brightness(1.08)";
+    return () => { root.style.filter = prev; };
+  }, [fullscreen]);
+
+  if (fullscreen) {
+    // Maximum-area, high-density QR for officer scanning.
+    const side = Math.min(
+      typeof window !== "undefined" ? window.innerWidth - 32 : 320,
+      typeof window !== "undefined" ? window.innerHeight - 200 : 480,
+      560,
+    );
+    return (
+      <div
+        className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4"
+        style={{ background: "#ffffff" }}
+        onClick={() => setFullscreen(false)}
+      >
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setFullscreen(false); }}
+          aria-label="Exit fullscreen"
+          className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full btn-press"
+          style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+        >
+          <Minimize2 size={16} />
+        </button>
+        <p className="mb-3 text-[12px] font-bold tracking-wide uppercase" style={{ color: "var(--navy)" }}>
+          {membership.program}
+        </p>
+        <div onClick={(e) => e.stopPropagation()} className="rounded-2xl bg-white p-4" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
+          {membership.qrImageUrl ? (
+            <img
+              src={membership.qrImageUrl}
+              alt="Lounge QR fullscreen"
+              width={side}
+              height={side}
+              style={{ display: "block", imageRendering: "pixelated" }}
+            />
+          ) : (
+            <QRCodeSVG value={buildQrPayload(membership)} size={side} level="H" includeMargin={false} />
+          )}
+        </div>
+        <p className="mt-4 font-mono text-[14px] tracking-[0.22em]" style={{ color: "var(--navy)" }}>
+          {membership.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
+        </p>
+        <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>{membership.cardholderName}</p>
+        <p className="mt-3 text-center text-[10px]" style={{ color: "var(--gray)" }}>
+          Tap anywhere to exit · اضغط للخروج
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.6)" }} onClick={onClose}>
       <div
@@ -640,6 +699,9 @@ const LoungeQrSheet = ({
             <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>اعرض الرمز لموظف الصالة للمسح</p>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setFullscreen(true)} aria-label="Fullscreen QR" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)" }}>
+              <Maximize2 size={13} />
+            </button>
             <button onClick={onEdit} aria-label="Edit" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "var(--off-white)", color: "var(--navy)" }}>
               <Pencil size={13} />
             </button>
@@ -649,44 +711,24 @@ const LoungeQrSheet = ({
           </div>
         </div>
 
-        <div className="rounded-2xl p-5 flex flex-col items-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+        <button
+          type="button"
+          onClick={() => setFullscreen(true)}
+          className="w-full rounded-2xl p-5 flex flex-col items-center btn-press"
+          style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+          aria-label="Open QR in full screen"
+        >
           <div className="rounded-xl bg-white p-3" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
             {membership.qrImageUrl ? (
               <img src={membership.qrImageUrl} alt="Lounge QR" width={196} height={196} style={{ display: "block" }} />
             ) : (
-              <QRCodeSVG value={buildQrPayload(membership)} size={196} level="M" includeMargin={false} />
+              <QRCodeSVG value={buildQrPayload(membership)} size={196} level="H" includeMargin={false} />
             )}
           </div>
-          {membership.qrImageUrl && (
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await saveLoungeMembership({
-                    id: membership.id,
-                    program: membership.program,
-                    membershipNumber: membership.membershipNumber,
-                    cardholderName: membership.cardholderName,
-                    cardLast4: membership.cardLast4,
-                    expiresOn: membership.expiresOn,
-                    linkedSegmentId: membership.linkedSegmentId,
-                    notes: membership.notes,
-                    qrSecret: membership.qrSecret,
-                    entitlementRefreshOn: membership.entitlementRefreshOn,
-                    qrImageUrl: undefined,
-                  });
-                  toast.success("Custom QR removed · تم حذف الرمز المخصص", { duration: 1600 });
-                } catch {
-                  toast.error("Couldn't remove QR · تعذر الحذف");
-                }
-              }}
-              className="mt-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press"
-              style={{ background: "rgba(217,79,79,0.10)", color: "var(--error)" }}
-            >
-              <Trash2 size={11} /> Remove custom QR · استخدم الرمز التلقائي
-            </button>
-          )}
-          <p className="mt-3 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
+          <p className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold" style={{ color: "var(--teal-deep)" }}>
+            <Maximize2 size={11} /> Tap for full screen · ملء الشاشة
+          </p>
+          <p className="mt-2 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
             {membership.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
           </p>
           <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>{membership.cardholderName}</p>
@@ -694,7 +736,37 @@ const LoungeQrSheet = ({
             {membership.cardLast4 && <span>Linked card •••• {membership.cardLast4}</span>}
             {formatExpMMYY(membership.expiresOn) && <span>Exp {formatExpMMYY(membership.expiresOn)}</span>}
           </div>
-        </div>
+        </button>
+
+        {membership.qrImageUrl && (
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await saveLoungeMembership({
+                  id: membership.id,
+                  program: membership.program,
+                  membershipNumber: membership.membershipNumber,
+                  cardholderName: membership.cardholderName,
+                  cardLast4: membership.cardLast4,
+                  expiresOn: membership.expiresOn,
+                  linkedSegmentId: membership.linkedSegmentId,
+                  notes: membership.notes,
+                  qrSecret: membership.qrSecret,
+                  entitlementRefreshOn: membership.entitlementRefreshOn,
+                  qrImageUrl: undefined,
+                });
+                toast.success("Custom QR removed · تم حذف الرمز المخصص", { duration: 1600 });
+              } catch {
+                toast.error("Couldn't remove QR · تعذر الحذف");
+              }
+            }}
+            className="mt-3 mx-auto flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press"
+            style={{ background: "rgba(217,79,79,0.10)", color: "var(--error)" }}
+          >
+            <Trash2 size={11} /> Remove custom QR · استخدم الرمز التلقائي
+          </button>
+        )}
 
         <p className="mt-3 text-center text-[10px]" style={{ color: "var(--gray)" }}>
           Brightness is automatic on most devices · يتم رفع سطوع الشاشة تلقائياً
