@@ -168,6 +168,19 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
 
   const doneCount = milestones.filter((m) => m.state === "done").length;
   const activeId = nearestId ?? selectedId ?? null;
+  const phaseCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    PHASES.forEach((p) => {
+      map.set(p.key, p.key === "all" ? milestones.length : milestones.filter((m) => m.phase === p.key).length);
+    });
+    return map;
+  }, [milestones]);
+  const stateCounts = useMemo(() => ({
+    done: milestones.filter((m) => m.state === "done").length,
+    current: milestones.filter((m) => m.state === "current").length,
+    upcoming: milestones.filter((m) => m.state === "upcoming").length,
+  }), [milestones]);
+  const activeFilterCount = (phaseFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0);
 
   return (
     <section className="px-4 pt-3" aria-label="Helicopter timeline · الخط الزمني الشامل">
