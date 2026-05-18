@@ -229,6 +229,8 @@ const ScannerWizard = ({
 
   // Saved parsed payload from real OCR or manual entry (flight category).
   const [scannedPayload, setScannedPayload] = useState<ScannerSavePayload | null>(null);
+  const scannedPayloadRef = useRef<ScannerSavePayload | null>(null);
+  const handleParsed = (p: ScannerSavePayload | null) => { scannedPayloadRef.current = p; setScannedPayload(p); };
   // Stable id so related-document attachments uploaded on Step 5 stay linked
   // to the resulting flight ticket on the Journey screen.
   const [pendingSegmentRef] = useState(() =>
