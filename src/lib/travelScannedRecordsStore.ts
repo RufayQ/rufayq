@@ -29,6 +29,10 @@ export interface TravelScannedRecord {
   pageImages?: string[];
   /** Optional source PDF URL (signed/blob/data) used when pageImages is empty. */
   pdfUrl?: string;
+  /** Optional original file URL (blob/signed/data) used for PDF/Office/image fallback preview. */
+  fileUrl?: string;
+  /** MIME type of the original uploaded document. */
+  mimeType?: string | null;
 }
 
 const read = (): TravelScannedRecord[] => {
@@ -62,6 +66,8 @@ export const addTravelScannedRecord = (input: {
   keyFields?: { label: string; value: string }[];
   pageImages?: string[];
   pdfUrl?: string;
+  fileUrl?: string;
+  mimeType?: string | null;
 }): TravelScannedRecord => {
   const id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
     ? crypto.randomUUID()
@@ -82,6 +88,8 @@ export const addTravelScannedRecord = (input: {
     keyFields: input.keyFields,
     pageImages: input.pageImages,
     pdfUrl: input.pdfUrl,
+    fileUrl: input.fileUrl,
+    mimeType: input.mimeType ?? null,
   };
   write([rec, ...read()]);
   return rec;
@@ -90,7 +98,7 @@ export const addTravelScannedRecord = (input: {
 /** Patch an existing travel scanned record (title / keyFields / etc.). */
 export const updateTravelScannedRecord = (
   id: string,
-  patch: Partial<Pick<TravelScannedRecord, "title" | "subcategory" | "keyFields" | "fileName">>,
+  patch: Partial<Pick<TravelScannedRecord, "title" | "subcategory" | "keyFields" | "fileName" | "fileUrl" | "mimeType" | "pdfUrl">>,
 ): TravelScannedRecord | null => {
   const all = read();
   const idx = all.findIndex((r) => r.id === id);
