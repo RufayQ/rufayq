@@ -145,7 +145,7 @@ const SupportScreen = ({ onBack }: { onBack: () => void }) => {
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
-      <div className="relative px-5 pt-3 pb-4 shrink-0" style={{ background: "var(--navy)" }}>
+      <div className="relative px-5 pt-6 pb-4 shrink-0" style={{ background: "var(--navy)" }}>
         <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full" style={{ border: "1px solid rgba(197,150,90,0.12)" }} />
         <div className="flex items-center gap-3">
           <button onClick={viewMode === "list" ? onBack : () => { setViewMode("list"); setSelectedTicket(null); }} className="w-8 h-8 rounded-full flex items-center justify-center btn-press" style={{ background: "rgba(255,255,255,0.1)" }}>

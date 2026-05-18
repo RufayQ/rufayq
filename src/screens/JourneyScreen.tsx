@@ -879,7 +879,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
-      <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "var(--navy)" }}>
+      <div className="relative px-5 pt-6 pb-4 overflow-hidden shrink-0" style={{ background: "var(--navy)" }}>
         <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full pointer-events-none" style={{ border: "1px solid rgba(197,150,90,0.12)" }} />
         <div className="flex items-center justify-between">
           <div>

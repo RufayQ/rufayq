@@ -23,7 +23,7 @@ const PricingScreen = ({ onBack }: PricingScreenProps) => {
   return (
     <div className="flex flex-col h-full relative">
       {/* Header */}
-      <div className="px-5 pt-3 pb-5" style={{ background: "linear-gradient(135deg, var(--header-dark-from), var(--header-dark-to))" }}>
+      <div className="px-5 pt-6 pb-5" style={{ background: "linear-gradient(135deg, var(--header-dark-from), var(--header-dark-to))" }}>
         <div className="flex items-center justify-between mb-3">
           <button onClick={onBack} className="btn-press"><ArrowLeft size={20} color="white" /></button>
           <p className="font-display text-lg text-white">Plans · <span className="font-arabic">الباقات</span></p>

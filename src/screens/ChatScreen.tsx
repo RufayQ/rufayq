@@ -495,7 +495,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   if (!persona) {
     return (
       <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden", background: "var(--off-white)" }}>
-        <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(160deg, var(--header-dark-from), var(--header-teal-from))" }}>
+        <div className="relative px-5 pt-6 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(160deg, var(--header-dark-from), var(--header-teal-from))" }}>
           <button onClick={() => setView("inbox")} className="text-[11px] mb-1 btn-press" style={{ color: "rgba(255,255,255,0.7)" }}>← Inbox</button>
           <p className="font-mono text-[10px] tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>04 — AI COMPANION</p>
           <p className="text-white text-[18px] font-bold" style={{ fontFamily: "'DM Sans'" }}>Choose your AI</p>
@@ -534,7 +534,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
-      <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(160deg, var(--header-dark-from), var(--header-teal-from))", minHeight: 120 }}>
+      <div className="relative px-5 pt-6 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(160deg, var(--header-dark-from), var(--header-teal-from))", minHeight: 120 }}>
         <div className="absolute -top-8 -right-8 w-[100px] h-[100px] rounded-full" style={{ border: "1px solid rgba(197,150,90,0.1)" }} />
         <div className="absolute -top-16 -right-16 w-[160px] h-[160px] rounded-full" style={{ border: "1px solid rgba(197,150,90,0.06)" }} />
         <svg className="absolute bottom-0 left-0 w-full" height="20" style={{ opacity: 0.12 }}>

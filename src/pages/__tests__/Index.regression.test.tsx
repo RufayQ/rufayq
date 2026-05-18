@@ -52,7 +52,6 @@ vi.mock("@/lib/roleValidation", () => ({
 }));
 
 // Lightweight screen stubs that surface what we need to assert on.
-vi.mock("@/components/StatusBar", () => ({ default: () => <div data-testid="status-bar" /> }));
 vi.mock("@/components/BottomNav", () => ({ default: () => <div data-testid="bottom-nav" /> }));
 vi.mock("@/components/TrialLockBanner", () => ({ default: () => null }));
 vi.mock("@/components/TourGuide", () => ({ default: () => null }));
