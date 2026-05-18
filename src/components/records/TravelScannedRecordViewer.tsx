@@ -210,6 +210,17 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
               )}
             </div>
 
+            <div className="grid grid-cols-2 gap-2">
+              {fallbackUrl && (
+                <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" download={record.fileName} className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold btn-press" style={{ background: "var(--gold)", color: "var(--white)" }}>
+                  <Download size={13} /> Open / Download
+                </a>
+              )}
+              <button onClick={handleShare} className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold btn-press" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)", gridColumn: fallbackUrl ? undefined : "1 / -1" }}>
+                <Share2 size={13} /> Share
+              </button>
+            </div>
+
             {/* Title */}
             <div>
               <label className="text-[10px] font-semibold" style={{ color: "var(--gray)" }}>
