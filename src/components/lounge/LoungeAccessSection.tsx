@@ -41,6 +41,20 @@ const isoToMMYY = (iso?: string): string => {
 };
 const formatExpMMYY = (iso?: string): string => isoToMMYY(iso);
 
+/** DragonPass-style QR payload: "<membership><6 spaces>=<secret>" — falls back to just the number. */
+const buildQrPayload = (m: { membershipNumber: string; qrSecret?: string }): string =>
+  m.qrSecret ? `${m.membershipNumber}      =${m.qrSecret}` : m.membershipNumber;
+
+/** Format YYYY-MM-DD as "01 Jan 2027". */
+const formatRefreshDate = (iso?: string): string => {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+const isVAC = (program: string) => program.trim().toLowerCase() === "visa airport companion";
+
 /* ─── Brand theming for the credit-card look ─── */
 const brandTheme = (program: string): { bg: string; tagline: string } => {
   const p = program.toLowerCase();
