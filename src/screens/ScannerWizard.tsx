@@ -383,7 +383,7 @@ const ScannerWizard = ({
             subcategory={selectedSub}
             fileName={capturedFile?.name || "document"}
             realFile={realFile}
-            onParsed={setScannedPayload}
+            onParsed={handleParsed}
             onSave={() => {
               if (attachmentMode) {
                 // Skip Step 5 success screen — flush parsed snapshot and save.
