@@ -26,14 +26,10 @@ const BADGE_ICONS: Record<string, typeof LockIcon> = {
   sparkles: SparklesIcon,
 };
 
-/** Locale-aware greeting derived from the visitor's local hour. */
-function getGreeting(): { en: string; ar: string } {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 12)  return { en: "Good morning",   ar: "صباح الخير" };
-  if (h >= 12 && h < 17) return { en: "Good afternoon", ar: "طاب يومك" };
-  if (h >= 17 && h < 22) return { en: "Good evening",   ar: "مساء الخير" };
-  return { en: "Good evening", ar: "مساء الخير" };
-}
+// Greeting is provided by the locale-aware `useGreeting` hook
+// (src/hooks/useGreeting.ts) — derived from the visitor's local clock,
+// refreshed every 60s + on tab focus/visibility so band transitions
+// (e.g. 11:59 → 12:00) surface without a reload.
 
 /**
  * Below-the-fold sections (Features → Footer) live in their own chunk.
