@@ -336,10 +336,20 @@ const LoungeFormSheet = ({
   const [linkedSegmentId, setLinkedSegmentId] = useState(initial?.linkedSegmentId || "");
   const [notes, setNotes] = useState(initial?.notes || "");
   const [qrSecret, setQrSecret] = useState(initial?.qrSecret || "");
+  const [qrSecretError, setQrSecretError] = useState<string | null>(null);
   const [entitlementRefreshOn, setEntitlementRefreshOn] = useState(initial?.entitlementRefreshOn || "");
   const [qrImageUrl, setQrImageUrl] = useState(initial?.qrImageUrl || "");
   const qrFileRef = useRef<HTMLInputElement>(null);
   const vac = isVAC(program);
+
+  /** Numeric, 6–20 digits. Empty is allowed (field is optional). */
+  const validateQrSecret = (raw: string): string | null => {
+    const v = raw.trim();
+    if (!v) return null;
+    if (!/^\d+$/.test(v)) return "QR verifier must be digits only · أرقام فقط";
+    if (v.length < 6 || v.length > 20) return "QR verifier must be 6–20 digits · من 6 إلى 20 رقمًا";
+    return null;
+  };
 
   const handleQrFile = (file: File | null) => {
     if (!file) return;
@@ -362,6 +372,14 @@ const LoungeFormSheet = ({
     if (mmyyDisplay && !iso) {
       toast.error("Expiry must be MM/YY (e.g. 05/29)");
       return;
+    }
+    if (vac) {
+      const err = validateQrSecret(qrSecret);
+      if (err) {
+        setQrSecretError(err);
+        toast.error(err);
+        return;
+      }
     }
     onSave({
       id: initial?.id,
