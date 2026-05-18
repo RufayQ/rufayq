@@ -492,7 +492,7 @@ const Index = () => {
   }, [appView, activeTab]);
 
   const handleTabRenderError = useCallback((key: string, error: Error) => {
-    console.error("[tab-fallback] render failed", key, error);
+    console.error("[tab-fallback] render failed", { tabKey: key, message: error?.message, stack: error?.stack });
     const prev = lastGoodRef.current;
     const sameAsCurrent = `${prev.appView}:${prev.activeTab}` === key;
     const fallbackView: AppView = sameAsCurrent ? "main" : prev.appView;
