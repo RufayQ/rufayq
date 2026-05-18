@@ -354,13 +354,13 @@ const Landing = () => {
               <div className={`h-px w-16 mb-6 ${isAr ? "ml-auto" : ""}`} style={{ background: `linear-gradient(${isAr ? "270deg" : "90deg"}, ${GOLD}, transparent)` }} aria-hidden />
 
               {mode !== "ar" && (
-                <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED }}>{subEn}</p>
+                <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED, whiteSpace: "pre-line" }}>{subEn}</p>
               )}
               {mode !== "en" && (
                 <p
                   className="font-arabic text-[15px] md:text-base mb-9 max-w-md"
                   dir="rtl"
-                  style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)", lineHeight: 1.85, letterSpacing: 0 }}
+                  style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)", lineHeight: 1.85, letterSpacing: 0, whiteSpace: "pre-line" }}
                 >{subAr}</p>
               )}
 
