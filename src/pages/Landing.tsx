@@ -16,6 +16,15 @@ import {
   MenuIcon, XIcon, ChevronDownIcon,
 } from "@/components/HeroIcons";
 
+/** Icon lookup for CMS-driven trust badges. Falls back to a hairline dot. */
+const BADGE_ICONS: Record<string, typeof LockIcon> = {
+  lock: LockIcon,
+  shield: LockIcon,
+  globe: GlobeIcon,
+  heart: HeartIcon,
+  sparkles: SparklesIcon,
+};
+
 /**
  * Below-the-fold sections (Features → Footer) live in their own chunk.
  * The hero paints first using only inline SVG + tiny providers, so the
