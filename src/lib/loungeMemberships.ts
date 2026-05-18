@@ -188,6 +188,9 @@ export const saveLoungeMembership = async (
     expires_on: input.expiresOn ?? null,
     linked_segment_id: input.linkedSegmentId ?? null,
     notes: input.notes ?? null,
+    qr_secret: input.qrSecret ?? null,
+    entitlement_refresh_on: input.entitlementRefreshOn ?? null,
+    qr_image_url: input.qrImageUrl ?? null,
   };
 
   if (input.id) {
