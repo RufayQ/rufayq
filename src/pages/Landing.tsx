@@ -335,8 +335,12 @@ const Landing = () => {
                 <span className="inline-block w-3 h-px" style={{ background: `linear-gradient(270deg, transparent, ${GOLD})` }} aria-hidden />
               </div>
 
-              {/* Headline — display serif, gradient highlight, optional bilingual companion line */}
-              <h1 className="font-display text-5xl md:text-7xl leading-[1.04] mb-6 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
+              {/* Headline — display serif, gradient highlight, optional bilingual companion line.
+                  Arabic Naskh prefers looser leading and no negative tracking. */}
+              <h1
+                className={`font-display text-5xl md:text-7xl mb-7 ${isAr ? "leading-[1.18]" : "leading-[1.04] tracking-tight"}`}
+                style={{ color: TEXT, fontWeight: 300 }}
+              >
                 {mode === "en" && (
                   <>
                     {title1En}<br />
@@ -344,7 +348,7 @@ const Landing = () => {
                   </>
                 )}
                 {mode === "ar" && (
-                  <span dir="rtl" className="font-arabic">
+                  <span dir="rtl" className="font-arabic block" style={{ letterSpacing: 0 }}>
                     {title1Ar}<br />
                     <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{highAr}</span>
                   </span>
@@ -353,7 +357,7 @@ const Landing = () => {
                   <>
                     {title1En}<br />
                     <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{highEn}</span>
-                    <span dir="rtl" className="font-arabic block text-3xl md:text-4xl mt-3" style={{ opacity: 0.85 }}>
+                    <span dir="rtl" className="font-arabic block text-3xl md:text-4xl mt-4 leading-[1.5]" style={{ opacity: 0.85, letterSpacing: 0 }}>
                       {title1Ar} <span style={{ color: GOLD_BRIGHT }}>{highAr}</span>
                     </span>
                   </>
@@ -361,13 +365,17 @@ const Landing = () => {
               </h1>
 
               {/* Gold hairline accent */}
-              <div className="h-px w-16 mb-6" style={{ background: `linear-gradient(90deg, ${GOLD}, transparent)` }} aria-hidden />
+              <div className={`h-px w-16 mb-6 ${isAr ? "ml-auto" : ""}`} style={{ background: `linear-gradient(${isAr ? "270deg" : "90deg"}, ${GOLD}, transparent)` }} aria-hidden />
 
               {mode !== "ar" && (
                 <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED }}>{subEn}</p>
               )}
               {mode !== "en" && (
-                <p className="font-arabic text-sm md:text-base mb-9 leading-relaxed max-w-md" dir="rtl" style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)" }}>{subAr}</p>
+                <p
+                  className="font-arabic text-[15px] md:text-base mb-9 max-w-md"
+                  dir="rtl"
+                  style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)", lineHeight: 1.85, letterSpacing: 0 }}
+                >{subAr}</p>
               )}
 
               {/* Primary CTA — single, decisive */}
