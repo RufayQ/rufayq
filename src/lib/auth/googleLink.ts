@@ -26,7 +26,7 @@ export async function syncGoogleLinkage(userId: string): Promise<void> {
 
     const { data: existing } = await supabase
       .from("profiles")
-      .select("device_id, google_sub, google_email, auth_providers")
+      .select("device_id, google_sub, google_email, auth_providers, email")
       .eq("device_id", deviceId)
       .maybeSingle();
 
@@ -42,13 +42,17 @@ export async function syncGoogleLinkage(userId: string): Promise<void> {
       next.google_email = googleEmail;
       if (!existing?.google_sub) next.google_linked_at = new Date().toISOString();
     }
+    // Backfill the canonical email used by Chat Discovery if the profile has none.
+    const backfillEmail = !existing?.email && (googleEmail || user.email) ? (googleEmail || user.email) : null;
+    if (backfillEmail) next.email = backfillEmail;
 
     // Skip the write if nothing meaningful changed.
     if (
       existing &&
       existing.google_sub === googleSub &&
       existing.google_email === googleEmail &&
-      JSON.stringify(existing.auth_providers || []) === JSON.stringify(providers)
+      JSON.stringify(existing.auth_providers || []) === JSON.stringify(providers) &&
+      !backfillEmail
     ) {
       return;
     }
