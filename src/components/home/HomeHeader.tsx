@@ -42,7 +42,7 @@ const HomeHeader = ({ patientName, patientNameAr, onProfile, menuItems, phase, n
 
   return (
     <div
-      className="relative px-5 pt-3 pb-20 overflow-hidden"
+      className="relative px-5 pt-6 pb-20 overflow-hidden"
       style={{
         background:
           "linear-gradient(155deg, var(--header-teal-from) 0%, var(--header-teal-to) 60%, #003B47 100%)",
