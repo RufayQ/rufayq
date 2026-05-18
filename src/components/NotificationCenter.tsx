@@ -427,6 +427,18 @@ const NotificationCenter = ({
               )}
             </div>
           ))}
+
+          {isHistory && (hasMoreHistoryAlerts || hasMoreHistoryThreads) && (
+            <button
+              onClick={() => {
+                if (hasMoreHistoryAlerts) setHistoryAlertsLimit((n) => n + ALERTS_PAGE);
+                if (hasMoreHistoryThreads) setHistoryThreadsLimit((n) => n + THREADS_PAGE);
+              }}
+              className="mt-2 w-full rounded-2xl border border-border bg-muted/40 px-4 py-3 text-[12px] font-semibold text-card-foreground transition hover:bg-muted"
+            >
+              {showAr && !showEn ? "تحميل المزيد" : "Load older notifications"}
+            </button>
+          )}
         </div>
       </div>
     </div>,
