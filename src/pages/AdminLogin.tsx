@@ -30,11 +30,12 @@ const AdminLogin = () => {
     }
     // Verify role
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
-    const isStaff = roles?.some((r) => r.role === "admin" || r.role === "moderator");
+    const STAFF_ROLES: readonly string[] = ["admin", "moderator", "qc_tester"];
+    const isStaff = roles?.some((r) => STAFF_ROLES.includes(r.role));
     setLoading(false);
     if (!isStaff) {
       await supabase.auth.signOut();
-      toast.error("This account is not a staff account");
+      toast.error("This account doesn't have admin, support, or QC access.");
       return;
     }
     // Audit: staff sign-in
