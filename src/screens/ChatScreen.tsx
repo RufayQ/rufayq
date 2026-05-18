@@ -865,13 +865,62 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
                   <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>{s.ar}</span>
                 </button>
               ))}
+              <button
+                onClick={handleOpenRecords}
+                className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl card-press relative"
+                style={{
+                  background: canAttachFromRecords ? "var(--off-white)" : "var(--gold-pale)",
+                  border: canAttachFromRecords ? "1px solid var(--gray-light)" : "1px solid var(--gold)",
+                }}
+              >
+                <span className="text-xl">📂</span>
+                <span className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>My Records</span>
+                <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>سجلاتي</span>
+                {!canAttachFromRecords && (
+                  <span
+                    className="absolute top-1 right-1 text-[8px] font-mono px-1 rounded"
+                    style={{ background: "var(--gold)", color: "white" }}
+                  >
+                    ELITE
+                  </span>
+                )}
+              </button>
             </div>
             {uploadedFile && (
               <div className="mx-5 mt-3">
                 <FileUploadPreview file={uploadedFile} onRemove={() => setUploadedFile(null)} lang="both" maxHeight={180} />
               </div>
             )}
-            {uploadedFile && (
+            {selectedRecord && !uploadedFile && (
+              <div className="mx-5 mt-3">
+                <div
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                  style={{ background: "var(--off-white)", border: "1px solid var(--gold)" }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                    style={{
+                      background: selectedRecord.kind === "travel" ? "var(--gold-pale)" : "var(--teal-light)",
+                      color: selectedRecord.kind === "travel" ? "var(--gold)" : "var(--teal-deep)",
+                    }}
+                  >
+                    {selectedRecord.kind === "travel" ? "✈️" : "🩺"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>
+                      {selectedRecord.label}
+                    </p>
+                    <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
+                      {selectedRecord.file_name} · {selectedRecord.sourceLabelEn}
+                    </p>
+                  </div>
+                  <button onClick={() => setSelectedRecord(null)} className="btn-press shrink-0" aria-label="Remove">
+                    <X size={16} style={{ color: "var(--gray)" }} />
+                  </button>
+                </div>
+              </div>
+            )}
+            {(uploadedFile || selectedRecord) && (
               <div className="mx-5 mt-2">
                 <textarea
                   value={uploadInstruction}
@@ -884,7 +933,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
                 />
               </div>
             )}
-            {uploadedFile && (
+            {(uploadedFile || selectedRecord) && (
               <div className="px-5 mt-3">
                 <button onClick={handleUploadSend} className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 btn-press" style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
                   <RufayQLogo size={16} variant="light" />
