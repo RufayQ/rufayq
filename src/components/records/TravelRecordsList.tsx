@@ -578,7 +578,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); togglePin(item.id); }}
+                      onClick={(e) => { e.stopPropagation(); togglePin(item.id, item.label); }}
                       className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
                       style={{ background: "var(--navy)", color: "var(--white)" }}
                       aria-label="Unpin"
