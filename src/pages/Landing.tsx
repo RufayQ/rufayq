@@ -25,6 +25,15 @@ const BADGE_ICONS: Record<string, typeof LockIcon> = {
   sparkles: SparklesIcon,
 };
 
+/** Locale-aware greeting derived from the visitor's local hour. */
+function getGreeting(): { en: string; ar: string } {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12)  return { en: "Good morning",   ar: "صباح الخير" };
+  if (h >= 12 && h < 17) return { en: "Good afternoon", ar: "طاب يومك" };
+  if (h >= 17 && h < 22) return { en: "Good evening",   ar: "مساء الخير" };
+  return { en: "Good evening", ar: "مساء الخير" };
+}
+
 /**
  * Below-the-fold sections (Features → Footer) live in their own chunk.
  * The hero paints first using only inline SVG + tiny providers, so the
