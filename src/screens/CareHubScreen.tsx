@@ -123,7 +123,7 @@ const CareHubScreen = ({ onNavigate }: CareHubScreenProps = {}) => {
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
-      <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(145deg, var(--header-dark-from), var(--header-dark-to))" }}>
+      <div className="relative px-5 pt-6 pb-4 overflow-hidden shrink-0" style={{ background: "linear-gradient(145deg, var(--header-dark-from), var(--header-dark-to))" }}>
         <svg className="absolute bottom-0 right-0" width="80" height="80" viewBox="0 0 80 80" fill="none">
           <path d="M80 0 A80 80 0 0 1 0 80" stroke="rgba(197,150,90,0.2)" strokeWidth="1.5" fill="none" />
         </svg>

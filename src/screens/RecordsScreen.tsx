@@ -251,7 +251,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   return (
     <div className="flex flex-col relative" style={{ height: 0, flex: 1, overflow: "hidden" }}>
       {/* Header */}
-      <div className="relative px-5 pt-3 pb-4 overflow-hidden shrink-0" style={{ background: "var(--teal-deep)" }}>
+      <div className="relative px-5 pt-6 pb-4 overflow-hidden shrink-0" style={{ background: "var(--teal-deep)" }}>
         <div className="flex items-center justify-between">
           <div>
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "rgba(255,255,255,0.4)" }}>03 — {segment === "medical" ? "MEDICAL RECORDS" : "TRAVEL RECORDS"}</p>

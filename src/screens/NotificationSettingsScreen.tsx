@@ -87,7 +87,7 @@ const NotificationSettingsScreen = ({ onBack }: Props) => {
   return (
     <div className="flex flex-col h-full">
       <div
-        className="relative px-5 pt-3 pb-4 flex items-center gap-3"
+        className="relative px-5 pt-6 pb-4 flex items-center gap-3"
         style={{ background: "linear-gradient(145deg, var(--header-teal-from), var(--header-teal-to))" }}
       >
         <button onClick={onBack} className="btn-press" aria-label="Back · رجوع">

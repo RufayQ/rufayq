@@ -241,7 +241,7 @@ const MedicationsScreen = ({ onBack, onConsultAI }: MedicationsScreenProps) => {
   return (
     <div className="flex flex-col h-full relative">
       {/* Header */}
-      <div className="px-5 pt-3 pb-4" style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
+      <div className="px-5 pt-6 pb-4" style={{ background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))" }}>
         <div className="flex items-center justify-between mb-3">
           <button onClick={onBack} className="btn-press"><ArrowLeft size={20} color="white" /></button>
           <p className="font-display text-lg text-white">Medications · <span className="font-arabic">الأدوية</span></p>
