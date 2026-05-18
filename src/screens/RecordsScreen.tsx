@@ -64,6 +64,8 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
     return () => window.removeEventListener("rufayq:records-segment", handler);
   }, []);
   const userId = useAuthUserId();
+  const { isReady: authReady } = useAuthSession();
+  const showAuthSkeleton = !isGuest && !authReady;
   const travelCount = useArtifactCount({ userId });
   const [travelStats, setTravelStats] = useState({ total: 0, translated: 0, newCount: 0 });
   const [visibleTravelDocs, setVisibleTravelDocs] = useState<TransportAttachment[]>([]);
