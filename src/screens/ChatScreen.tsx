@@ -94,7 +94,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const [showRecordsPicker, setShowRecordsPicker] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<PickedRecord | null>(null);
   const { subscription } = useSubscription();
-  const canAttachFromRecords = ((): boolean => {
+  /** Device uploads (Camera / Files) are a Companion+ perk. Sharing already-saved records is free. */
+  const canUploadDeviceFiles = ((): boolean => {
     const code = (subscription?.plan || "").toString().toUpperCase();
     return code === "COMPANION" || code === "FAMILY";
   })();
