@@ -1799,7 +1799,7 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
             setOutboundSegs([]);
             setReturnSegs([]);
             setActiveLeg("outbound");
-            setGenericFields(emptyGenericFields(category));
+            setGenericFields(emptyGenericFields(category, subcategory));
             setSaveError(null);
             emitParsed(null);
             if (category === "flight") {
