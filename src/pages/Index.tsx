@@ -566,7 +566,7 @@ const Index = () => {
       >
         {showStatusBar && (
           <div style={{ background: appView === "login" ? "var(--off-white)" : "linear-gradient(135deg, var(--header-teal-from), var(--header-teal-to))" }}>
-            <StatusBar dark={appView === "login"} showLanguage />
+            <StatusBar dark={appView === "login"} />
           </div>
         )}
 
