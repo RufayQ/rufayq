@@ -157,10 +157,11 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
             { text: "For Gulf & global patients", icon: "heart" },
           ],
           mockupCards: [
-            { icon: "🛫", title: "Business · LH 770 → Frankfurt", subtitle: "Boarding 22:40 · Gate A22", accent: "teal" },
-            { icon: "🛋️", title: "Lounge ready · Visa Companion", subtitle: "DXB · Concourse B", accent: "gold" },
-            { icon: "🩺", title: "Prof. Klein — Cleveland Clinic", subtitle: "Tomorrow · 11:00 AM", accent: "teal" },
-            { icon: "🚘", title: "Chauffeur to The Ritz-Carlton", subtitle: "On arrival · 06:20", accent: "gold" },
+            { icon: "✈️", title: "Charité appointment confirmed", subtitle: "Emirates EK 049 → Berlin · 02:15", accent: "gold" },
+            { icon: "🛂", title: "Gate B22 · Medical file ready", subtitle: "Share securely with your doctor", accent: "teal" },
+            { icon: "🩺", title: "Discharge plan reviewed", subtitle: "Specialist signed off · All clear", accent: "gold" },
+            { icon: "🏛️", title: "Family on Museum Island", subtitle: "TourAI itinerary · While you rest", accent: "teal" },
+            { icon: "💚", title: "Day 14 recovery · 92%", subtitle: "Your Saudi doctor fully updated", accent: "gold" },
           ],
         },
         ar: {
