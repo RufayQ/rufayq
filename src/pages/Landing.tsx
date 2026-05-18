@@ -16,6 +16,15 @@ import {
   MenuIcon, XIcon, ChevronDownIcon,
 } from "@/components/HeroIcons";
 
+/** Icon lookup for CMS-driven trust badges. Falls back to a hairline dot. */
+const BADGE_ICONS: Record<string, typeof LockIcon> = {
+  lock: LockIcon,
+  shield: LockIcon,
+  globe: GlobeIcon,
+  heart: HeartIcon,
+  sparkles: SparklesIcon,
+};
+
 /**
  * Below-the-fold sections (Features → Footer) live in their own chunk.
  * The hero paints first using only inline SVG + tiny providers, so the
@@ -59,25 +68,64 @@ const Landing = () => {
   const isBoth = mode === "both";
   const routeIsAr = location.pathname === "/ar" || location.pathname.startsWith("/ar/");
 
-  // ── CMS overrides (Phase 1: hero CTAs + trust badges) ───────────────
+  // ── CMS overrides — full hero is now admin-editable per locale ──────
   // Hardcoded defaults below remain as fallback when CMS is empty / loading.
   const { getSection } = useCmsPage("home");
-  const heroCms = getSection<{
+  type HeroCms = {
+    eyebrow?: string;
+    titleLine1?: string;
+    titleLine2?: string;
+    highlight?: string;
+    subtitle?: string;
     primaryCta?: { label?: string; link?: string };
     secondaryCta?: { label?: string; link?: string };
-    badges?: { text: string }[];
-  }>("hero", isAr ? "ar" : "en");
+    badges?: { text: string; icon?: string }[];
+  };
+  const heroEn = getSection<HeroCms>("hero", "en");
+  const heroAr = getSection<HeroCms>("hero", "ar");
+  const heroPrimary = isAr ? heroAr : heroEn;
+
+  // ── Elite bilingual defaults (rebrand-aligned) ──────────────────────
+  const D = {
+    eyebrowEn: "AI COMPANION · MEDICAL, CULTURAL & BEYOND",
+    eyebrowAr: "رُفَيِّق · رفيقك الذكي في كل رحلة",
+    title1En: "Your AI Companion for",
+    title1Ar: "رُفَيِّقك الذكي في",
+    highlightEn: "Every Journey",
+    highlightAr: "كل رحلة",
+    subtitleEn: "The bilingual AI companion for Gulf patients and travellers worldwide seeking treatment away from home. Track tickets, medications & appointments — and ask anything about your records.",
+    subtitleAr: "رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج. تابع التذاكر والأدوية والمواعيد، واسأل عن أي تفصيل في سجلاتك الطبية.",
+    primaryEn: "Start free",
+    primaryAr: "ابدأ مجاناً",
+    secondaryEn: "Explore pricing",
+    secondaryAr: "استعرض الأسعار",
+  };
+
+  const eyebrowEn = heroEn?.eyebrow || D.eyebrowEn;
+  const eyebrowAr = heroAr?.eyebrow || D.eyebrowAr;
+  const title1En  = heroEn?.titleLine1 || D.title1En;
+  const title1Ar  = heroAr?.titleLine1 || D.title1Ar;
+  const highEn    = heroEn?.highlight || D.highlightEn;
+  const highAr    = heroAr?.highlight || D.highlightAr;
+  const subEn     = heroEn?.subtitle || D.subtitleEn;
+  const subAr     = heroAr?.subtitle || D.subtitleAr;
+  const primaryLabel   = heroPrimary?.primaryCta?.label   || (isAr ? D.primaryAr   : D.primaryEn);
+  const primaryLink    = heroPrimary?.primaryCta?.link    || "/auth";
+  const secondaryLabel = heroPrimary?.secondaryCta?.label || (isAr ? D.secondaryAr : D.secondaryEn);
+  const secondaryLink  = heroPrimary?.secondaryCta?.link  || "/#pricing";
 
   const defaultTrust = [
-    { Icon: LockIcon, en: "End-to-end encrypted", ar: "تشفير كامل" },
-    { Icon: GlobeIcon, en: "Bilingual EN / AR", ar: "ثنائي اللغة عربي/إنجليزي" },
-    { Icon: HeartIcon, en: "For Gulf & global patients", ar: "لمرضى الخليج والعالم" },
+    { icon: "lock",     en: "End-to-end encrypted",       ar: "تشفير كامل" },
+    { icon: "globe",    en: "Bilingual EN / AR",          ar: "ثنائي اللغة عربي/إنجليزي" },
+    { icon: "heart",    en: "For Gulf & global patients", ar: "لمرضى الخليج والعالم" },
   ];
-  const trustPoints = (heroCms?.badges?.length ?? 0) > 0
-    ? heroCms!.badges!.map((b) => ({ Icon: LockIcon, en: b.text, ar: b.text }))
-    : defaultTrust;
-
-  const ctaPrimaryLabel = heroCms?.primaryCta?.label || (isAr ? "ابدأ مجاناً" : "Start free");
+  const cmsBadges = (isAr ? heroAr : heroEn)?.badges ?? [];
+  const trustPoints = cmsBadges.length > 0
+    ? cmsBadges.map((b) => ({
+        Icon: (b.icon && BADGE_ICONS[b.icon.toLowerCase()]) || LockIcon,
+        en: b.text, ar: b.text,
+      }))
+    : defaultTrust.map((d) => ({ Icon: BADGE_ICONS[d.icon], en: d.en, ar: d.ar }));
 
   const navLinks: { en: string; ar: string; href: string; isRoute?: boolean; anchorId?: string }[] = [
     { en: "Features", ar: "المميزات", href: "#features" },
@@ -220,40 +268,86 @@ const Landing = () => {
 
           <div className="relative max-w-6xl mx-auto px-6 py-20 md:py-32 grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-mono mb-7" style={{ background: "rgba(197,150,90,0.08)", color: GOLD, border: `1px solid ${BORDER}` }}>
+              {/* Eyebrow — hairline-flanked, bilingual aware */}
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full text-[10px] font-mono mb-7" style={{ background: "rgba(197,150,90,0.08)", color: GOLD, border: `1px solid ${BORDER}` }}>
                 <SparklesIcon size={11} />
-                {mode === "en" && "AI COMPANION · MEDICAL, CULTURAL & BEYOND"}
-                {mode === "ar" && <span dir="rtl" className="font-arabic">رُفَيِّق · رفيقك الذكي في كل رحلة</span>}
-                {isBoth && <>AI COMPANION · <span dir="rtl" className="font-arabic">رُفَيِّق</span></>}
+                <span className="inline-block w-3 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD})` }} aria-hidden />
+                {mode === "en" && <span className="tracking-[0.18em]">{eyebrowEn}</span>}
+                {mode === "ar" && <span dir="rtl" className="font-arabic tracking-wide">{eyebrowAr}</span>}
+                {isBoth && (
+                  <>
+                    <span className="tracking-[0.18em]">{eyebrowEn.split("·")[0]?.trim() || "AI COMPANION"}</span>
+                    <span className="opacity-50" aria-hidden>·</span>
+                    <span dir="rtl" className="font-arabic">رُفَيِّق</span>
+                  </>
+                )}
+                <span className="inline-block w-3 h-px" style={{ background: `linear-gradient(270deg, transparent, ${GOLD})` }} aria-hidden />
               </div>
 
-              <h1 className="font-display text-5xl md:text-7xl leading-[1.05] mb-7 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
-                {mode === "en" && (<>Your AI Companion for<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Every Journey</span></>)}
-                {mode === "ar" && (<span dir="rtl" className="font-arabic">رُفَيِّقك الذكي في<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>كل رحلة</span></span>)}
-                {isBoth && (<>Your AI Companion for<br /><span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Every Journey</span><span dir="rtl" className="font-arabic block text-3xl md:text-4xl mt-3" style={{ opacity: 0.85 }}>رُفَيِّقك الذكي في كل رحلة</span></>)}
+              {/* Headline — display serif, gradient highlight, optional bilingual companion line */}
+              <h1 className="font-display text-5xl md:text-7xl leading-[1.04] mb-6 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
+                {mode === "en" && (
+                  <>
+                    {title1En}<br />
+                    <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{highEn}</span>
+                  </>
+                )}
+                {mode === "ar" && (
+                  <span dir="rtl" className="font-arabic">
+                    {title1Ar}<br />
+                    <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{highAr}</span>
+                  </span>
+                )}
+                {isBoth && (
+                  <>
+                    {title1En}<br />
+                    <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{highEn}</span>
+                    <span dir="rtl" className="font-arabic block text-3xl md:text-4xl mt-3" style={{ opacity: 0.85 }}>
+                      {title1Ar} <span style={{ color: GOLD_BRIGHT }}>{highAr}</span>
+                    </span>
+                  </>
+                )}
               </h1>
 
+              {/* Gold hairline accent */}
+              <div className="h-px w-16 mb-6" style={{ background: `linear-gradient(90deg, ${GOLD}, transparent)` }} aria-hidden />
+
               {mode !== "ar" && (
-                <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED }}>
-                  The bilingual AI companion for Gulf patients and travellers worldwide seeking treatment away from home. Track tickets, medications &amp; appointments — and ask anything about your records.
-                </p>
+                <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED }}>{subEn}</p>
               )}
               {mode !== "en" && (
-                <p className="font-arabic text-sm md:text-base mb-9 leading-relaxed max-w-md" dir="rtl" style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)" }}>
-                  رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج. تابع التذاكر والأدوية والمواعيد، واسأل عن أي تفصيل في سجلاتك الطبية.
-                </p>
+                <p className="font-arabic text-sm md:text-base mb-9 leading-relaxed max-w-md" dir="rtl" style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)" }}>{subAr}</p>
               )}
 
-              <div className="flex mt-4" style={{ minHeight: 56 }}>
-                <button onClick={() => navigate(lp("/auth"))} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02] w-full sm:w-auto" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
-                  {ctaPrimaryLabel} <ArrowRightIcon size={15} />
+              {/* CTAs — primary gold + secondary ghost */}
+              <div className="flex flex-wrap items-center gap-3 mt-4" style={{ minHeight: 56 }}>
+                <button onClick={() => navigate(lp(primaryLink))} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02]" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
+                  {primaryLabel} <ArrowRightIcon size={15} />
                 </button>
+                {secondaryLabel && (
+                  <a
+                    href={secondaryLink.startsWith("/#") ? secondaryLink.slice(1) : undefined}
+                    onClick={(e) => {
+                      if (secondaryLink.startsWith("#") || secondaryLink.startsWith("/#")) return;
+                      e.preventDefault();
+                      navigate(lp(secondaryLink));
+                    }}
+                    className="px-6 py-4 rounded-full text-sm font-semibold flex items-center gap-2 btn-press transition-all hover:bg-white/[0.04]"
+                    style={{ color: TEXT, border: `1px solid ${GOLD}55` }}
+                  >
+                    {secondaryLabel}
+                    <ChevronDownIcon size={13} />
+                  </a>
+                )}
               </div>
 
-              <div className="flex flex-wrap gap-5 mt-10" style={{ minHeight: 18 }}>
+              {/* Trust badges — refined row with hairline separators */}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 mt-10" style={{ minHeight: 18 }}>
                 {trustPoints.map((t, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <t.Icon size={13} color={GOLD} />
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(197,150,90,0.10)", border: `1px solid ${GOLD}33` }}>
+                      <t.Icon size={11} color={GOLD} />
+                    </span>
                     <span className="text-[11px] font-mono tracking-wide" style={{ color: TEXT_MUTED }}>
                       {isAr ? <span className="font-arabic">{t.ar}</span> : t.en}
                     </span>
