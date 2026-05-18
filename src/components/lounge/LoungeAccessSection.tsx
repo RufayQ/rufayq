@@ -567,7 +567,11 @@ const LoungeQrSheet = ({
 
         <div className="rounded-2xl p-5 flex flex-col items-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
           <div className="rounded-xl bg-white p-3" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
-            <QRCodeSVG value={membership.membershipNumber} size={196} level="M" includeMargin={false} />
+            {membership.qrImageUrl ? (
+              <img src={membership.qrImageUrl} alt="Lounge QR" width={196} height={196} style={{ display: "block" }} />
+            ) : (
+              <QRCodeSVG value={buildQrPayload(membership)} size={196} level="M" includeMargin={false} />
+            )}
           </div>
           <p className="mt-3 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
             {membership.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
