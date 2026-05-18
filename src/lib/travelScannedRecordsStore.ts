@@ -25,6 +25,8 @@ export interface TravelScannedRecord {
   fileName: string;          // original captured file name
   pageCount: number;
   keyFields?: { label: string; value: string }[];
+  /** Captured page images (data URLs) used for in-app preview / fullscreen. */
+  pageImages?: string[];
 }
 
 const read = (): TravelScannedRecord[] => {
@@ -56,6 +58,7 @@ export const addTravelScannedRecord = (input: {
   fileName?: string;
   pageCount?: number;
   keyFields?: { label: string; value: string }[];
+  pageImages?: string[];
 }): TravelScannedRecord => {
   const id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
     ? crypto.randomUUID()
@@ -72,11 +75,26 @@ export const addTravelScannedRecord = (input: {
     subcategory: input.subcategory ?? null,
     title,
     fileName: input.fileName || `${title}.pdf`,
-    pageCount: input.pageCount || 1,
+    pageCount: input.pageCount || (input.pageImages?.length || 1),
     keyFields: input.keyFields,
+    pageImages: input.pageImages,
   };
   write([rec, ...read()]);
   return rec;
+};
+
+/** Patch an existing travel scanned record (title / keyFields / etc.). */
+export const updateTravelScannedRecord = (
+  id: string,
+  patch: Partial<Pick<TravelScannedRecord, "title" | "subcategory" | "keyFields" | "fileName">>,
+): TravelScannedRecord | null => {
+  const all = read();
+  const idx = all.findIndex((r) => r.id === id);
+  if (idx === -1) return null;
+  const next = { ...all[idx], ...patch };
+  all[idx] = next;
+  write(all);
+  return next;
 };
 
 export const removeTravelScannedRecord = (id: string) => {
