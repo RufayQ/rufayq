@@ -33,6 +33,16 @@ type UnifiedRow =
       mime_type: null;
       size_bytes: null;
       membership: LoungeMembership;
+    }
+  | {
+      kind: "scanned-travel";
+      id: string; // synthetic: "scanned:<recordId>"
+      label: string;
+      file_name: string;
+      created_at: string;
+      mime_type: null;
+      size_bytes: null;
+      record: TravelScannedRecord;
     };
 
 const loungeExpMMYY = (iso?: string): string => {
@@ -50,6 +60,17 @@ const membershipToRow = (m: LoungeMembership): UnifiedRow => ({
   mime_type: null,
   size_bytes: null,
   membership: m,
+});
+
+const scannedToRow = (r: TravelScannedRecord): UnifiedRow => ({
+  kind: "scanned-travel",
+  id: `scanned:${r.id}`,
+  label: r.title,
+  file_name: r.fileName,
+  created_at: r.createdAt,
+  mime_type: null,
+  size_bytes: null,
+  record: r,
 });
 
 const BUCKET = "transport-attachments";
