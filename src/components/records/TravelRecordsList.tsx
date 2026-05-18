@@ -726,6 +726,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
           if (!menuItem) return;
           if (menuItem.kind === "lounge-card") setQrTarget(menuItem.membership);
           else if (menuItem.kind === "attachment") void openPreview(menuItem);
+          else if (menuItem.kind === "scanned-travel") setScannedViewer(menuItem.record);
         }}
         onRename={
           menuItem && menuItem.kind === "attachment"
