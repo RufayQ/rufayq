@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
 import type { TransportSegment } from "@/components/TransportCard";
 import {
@@ -11,6 +11,7 @@ import {
   fetchLoungeMemberships,
   type LoungeMembership,
 } from "@/lib/loungeMemberships";
+import QrImageEditor from "./QrImageEditor";
 
 interface Props {
   /** Flight segments shown in the linker dropdown so the user can tag a card to a flight. */
