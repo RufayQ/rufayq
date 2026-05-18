@@ -803,7 +803,7 @@ const Step2Review = ({
                 Edits will be baked in when you continue
               </p>
               <button
-                onClick={() => { setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0); setCropPct(0); }}
+                onClick={() => { setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0); setCrop({ top: 0, right: 0, bottom: 0, left: 0 }); setCropMode(false); }}
                 className="text-[10px] font-bold btn-press"
                 style={{ color: "var(--gold)" }}
               >
