@@ -186,10 +186,10 @@ const Landing = () => {
   return (
     <>
       <SeoLazy
-        title={isAr ? "رُفَيِّق — رفيقك الطبي ثنائي اللغة للسفر للعلاج" : "RufayQ — Bilingual AI Medical Travel Companion"}
+        title={isAr ? "رُفَيِّق — رُفَيِّقك الذكي في كل رحلة" : "RufayQ — Your AI Companion for Every Journey"}
         description={isAr
-          ? "رُفَيِّق هو الرفيق الذكي ثنائي اللغة لمرضى الخليج المسافرين للعلاج. تتبّع الرحلات، الأدوية، المواعيد، وكل تقاريرك الطبية."
-          : "RufayQ is the bilingual EN/AR AI companion for Gulf patients travelling for treatment. Track flights, medications, appointments, and every medical report."}
+          ? "رُفَيِّق — رفيقك الذكي ثنائي اللغة لكل رحلة، طبيًا وثقافيًا وأكثر. خزنة وثائق وتتبع رحلات و٦ مرافقين بالذكاء الاصطناعي."
+          : "Bilingual EN/AR AI companion for patients and families traveling abroad — medical, cultural & beyond. Vault, journey tracker, and 6 AI companions."}
       />
       <div className="min-h-screen" style={{ background: BG_DARK, color: TEXT, fontFamily: "'DM Sans', system-ui" }} dir={isAr ? "rtl" : "ltr"}>
         {/* NAV */}
