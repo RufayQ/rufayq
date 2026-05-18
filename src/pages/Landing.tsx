@@ -100,8 +100,8 @@ const Landing = () => {
     title1Ar: "رُفَيِّقك الذكي في",
     highlightEn: "for Every Journey",
     highlightAr: "كل رحلة",
-    subtitleEn: "From medical treatment to cultural discovery — RufayQ guides you and your family in Arabic and English with vault, journey tracker, and 6 specialized AI companions.",
-    subtitleAr: "من رحلة العلاج إلى الاستكشاف الثقافي — رُفَيِّق يرافقك وعائلتك بالعربية والإنجليزية مع ٦ رُفَيِّقات ذكاء اصطناعي متخصصين.",
+    subtitleEn: "Healing abroad shouldn't mean going it alone.\nRufayQ speaks your language, guards your medical records, and takes care of your family — from your first appointment to the day you land back home.",
+    subtitleAr: "لأن العلاج في الخارج لا يعني أن تكون وحدك.\nرُفَيِّق يتكلّم لغتك، يحفظ ملفّك الطبي، ويرافق عائلتك — من أول موعد حتى تعود للوطن.",
     primaryEn: "Start free",
     primaryAr: "ابدأ مجاناً",
     secondaryEn: "Explore pricing",
@@ -354,13 +354,13 @@ const Landing = () => {
               <div className={`h-px w-16 mb-6 ${isAr ? "ml-auto" : ""}`} style={{ background: `linear-gradient(${isAr ? "270deg" : "90deg"}, ${GOLD}, transparent)` }} aria-hidden />
 
               {mode !== "ar" && (
-                <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED }}>{subEn}</p>
+                <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED, whiteSpace: "pre-line" }}>{subEn}</p>
               )}
               {mode !== "en" && (
                 <p
                   className="font-arabic text-[15px] md:text-base mb-9 max-w-md"
                   dir="rtl"
-                  style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)", lineHeight: 1.85, letterSpacing: 0 }}
+                  style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)", lineHeight: 1.85, letterSpacing: 0, whiteSpace: "pre-line" }}
                 >{subAr}</p>
               )}
 
