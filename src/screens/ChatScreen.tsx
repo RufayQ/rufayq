@@ -94,7 +94,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const [showRecordsPicker, setShowRecordsPicker] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<PickedRecord | null>(null);
   const { subscription } = useSubscription();
-  const canAttachFromRecords = ((): boolean => {
+  /** Device uploads (Camera / Files) are a Companion+ perk. Sharing already-saved records is free. */
+  const canUploadDeviceFiles = ((): boolean => {
     const code = (subscription?.plan || "").toString().toUpperCase();
     return code === "COMPANION" || code === "FAMILY";
   })();
@@ -357,14 +358,24 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
     setShowUploadSheet(false);
   };
 
+  /** Records sharing is free for all tiers. */
   const handleOpenRecords = () => {
-    if (!canAttachFromRecords) {
+    setShowRecordsPicker(true);
+  };
+
+  /** Device camera/file uploads are gated to Companion+. */
+  const handleOpenDeviceUpload = (capture: boolean) => {
+    if (!canUploadDeviceFiles) {
       setUpgradeCtx({ variant: "subscriber", plan: "COMPANION" });
       setShowUpgrade(true);
       toast.info("Companion feature · ميزة كومبانيون", { duration: 2200 });
       return;
     }
-    setShowRecordsPicker(true);
+    if (fileInputRef.current) {
+      if (capture) fileInputRef.current.setAttribute("capture", "environment");
+      else fileInputRef.current.removeAttribute("capture");
+      fileInputRef.current.click();
+    }
   };
 
   const handleCopyChat = () => {
@@ -849,41 +860,34 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
               ].map((s) => (
                 <button
                   key={s.label}
-                  onClick={() => {
-                    if (fileInputRef.current) {
-                      // Use capture attribute for the camera variant on supporting browsers
-                      if (s.capture) fileInputRef.current.setAttribute("capture", "environment");
-                      else fileInputRef.current.removeAttribute("capture");
-                      fileInputRef.current.click();
-                    }
+                  onClick={() => handleOpenDeviceUpload(s.capture)}
+                  className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl card-press relative"
+                  style={{
+                    background: canUploadDeviceFiles ? "var(--off-white)" : "var(--gold-pale)",
+                    border: canUploadDeviceFiles ? "1px solid var(--gray-light)" : "1px solid var(--gold)",
                   }}
-                  className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl card-press"
-                  style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
                 >
                   <span className="text-xl">{s.emoji}</span>
                   <span className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>{s.label}</span>
                   <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>{s.ar}</span>
+                  {!canUploadDeviceFiles && (
+                    <span
+                      className="absolute top-1 right-1 text-[8px] font-mono px-1 rounded"
+                      style={{ background: "var(--gold)", color: "white" }}
+                    >
+                      ELITE
+                    </span>
+                  )}
                 </button>
               ))}
               <button
                 onClick={handleOpenRecords}
-                className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl card-press relative"
-                style={{
-                  background: canAttachFromRecords ? "var(--off-white)" : "var(--gold-pale)",
-                  border: canAttachFromRecords ? "1px solid var(--gray-light)" : "1px solid var(--gold)",
-                }}
+                className="flex-1 flex flex-col items-center gap-1 py-3 rounded-xl card-press"
+                style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
               >
                 <span className="text-xl">📂</span>
                 <span className="text-[11px] font-bold" style={{ color: "var(--navy)" }}>My Records</span>
                 <span className="font-arabic text-[9px]" style={{ color: "var(--gray)" }}>سجلاتي</span>
-                {!canAttachFromRecords && (
-                  <span
-                    className="absolute top-1 right-1 text-[8px] font-mono px-1 rounded"
-                    style={{ background: "var(--gold)", color: "white" }}
-                  >
-                    ELITE
-                  </span>
-                )}
               </button>
             </div>
             {uploadedFile && (
