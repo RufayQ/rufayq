@@ -146,15 +146,16 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
     case "hero":
       return {
         en: {
-          eyebrow: "AI COMPANION · MEDICAL, TRAVEL & MORE",
-          titleLine1: "Your AI Travel Companion",
-          highlight: "& More",
-          subtitle: "From medical journeys to lifestyle, RufayQ guides Gulf travellers worldwide — bilingual vault, journey, tickets, medications and 24/7 AI support.",
+          eyebrow: "AI Companion · Medical, Cultural & Beyond",
+          titleLine1: "Your AI Companion",
+          highlight: "for Every Journey",
+          subtitle: "From medical treatment to cultural discovery — RufayQ guides you and your family in Arabic and English with vault, journey tracker, and 6 specialized AI companions.",
           primaryCta: { label: "Start free", link: "/auth" },
           badges: [
-            { text: "End-to-end encrypted", icon: "lock" },
-            { text: "Bilingual EN / AR", icon: "globe" },
-            { text: "For Gulf & global patients", icon: "heart" },
+            { text: "Trusted by Saudi families", icon: "heart" },
+            { text: "Arabic-first support", icon: "globe" },
+            { text: "Medical + cultural AI", icon: "lock" },
+            { text: "6 AI companions", icon: "heart" },
           ],
           mockupCards: [
             { icon: "✈️", title: "Charité appointment confirmed", subtitle: "Emirates EK 049 → Berlin · 02:15", accent: "gold" },
@@ -165,15 +166,16 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
           ],
         },
         ar: {
-          eyebrow: "رُفَيِّق · للسفر العلاجي وأكثر",
-          titleLine1: "رفيقك الذكي للسفر",
-          highlight: "وأكثر",
-          subtitle: "من الرحلات العلاجية إلى أسلوب الحياة، يرافقك رُفَيِّق حول العالم — خزانة طبية ثنائية اللغة، رحلات، تذاكر، أدوية ودعم ذكي على مدار الساعة.",
+          eyebrow: "رُفَيِّق · طبي، ثقافي، وأكثر",
+          titleLine1: "رُفَيِّقك الذكي في",
+          highlight: "كل رحلة",
+          subtitle: "من رحلة العلاج إلى الاستكشاف الثقافي — رُفَيِّق يرافقك وعائلتك بالعربية والإنجليزية مع ٦ رُفَيِّقات ذكاء اصطناعي متخصصين.",
           primaryCta: { label: "ابدأ مجاناً", link: "/auth" },
           badges: [
-            { text: "تشفير كامل", icon: "lock" },
-            { text: "ثنائي اللغة عربي/إنجليزي", icon: "globe" },
-            { text: "لمرضى الخليج والعالم", icon: "heart" },
+            { text: "موثوق من العائلات السعودية", icon: "heart" },
+            { text: "دعم عربي أولاً", icon: "globe" },
+            { text: "ذكاء اصطناعي طبي وثقافي", icon: "lock" },
+            { text: "٦ رُفَيِّقات ذكاء اصطناعي", icon: "heart" },
           ],
           mockupCards: [
             { icon: "✈️", title: "موعد شاريتيه مؤكّد", subtitle: "طيران الإمارات EK 049 → برلين · 02:15", accent: "gold" },
