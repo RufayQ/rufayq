@@ -103,11 +103,9 @@ describe("TravelScannedRecordViewer · Visa", () => {
       pdfUrl: "https://example.com/visa.pdf",
     });
 
-    const { container } = render(
-      <TravelScannedRecordViewer record={record} onClose={() => {}} />,
-    );
+    render(<TravelScannedRecordViewer record={record} onClose={() => {}} />);
 
-    const obj = container.querySelector('object[type="application/pdf"]') as HTMLObjectElement | null;
+    const obj = document.body.querySelector('object[type="application/pdf"]') as HTMLObjectElement | null;
     expect(obj).not.toBeNull();
     expect(obj!.getAttribute("data")).toContain("https://example.com/visa.pdf");
     // Iframe fallback is present inside the object element.
