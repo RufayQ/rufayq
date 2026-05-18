@@ -57,6 +57,16 @@ const NotificationCenter = ({
 
   const [categoryFilter, setCategoryFilter] = useState<Category>("all");
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const ALERTS_PAGE = 50;
+  const THREADS_PAGE = 30;
+  const [historyAlertsLimit, setHistoryAlertsLimit] = useState(ALERTS_PAGE);
+  const [historyThreadsLimit, setHistoryThreadsLimit] = useState(THREADS_PAGE);
+
+  // Reset history pagination when tab or category filter changes.
+  useEffect(() => {
+    setHistoryAlertsLimit(ALERTS_PAGE);
+    setHistoryThreadsLimit(THREADS_PAGE);
+  }, [tab, categoryFilter]);
 
   // Map an alert's kind → category id (for pref filtering).
   const kindCategory = (kind: string): Exclude<NotificationCategoryId, "chats"> | null => {
