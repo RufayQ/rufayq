@@ -24,7 +24,8 @@ import {
   type DuplicateTicketMatch,
 } from "@/lib/transportTickets";
 import { getDeviceId } from "@/hooks/useDeviceId";
-import { useAuthUserId } from "@/hooks/useAuthUserId";
+import { useAuthUserId, useAuthSession } from "@/hooks/useAuthUserId";
+import JourneyContentSkeleton from "@/components/journey/JourneyContentSkeleton";
 import { useAppointments } from "@/hooks/useAppointments";
 import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { useProviderAppointments, type ProviderAppointmentRow } from "@/hooks/useProviderAppointments";
