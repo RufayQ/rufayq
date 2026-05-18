@@ -645,6 +645,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
               const handleOpen = () => {
                 if (item.kind === "lounge-card") setQrTarget(item.membership);
                 else if (item.kind === "attachment") void openPreview(item);
+                else if (item.kind === "scanned-travel") setScannedViewer(item.record);
               };
               return (
                 <div
