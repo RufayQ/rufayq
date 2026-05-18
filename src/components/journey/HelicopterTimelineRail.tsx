@@ -473,29 +473,44 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
               </button>
             </div>
 
-            <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>PHASE · المرحلة</p>
+            <p className="font-mono text-[8px] tracking-[0.22em] mb-2" style={{ color: "var(--teal-deep)" }}>
+              PHASE · <span className="font-arabic">المرحلة</span>
+            </p>
             <div className="mb-4 flex flex-wrap gap-1.5">
               {PHASES.map((p) => {
                 const active = phaseFilter === p.key;
+                const count = phaseCounts.get(p.key) ?? 0;
                 return (
                   <button
                     key={p.key}
                     onClick={() => setPhaseFilter(p.key)}
-                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press outline-none"
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press outline-none transition-transform"
                     style={{
                       background: active ? p.color : "var(--white)",
                       color: active ? "var(--white)" : p.color,
                       border: `1px solid ${p.color}`,
+                      boxShadow: active ? "0 0 0 2px rgba(197,150,90,0.30)" : "none",
                     }}
                   >
                     {active && <Check size={12} />}
                     {p.en} · <span className="font-arabic">{p.ar}</span>
+                    <span
+                      className="ml-0.5 rounded-full px-1.5 text-[9px] font-bold"
+                      style={{
+                        background: active ? "rgba(255,255,255,0.22)" : "var(--off-white)",
+                        color: active ? "white" : p.color,
+                      }}
+                    >
+                      {count}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>STATE · الحالة</p>
+            <p className="font-mono text-[8px] tracking-[0.22em] mb-2" style={{ color: "var(--teal-deep)" }}>
+              STATE · <span className="font-arabic">الحالة</span>
+            </p>
             <div className="mb-5 flex flex-wrap gap-1.5">
               {STATES.map((st) => {
                 const active = stateFilter === st.key;
@@ -503,11 +518,12 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
                   <button
                     key={st.key}
                     onClick={() => setStateFilter(st.key)}
-                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press outline-none"
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press outline-none transition-transform"
                     style={{
                       background: active ? "var(--navy)" : "transparent",
                       color: active ? "var(--white)" : "var(--navy)",
                       border: "1px solid var(--navy)",
+                      boxShadow: active ? "0 0 0 2px rgba(197,150,90,0.30)" : "none",
                     }}
                   >
                     {active && <Check size={12} />}
@@ -520,17 +536,21 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
             <div className="flex gap-2">
               <button
                 onClick={() => { setPhaseFilter("all"); setStateFilter("all"); }}
-                className="flex-1 rounded-full py-2.5 text-[12px] font-bold btn-press"
-                style={{ background: "var(--off-white)", color: "var(--navy)" }}
+                className="flex-1 rounded-xl py-2.5 text-[12px] font-bold btn-press"
+                style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}
               >
-                Reset · إعادة
+                Clear · <span className="font-arabic">مسح</span>
               </button>
               <button
                 onClick={() => setFilterOpen(false)}
-                className="flex-1 rounded-full py-2.5 text-[12px] font-bold btn-press"
-                style={{ background: "var(--teal-deep)", color: "var(--white)" }}
+                className="flex-1 rounded-xl py-2.5 text-[12px] font-bold btn-press"
+                style={{
+                  background: "linear-gradient(135deg, var(--teal-deep) 0%, #0a4a5e 100%)",
+                  color: "var(--white)",
+                  boxShadow: "0 4px 14px rgba(15,46,61,0.22)",
+                }}
               >
-                Apply · تطبيق
+                Done · <span className="font-arabic">تم</span>
               </button>
             </div>
           </div>
