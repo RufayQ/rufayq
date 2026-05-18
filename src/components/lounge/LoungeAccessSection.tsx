@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard, ChevronDown, Maximize2, Minimize2, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard, ChevronDown, Maximize2, Minimize2, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { notify } from "@/lib/bilingualToast";
 import type { TransportSegment } from "@/components/TransportCard";
 import {
   listLoungeMemberships,
@@ -331,13 +332,18 @@ const LoungeAccessSection = ({ segments }: Props) => {
           onClose={() => { setAdding(false); setEditing(null); }}
           onSave={(input) => {
             saveLoungeMembership(input);
-            toast.success(editing ? "Membership updated · تم التحديث" : "Membership added · تمت الإضافة", { duration: 1800 });
+            notify({
+              kind: "success",
+              en: editing ? "Membership updated" : "Membership added",
+              ar: editing ? "تم التحديث" : "تمت الإضافة",
+              duration: 1800,
+            });
             setAdding(false);
             setEditing(null);
           }}
           onDelete={editing ? () => {
             deleteLoungeMembership(editing.id);
-            toast.success("Removed · تم الحذف", { duration: 1500 });
+            notify({ kind: "success", en: "Removed", ar: "تم الحذف", duration: 1500 });
             setEditing(null);
           } : undefined}
         />
@@ -609,7 +615,7 @@ const LoungeFormSheet = ({
           onSave={(dataUrl) => {
             setQrImageUrl(dataUrl);
             setPendingQrSrc(null);
-            toast.success("QR image updated · تم تحديث صورة الرمز", { duration: 1400 });
+            notify({ kind: "success", en: "QR image updated", ar: "تم تحديث صورة الرمز", duration: 1400 });
           }}
         />
       )}
@@ -693,17 +699,60 @@ const LoungeQrSheet = ({
     return () => { root.style.filter = prev; };
   }, [fullscreen]);
 
+  const getHdPng = async (): Promise<string> =>
+    membership.qrImageUrl
+      ? await uploadedQrToPng(membership.qrImageUrl)
+      : await generatedQrToPng(buildQrPayload(membership));
+
+  const buildFilename = () => {
+    const last4 = membership.membershipNumber.replace(/\D/g, "").slice(-4) || "card";
+    return `rufayq-lounge-${slugifyProgram(membership.program)}-${last4}.png`;
+  };
+
   const handleDownload = async () => {
     try {
-      const dataUrl = membership.qrImageUrl
-        ? await uploadedQrToPng(membership.qrImageUrl)
-        : await generatedQrToPng(buildQrPayload(membership));
-      const last4 = membership.membershipNumber.replace(/\D/g, "").slice(-4) || "card";
-      const filename = `rufayq-lounge-${slugifyProgram(membership.program)}-${last4}.png`;
-      triggerDownload(dataUrl, filename);
-      toast.success("Saved to downloads · تم الحفظ", { duration: 1800 });
+      const dataUrl = await getHdPng();
+      triggerDownload(dataUrl, buildFilename());
+      notify({ kind: "success", en: "Saved to downloads", ar: "تم الحفظ", duration: 1800 });
     } catch {
-      toast.error("Couldn't save QR · تعذر الحفظ");
+      notify({ kind: "error", en: "Couldn't save QR", ar: "تعذر الحفظ" });
+    }
+  };
+
+  const dataUrlToFile = async (dataUrl: string, filename: string): Promise<File> => {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    return new File([blob], filename, { type: blob.type || "image/png" });
+  };
+
+  const handleShare = async () => {
+    try {
+      const dataUrl = await getHdPng();
+      const filename = buildFilename();
+      const file = await dataUrlToFile(dataUrl, filename);
+      const nav = navigator as Navigator & {
+        canShare?: (data: ShareData & { files?: File[] }) => boolean;
+        share?: (data: ShareData & { files?: File[] }) => Promise<void>;
+      };
+      const shareData = {
+        files: [file],
+        title: `${membership.program} lounge access`,
+        text: `${membership.program} · ${membership.cardholderName}`,
+      };
+      if (nav.share && nav.canShare && nav.canShare(shareData)) {
+        await nav.share(shareData);
+        return;
+      }
+      if (nav.share) {
+        await nav.share({ title: shareData.title, text: shareData.text });
+        return;
+      }
+      // Fallback: copy a data URL is unwieldy; just download instead.
+      triggerDownload(dataUrl, filename);
+      notify({ kind: "info", en: "Share not supported — downloaded instead", ar: "المشاركة غير مدعومة — تم التنزيل" });
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      notify({ kind: "error", en: "Couldn't share QR", ar: "تعذرت المشاركة" });
     }
   };
 
@@ -730,6 +779,21 @@ const LoungeQrSheet = ({
           style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
         >
           <Download size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); void handleShare(); }}
+          aria-label="Share HD QR · مشاركة"
+          data-testid="qr-fullscreen-share"
+          className="absolute top-4 left-16 flex h-10 w-10 items-center justify-center rounded-full btn-press"
+          style={{
+            background: "linear-gradient(135deg, var(--teal-deep) 0%, #0a4a5e 100%)",
+            color: "white",
+            border: "1px solid var(--teal-deep)",
+            boxShadow: "0 4px 14px rgba(15,46,61,0.22)",
+          }}
+        >
+          <Share2 size={16} />
         </button>
         <button
           type="button"
@@ -840,9 +904,9 @@ const LoungeQrSheet = ({
                   entitlementRefreshOn: membership.entitlementRefreshOn,
                   qrImageUrl: undefined,
                 });
-                toast.success("Custom QR removed · تم حذف الرمز المخصص", { duration: 1600 });
+                notify({ kind: "success", en: "Custom QR removed", ar: "تم حذف الرمز المخصص", duration: 1600 });
               } catch {
-                toast.error("Couldn't remove QR · تعذر الحذف");
+                notify({ kind: "error", en: "Couldn't remove QR", ar: "تعذر الحذف" });
               }
             }}
             className="mt-3 mx-auto flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press"
