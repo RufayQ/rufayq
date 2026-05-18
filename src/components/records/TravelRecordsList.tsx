@@ -20,6 +20,7 @@ import {
   subscribeToTravelScannedRecords,
   type TravelScannedRecord,
 } from "@/lib/travelScannedRecordsStore";
+import TravelScannedRecordViewer from "@/components/records/TravelScannedRecordViewer";
 
 /** Unified row shape so attachments and lounge memberships share render code. */
 type UnifiedRow =
