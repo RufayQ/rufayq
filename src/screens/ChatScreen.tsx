@@ -5,6 +5,8 @@ import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
 import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import UpgradePrompt from "@/components/UpgradePrompt";
+import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
+import { useSubscription } from "@/hooks/useSubscription";
 import { quickPrompts } from "@/constants/data";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useGuestMode } from "@/hooks/useGuestMode";
