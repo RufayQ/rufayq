@@ -782,6 +782,21 @@ const LoungeQrSheet = ({
         </button>
         <button
           type="button"
+          onClick={(e) => { e.stopPropagation(); void handleShare(); }}
+          aria-label="Share HD QR · مشاركة"
+          data-testid="qr-fullscreen-share"
+          className="absolute top-4 left-16 flex h-10 w-10 items-center justify-center rounded-full btn-press"
+          style={{
+            background: "linear-gradient(135deg, var(--teal-deep) 0%, #0a4a5e 100%)",
+            color: "white",
+            border: "1px solid var(--teal-deep)",
+            boxShadow: "0 4px 14px rgba(15,46,61,0.22)",
+          }}
+        >
+          <Share2 size={16} />
+        </button>
+        <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); setFullscreen(false); }}
           aria-label="Exit fullscreen"
           className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full btn-press"
