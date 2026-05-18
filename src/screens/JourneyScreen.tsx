@@ -903,25 +903,70 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         </div>
       </div>
 
-      {/* Sub-tab pills */}
-      <div className="flex gap-2.5 px-4 py-3 shrink-0" style={{ background: "var(--off-white)" }}>
-        {subTabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveSubTab(tab.key)}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-full transition-all"
-            style={{
-              height: 36,
-              background: activeSubTab === tab.key ? "var(--teal-deep)" : "var(--white)",
-              color: activeSubTab === tab.key ? "white" : "var(--gray)",
-              border: activeSubTab === tab.key ? "none" : "1px solid var(--gray-light)",
-              boxShadow: activeSubTab === tab.key ? "0 4px 12px rgba(0,77,91,0.25)" : "none",
-              fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700,
-            }}
-          >
-            <span>{tab.icon}</span> {tab.label}
-          </button>
-        ))}
+      {/* Sub-tab pills — rounded icon tiles, horizontally scrollable, with bilingual labels */}
+      <div
+        className="shrink-0 overflow-x-auto px-4 py-3"
+        style={{ background: "var(--off-white)", scrollbarWidth: "none" }}
+      >
+        <div className="flex items-end gap-3 min-w-max">
+          {subTabs.map((tab) => {
+            const active = activeSubTab === tab.key;
+            const isPremium = !!tab.premium;
+            const accent = isPremium ? "var(--gold)" : "var(--teal-deep)";
+            const Icon = tab.Icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveSubTab(tab.key)}
+                aria-pressed={active}
+                aria-label={`${tab.en} · ${tab.ar}`}
+                className="group flex shrink-0 flex-col items-center btn-press"
+              >
+                <div
+                  className="mb-1.5 flex h-14 w-14 items-center justify-center rounded-2xl transition-all"
+                  style={{
+                    background: active
+                      ? accent
+                      : "var(--white)",
+                    border: active
+                      ? "none"
+                      : `1px solid ${isPremium ? "rgba(197,150,90,0.30)" : "rgba(15,46,61,0.06)"}`,
+                    boxShadow: active
+                      ? isPremium
+                        ? "0 8px 20px rgba(197,150,90,0.28)"
+                        : "0 8px 20px rgba(0,77,91,0.22)"
+                      : isPremium
+                      ? "0 1px 4px rgba(197,150,90,0.10)"
+                      : "0 1px 2px rgba(15,46,61,0.04)",
+                  }}
+                >
+                  <Icon
+                    size={22}
+                    strokeWidth={1.6}
+                    color={active ? "#fff" : accent}
+                  />
+                </div>
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                  style={{
+                    fontFamily: "'DM Sans'",
+                    color: active ? accent : isPremium ? "var(--gold)" : "var(--navy)",
+                    opacity: active || isPremium ? 1 : 0.7,
+                  }}
+                >
+                  {tab.en}
+                </span>
+                <span
+                  className="font-arabic mt-0.5 text-[9px]"
+                  dir="rtl"
+                  style={{ color: active ? accent : isPremium ? "var(--gold)" : "var(--gray)", opacity: 0.85 }}
+                >
+                  {tab.ar}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Tab content — scrollable */}
