@@ -15,6 +15,13 @@ export type PageStatus = "draft" | "published" | "scheduled" | "archived";
 
 export interface CtaConfig { label: string; link: string }
 
+export interface HeroMockupCard {
+  icon?: string;
+  title: string;
+  subtitle?: string;
+  accent?: "gold" | "teal";
+}
+
 export interface HeroContent {
   eyebrow?: string;
   titleLine1?: string;
@@ -24,6 +31,7 @@ export interface HeroContent {
   primaryCta?: CtaConfig;
   secondaryCta?: CtaConfig;
   badges?: { text: string; icon?: string }[];
+  mockupCards?: HeroMockupCard[];
 }
 
 export interface FeaturesContent {
@@ -138,27 +146,39 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
     case "hero":
       return {
         en: {
-          eyebrow: "AI COMPANION · MEDICAL, CULTURAL & BEYOND",
-          titleLine1: "Your AI Companion for",
-          highlight: "Every Journey",
-          subtitle: "The bilingual AI companion for Gulf patients and travellers worldwide seeking treatment away from home. Track tickets, medications & appointments — and ask anything about your records.",
+          eyebrow: "AI COMPANION · MEDICAL, TRAVEL & MORE",
+          titleLine1: "Your AI Travel Companion",
+          highlight: "& More",
+          subtitle: "From medical journeys to lifestyle, RufayQ guides Gulf travellers worldwide — bilingual vault, journey, tickets, medications and 24/7 AI support.",
           primaryCta: { label: "Start free", link: "/auth" },
           badges: [
             { text: "End-to-end encrypted", icon: "lock" },
             { text: "Bilingual EN / AR", icon: "globe" },
             { text: "For Gulf & global patients", icon: "heart" },
           ],
+          mockupCards: [
+            { icon: "🛫", title: "Business · LH 770 → Frankfurt", subtitle: "Boarding 22:40 · Gate A22", accent: "teal" },
+            { icon: "🛋️", title: "Lounge ready · Visa Companion", subtitle: "DXB · Concourse B", accent: "gold" },
+            { icon: "🩺", title: "Prof. Klein — Cleveland Clinic", subtitle: "Tomorrow · 11:00 AM", accent: "teal" },
+            { icon: "🚘", title: "Chauffeur to The Ritz-Carlton", subtitle: "On arrival · 06:20", accent: "gold" },
+          ],
         },
         ar: {
-          eyebrow: "رُفَيِّق · رفيقك الذكي في كل رحلة",
-          titleLine1: "رُفَيِّقك الذكي في",
-          highlight: "كل رحلة",
-          subtitle: "رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج. تابع التذاكر والأدوية والمواعيد، واسأل عن أي تفصيل في سجلاتك الطبية.",
+          eyebrow: "رُفَيِّق · للسفر العلاجي وأكثر",
+          titleLine1: "رفيقك الذكي للسفر",
+          highlight: "وأكثر",
+          subtitle: "من الرحلات العلاجية إلى أسلوب الحياة، يرافقك رُفَيِّق حول العالم — خزانة طبية ثنائية اللغة، رحلات، تذاكر، أدوية ودعم ذكي على مدار الساعة.",
           primaryCta: { label: "ابدأ مجاناً", link: "/auth" },
           badges: [
             { text: "تشفير كامل", icon: "lock" },
             { text: "ثنائي اللغة عربي/إنجليزي", icon: "globe" },
             { text: "لمرضى الخليج والعالم", icon: "heart" },
+          ],
+          mockupCards: [
+            { icon: "🛫", title: "أعمال · LH 770 → فرانكفورت", subtitle: "الصعود 22:40 · بوابة A22", accent: "teal" },
+            { icon: "🛋️", title: "الصالة جاهزة · رفيق فيزا", subtitle: "دبي · مبنى B", accent: "gold" },
+            { icon: "🩺", title: "البروفيسور كلاين — كليفلاند", subtitle: "غداً · 11:00 ص", accent: "teal" },
+            { icon: "🚘", title: "سائق خاص إلى ريتز كارلتون", subtitle: "عند الوصول · 06:20", accent: "gold" },
           ],
         },
       };

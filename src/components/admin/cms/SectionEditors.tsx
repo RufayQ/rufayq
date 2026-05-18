@@ -49,6 +49,12 @@ export const HeroEditor = ({ content, onChange }: { content: HeroContent; onChan
     next[i] = { ...next[i], ...patch };
     onChange({ ...content, badges: next });
   };
+  const mockups = content.mockupCards ?? [];
+  const updateMockup = (i: number, patch: Partial<{ icon: string; title: string; subtitle: string; accent: "gold" | "teal" }>) => {
+    const next = [...mockups];
+    next[i] = { ...next[i], ...patch } as typeof next[number];
+    onChange({ ...content, mockupCards: next });
+  };
   return (
     <div className="space-y-3">
       <Field label="Eyebrow"><input className={inputCls} value={content.eyebrow ?? ""} onChange={(e) => onChange({ ...content, eyebrow: e.target.value })} /></Field>
@@ -70,6 +76,32 @@ export const HeroEditor = ({ content, onChange }: { content: HeroContent; onChan
             <Field label="Text"><input className={inputCls} value={b.text} onChange={(e) => updateBadge(i, { text: e.target.value })} /></Field>
             <Field label="Icon"><input className={inputCls} value={b.icon ?? ""} placeholder="shield, lock, globe" onChange={(e) => updateBadge(i, { icon: e.target.value })} /></Field>
             <button type="button" className="p-2 rounded-md border border-slate-700 text-rose-400 hover:border-rose-500" onClick={() => onChange({ ...content, badges: badges.filter((_, j) => j !== i) })}><Trash2 size={14} /></button>
+          </div>
+        ))}
+      </div>
+      <div className={sectionCls}>
+        <div className="flex items-center justify-between">
+          <div className="text-[11px] font-semibold text-amber-300">Mobile mockup cards</div>
+          <button
+            type="button"
+            className={subBtn}
+            disabled={mockups.length >= 4}
+            onClick={() => onChange({ ...content, mockupCards: [...mockups, { icon: "", title: "", subtitle: "", accent: "teal" }] })}
+          ><Plus size={12} /> Add card</button>
+        </div>
+        <p className="text-[10px] text-slate-500">Up to 4 cards shown in the hero phone mockup. Keep EN and AR in matching order so each card lines up across locales.</p>
+        {mockups.map((c, i) => (
+          <div key={i} className="grid grid-cols-[64px_1fr_1fr_110px_auto] gap-2 items-end">
+            <Field label="Icon"><input className={inputCls} value={c.icon ?? ""} placeholder="🛫" onChange={(e) => updateMockup(i, { icon: e.target.value })} /></Field>
+            <Field label="Title"><input className={inputCls} value={c.title ?? ""} onChange={(e) => updateMockup(i, { title: e.target.value })} /></Field>
+            <Field label="Subtitle"><input className={inputCls} value={c.subtitle ?? ""} onChange={(e) => updateMockup(i, { subtitle: e.target.value })} /></Field>
+            <Field label="Accent">
+              <select className={inputCls} value={c.accent ?? "teal"} onChange={(e) => updateMockup(i, { accent: e.target.value as "gold" | "teal" })}>
+                <option value="teal">Teal</option>
+                <option value="gold">Gold</option>
+              </select>
+            </Field>
+            <button type="button" className="p-2 rounded-md border border-slate-700 text-rose-400 hover:border-rose-500" onClick={() => onChange({ ...content, mockupCards: mockups.filter((_, j) => j !== i) })}><Trash2 size={14} /></button>
           </div>
         ))}
       </div>

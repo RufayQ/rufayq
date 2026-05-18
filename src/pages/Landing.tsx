@@ -89,21 +89,22 @@ const Landing = () => {
     primaryCta?: { label?: string; link?: string };
     secondaryCta?: { label?: string; link?: string };
     badges?: { text: string; icon?: string }[];
+    mockupCards?: { icon?: string; title: string; subtitle?: string; accent?: "gold" | "teal" }[];
   };
   const heroEn = getSection<HeroCms>("hero", "en");
   const heroAr = getSection<HeroCms>("hero", "ar");
   const heroPrimary = isAr ? heroAr : heroEn;
 
-  // ── Elite bilingual defaults (rebrand-aligned) ──────────────────────
+  // ── Elite bilingual defaults (rebrand-aligned: medical, travel & more) ──
   const D = {
-    eyebrowEn: "AI COMPANION · MEDICAL, CULTURAL & BEYOND",
-    eyebrowAr: "رُفَيِّق · رفيقك الذكي في كل رحلة",
-    title1En: "Your AI Companion for",
-    title1Ar: "رُفَيِّقك الذكي في",
-    highlightEn: "Every Journey",
-    highlightAr: "كل رحلة",
-    subtitleEn: "The bilingual AI companion for Gulf patients and travellers worldwide seeking treatment away from home. Track tickets, medications & appointments — and ask anything about your records.",
-    subtitleAr: "رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج. تابع التذاكر والأدوية والمواعيد، واسأل عن أي تفصيل في سجلاتك الطبية.",
+    eyebrowEn: "AI COMPANION · MEDICAL, TRAVEL & MORE",
+    eyebrowAr: "رُفَيِّق · للسفر العلاجي وأكثر",
+    title1En: "Your AI Travel Companion",
+    title1Ar: "رفيقك الذكي للسفر",
+    highlightEn: "& More",
+    highlightAr: "وأكثر",
+    subtitleEn: "From medical journeys to lifestyle, RufayQ guides Gulf travellers worldwide — bilingual vault, journey, tickets, medications and 24/7 AI support.",
+    subtitleAr: "من الرحلات العلاجية إلى أسلوب الحياة، يرافقك رُفَيِّق حول العالم — خزانة طبية ثنائية اللغة، رحلات، تذاكر، أدوية ودعم ذكي على مدار الساعة.",
     primaryEn: "Start free",
     primaryAr: "ابدأ مجاناً",
     secondaryEn: "Explore pricing",
@@ -121,13 +122,47 @@ const Landing = () => {
   const primaryLabel   = heroPrimary?.primaryCta?.label   || (isAr ? D.primaryAr   : D.primaryEn);
   const primaryLink    = heroPrimary?.primaryCta?.link    || "/auth";
 
+  // ── Mobile mockup cards (CMS-driven, EN + AR parity) ───────────────
+  type MockCard = { icon?: string; title: string; subtitle?: string; accent?: "gold" | "teal" };
+  const defaultMockEn: MockCard[] = [
+    { icon: "🛫", title: "Business · LH 770 → Frankfurt", subtitle: "Boarding 22:40 · Gate A22", accent: "teal" },
+    { icon: "🛋️", title: "Lounge ready · Visa Companion", subtitle: "DXB · Concourse B", accent: "gold" },
+    { icon: "🩺", title: "Prof. Klein — Cleveland Clinic", subtitle: "Tomorrow · 11:00 AM", accent: "teal" },
+    { icon: "🚘", title: "Chauffeur to The Ritz-Carlton", subtitle: "On arrival · 06:20", accent: "gold" },
+  ];
+  const defaultMockAr: MockCard[] = [
+    { icon: "🛫", title: "أعمال · LH 770 → فرانكفورت", subtitle: "الصعود 22:40 · بوابة A22", accent: "teal" },
+    { icon: "🛋️", title: "الصالة جاهزة · رفيق فيزا", subtitle: "دبي · مبنى B", accent: "gold" },
+    { icon: "🩺", title: "البروفيسور كلاين — كليفلاند", subtitle: "غداً · 11:00 ص", accent: "teal" },
+    { icon: "🚘", title: "سائق خاص إلى ريتز كارلتون", subtitle: "عند الوصول · 06:20", accent: "gold" },
+  ];
+  const mockEn: MockCard[] = (heroEn?.mockupCards as MockCard[] | undefined)?.length
+    ? (heroEn!.mockupCards as MockCard[]) : defaultMockEn;
+  const mockAr: MockCard[] = (heroAr?.mockupCards as MockCard[] | undefined)?.length
+    ? (heroAr!.mockupCards as MockCard[]) : defaultMockAr;
+
   // ── Dynamic, locale-aware greeting (visitor's local time) ───────────
-  // Recomputes on mount so SSR/cached HTML doesn't freeze the phrase.
+  // Recomputes on mount, every 60s, on tab focus, on visibility change, and
+  // on the next exact hour boundary so transitions (e.g. 11:59 → 12:00) are
+  // instant rather than up to a minute late.
   const [greeting, setGreeting] = useState<{ en: string; ar: string }>(() => getGreeting());
   useEffect(() => {
-    setGreeting(getGreeting());
-    const id = window.setInterval(() => setGreeting(getGreeting()), 60_000);
-    return () => clearInterval(id);
+    const recompute = () => setGreeting(getGreeting());
+    recompute();
+    const interval = window.setInterval(recompute, 60_000);
+    const now = new Date();
+    const msToNextHour =
+      (60 - now.getMinutes()) * 60_000 - now.getSeconds() * 1000 - now.getMilliseconds();
+    const hourTimeout = window.setTimeout(recompute, Math.max(msToNextHour, 1000));
+    const onVisible = () => { if (document.visibilityState === "visible") recompute(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", recompute);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(hourTimeout);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", recompute);
+    };
   }, []);
 
   const defaultTrust = [
@@ -300,8 +335,12 @@ const Landing = () => {
                 <span className="inline-block w-3 h-px" style={{ background: `linear-gradient(270deg, transparent, ${GOLD})` }} aria-hidden />
               </div>
 
-              {/* Headline — display serif, gradient highlight, optional bilingual companion line */}
-              <h1 className="font-display text-5xl md:text-7xl leading-[1.04] mb-6 tracking-tight" style={{ color: TEXT, fontWeight: 300 }}>
+              {/* Headline — display serif, gradient highlight, optional bilingual companion line.
+                  Arabic Naskh prefers looser leading and no negative tracking. */}
+              <h1
+                className={`font-display text-5xl md:text-7xl mb-7 ${isAr ? "leading-[1.18]" : "leading-[1.04] tracking-tight"}`}
+                style={{ color: TEXT, fontWeight: 300 }}
+              >
                 {mode === "en" && (
                   <>
                     {title1En}<br />
@@ -309,7 +348,7 @@ const Landing = () => {
                   </>
                 )}
                 {mode === "ar" && (
-                  <span dir="rtl" className="font-arabic">
+                  <span dir="rtl" className="font-arabic block" style={{ letterSpacing: 0 }}>
                     {title1Ar}<br />
                     <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{highAr}</span>
                   </span>
@@ -318,7 +357,7 @@ const Landing = () => {
                   <>
                     {title1En}<br />
                     <span style={{ background: `linear-gradient(120deg, ${GOLD} 0%, ${GOLD_BRIGHT} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{highEn}</span>
-                    <span dir="rtl" className="font-arabic block text-3xl md:text-4xl mt-3" style={{ opacity: 0.85 }}>
+                    <span dir="rtl" className="font-arabic block text-3xl md:text-4xl mt-4 leading-[1.5]" style={{ opacity: 0.85, letterSpacing: 0 }}>
                       {title1Ar} <span style={{ color: GOLD_BRIGHT }}>{highAr}</span>
                     </span>
                   </>
@@ -326,13 +365,17 @@ const Landing = () => {
               </h1>
 
               {/* Gold hairline accent */}
-              <div className="h-px w-16 mb-6" style={{ background: `linear-gradient(90deg, ${GOLD}, transparent)` }} aria-hidden />
+              <div className={`h-px w-16 mb-6 ${isAr ? "ml-auto" : ""}`} style={{ background: `linear-gradient(${isAr ? "270deg" : "90deg"}, ${GOLD}, transparent)` }} aria-hidden />
 
               {mode !== "ar" && (
                 <p className="text-base md:text-lg mb-2 leading-relaxed max-w-md" style={{ color: TEXT_MUTED }}>{subEn}</p>
               )}
               {mode !== "en" && (
-                <p className="font-arabic text-sm md:text-base mb-9 leading-relaxed max-w-md" dir="rtl" style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)" }}>{subAr}</p>
+                <p
+                  className="font-arabic text-[15px] md:text-base mb-9 max-w-md"
+                  dir="rtl"
+                  style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)", lineHeight: 1.85, letterSpacing: 0 }}
+                >{subAr}</p>
               )}
 
               {/* Primary CTA — single, decisive */}
@@ -342,15 +385,15 @@ const Landing = () => {
                 </button>
               </div>
 
-              {/* Trust badges — refined row with hairline separators */}
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 mt-10" style={{ minHeight: 18 }}>
+              {/* Trust badges — refined row with hairline separators (RTL-aware) */}
+              <div className={`flex flex-wrap items-center gap-y-3 mt-10 ${isAr ? "flex-row-reverse gap-x-6 justify-end" : "gap-x-5"}`} style={{ minHeight: 18 }}>
                 {trustPoints.map((t, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div key={i} className={`flex items-center gap-2 ${isAr ? "flex-row-reverse" : ""}`}>
                     <span className="flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(197,150,90,0.10)", border: `1px solid ${GOLD}33` }}>
                       <t.Icon size={11} color={GOLD} />
                     </span>
-                    <span className="text-[11px] font-mono tracking-wide" style={{ color: TEXT_MUTED }}>
-                      {isAr ? <span className="font-arabic">{t.ar}</span> : t.en}
+                    <span className={`text-[11px] ${isAr ? "font-arabic" : "font-mono tracking-wide"}`} style={{ color: TEXT_MUTED }}>
+                      {isAr ? t.ar : t.en}
                     </span>
                   </div>
                 ))}
@@ -360,31 +403,39 @@ const Landing = () => {
             {/* Phone mockup — desktop only. Mobile users skip this paint entirely. */}
             <div className="relative hidden md:flex justify-center">
               <div className="relative w-[290px] h-[580px] rounded-[48px] overflow-hidden" style={{ background: "#000", boxShadow: `0 50px 100px rgba(0,0,0,0.6), 0 0 0 9px ${BG_DARK_2}, 0 0 0 11px ${GOLD}40, 0 0 60px ${TEAL}30` }}>
-                <div className="absolute inset-2.5 rounded-[40px] p-5 flex flex-col" style={{ background: `linear-gradient(180deg, ${BG_DARK} 0%, #0F2530 30%, ${BG_DARK_2} 100%)` }}>
+                <div className="absolute inset-2.5 rounded-[40px] p-5 flex flex-col" style={{ background: `linear-gradient(180deg, ${BG_DARK} 0%, #0F2530 30%, ${BG_DARK_2} 100%)` }} dir={isAr ? "rtl" : "ltr"}>
                   <div className="flex items-center justify-between mb-6">
                     <RufayQLogo size={26} variant="light" />
                     <span className="text-[10px] font-mono" style={{ color: TEXT_MUTED }}>9:41</span>
                   </div>
-                  <p className="font-display text-2xl mb-1" style={{ color: TEXT, fontWeight: 300 }}>
-                    {isAr ? <span className="font-arabic">{greeting.ar}،</span> : `${greeting.en},`}
-                  </p>
-                  <p className="text-sm mb-7" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">محمد</span> : "Mohammed"}</p>
+                  {isAr ? (
+                    <p className="font-arabic font-display text-[26px] mb-1 leading-snug" style={{ color: TEXT, fontWeight: 400, letterSpacing: 0 }}>
+                      {greeting.ar}،
+                    </p>
+                  ) : (
+                    <p className="font-display text-2xl mb-1" style={{ color: TEXT, fontWeight: 300 }}>
+                      {greeting.en},
+                    </p>
+                  )}
+                  <p className={`text-sm mb-7 ${isAr ? "font-arabic" : ""}`} style={{ color: TEXT_MUTED }}>{isAr ? "محمد" : "Mohammed"}</p>
 
                   <div className="space-y-2.5">
-                    {[
-                      { ic: "🛫", t: "Business · LH 770 → Frankfurt", tAr: "أعمال · LH 770 → فرانكفورت", s: "Boarding 22:40 · Gate A22", sAr: "الصعود 22:40 · بوابة A22", accent: TEAL },
-                      { ic: "🛋️", t: "Lounge ready · Visa Companion", tAr: "الصالة جاهزة · رفيق فيزا", s: "DXB · Concourse B", sAr: "دبي · مبنى B", accent: GOLD },
-                      { ic: "🩺", t: "Prof. Klein — Cleveland Clinic", tAr: "البروفيسور كلاين — كليفلاند", s: "Tomorrow · 11:00 AM", sAr: "غداً · 11:00 ص", accent: TEAL },
-                      { ic: "🚘", t: "Chauffeur to The Ritz-Carlton", tAr: "سائق خاص إلى ريتز كارلتون", s: "On arrival · 06:20", sAr: "عند الوصول · 06:20", accent: GOLD },
-                    ].map((card, i) => (
-                      <div key={i} className="rounded-xl p-3 flex items-center gap-3 backdrop-blur-sm" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: `${card.accent}20`, border: `1px solid ${card.accent}40` }}>{card.ic}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-semibold truncate" style={{ color: TEXT }}>{isAr ? <span className="font-arabic">{card.tAr}</span> : card.t}</p>
-                          <p className="text-[9px] truncate" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">{card.sAr}</span> : card.s}</p>
+                    {mockEn.map((cardEn, i) => {
+                      const cardAr = mockAr[i] ?? cardEn;
+                      const card = isAr ? cardAr : cardEn;
+                      const accentColor = card.accent === "gold" ? GOLD : TEAL;
+                      return (
+                        <div key={i} className={`rounded-xl p-3 flex items-center gap-3 backdrop-blur-sm ${isAr ? "flex-row-reverse" : ""}`} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: `${accentColor}20`, border: `1px solid ${accentColor}40` }}>{card.icon}</div>
+                          <div className={`flex-1 min-w-0 ${isAr ? "text-right" : ""}`}>
+                            <p className={`text-[11px] font-semibold truncate ${isAr ? "font-arabic" : ""}`} style={{ color: TEXT }}>{card.title}</p>
+                            {card.subtitle && (
+                              <p className={`text-[9px] truncate ${isAr ? "font-arabic" : ""}`} style={{ color: TEXT_MUTED }}>{card.subtitle}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
