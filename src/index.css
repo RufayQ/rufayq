@@ -405,3 +405,29 @@ html.admin-light .admin-shell textarea { background-color: #ffffff !important; c
   text-overflow: clip;
 }
 .rufayq-bilingual-toast [data-icon] { flex-shrink: 0; }
+
+/* Bilingual sonner toasts — dark mode styling. When the document carries the
+   .dark class (toggled by useTheme via the Settings screen), render the toast
+   with a navy surface, gold hairline border, and high-contrast text so both
+   the English and Arabic rows stay readable in low-light. */
+.dark .rufayq-bilingual-toast,
+.dark [data-sonner-toast].rufayq-bilingual-toast {
+  background: #0F2E3D !important;
+  color: #F8F6F1 !important;
+  border: 1px solid rgba(197, 150, 90, 0.35) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+.dark .rufayq-bilingual-toast [data-content],
+.dark .rufayq-bilingual-toast [data-title],
+.dark .rufayq-bilingual-toast [data-description] {
+  color: #F8F6F1 !important;
+}
+/* Slightly soften the AR row for visual hierarchy while staying readable. */
+.dark .rufayq-bilingual-toast [lang="ar"] {
+  color: rgba(248, 246, 241, 0.88) !important;
+}
+/* Tint state icons toward gold so success/error/info stay legible on navy. */
+.dark .rufayq-bilingual-toast[data-type="success"] [data-icon] { color: #4ADE80 !important; }
+.dark .rufayq-bilingual-toast[data-type="error"]   [data-icon] { color: #F87171 !important; }
+.dark .rufayq-bilingual-toast[data-type="warning"] [data-icon] { color: #FBBF24 !important; }
+.dark .rufayq-bilingual-toast[data-type="info"]    [data-icon] { color: #C5965A !important; }
