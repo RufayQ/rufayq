@@ -384,7 +384,24 @@ html.admin-light .admin-shell textarea { background-color: #ffffff !important; c
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
-/* Bilingual sonner toasts — ensure the body spans full width so the EN
-   row aligns left and the AR row aligns right consistently in either mode. */
-.rufayq-bilingual-toast [data-content] { width: 100%; }
-.rufayq-bilingual-toast [data-title]   { width: 100%; }
+/* Bilingual sonner toasts — ensure the body spans the full toast width so
+   the EN row aligns left and the AR row aligns right consistently in either
+   language mode. Applied globally to every `notify()` call. */
+.rufayq-bilingual-toast,
+[data-sonner-toast].rufayq-bilingual-toast {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.rufayq-bilingual-toast [data-content],
+.rufayq-bilingual-toast [data-title],
+.rufayq-bilingual-toast [data-description] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-overflow: clip;
+}
+.rufayq-bilingual-toast [data-icon] { flex-shrink: 0; }
