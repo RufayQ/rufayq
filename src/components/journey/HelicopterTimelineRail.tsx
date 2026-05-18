@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, BedDouble, FlaskConical, HeartPulse, Home, PlaneLanding, PlaneTakeoff, Stethoscope,
-  SlidersHorizontal, Check, X,
+  SlidersHorizontal, Check, X, Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import type { JourneyMilestone, MilestoneSubKind } from "@/hooks/useJourneyOverview";
@@ -168,6 +168,19 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
 
   const doneCount = milestones.filter((m) => m.state === "done").length;
   const activeId = nearestId ?? selectedId ?? null;
+  const phaseCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    PHASES.forEach((p) => {
+      map.set(p.key, p.key === "all" ? milestones.length : milestones.filter((m) => m.phase === p.key).length);
+    });
+    return map;
+  }, [milestones]);
+  const stateCounts = useMemo(() => ({
+    done: milestones.filter((m) => m.state === "done").length,
+    current: milestones.filter((m) => m.state === "current").length,
+    upcoming: milestones.filter((m) => m.state === "upcoming").length,
+  }), [milestones]);
+  const activeFilterCount = (phaseFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0);
 
   return (
     <section className="px-4 pt-3" aria-label="Helicopter timeline · الخط الزمني الشامل">
@@ -178,8 +191,21 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
           border: "1px solid rgba(0,77,91,0.12)",
         }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <div>
+        {/* Elite eyebrow */}
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5">
+            <Sparkles size={10} style={{ color: "var(--gold)" }} />
+            <p className="font-mono text-[8px] tracking-[0.22em]" style={{ color: "var(--teal-deep)" }}>
+              CURATE YOUR JOURNEY · <span className="font-arabic">انتقِ محطاتك</span>
+            </p>
+          </div>
+          <span className="font-mono text-[8px] tracking-widest" style={{ color: "var(--gray)" }}>
+            {filtered.length}/{milestones.length}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="min-w-0">
             <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--teal-deep)" }}>
               HELICOPTER · TIMELINE
             </p>
@@ -187,30 +213,124 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
               نظرة شاملة لمحطات الرحلة
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span
-              className="rounded-full px-2.5 py-1 text-[10px] font-bold"
-              style={{ background: "var(--white)", color: "var(--teal-deep)" }}
+              className="relative rounded-full px-2.5 py-1 text-[10px] font-bold"
+              style={{
+                background: "var(--white)",
+                color: "var(--teal-deep)",
+                border: "1px solid rgba(0,77,91,0.10)",
+                boxShadow: "0 1px 2px rgba(15,46,61,0.04)",
+              }}
             >
               {doneCount}/{milestones.length}
+              {doneCount > 0 && (
+                <span
+                  className="absolute left-2 right-2 -bottom-[3px] h-[2px] rounded-full"
+                  style={{ background: "var(--gold)" }}
+                />
+              )}
             </span>
             <button
               type="button"
               onClick={() => setFilterOpen(true)}
               aria-label="Filter milestones · فلترة المحطات"
-              className="relative flex h-8 w-8 items-center justify-center rounded-full btn-press outline-none"
+              aria-haspopup="dialog"
+              aria-expanded={filterOpen}
+              className="relative flex h-9 items-center gap-1.5 rounded-full px-3 btn-press transition-all outline-none"
               style={{
-                background: phaseFilter !== "all" || stateFilter !== "all" ? "var(--teal-deep)" : "var(--white)",
-                color: phaseFilter !== "all" || stateFilter !== "all" ? "var(--white)" : "var(--teal-deep)",
-                border: "1px solid rgba(0,77,91,0.18)",
+                background: activeFilterCount
+                  ? "linear-gradient(135deg, var(--teal-deep) 0%, #0a4a5e 100%)"
+                  : "var(--white)",
+                border: `1px solid ${activeFilterCount ? "var(--teal-deep)" : "rgba(15,46,61,0.10)"}`,
+                color: activeFilterCount ? "white" : "var(--navy)",
+                boxShadow: activeFilterCount
+                  ? "0 4px 14px rgba(15,46,61,0.22)"
+                  : "0 1px 2px rgba(15,46,61,0.04)",
               }}
             >
-              <SlidersHorizontal size={14} />
-              {(phaseFilter !== "all" || stateFilter !== "all") && (
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full" style={{ background: "var(--gold)" }} />
+              <SlidersHorizontal size={13} />
+              <span className="text-[10px] font-bold tracking-wider uppercase">Refine</span>
+              {activeFilterCount > 0 && (
+                <span
+                  className="flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold"
+                  style={{ background: "var(--gold)", color: "white" }}
+                >
+                  {activeFilterCount}
+                </span>
               )}
             </button>
           </div>
+        </div>
+
+        {/* Inline quick-chip rail — phases + state summary */}
+        <div
+          className="-mx-1 mb-3 flex items-center gap-1.5 overflow-x-auto pb-1 px-1"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {PHASES.map((p) => {
+            const active = phaseFilter === p.key;
+            const count = phaseCounts.get(p.key) ?? 0;
+            return (
+              <button
+                key={p.key}
+                onClick={() => setPhaseFilter(p.key)}
+                className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold btn-press transition-all"
+                style={{
+                  background: active
+                    ? "linear-gradient(135deg, var(--teal-deep) 0%, #0a4a5e 100%)"
+                    : "var(--white)",
+                  color: active ? "white" : "var(--navy)",
+                  border: `1px solid ${active ? "var(--teal-deep)" : "rgba(15,46,61,0.10)"}`,
+                  boxShadow: active
+                    ? "0 4px 12px rgba(15,46,61,0.18)"
+                    : "0 1px 2px rgba(15,46,61,0.04)",
+                }}
+              >
+                {p.en}
+                <span
+                  className="ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                  style={{
+                    background: active ? "rgba(255,255,255,0.20)" : "var(--off-white)",
+                    color: active ? "white" : "var(--gray)",
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+
+          <div className="shrink-0 mx-1 h-5 w-px" style={{ background: "rgba(197,150,90,0.30)" }} />
+
+          <button
+            onClick={() => setFilterOpen(true)}
+            aria-label="Open state filters · فلترة الحالة"
+            className="shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press transition-all"
+            style={{
+              background: stateFilter !== "all"
+                ? "linear-gradient(135deg, #c5965a 0%, #b07f43 100%)"
+                : "var(--white)",
+              color: stateFilter !== "all" ? "white" : "var(--navy)",
+              border: `1px solid ${stateFilter !== "all" ? "rgba(197,150,90,0.55)" : "rgba(15,46,61,0.10)"}`,
+              boxShadow: stateFilter !== "all"
+                ? "0 4px 14px rgba(197,150,90,0.32)"
+                : "0 1px 2px rgba(15,46,61,0.04)",
+            }}
+          >
+            State
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+              style={{
+                background: stateFilter !== "all" ? "rgba(255,255,255,0.22)" : "var(--off-white)",
+                color: stateFilter !== "all" ? "white" : "var(--gray)",
+              }}
+            >
+              {stateFilter === "all"
+                ? `${stateCounts.done}·${stateCounts.current}·${stateCounts.upcoming}`
+                : STATES.find((s) => s.key === stateFilter)?.en}
+            </span>
+          </button>
         </div>
 
         {/* Rail + NOW marker. The marker is a sticky-left vertical line painted
@@ -326,52 +446,71 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
             role="dialog"
             aria-label="Filter milestones"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[420px] rounded-t-3xl p-5"
+            className="w-full max-w-[420px] rounded-t-[28px] p-5"
             style={{
               background: "var(--white)",
-              boxShadow: "0 -8px 32px rgba(0,0,0,0.18)",
+              border: "1px solid rgba(197,150,90,0.25)",
+              boxShadow: "0 -18px 48px rgba(15,46,61,0.22), inset 0 1px 0 rgba(255,255,255,0.6)",
               animation: "slide-up 240ms cubic-bezier(0.22, 0.61, 0.36, 1)",
             }}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--gray-light)" }} />
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Filters</p>
-                <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>الفلاتر</p>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Sparkles size={12} style={{ color: "var(--gold)" }} />
+                <div>
+                  <p className="text-[14px] font-bold leading-tight" style={{ color: "var(--navy)" }}>Refine timeline</p>
+                  <p className="font-arabic text-[11px] leading-tight" dir="rtl" style={{ color: "var(--gray)" }}>تنقية الخط الزمني</p>
+                </div>
               </div>
               <button
                 onClick={() => setFilterOpen(false)}
                 aria-label="Close"
-                className="flex h-7 w-7 items-center justify-center rounded-full"
+                className="flex h-7 w-7 items-center justify-center rounded-full btn-press"
                 style={{ background: "var(--off-white)", color: "var(--navy)" }}
               >
                 <X size={14} />
               </button>
             </div>
 
-            <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>PHASE · المرحلة</p>
+            <p className="font-mono text-[8px] tracking-[0.22em] mb-2" style={{ color: "var(--teal-deep)" }}>
+              PHASE · <span className="font-arabic">المرحلة</span>
+            </p>
             <div className="mb-4 flex flex-wrap gap-1.5">
               {PHASES.map((p) => {
                 const active = phaseFilter === p.key;
+                const count = phaseCounts.get(p.key) ?? 0;
                 return (
                   <button
                     key={p.key}
                     onClick={() => setPhaseFilter(p.key)}
-                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press outline-none"
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press outline-none transition-transform"
                     style={{
                       background: active ? p.color : "var(--white)",
                       color: active ? "var(--white)" : p.color,
                       border: `1px solid ${p.color}`,
+                      boxShadow: active ? "0 0 0 2px rgba(197,150,90,0.30)" : "none",
                     }}
                   >
                     {active && <Check size={12} />}
                     {p.en} · <span className="font-arabic">{p.ar}</span>
+                    <span
+                      className="ml-0.5 rounded-full px-1.5 text-[9px] font-bold"
+                      style={{
+                        background: active ? "rgba(255,255,255,0.22)" : "var(--off-white)",
+                        color: active ? "white" : p.color,
+                      }}
+                    >
+                      {count}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>STATE · الحالة</p>
+            <p className="font-mono text-[8px] tracking-[0.22em] mb-2" style={{ color: "var(--teal-deep)" }}>
+              STATE · <span className="font-arabic">الحالة</span>
+            </p>
             <div className="mb-5 flex flex-wrap gap-1.5">
               {STATES.map((st) => {
                 const active = stateFilter === st.key;
@@ -379,11 +518,12 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
                   <button
                     key={st.key}
                     onClick={() => setStateFilter(st.key)}
-                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press outline-none"
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press outline-none transition-transform"
                     style={{
                       background: active ? "var(--navy)" : "transparent",
                       color: active ? "var(--white)" : "var(--navy)",
                       border: "1px solid var(--navy)",
+                      boxShadow: active ? "0 0 0 2px rgba(197,150,90,0.30)" : "none",
                     }}
                   >
                     {active && <Check size={12} />}
@@ -396,17 +536,21 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
             <div className="flex gap-2">
               <button
                 onClick={() => { setPhaseFilter("all"); setStateFilter("all"); }}
-                className="flex-1 rounded-full py-2.5 text-[12px] font-bold btn-press"
-                style={{ background: "var(--off-white)", color: "var(--navy)" }}
+                className="flex-1 rounded-xl py-2.5 text-[12px] font-bold btn-press"
+                style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}
               >
-                Reset · إعادة
+                Clear · <span className="font-arabic">مسح</span>
               </button>
               <button
                 onClick={() => setFilterOpen(false)}
-                className="flex-1 rounded-full py-2.5 text-[12px] font-bold btn-press"
-                style={{ background: "var(--teal-deep)", color: "var(--white)" }}
+                className="flex-1 rounded-xl py-2.5 text-[12px] font-bold btn-press"
+                style={{
+                  background: "linear-gradient(135deg, var(--teal-deep) 0%, #0a4a5e 100%)",
+                  color: "var(--white)",
+                  boxShadow: "0 4px 14px rgba(15,46,61,0.22)",
+                }}
               >
-                Apply · تطبيق
+                Done · <span className="font-arabic">تم</span>
               </button>
             </div>
           </div>
