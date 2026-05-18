@@ -60,6 +60,10 @@ export interface ScannerSavePayload {
    *  forwarded here so parents (e.g. RelatedDocumentsCard) can upload the
    *  edited bytes instead of the original capture. */
   editedFile?: File | null;
+  /** Browser object URL for the uploaded file so the Records viewer can preview it immediately. */
+  fileUrl?: string;
+  /** Original uploaded MIME type for PDF/Office/image fallback routing. */
+  mimeType?: string | null;
 }
 
 interface ScannerWizardProps {
@@ -244,6 +248,8 @@ const ScannerWizard = ({
       subcategory: p.subcategory ?? selectedSub,
       fileName: p.fileName ?? capturedFile?.name,
       editedFile: p.editedFile ?? realFile,
+      fileUrl: p.fileUrl ?? (realFile ? URL.createObjectURL(realFile) : undefined),
+      mimeType: p.mimeType ?? realFile?.type ?? capturedFile?.type ?? null,
     } : undefined;
 
   const handleFileCapture = (accept: string) => {
