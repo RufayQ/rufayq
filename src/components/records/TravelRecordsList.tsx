@@ -188,20 +188,33 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
 
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => readPins());
 
-  const togglePin = (id: string) => {
+  const togglePin = (id: string, label?: string) => {
     setPinnedIds((prev) => {
       let next: string[];
+      const name = label?.trim() || "Record";
       if (prev.includes(id)) {
         next = prev.filter((x) => x !== id);
-        toast("Unpinned · تم إلغاء التثبيت", { duration: 1400 });
+        toast(`Unpinned · تم إلغاء التثبيت`, {
+          description: `${name} · ${next.length}/${MAX_PINS} pinned`,
+          duration: 1800,
+          action: {
+            label: "Undo",
+            onClick: () => togglePin(id, label),
+          },
+        });
       } else {
         if (prev.length >= MAX_PINS) {
-          // Replace the oldest pin (first in array)
           next = [...prev.slice(1), id];
-          toast(`Pinned (replaced oldest, max ${MAX_PINS}) · تم التثبيت`, { duration: 1600 });
+          toast(`Pinned · تم التثبيت`, {
+            description: `${name} · replaced oldest (${next.length}/${MAX_PINS})`,
+            duration: 1800,
+          });
         } else {
           next = [...prev, id];
-          toast.success("Pinned to top · تم التثبيت", { duration: 1400 });
+          toast.success(`Pinned · تم التثبيت`, {
+            description: `${name} · ${next.length}/${MAX_PINS} pinned`,
+            duration: 1600,
+          });
         }
       }
       writePins(next);
@@ -434,7 +447,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
         </button>
         <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={() => togglePin(item.id)}
+            onClick={() => togglePin(item.id, item.label)}
             className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
             style={{ background: isPinned ? "rgba(197,150,90,0.18)" : "var(--off-white)" }}
             aria-label={isPinned ? "Unpin" : "Pin to top"}
@@ -565,7 +578,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); togglePin(item.id); }}
+                      onClick={(e) => { e.stopPropagation(); togglePin(item.id, item.label); }}
                       className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
                       style={{ background: "var(--navy)", color: "var(--white)" }}
                       aria-label="Unpin"
