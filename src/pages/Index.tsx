@@ -524,7 +524,6 @@ const Index = () => {
   };
 
   const showNav = appView === "main";
-  const showStatusBar = appView !== "onboarding";
 
   /**
    * Hardware/browser back button handler.
