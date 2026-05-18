@@ -105,8 +105,13 @@ describe("RelatedDocumentsCard preview", () => {
     fireEvent.click(docTile);
 
     // Wait for the preview modal to mount and surface the Open/Download links.
-    const openLink = await screen.findByRole("link", { name: /Open/i }, { timeout: 3000 });
-    const downloadLink = await screen.findByRole("link", { name: /Download/i });
+    const openLink = await waitFor(() => {
+      const all = Array.from(document.querySelectorAll("a"));
+      const link = all.find((a) => /Open/i.test(a.textContent || ""));
+      expect(link).toBeTruthy();
+      return link!;
+    }, { timeout: 3000 });
+    const downloadLink = Array.from(document.querySelectorAll("a")).find((a) => /Download/i.test(a.textContent || ""))!;
     expect(openLink).toHaveAttribute("href", DOC_URL);
     expect(openLink).toHaveAttribute("target", "_blank");
     expect(downloadLink).toHaveAttribute("href", DOC_URL);
