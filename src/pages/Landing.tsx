@@ -335,26 +335,11 @@ const Landing = () => {
                 <p className="font-arabic text-sm md:text-base mb-9 leading-relaxed max-w-md" dir="rtl" style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)" }}>{subAr}</p>
               )}
 
-              {/* CTAs — primary gold + secondary ghost */}
-              <div className="flex flex-wrap items-center gap-3 mt-4" style={{ minHeight: 56 }}>
-                <button onClick={() => navigate(lp(primaryLink))} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02]" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
+              {/* Primary CTA — single, decisive */}
+              <div className="flex mt-4" style={{ minHeight: 56 }}>
+                <button onClick={() => navigate(lp(primaryLink))} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02] w-full sm:w-auto" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
                   {primaryLabel} <ArrowRightIcon size={15} />
                 </button>
-                {secondaryLabel && (
-                  <a
-                    href={secondaryLink.startsWith("/#") ? secondaryLink.slice(1) : undefined}
-                    onClick={(e) => {
-                      if (secondaryLink.startsWith("#") || secondaryLink.startsWith("/#")) return;
-                      e.preventDefault();
-                      navigate(lp(secondaryLink));
-                    }}
-                    className="px-6 py-4 rounded-full text-sm font-semibold flex items-center gap-2 btn-press transition-all hover:bg-white/[0.04]"
-                    style={{ color: TEXT, border: `1px solid ${GOLD}55` }}
-                  >
-                    {secondaryLabel}
-                    <ChevronDownIcon size={13} />
-                  </a>
-                )}
               </div>
 
               {/* Trust badges — refined row with hairline separators */}
