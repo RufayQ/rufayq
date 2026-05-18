@@ -106,7 +106,7 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
               {record.subcategory || record.category} · {record.fileName}
             </p>
           </div>
-          {hasImages && (
+          {(hasImages || fallbackUrl) && (
             <button
               onClick={() => setFullscreen(true)}
               aria-label="Fullscreen"
@@ -130,7 +130,7 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
                   className="block w-full"
                   style={{ maxHeight: "60dvh", objectFit: "contain", background: "#000" }}
                 />
-                {images.length > 1 && (
+                {totalPages > 1 && (
                   <>
                     <button
                       onClick={() => setPage((p) => Math.max(0, p - 1))}
@@ -142,8 +142,8 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
                       <ChevronLeft size={18} />
                     </button>
                     <button
-                      onClick={() => setPage((p) => Math.min(images.length - 1, p + 1))}
-                      disabled={page === images.length - 1}
+                      onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                      disabled={page === totalPages - 1}
                       aria-label="Next page"
                       className="absolute right-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-30"
                       style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
@@ -154,26 +154,22 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
                       className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-0.5 font-mono text-[10px]"
                       style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
                     >
-                      {page + 1} / {images.length}
+                      {page + 1} / {totalPages}
                     </span>
                   </>
                 )}
               </div>
-            ) : record.pdfUrl ? (
-              <object
-                data={`${record.pdfUrl}#view=FitH&toolbar=1`}
-                type="application/pdf"
-                aria-label={`${record.title} PDF preview`}
-                className="block w-full bg-white"
-                style={{ height: "60dvh" }}
-              >
-                <iframe
-                  src={record.pdfUrl}
-                  title={`${record.title} PDF`}
-                  className="block w-full bg-white"
-                  style={{ height: "60dvh", border: 0 }}
-                />
-              </object>
+            ) : fallbackUrl ? (
+              <div className="relative" style={{ height: "60dvh" }}>
+                <UniversalDocumentPreview url={fallbackUrl} fileName={record.fileName} title={record.title} mimeType={previewMime} page={page + 1} className="h-full w-full bg-white" />
+                {isPdf(previewMime, record.fileName) && totalPages > 1 && (
+                  <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full px-2 py-1" style={{ background: "rgba(0,0,0,0.6)", color: "var(--white)" }}>
+                    <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} aria-label="Previous page" className="px-2 disabled:opacity-35">‹</button>
+                    <span className="font-mono text-[10px]">{page + 1} / {totalPages}</span>
+                    <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1} aria-label="Next page" className="px-2 disabled:opacity-35">›</button>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="px-4 py-8 text-center">
                 <p className="text-[12px]" style={{ color: "var(--gray)" }}>
