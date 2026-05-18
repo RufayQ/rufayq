@@ -446,10 +446,11 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
             role="dialog"
             aria-label="Filter milestones"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[420px] rounded-t-3xl p-5"
+            className="w-full max-w-[420px] rounded-t-[28px] p-5"
             style={{
               background: "var(--white)",
-              boxShadow: "0 -8px 32px rgba(0,0,0,0.18)",
+              border: "1px solid rgba(197,150,90,0.25)",
+              boxShadow: "0 -18px 48px rgba(15,46,61,0.22), inset 0 1px 0 rgba(255,255,255,0.6)",
               animation: "slide-up 240ms cubic-bezier(0.22, 0.61, 0.36, 1)",
             }}
           >
