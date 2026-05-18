@@ -15,7 +15,9 @@ const CATEGORY_LABEL: Record<string, { en: string; emoji: string; accent: string
   discharge:    { en: "Discharge",      emoji: "📋", accent: "var(--gold)",      bg: "var(--gold-pale)" },
   imaging:      { en: "Imaging",        emoji: "🩻", accent: "var(--gray)",      bg: "#F0F2F5" },
   insurance:    { en: "Insurance",      emoji: "🛡️", accent: "#7C5CFC",          bg: "#EDE8FD" },
-  legal:        { en: "Identity",       emoji: "🛂", accent: "#1A3A1A",          bg: "#E8F2E8" },
+  // NOTE: `legal` (passport/visa/residency) is intentionally NOT listed here —
+  // those documents belong to Travel Records, not Medical Records. See
+  // src/lib/travelScannedRecordsStore.ts for the travel-side store.
   other:        { en: "Consultations",  emoji: "📄", accent: "var(--navy)",      bg: "var(--off-white)" },
 };
 
