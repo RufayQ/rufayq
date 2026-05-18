@@ -104,7 +104,8 @@ describe("RelatedDocumentsCard preview", () => {
     const docTile = await screen.findByTitle("Discharge");
     fireEvent.click(docTile);
 
-    const openLink = await screen.findByRole("link", { name: /Open/i });
+    // Wait for the preview modal to mount and surface the Open/Download links.
+    const openLink = await screen.findByRole("link", { name: /Open/i }, { timeout: 3000 });
     const downloadLink = await screen.findByRole("link", { name: /Download/i });
     expect(openLink).toHaveAttribute("href", DOC_URL);
     expect(openLink).toHaveAttribute("target", "_blank");
