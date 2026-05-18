@@ -1334,6 +1334,11 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
   const [highlightId, setHighlightId] = useState<string | null>(null);
   // Filter UI state
   const [filters, setFilters] = useState<TicketsFilterState>(() => loadTicketsFilterState());
+  const [loungeCount, setLoungeCount] = useState<number>(() => listLoungeMemberships().length);
+  useEffect(() => {
+    void fetchLoungeMemberships().then(() => setLoungeCount(listLoungeMemberships().length));
+    return subscribeLoungeMemberships(() => setLoungeCount(listLoungeMemberships().length));
+  }, []);
 
   const handleToggleAlarm = (segId: string, minutes: number) => {
     setTicketAlarms((prev) => {
