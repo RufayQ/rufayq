@@ -10,6 +10,8 @@ interface UpgradePromptProps {
   plan?: string;
   /** When the daily counter resets (ISO or Date). */
   resetsAt?: Date | string | null;
+  /** Context that triggered the prompt — drives the copy. Defaults to "ai_limit". */
+  reason?: "ai_limit" | "device_uploads";
 }
 
 const formatResetIn = (d: Date) => {
@@ -21,7 +23,7 @@ const formatResetIn = (d: Date) => {
   return `${m}m`;
 };
 
-const UpgradePrompt = ({ open, onClose, onUpgrade, variant = "guest", plan, resetsAt }: UpgradePromptProps) => {
+const UpgradePrompt = ({ open, onClose, onUpgrade, variant = "guest", plan, resetsAt, reason = "ai_limit" }: UpgradePromptProps) => {
   if (!open) return null;
   const reset = resetsAt ? (typeof resetsAt === "string" ? new Date(resetsAt) : resetsAt) : null;
 
