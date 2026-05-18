@@ -514,7 +514,70 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
               <Trash2 size={10} /> Clear pinned · <span className="font-arabic">إزالة التثبيت</span>
             </button>
           </div>
-          <div className="space-y-2">{pinnedItems.map((it) => renderRow(it, true))}</div>
+          <div
+            className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {pinnedItems.map((item) => {
+              const isLounge = item.kind === "lounge-card";
+              const isImg = item.kind === "attachment" && isImage(item.mime_type);
+              const handleOpen = () => {
+                if (item.kind === "lounge-card") setQrTarget(item.membership);
+                else void openPreview(item);
+              };
+              return (
+                <div
+                  key={item.id}
+                  className="shrink-0 flex flex-col items-center"
+                  style={{ width: 64 }}
+                >
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={handleOpen}
+                      className="w-11 h-11 rounded-full flex items-center justify-center btn-press"
+                      style={{
+                        background: "var(--white)",
+                        border: "1.5px solid var(--gold)",
+                        boxShadow: "0 3px 10px rgba(197,150,90,0.22)",
+                      }}
+                      aria-label={`Open ${item.label}`}
+                    >
+                      {isLounge ? (
+                        <Sofa size={18} style={{ color: "var(--teal-deep)" }} />
+                      ) : isImg ? (
+                        <ImageIcon size={18} style={{ color: "var(--gold)" }} />
+                      ) : (
+                        <FileText size={18} style={{ color: "var(--gold)" }} />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); togglePin(item.id); }}
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                      style={{ background: "var(--navy)", color: "var(--white)" }}
+                      aria-label="Unpin"
+                      title="Unpin"
+                    >
+                      <X size={9} />
+                    </button>
+                  </div>
+                  <p
+                    className="mt-1 text-[10px] leading-tight text-center w-full"
+                    style={{
+                      color: "var(--navy)",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {item.label}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
