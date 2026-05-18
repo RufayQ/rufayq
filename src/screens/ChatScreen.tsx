@@ -956,6 +956,17 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         plan={upgradeCtx.plan}
         resetsAt={upgradeCtx.resetsAt}
       />
+
+      <ChatRecordsPicker
+        open={showRecordsPicker}
+        onClose={() => setShowRecordsPicker(false)}
+        onPick={(rec) => {
+          setSelectedRecord(rec);
+          setUploadedFile(null);
+          setShowRecordsPicker(false);
+          toast.success("Record attached · تم إرفاق السجل", { duration: 1800 });
+        }}
+      />
     </div>
   );
 };
