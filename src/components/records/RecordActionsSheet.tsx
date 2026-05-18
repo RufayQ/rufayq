@@ -6,7 +6,7 @@
  * milestone picker, delete confirmation) and routes confirmed intents back.
  */
 import { useEffect, useState } from "react";
-import { Eye, Pencil, Share2, Link2, Trash2, X, Loader2, MapPin } from "lucide-react";
+import { Eye, Pencil, Share2, Link2, Trash2, X, Loader2, MapPin, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
 
@@ -25,6 +25,8 @@ export interface RecordActionsSheetProps {
   onPreview?: () => void;
   onRename?: (newName: string) => Promise<void> | void;
   onShare?: () => Promise<void> | void;
+  /** Send this record into the AI chat as an attachment. Free on every tier. */
+  onSendToChat?: () => Promise<void> | void;
   onApplyToMilestone?: (milestone: { id: string; refId: string; title: string; kind: string }) => Promise<void> | void;
   onDelete?: () => Promise<void> | void;
 }
@@ -36,6 +38,7 @@ const RecordActionsSheet = ({
   onPreview,
   onRename,
   onShare,
+  onSendToChat,
   onApplyToMilestone,
   onDelete,
 }: RecordActionsSheetProps) => {
@@ -145,6 +148,13 @@ const RecordActionsSheet = ({
               onClick={() => setMode("rename")}
             />
             <ActionRow icon={<Share2 size={15} />} en="Share" ar="مشاركة" onClick={async () => { try { await onShare?.(); } finally { onClose(); } }} />
+            <ActionRow
+              icon={<MessageSquare size={15} />}
+              en="Send to chat"
+              ar="أرسل إلى المحادثة"
+              disabled={!onSendToChat}
+              onClick={async () => { try { await onSendToChat?.(); } finally { onClose(); } }}
+            />
             <ActionRow
               icon={<Link2 size={15} />}
               en="Apply to milestone"
