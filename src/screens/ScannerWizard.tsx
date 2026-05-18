@@ -1827,10 +1827,14 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
                   sendToDoctor: !!destinations[2],
                 }
               : undefined;
+            const populatedManualFields = (genericFields ?? []).filter((f) => f.value.trim().length > 0);
             emitParsed({
               ...(scannedSnapshotRef.current ?? {}),
               saveOptions,
               selectedDestinations: selected.map((s) => ({ en: s.en, ar: s.ar, route: s.route })),
+              manualFields: populatedManualFields.length ? populatedManualFields : undefined,
+              subcategory: subcategory ?? undefined,
+              fileName,
             } as ScannerSavePayload);
             onSave();
           }}
