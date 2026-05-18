@@ -1,27 +1,37 @@
 /**
- * useAuthUserId — returns the current Supabase auth user id (or null for guests).
- * Subscribes to onAuthStateChange so it stays current across sign-in / sign-out.
+ * Auth session hooks.
  *
- * Kept tiny on purpose: callers that need full user metadata can hit
- * supabase.auth.getUser() directly.
+ * `useAuthSession` returns `{ userId, isReady }`. `isReady` flips true once
+ * Supabase has finished restoring the session from storage — callers should
+ * gate their first data query on `isReady` to avoid the "auth restore race"
+ * where queries fire while `auth.uid()` is still null (RLS returns []).
+ *
+ * `useAuthUserId` is kept as a thin compatibility shim returning just the id.
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export const useAuthUserId = (): string | null => {
-  const [userId, setUserId] = useState<string | null>(null);
+export interface AuthSession {
+  userId: string | null;
+  isReady: boolean;
+}
+
+export const useAuthSession = (): AuthSession => {
+  const [state, setState] = useState<AuthSession>({ userId: null, isReady: false });
 
   useEffect(() => {
     let cancelled = false;
 
-    // Initial read
-    supabase.auth.getUser().then(({ data }) => {
-      if (!cancelled) setUserId(data.user?.id ?? null);
+    // getSession reads from storage and returns quickly; that moment is the
+    // earliest point at which `auth.uid()` is reliable inside the gotrue
+    // network client.
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      setState({ userId: data.session?.user?.id ?? null, isReady: true });
     });
 
-    // Listen for changes
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null);
+      setState({ userId: session?.user?.id ?? null, isReady: true });
     });
 
     return () => {
@@ -30,5 +40,7 @@ export const useAuthUserId = (): string | null => {
     };
   }, []);
 
-  return userId;
+  return state;
 };
+
+export const useAuthUserId = (): string | null => useAuthSession().userId;

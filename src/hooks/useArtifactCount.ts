@@ -7,6 +7,12 @@ interface Args {
   /** Restrict to a specific segment_ref OR ticket_id (milestone scope). */
   segmentRef?: string | null;
   ticketId?: string | null;
+  /**
+   * Set to false while auth is still restoring so we don't fire the query
+   * with a null userId (which would silently take the guest/device-only
+   * branch and return 0 for a signed-in user on a fresh device).
+   */
+  enabled?: boolean;
 }
 
 /**
@@ -14,11 +20,12 @@ interface Args {
  * - Global (no segmentRef/ticketId): used by Home "Records & artefacts".
  * - Scoped (segmentRef/ticketId): used by MilestoneSheet header artifact count.
  */
-export function useArtifactCount({ userId, segmentRef, ticketId }: Args = {}) {
+export function useArtifactCount({ userId, segmentRef, ticketId, enabled = true }: Args = {}) {
   const [count, setCount] = useState(0);
   const deviceId = getDeviceId();
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
 
     const run = async () => {
