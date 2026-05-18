@@ -608,6 +608,35 @@ const LoungeQrSheet = ({
               <QRCodeSVG value={buildQrPayload(membership)} size={196} level="M" includeMargin={false} />
             )}
           </div>
+          {membership.qrImageUrl && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await saveLoungeMembership({
+                    id: membership.id,
+                    program: membership.program,
+                    membershipNumber: membership.membershipNumber,
+                    cardholderName: membership.cardholderName,
+                    cardLast4: membership.cardLast4,
+                    expiresOn: membership.expiresOn,
+                    linkedSegmentId: membership.linkedSegmentId,
+                    notes: membership.notes,
+                    qrSecret: membership.qrSecret,
+                    entitlementRefreshOn: membership.entitlementRefreshOn,
+                    qrImageUrl: undefined,
+                  });
+                  toast.success("Custom QR removed · تم حذف الرمز المخصص", { duration: 1600 });
+                } catch {
+                  toast.error("Couldn't remove QR · تعذر الحذف");
+                }
+              }}
+              className="mt-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press"
+              style={{ background: "rgba(217,79,79,0.10)", color: "var(--error)" }}
+            >
+              <Trash2 size={11} /> Remove custom QR · استخدم الرمز التلقائي
+            </button>
+          )}
           <p className="mt-3 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
             {membership.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
           </p>
