@@ -925,8 +925,9 @@ const toFlightFieldsLite = (leg: FlightInfo): FlightFields => ({
   Class: leg.seatClass || "",
 });
 
-const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
+const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, onSave }: {
   category: string | null;
+  subcategory?: string | null;
   fileName: string;
   realFile?: File | null;
   onParsed?: (p: ScannerSavePayload | null) => void;
