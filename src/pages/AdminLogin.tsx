@@ -53,7 +53,7 @@ const AdminLogin = () => {
     <>
       <Seo
         title="Admin sign-in — RufayQ"
-        description="Staff sign-in for RufayQ administrators and moderators."
+        description="Staff sign-in for RufayQ admins, support agents, and QC testers."
         noindex
       />
     <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100 px-4" style={{ fontFamily: "'DM Sans', system-ui" }}>
