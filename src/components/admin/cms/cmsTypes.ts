@@ -157,10 +157,11 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
             { text: "For Gulf & global patients", icon: "heart" },
           ],
           mockupCards: [
-            { icon: "🛫", title: "Business · LH 770 → Frankfurt", subtitle: "Boarding 22:40 · Gate A22", accent: "teal" },
-            { icon: "🛋️", title: "Lounge ready · Visa Companion", subtitle: "DXB · Concourse B", accent: "gold" },
-            { icon: "🩺", title: "Prof. Klein — Cleveland Clinic", subtitle: "Tomorrow · 11:00 AM", accent: "teal" },
-            { icon: "🚘", title: "Chauffeur to The Ritz-Carlton", subtitle: "On arrival · 06:20", accent: "gold" },
+            { icon: "✈️", title: "Charité appointment confirmed", subtitle: "Emirates EK 049 → Berlin · 02:15", accent: "gold" },
+            { icon: "🛂", title: "Gate B22 · Medical file ready", subtitle: "Share securely with your doctor", accent: "teal" },
+            { icon: "🩺", title: "Discharge plan reviewed", subtitle: "Specialist signed off · All clear", accent: "gold" },
+            { icon: "🏛️", title: "Family on Museum Island", subtitle: "TourAI itinerary · While you rest", accent: "teal" },
+            { icon: "💚", title: "Day 14 recovery · 92%", subtitle: "Your Saudi doctor fully updated", accent: "gold" },
           ],
         },
         ar: {
@@ -175,10 +176,11 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
             { text: "لمرضى الخليج والعالم", icon: "heart" },
           ],
           mockupCards: [
-            { icon: "🛫", title: "أعمال · LH 770 → فرانكفورت", subtitle: "الصعود 22:40 · بوابة A22", accent: "teal" },
-            { icon: "🛋️", title: "الصالة جاهزة · رفيق فيزا", subtitle: "دبي · مبنى B", accent: "gold" },
-            { icon: "🩺", title: "البروفيسور كلاين — كليفلاند", subtitle: "غداً · 11:00 ص", accent: "teal" },
-            { icon: "🚘", title: "سائق خاص إلى ريتز كارلتون", subtitle: "عند الوصول · 06:20", accent: "gold" },
+            { icon: "✈️", title: "موعد شاريتيه مؤكّد", subtitle: "طيران الإمارات EK 049 → برلين · 02:15", accent: "gold" },
+            { icon: "🛂", title: "البوابة B22 · ملفّك الطبي جاهز", subtitle: "للمشاركة الآمنة مع طبيبك", accent: "teal" },
+            { icon: "🩺", title: "تمت مراجعة خطة الخروج", subtitle: "اعتمدها اختصاصيّك · كل شيء على ما يرام", accent: "gold" },
+            { icon: "🏛️", title: "العائلة في جزيرة المتاحف", subtitle: "مرشد TourAI · أثناء راحتك", accent: "teal" },
+            { icon: "💚", title: "اليوم ١٤ من التعافي · ٩٢٪", subtitle: "طبيبك في السعودية على اطّلاع كامل", accent: "gold" },
           ],
         },
       };

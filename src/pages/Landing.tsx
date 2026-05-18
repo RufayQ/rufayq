@@ -5,6 +5,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCmsPage } from "@/hooks/useCmsPage";
+import { useGreeting } from "@/hooks/useGreeting";
 /**
  * SEO is mounted lazily (after first paint) so react-helmet-async (~17 kB)
  * never enters the LCP critical chain. Googlebot waits for hydrated content,
@@ -25,14 +26,10 @@ const BADGE_ICONS: Record<string, typeof LockIcon> = {
   sparkles: SparklesIcon,
 };
 
-/** Locale-aware greeting derived from the visitor's local hour. */
-function getGreeting(): { en: string; ar: string } {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 12)  return { en: "Good morning",   ar: "صباح الخير" };
-  if (h >= 12 && h < 17) return { en: "Good afternoon", ar: "طاب يومك" };
-  if (h >= 17 && h < 22) return { en: "Good evening",   ar: "مساء الخير" };
-  return { en: "Good evening", ar: "مساء الخير" };
-}
+// Greeting is provided by the locale-aware `useGreeting` hook
+// (src/hooks/useGreeting.ts) — derived from the visitor's local clock,
+// refreshed every 60s + on tab focus/visibility so band transitions
+// (e.g. 11:59 → 12:00) surface without a reload.
 
 /**
  * Below-the-fold sections (Features → Footer) live in their own chunk.
@@ -123,18 +120,23 @@ const Landing = () => {
   const primaryLink    = heroPrimary?.primaryCta?.link    || "/auth";
 
   // ── Mobile mockup cards (CMS-driven, EN + AR parity) ───────────────
+  // Defaults narrate Mohammed Al-Rashidi's luxury medical-travel journey to
+  // Berlin (Charité) — 5 milestones, identical scenario in EN and AR. Same
+  // visual sequence; only the caption text differs by locale.
   type MockCard = { icon?: string; title: string; subtitle?: string; accent?: "gold" | "teal" };
   const defaultMockEn: MockCard[] = [
-    { icon: "🛫", title: "Business · LH 770 → Frankfurt", subtitle: "Boarding 22:40 · Gate A22", accent: "teal" },
-    { icon: "🛋️", title: "Lounge ready · Visa Companion", subtitle: "DXB · Concourse B", accent: "gold" },
-    { icon: "🩺", title: "Prof. Klein — Cleveland Clinic", subtitle: "Tomorrow · 11:00 AM", accent: "teal" },
-    { icon: "🚘", title: "Chauffeur to The Ritz-Carlton", subtitle: "On arrival · 06:20", accent: "gold" },
+    { icon: "✈️", title: "Charité appointment confirmed", subtitle: "Emirates EK 049 → Berlin · 02:15", accent: "gold" },
+    { icon: "🛂", title: "Gate B22 · Medical file ready", subtitle: "Share securely with your doctor", accent: "teal" },
+    { icon: "🩺", title: "Discharge plan reviewed", subtitle: "Specialist signed off · All clear", accent: "gold" },
+    { icon: "🏛️", title: "Family on Museum Island", subtitle: "TourAI itinerary · While you rest", accent: "teal" },
+    { icon: "💚", title: "Day 14 recovery · 92%", subtitle: "Your Saudi doctor fully updated", accent: "gold" },
   ];
   const defaultMockAr: MockCard[] = [
-    { icon: "🛫", title: "أعمال · LH 770 → فرانكفورت", subtitle: "الصعود 22:40 · بوابة A22", accent: "teal" },
-    { icon: "🛋️", title: "الصالة جاهزة · رفيق فيزا", subtitle: "دبي · مبنى B", accent: "gold" },
-    { icon: "🩺", title: "البروفيسور كلاين — كليفلاند", subtitle: "غداً · 11:00 ص", accent: "teal" },
-    { icon: "🚘", title: "سائق خاص إلى ريتز كارلتون", subtitle: "عند الوصول · 06:20", accent: "gold" },
+    { icon: "✈️", title: "موعد شاريتيه مؤكّد", subtitle: "طيران الإمارات EK 049 → برلين · 02:15", accent: "gold" },
+    { icon: "🛂", title: "البوابة B22 · ملفّك الطبي جاهز", subtitle: "للمشاركة الآمنة مع طبيبك", accent: "teal" },
+    { icon: "🩺", title: "تمت مراجعة خطة الخروج", subtitle: "اعتمدها اختصاصيّك · كل شيء على ما يرام", accent: "gold" },
+    { icon: "🏛️", title: "العائلة في جزيرة المتاحف", subtitle: "مرشد TourAI · أثناء راحتك", accent: "teal" },
+    { icon: "💚", title: "اليوم ١٤ من التعافي · ٩٢٪", subtitle: "طبيبك في السعودية على اطّلاع كامل", accent: "gold" },
   ];
   const mockEn: MockCard[] = (heroEn?.mockupCards as MockCard[] | undefined)?.length
     ? (heroEn!.mockupCards as MockCard[]) : defaultMockEn;
@@ -142,28 +144,11 @@ const Landing = () => {
     ? (heroAr!.mockupCards as MockCard[]) : defaultMockAr;
 
   // ── Dynamic, locale-aware greeting (visitor's local time) ───────────
-  // Recomputes on mount, every 60s, on tab focus, on visibility change, and
-  // on the next exact hour boundary so transitions (e.g. 11:59 → 12:00) are
-  // instant rather than up to a minute late.
-  const [greeting, setGreeting] = useState<{ en: string; ar: string }>(() => getGreeting());
-  useEffect(() => {
-    const recompute = () => setGreeting(getGreeting());
-    recompute();
-    const interval = window.setInterval(recompute, 60_000);
-    const now = new Date();
-    const msToNextHour =
-      (60 - now.getMinutes()) * 60_000 - now.getSeconds() * 1000 - now.getMilliseconds();
-    const hourTimeout = window.setTimeout(recompute, Math.max(msToNextHour, 1000));
-    const onVisible = () => { if (document.visibilityState === "visible") recompute(); };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", recompute);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(hourTimeout);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", recompute);
-    };
-  }, []);
+  // Derived from visitor's local clock; refreshed every 60s + on focus/
+  // visibility change inside the hook. See `src/hooks/useGreeting.ts`.
+  const greetingEn = useGreeting("en");
+  const greetingAr = useGreeting("ar");
+  const greeting = { en: greetingEn, ar: greetingAr };
 
   const defaultTrust = [
     { icon: "lock",     en: "End-to-end encrypted",       ar: "تشفير كامل" },
