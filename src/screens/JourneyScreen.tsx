@@ -1393,6 +1393,14 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
         segments={segments}
         filteredCount={filteredSegments.length}
         onClear={() => setFilters(defaultTicketsFilterState)}
+        loungeCount={loungeCount}
+        onJumpToLounges={() => {
+          const el = document.getElementById("lounge-access-section");
+          if (!el) return;
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          el.style.boxShadow = "0 0 0 2px var(--gold), 0 14px 38px rgba(197,150,90,0.32)";
+          window.setTimeout(() => { el.style.boxShadow = ""; }, 1400);
+        }}
       />
       <LoungeAccessSection segments={segments} />
       {filteredSegments.length === 0 && (
