@@ -7,6 +7,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
 import { useSubscription } from "@/hooks/useSubscription";
+import { canUploadDeviceFiles as canUploadDeviceFilesFn } from "@/features/chat/logic/attachmentGating";
 import { quickPrompts } from "@/constants/data";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useGuestMode } from "@/hooks/useGuestMode";
@@ -76,7 +77,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const isGuest = useGuestMode();
   const { remaining: guestRemaining, limit: guestLimit, isExhausted: guestExhausted, resetsAt: guestResetsAt, consume: consumeGuestCredit } = useGuestCredits();
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [upgradeCtx, setUpgradeCtx] = useState<{ variant: "guest" | "subscriber"; plan?: string; resetsAt?: Date | string | null }>({ variant: "guest", resetsAt: null });
+  const [upgradeCtx, setUpgradeCtx] = useState<{ variant: "guest" | "subscriber"; plan?: string; resetsAt?: Date | string | null; reason?: "ai_limit" | "device_uploads" }>({ variant: "guest", resetsAt: null, reason: "ai_limit" });
   const [view, setView] = useState<"inbox" | "ai" | "human" | "profile">("inbox");
   const [humanThread, setHumanThread] = useState<ChatThreadRow | null>(null);
   // Where ConversationProfile's back button returns to. Set when we open it.
@@ -95,10 +96,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const [selectedRecord, setSelectedRecord] = useState<PickedRecord | null>(null);
   const { subscription } = useSubscription();
   /** Device uploads (Camera / Files) are a Companion+ perk. Sharing already-saved records is free. */
-  const canUploadDeviceFiles = ((): boolean => {
-    const code = (subscription?.plan || "").toString().toUpperCase();
-    return code === "COMPANION" || code === "FAMILY";
-  })();
+  const canUploadDeviceFiles = canUploadDeviceFilesFn(subscription?.plan);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordedAudio, setRecordedAudio] = useState<{ duration: number } | null>(null);
@@ -366,9 +364,8 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   /** Device camera/file uploads are gated to Companion+. */
   const handleOpenDeviceUpload = (capture: boolean) => {
     if (!canUploadDeviceFiles) {
-      setUpgradeCtx({ variant: "subscriber", plan: "COMPANION" });
+      setUpgradeCtx({ variant: "subscriber", plan: "COMPANION", reason: "device_uploads" });
       setShowUpgrade(true);
-      toast.info("Companion feature · ميزة كومبانيون", { duration: 2200 });
       return;
     }
     if (fileInputRef.current) {
