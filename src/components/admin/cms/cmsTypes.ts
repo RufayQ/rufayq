@@ -155,7 +155,6 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
           highlight: "كل رحلة",
           subtitle: "رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج. تابع التذاكر والأدوية والمواعيد، واسأل عن أي تفصيل في سجلاتك الطبية.",
           primaryCta: { label: "ابدأ مجاناً", link: "/auth" },
-          secondaryCta: { label: "استعرض الأسعار", link: "/#pricing" },
           badges: [
             { text: "تشفير كامل", icon: "lock" },
             { text: "ثنائي اللغة عربي/إنجليزي", icon: "globe" },
