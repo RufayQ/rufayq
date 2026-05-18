@@ -46,7 +46,7 @@ const ITEMS = [
   },
 ];
 
-const fromMock = vi.fn(() => {
+const fromMock: any = vi.fn((_t?: string) => {
   const chain: any = {
     select: () => chain,
     is: () => chain,
@@ -59,7 +59,7 @@ const fromMock = vi.fn(() => {
   return chain;
 });
 
-const storageFromMock = vi.fn(() => ({
+const storageFromMock: any = vi.fn((_b?: string) => ({
   upload: async () => ({ data: { path: "x" }, error: null }),
   remove: async () => ({ data: null, error: null }),
   createSignedUrl: async (path: string) => ({
