@@ -14,6 +14,7 @@ import TravelRecordsList, { CAT_DEFS, classify, type TravelCat } from "@/compone
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
 import TravelSummaryLanguageSheet, { type SummaryLang } from "@/components/records/TravelSummaryLanguageSheet";
+import TravelDocsPreviewSheet from "@/components/records/TravelDocsPreviewSheet";
 
 type RecordsSegment = "medical" | "travel";
 
@@ -225,12 +226,10 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
     window.open(`https://wa.me/?text=${encodeURIComponent(summary)}`, "_blank");
   };
 
+  const [travelPreviewAction, setTravelPreviewAction] = useState<null | "copy" | "export" | "share">(null);
+
   const openTravelAction = (action: "copy" | "export" | "share") => {
-    if (visibleTravelDocs.length === 0) {
-      toast.info("No travel documents yet · لا توجد وثائق سفر بعد", { duration: 2000 });
-      return;
-    }
-    setTravelAction(action);
+    setTravelPreviewAction(action);
   };
 
   // Tab-aware kebab: shared items + medical-only quick actions (+ Meds).
@@ -701,6 +700,18 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         onDelete={() => {
           if (!menuTarget) return;
           setHidden((s) => new Set(s).add(menuTarget.key));
+        }}
+      />
+
+      <TravelDocsPreviewSheet
+        open={!!travelPreviewAction}
+        action={travelPreviewAction}
+        docs={visibleTravelDocs}
+        onClose={() => setTravelPreviewAction(null)}
+        onContinue={() => {
+          const a = travelPreviewAction;
+          setTravelPreviewAction(null);
+          if (a) setTravelAction(a);
         }}
       />
 
