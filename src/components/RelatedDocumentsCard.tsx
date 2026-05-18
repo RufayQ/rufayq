@@ -801,6 +801,18 @@ const RelatedDocumentsCard = ({
           </div>
         </div>
       )}
+
+      {/* Smart-Scan wizard for image/PDF attachments — review, edit, key fields. */}
+      {scanFile && (
+        <ScannerWizard
+          onClose={() => setScanFile(null)}
+          preselectedCategory="legal"
+          preselectedSubcategory={LABEL_TO_SUBCATEGORY[labelDraft] || "Visa"}
+          initialFile={scanFile}
+          attachmentMode
+          onSave={saveScannedAttachment}
+        />
+      )}
     </div>
   );
 };
