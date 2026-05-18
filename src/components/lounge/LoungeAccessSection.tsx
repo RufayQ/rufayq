@@ -177,6 +177,7 @@ const LoungeAccessSection = ({ segments }: Props) => {
                         onClick={() => toggleExpanded(m.id)}
                         aria-label={isExpanded ? "Collapse card" : "Expand card"}
                         aria-expanded={isExpanded}
+                        data-testid={`lounge-card-expand-${m.id}`}
                         className="ml-1 flex h-7 w-7 items-center justify-center rounded-full btn-press"
                         style={{ background: "var(--off-white)", color: "var(--navy)" }}
                       >
