@@ -103,7 +103,7 @@ const LoungeAccessSection = ({ segments }: Props) => {
   const flightSegments = segments.filter((s) => s.type === "flight");
 
   return (
-    <section className="px-4 mb-4">
+    <section id="lounge-access-section" className="px-4 mb-4 scroll-mt-24 transition-shadow duration-500 rounded-2xl">
       <div className="flex items-center justify-between mb-2">
         <div>
           <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--teal-deep)" }}>
