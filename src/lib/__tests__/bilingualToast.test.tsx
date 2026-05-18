@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, act } from "@testing-library/react";
 import { Toaster } from "@/components/ui/sonner";
-import { notify } from "@/lib/bilingualToast";
+import { notify, toast as sonnerToast } from "@/lib/bilingualToast";
 
 describe("notify() bilingual toast", () => {
   beforeEach(() => render(<Toaster />));
