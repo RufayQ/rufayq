@@ -3570,6 +3570,7 @@ export type Database = {
       }
       qc_test_runs: {
         Row: {
+          attachment_paths: string[]
           build_version: string
           case_code: number | null
           case_subtags: string[]
@@ -3585,6 +3586,7 @@ export type Database = {
           smoke_report: string | null
         }
         Insert: {
+          attachment_paths?: string[]
           build_version: string
           case_code?: number | null
           case_subtags?: string[]
@@ -3600,6 +3602,7 @@ export type Database = {
           smoke_report?: string | null
         }
         Update: {
+          attachment_paths?: string[]
           build_version?: string
           case_code?: number | null
           case_subtags?: string[]
