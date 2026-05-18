@@ -129,7 +129,7 @@ describe("LoungeAccessSection", () => {
     fireEvent.click(await screen.findByTestId("qr-fullscreen-download"));
 
     await waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1));
-    const anchor = clickSpy.mock.instances[0] as unknown as HTMLAnchorElement;
+    const anchor = (clickSpy.mock.instances as unknown as HTMLAnchorElement[])[0];
     expect(anchor.download).toMatch(/^rufayq-lounge-dragonpass-4444\.png$/);
     expect(anchor.getAttribute("href")).toBe(FAKE_HD);
     expect((toast.success as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
