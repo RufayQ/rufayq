@@ -271,7 +271,7 @@ const NotificationCenter = ({
             )}
           </div>
 
-          {showCategoryRow && (
+          {showCategoryRow && !isHistory && (
             <div className="relative mt-3 flex gap-1.5 overflow-x-auto no-scrollbar">
               {CATEGORY_META.map(({ id, en, ar, Icon }) => {
                 const unread =
@@ -297,6 +297,35 @@ const NotificationCenter = ({
                         {unread > 9 ? "9+" : unread}
                       </span>
                     )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {isHistory && (
+            <div className="relative mt-3 flex gap-1.5 overflow-x-auto no-scrollbar">
+              {([
+                { id: "all", en: "All", ar: "الكل", Icon: Bell },
+                { id: "system", en: "System", ar: "النظام", Icon: Stethoscope },
+                { id: "meds", en: "Meds", ar: "الأدوية", Icon: Pill },
+                { id: "followup", en: "Follow-up", ar: "المتابعة", Icon: CalendarClock },
+                { id: "chats", en: "Chats", ar: "الرسائل", Icon: MessageCircle },
+              ] as { id: HistoryFilter; en: string; ar: string; Icon: typeof Bell }[]).map(({ id, en, ar, Icon }) => {
+                const isActive = historyFilter === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setHistoryFilter(id)}
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition"
+                    style={{
+                      background: isActive ? "hsl(var(--accent))" : "hsl(var(--primary-foreground) / 0.08)",
+                      color: isActive ? "hsl(var(--accent-foreground))" : "hsl(var(--primary-foreground) / 0.85)",
+                      borderColor: isActive ? "hsl(var(--accent))" : "hsl(var(--primary-foreground) / 0.18)",
+                    }}
+                  >
+                    <Icon size={13} />
+                    <span>{showAr && !showEn ? ar : en}</span>
                   </button>
                 );
               })}
