@@ -58,6 +58,8 @@ const NotificationCenter = ({
 
   const [categoryFilter, setCategoryFilter] = useState<Category>("all");
   const [prefsOpen, setPrefsOpen] = useState(false);
+  type HistoryFilter = "all" | "system" | "meds" | "followup" | "chats";
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
   const ALERTS_PAGE = 50;
   const THREADS_PAGE = 30;
   const [historyAlertsLimit, setHistoryAlertsLimit] = useState(ALERTS_PAGE);
@@ -67,7 +69,18 @@ const NotificationCenter = ({
   useEffect(() => {
     setHistoryAlertsLimit(ALERTS_PAGE);
     setHistoryThreadsLimit(THREADS_PAGE);
-  }, [tab, categoryFilter]);
+  }, [tab, categoryFilter, historyFilter]);
+
+  // Map an alert's kind → history filter bucket.
+  const HISTORY_KINDS: Record<Exclude<HistoryFilter, "all" | "chats">, string[]> = {
+    system: ["admission", "instruction", "announcement", "consent_request"],
+    meds: ["medication"],
+    followup: ["appointment"],
+  };
+  const matchesHistoryFilter = (kind: string) => {
+    if (historyFilter === "all" || historyFilter === "chats") return true;
+    return HISTORY_KINDS[historyFilter].includes(kind);
+  };
 
   // Map an alert's kind → category id (for pref filtering).
   const kindCategory = (kind: string): Exclude<NotificationCategoryId, "chats"> | null => {
@@ -94,10 +107,12 @@ const NotificationCenter = ({
       : allowedAlerts.filter((n) => CATEGORY_KINDS[categoryFilter].includes(n.kind));
   const historyAlertsAll = [...filteredAlerts]
     .filter((n) => n.is_read)
+    .filter((n) => historyFilter !== "chats" && matchesHistoryFilter(n.kind))
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
   const historyThreadsAll = prefs.chats === false
     ? []
     : [...threads]
+        .filter(() => historyFilter === "all" || historyFilter === "chats")
         .sort((a, b) => Date.parse(b.last_message_at) - Date.parse(a.last_message_at));
   const historyAlerts = historyAlertsAll.slice(0, historyAlertsLimit);
   const historyThreads = historyThreadsAll.slice(0, historyThreadsLimit);
@@ -256,7 +271,7 @@ const NotificationCenter = ({
             )}
           </div>
 
-          {showCategoryRow && (
+          {showCategoryRow && !isHistory && (
             <div className="relative mt-3 flex gap-1.5 overflow-x-auto no-scrollbar">
               {CATEGORY_META.map(({ id, en, ar, Icon }) => {
                 const unread =
@@ -282,6 +297,35 @@ const NotificationCenter = ({
                         {unread > 9 ? "9+" : unread}
                       </span>
                     )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {isHistory && (
+            <div className="relative mt-3 flex gap-1.5 overflow-x-auto no-scrollbar">
+              {([
+                { id: "all", en: "All", ar: "الكل", Icon: Bell },
+                { id: "system", en: "System", ar: "النظام", Icon: Stethoscope },
+                { id: "meds", en: "Meds", ar: "الأدوية", Icon: Pill },
+                { id: "followup", en: "Follow-up", ar: "المتابعة", Icon: CalendarClock },
+                { id: "chats", en: "Chats", ar: "الرسائل", Icon: MessageCircle },
+              ] as { id: HistoryFilter; en: string; ar: string; Icon: typeof Bell }[]).map(({ id, en, ar, Icon }) => {
+                const isActive = historyFilter === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setHistoryFilter(id)}
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition"
+                    style={{
+                      background: isActive ? "hsl(var(--accent))" : "hsl(var(--primary-foreground) / 0.08)",
+                      color: isActive ? "hsl(var(--accent-foreground))" : "hsl(var(--primary-foreground) / 0.85)",
+                      borderColor: isActive ? "hsl(var(--accent))" : "hsl(var(--primary-foreground) / 0.18)",
+                    }}
+                  >
+                    <Icon size={13} />
+                    <span>{showAr && !showEn ? ar : en}</span>
                   </button>
                 );
               })}
