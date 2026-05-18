@@ -514,6 +514,16 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
               <Trash2 size={10} /> Clear pinned · <span className="font-arabic">إزالة التثبيت</span>
             </button>
           </div>
+          {pinnedItems.length > 1 && (
+            <div
+              className="flex items-center gap-1 mb-1.5 text-[10px]"
+              style={{ color: "var(--gray)" }}
+            >
+              <ChevronRight size={10} className="animate-pulse" style={{ color: "var(--gold)" }} />
+              <span>Swipe to view</span>
+              <span className="font-arabic" dir="rtl">· اسحب للعرض</span>
+            </div>
+          )}
           <div
             className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1"
             style={{ scrollbarWidth: "none" }}
@@ -530,6 +540,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
                   key={item.id}
                   className="shrink-0 flex flex-col items-center"
                   style={{ width: 64 }}
+                  title={item.label}
                 >
                   <div className="relative">
                     <button
@@ -542,6 +553,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
                         boxShadow: "0 3px 10px rgba(197,150,90,0.22)",
                       }}
                       aria-label={`Open ${item.label}`}
+                      title={item.label}
                     >
                       {isLounge ? (
                         <Sofa size={18} style={{ color: "var(--teal-deep)" }} />
@@ -563,14 +575,17 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
                     </button>
                   </div>
                   <p
-                    className="mt-1 text-[10px] leading-tight text-center w-full"
+                    className="mt-1 text-[10px] leading-tight text-center w-full break-words"
                     style={{
                       color: "var(--navy)",
                       display: "-webkit-box",
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: "vertical",
                       overflow: "hidden",
+                      wordBreak: "break-word",
+                      overflowWrap: "anywhere",
                     }}
+                    title={item.label}
                   >
                     {item.label}
                   </p>
