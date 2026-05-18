@@ -338,7 +338,7 @@ const LoungeAccessSection = ({ segments }: Props) => {
           }}
           onDelete={editing ? () => {
             deleteLoungeMembership(editing.id);
-            toast.success("Removed · تم الحذف", { duration: 1500 });
+            notify({ kind: "success", en: "Removed", ar: "تم الحذف", duration: 1500 });
             setEditing(null);
           } : undefined}
         />
@@ -610,7 +610,7 @@ const LoungeFormSheet = ({
           onSave={(dataUrl) => {
             setQrImageUrl(dataUrl);
             setPendingQrSrc(null);
-            toast.success("QR image updated · تم تحديث صورة الرمز", { duration: 1400 });
+            notify({ kind: "success", en: "QR image updated", ar: "تم تحديث صورة الرمز", duration: 1400 });
           }}
         />
       )}
@@ -702,9 +702,9 @@ const LoungeQrSheet = ({
       const last4 = membership.membershipNumber.replace(/\D/g, "").slice(-4) || "card";
       const filename = `rufayq-lounge-${slugifyProgram(membership.program)}-${last4}.png`;
       triggerDownload(dataUrl, filename);
-      toast.success("Saved to downloads · تم الحفظ", { duration: 1800 });
+      notify({ kind: "success", en: "Saved to downloads", ar: "تم الحفظ", duration: 1800 });
     } catch {
-      toast.error("Couldn't save QR · تعذر الحفظ");
+      notify({ kind: "error", en: "Couldn't save QR", ar: "تعذر الحفظ" });
     }
   };
 
@@ -841,9 +841,9 @@ const LoungeQrSheet = ({
                   entitlementRefreshOn: membership.entitlementRefreshOn,
                   qrImageUrl: undefined,
                 });
-                toast.success("Custom QR removed · تم حذف الرمز المخصص", { duration: 1600 });
+                notify({ kind: "success", en: "Custom QR removed", ar: "تم حذف الرمز المخصص", duration: 1600 });
               } catch {
-                toast.error("Couldn't remove QR · تعذر الحذف");
+                notify({ kind: "error", en: "Couldn't remove QR", ar: "تعذر الحذف" });
               }
             }}
             className="mt-3 mx-auto flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold btn-press"
