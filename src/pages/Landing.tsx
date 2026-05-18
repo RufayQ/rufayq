@@ -5,6 +5,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCmsPage } from "@/hooks/useCmsPage";
+import { useGreeting } from "@/hooks/useGreeting";
 /**
  * SEO is mounted lazily (after first paint) so react-helmet-async (~17 kB)
  * never enters the LCP critical chain. Googlebot waits for hydrated content,
