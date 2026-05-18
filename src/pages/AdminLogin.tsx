@@ -109,7 +109,7 @@ const AdminLogin = () => {
           </form>
 
           <p className="text-[10px] text-slate-500 text-center mt-6">
-            Patient sign-in is on the main app. This portal is staff-only and access is logged.
+            Patient sign-in is on the main app. This portal is for admin, support, and QC staff. Access is logged.
           </p>
         </div>
       </div>
