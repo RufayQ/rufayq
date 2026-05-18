@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { listScannedRecords, subscribeToScannedRecords } from "@/lib/scannedRecordsStore";
+import { listScannedRecords, removeScannedRecord, subscribeToScannedRecords, type ScannedRecord } from "@/lib/scannedRecordsStore";
 import { records as demoRecords, filterCategories, type DocRecord } from "@/constants/data";
 import { Share2, Download, Search, X, ArrowUpDown, Globe, FileText, Clock, Copy, Stethoscope, Plane, MoreVertical, Pill, ScanLine } from "lucide-react";
 import HeaderMenu, { type HeaderMenuItem } from "@/components/HeaderMenu";
@@ -710,7 +710,15 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         }}
         onDelete={() => {
           if (!menuTarget) return;
-          setHidden((s) => new Set(s).add(menuTarget.key));
+          // If this is a scanner-created record (has a stable id), remove it
+          // from the persisted store so it doesn't reappear on refresh. For
+          // demo records we still fall back to local hide.
+          const scannedId = (menuTarget.doc as Partial<ScannedRecord>).id;
+          if (scannedId && listScannedRecords().some((r) => r.id === scannedId)) {
+            removeScannedRecord(scannedId);
+          } else {
+            setHidden((s) => new Set(s).add(menuTarget.key));
+          }
         }}
       />
 

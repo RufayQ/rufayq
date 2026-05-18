@@ -50,6 +50,12 @@ export interface ScannerSavePayload {
   };
   /** Resolved destinations the user actually opted into — drives Step 5 list. */
   selectedDestinations?: { en: string; ar: string; route: string }[];
+  /** Generic / non-flight manually-entered fields (e.g. visa number, expiry). */
+  manualFields?: { label: string; value: string }[];
+  /** Sub-category chosen in Step 3 (e.g. "Visa", "Passport"). */
+  subcategory?: string | null;
+  /** Original captured file name — used as fallback for record titles. */
+  fileName?: string;
 }
 
 interface ScannerWizardProps {
@@ -206,7 +212,12 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   );
 
   const enrichedPayload = (p: ScannerSavePayload | null | undefined): ScannerSavePayload | undefined =>
-    p ? { ...p, pendingSegmentRef } : undefined;
+    p ? {
+      ...p,
+      pendingSegmentRef,
+      subcategory: p.subcategory ?? selectedSub,
+      fileName: p.fileName ?? capturedFile?.name,
+    } : undefined;
 
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
@@ -339,6 +350,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
         {step === 4 && !skipAiForFlight && (
           <Step4AIReview
             category={selectedCategory}
+            subcategory={selectedSub}
             fileName={capturedFile?.name || "document"}
             realFile={realFile}
             onParsed={setScannedPayload}
@@ -913,8 +925,9 @@ const toFlightFieldsLite = (leg: FlightInfo): FlightFields => ({
   Class: leg.seatClass || "",
 });
 
-const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
+const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, onSave }: {
   category: string | null;
+  subcategory?: string | null;
   fileName: string;
   realFile?: File | null;
   onParsed?: (p: ScannerSavePayload | null) => void;
@@ -1814,10 +1827,14 @@ const Step4AIReview = ({ category, fileName, realFile, onParsed, onSave }: {
                   sendToDoctor: !!destinations[2],
                 }
               : undefined;
+            const populatedManualFields = (genericFields ?? []).filter((f) => f.value.trim().length > 0);
             emitParsed({
               ...(scannedSnapshotRef.current ?? {}),
               saveOptions,
               selectedDestinations: selected.map((s) => ({ en: s.en, ar: s.ar, route: s.route })),
+              manualFields: populatedManualFields.length ? populatedManualFields : undefined,
+              subcategory: subcategory ?? undefined,
+              fileName,
             } as ScannerSavePayload);
             onSave();
           }}

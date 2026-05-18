@@ -14,6 +14,12 @@ import {
   fetchLoungeMemberships,
   type LoungeMembership,
 } from "@/lib/loungeMemberships";
+import {
+  listTravelScannedRecords,
+  removeTravelScannedRecord,
+  subscribeToTravelScannedRecords,
+  type TravelScannedRecord,
+} from "@/lib/travelScannedRecordsStore";
 
 /** Unified row shape so attachments and lounge memberships share render code. */
 type UnifiedRow =
@@ -27,6 +33,16 @@ type UnifiedRow =
       mime_type: null;
       size_bytes: null;
       membership: LoungeMembership;
+    }
+  | {
+      kind: "scanned-travel";
+      id: string; // synthetic: "scanned:<recordId>"
+      label: string;
+      file_name: string;
+      created_at: string;
+      mime_type: null;
+      size_bytes: null;
+      record: TravelScannedRecord;
     };
 
 const loungeExpMMYY = (iso?: string): string => {
@@ -44,6 +60,17 @@ const membershipToRow = (m: LoungeMembership): UnifiedRow => ({
   mime_type: null,
   size_bytes: null,
   membership: m,
+});
+
+const scannedToRow = (r: TravelScannedRecord): UnifiedRow => ({
+  kind: "scanned-travel",
+  id: `scanned:${r.id}`,
+  label: r.title,
+  file_name: r.fileName,
+  created_at: r.createdAt,
+  mime_type: null,
+  size_bytes: null,
+  record: r,
 });
 
 const BUCKET = "transport-attachments";
@@ -122,6 +149,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
   const deviceId = getDeviceId();
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loungeCards, setLoungeCards] = useState<LoungeMembership[]>(() => listLoungeMemberships());
+  const [scannedTravel, setScannedTravel] = useState<TravelScannedRecord[]>(() => listTravelScannedRecords());
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
@@ -167,12 +195,18 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     return subscribeLoungeMemberships(() => setLoungeCards(listLoungeMemberships()));
   }, []);
 
-  // Merge attachments + lounge cards into one sorted list.
+  // Scanner-saved travel docs (visas, etc.) also live in localStorage.
+  useEffect(() => {
+    return subscribeToTravelScannedRecords(() => setScannedTravel(listTravelScannedRecords()));
+  }, []);
+
+  // Merge attachments + lounge cards + scanned travel docs into one sorted list.
   const unified: UnifiedRow[] = useMemo(() => {
     const attachments: UnifiedRow[] = items.map((it) => ({ kind: "attachment" as const, ...it }));
     const lounge: UnifiedRow[] = loungeCards.map(membershipToRow);
-    return [...lounge, ...attachments].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }, [items, loungeCards]);
+    const scanned: UnifiedRow[] = scannedTravel.map(scannedToRow);
+    return [...lounge, ...scanned, ...attachments].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }, [items, loungeCards, scannedTravel]);
 
   const classifyRow = (r: UnifiedRow): TravelCat =>
     r.kind === "lounge-card" ? "lounge" : classify(r);
@@ -379,9 +413,11 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
 
   const renderRow = (item: UnifiedRow, isPinned: boolean) => {
     const isLounge = item.kind === "lounge-card";
+    const isScanned = item.kind === "scanned-travel";
     const handleOpen = () => {
       if (item.kind === "lounge-card") setQrTarget(item.membership);
-      else void openPreview(item);
+      else if (item.kind === "attachment") void openPreview(item);
+      // scanned-travel: no file URL yet — opening just dismisses the menu.
     };
     const expMMYY = item.kind === "lounge-card" ? loungeExpMMYY(item.membership.expiresOn) : "";
     return (
@@ -546,7 +582,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
               const isImg = item.kind === "attachment" && isImage(item.mime_type);
               const handleOpen = () => {
                 if (item.kind === "lounge-card") setQrTarget(item.membership);
-                else void openPreview(item);
+                else if (item.kind === "attachment") void openPreview(item);
               };
               return (
                 <div
@@ -670,7 +706,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
         onPreview={() => {
           if (!menuItem) return;
           if (menuItem.kind === "lounge-card") setQrTarget(menuItem.membership);
-          else void openPreview(menuItem);
+          else if (menuItem.kind === "attachment") void openPreview(menuItem);
         }}
         onRename={
           menuItem && menuItem.kind === "attachment"
@@ -692,6 +728,9 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
           if (menuItem.kind === "lounge-card") {
             deleteLoungeMembership(menuItem.membership.id);
             toast.success("Lounge card removed · تم الحذف", { duration: 1400 });
+          } else if (menuItem.kind === "scanned-travel") {
+            removeTravelScannedRecord(menuItem.record.id);
+            toast.success("Document removed · تم الحذف", { duration: 1400 });
           } else {
             void deleteItem(menuItem);
           }
