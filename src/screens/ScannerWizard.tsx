@@ -212,7 +212,12 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
   );
 
   const enrichedPayload = (p: ScannerSavePayload | null | undefined): ScannerSavePayload | undefined =>
-    p ? { ...p, pendingSegmentRef } : undefined;
+    p ? {
+      ...p,
+      pendingSegmentRef,
+      subcategory: p.subcategory ?? selectedSub,
+      fileName: p.fileName ?? capturedFile?.name,
+    } : undefined;
 
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
