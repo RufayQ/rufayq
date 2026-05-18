@@ -600,6 +600,17 @@ const LoungeFormSheet = ({
           </button>
         </div>
       </form>
+      {pendingQrSrc && (
+        <QrImageEditor
+          src={pendingQrSrc}
+          onCancel={() => setPendingQrSrc(null)}
+          onSave={(dataUrl) => {
+            setQrImageUrl(dataUrl);
+            setPendingQrSrc(null);
+            toast.success("QR image updated · تم تحديث صورة الرمز", { duration: 1400 });
+          }}
+        />
+      )}
     </div>
   );
 };
