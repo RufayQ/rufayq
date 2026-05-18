@@ -652,8 +652,8 @@ const Step2Review = ({
     <div className="flex flex-col h-full" style={{ background: "var(--scanner-bg)" }}>
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
         {isPureImage ? (
-          <div className="w-full rounded-xl overflow-hidden flex items-center justify-center" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", maxHeight: 420 }}>
-            <div className="overflow-hidden" style={{ maxHeight: 420, padding: `${cropPct}%` }}>
+          <div className="w-full rounded-xl overflow-hidden flex items-center justify-center relative" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", maxHeight: 420 }}>
+            <div className="relative w-full" style={{ maxHeight: 420 }}>
               <img
                 src={imageUrl!}
                 alt={file.name}
@@ -662,8 +662,19 @@ const Step2Review = ({
                   filter: filterCss,
                   transform: `rotate(${rotation}deg)`,
                   maxHeight: 380,
+                  clipPath: cropPct > 0 ? `inset(${cropPct}% ${cropPct}% ${cropPct}% ${cropPct}%)` : undefined,
                 }}
               />
+              {cropPct > 0 && (
+                <div
+                  className="pointer-events-none absolute"
+                  style={{
+                    inset: `${cropPct}%`,
+                    border: "2px dashed var(--gold)",
+                    boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
+                  }}
+                />
+              )}
             </div>
           </div>
         ) : realFile ? (
@@ -905,8 +916,48 @@ const GENERIC_SCHEMA_BY_CATEGORY: Record<string, { label: string }[]> = {
   train: [{ label: "Carrier" }, { label: "Service" }, { label: "From" }, { label: "To" }, { label: "Date" }, { label: "Time" }],
   other: [{ label: "Title" }, { label: "Date" }, { label: "Source" }, { label: "Notes" }],
 };
-const emptyGenericFields = (category: string | null) =>
-  (GENERIC_SCHEMA_BY_CATEGORY[category || "other"] || GENERIC_SCHEMA_BY_CATEGORY.other).map((f) => ({ label: f.label, value: "" }));
+
+/**
+ * Sub-category specific overrides. Used when a category has very distinct
+ * document types (e.g. legal → Visa vs Passport vs Residency Permit) that
+ * benefit from a tailored field set. Falls back to the category default.
+ */
+const SCHEMA_BY_SUBCATEGORY: Record<string, Record<string, { label: string }[]>> = {
+  legal: {
+    Visa: [
+      { label: "Visa number" },
+      { label: "Passport number" },
+      { label: "Iqama number" },
+      { label: "Visa holder" },
+      { label: "Nationality" },
+      { label: "Iqama expiry" },
+      { label: "Exit before" },
+      { label: "Return before" },
+    ],
+    Passport: [
+      { label: "Full name" }, { label: "Passport number" }, { label: "Nationality" },
+      { label: "Date of birth" }, { label: "Issue date" }, { label: "Expiry date" },
+    ],
+    "National ID": [
+      { label: "Full name" }, { label: "ID number" }, { label: "Date of birth" }, { label: "Expiry date" },
+    ],
+    "Residency Permit": [
+      { label: "Full name" }, { label: "Iqama number" }, { label: "Nationality" },
+      { label: "Sponsor" }, { label: "Issue date" }, { label: "Expiry date" },
+    ],
+    "Travel Insurance Card": [
+      { label: "Insurer" }, { label: "Policy no." }, { label: "Insured name" },
+      { label: "Coverage" }, { label: "Valid from" }, { label: "Valid until" },
+    ],
+  },
+};
+const emptyGenericFields = (category: string | null, subcategory?: string | null) => {
+  const cat = category || "other";
+  const sub = subcategory?.trim();
+  const subSchema = sub ? SCHEMA_BY_SUBCATEGORY[cat]?.[sub] : null;
+  const schema = subSchema || GENERIC_SCHEMA_BY_CATEGORY[cat] || GENERIC_SCHEMA_BY_CATEGORY.other;
+  return schema.map((f) => ({ label: f.label, value: "" }));
+};
 
 const fmtDateLite = (s: string) => {
   if (!s) return "";
@@ -1123,7 +1174,7 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
           setTimeout(() => !cancelRef.current && setProcessStep(4), 1500),
           setTimeout(() => {
             if (cancelRef.current || runRef.current !== myRun) return;
-            setGenericFields(emptyGenericFields(category));
+            setGenericFields(emptyGenericFields(category, subcategory));
             setOcrStatus("success");
           }, 1800),
         ];
@@ -1759,7 +1810,7 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
             setOutboundSegs([]);
             setReturnSegs([]);
             setActiveLeg("outbound");
-            setGenericFields(emptyGenericFields(category));
+            setGenericFields(emptyGenericFields(category, subcategory));
             setSaveError(null);
             emitParsed(null);
             if (category === "flight") {

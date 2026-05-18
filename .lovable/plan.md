@@ -1,58 +1,75 @@
-## What's happening
 
-All three symptoms come from one root cause: a **Supabase auth restore race** on app start / tab switch.
+## Goals
 
-`src/hooks/useAuthUserId.ts` initialises `userId` to `null`, then resolves it asynchronously via `supabase.auth.getUser()`. Every screen that depends on the user fires its first query during that ~50–300 ms gap when `userId` is still `null` and the auth token may not yet be attached to the Supabase client.
+Address 5 related issues around scanning and document upload:
 
-Concrete consequences in the current code:
+1. Visa-specific key fields (visa no, passport no, iqama no, holder, exit/return dates).
+2. Two parallel upload flows producing different UX (scanner ↔ flight-ticket attachment).
+3. Crop tool currently zooms instead of cropping.
+4. Visa appears as two rows (one with preview/no fields, one with fields/no preview).
+5. PDF preview UX inside the scanned-record viewer.
 
-1. **Home dashboards show 0** — `HomeScreen` calls `useArtifactCount({ userId: authUserId })`. On the first render `authUserId === null`, so the hook takes the guest branch (`.eq("device_id", deviceId)`) and queries `transport_attachments` filtered only by this device. A signed‑in user on a new device gets 0 back. The hook re‑runs when `userId` flips, but if anything else (network, retry) delays the second run, the user briefly — or sometimes persistently — sees zeros.
+## Scope of changes (frontend only)
 
-2. **Journey tab loads empty** — `useJourneys` calls `journeyApi.list()` inside its first `useEffect`. If RLS evaluates `auth.uid()` as null at that moment, the response is `[]` with no error. `setIsLoading(false)` runs, so the screen renders the "no journeys" state with stale empty data. There is no retry tied to auth becoming ready.
+### 1. Visa-specific schema in scanner
 
-3. **"We hit a snag loading that screen" toast → bounced to Home** — `TabErrorBoundary` (wired in `Index.tsx`) catches a render‑time throw inside `JourneyScreen` and calls `handleTabRenderError`, which swaps back to the last‑good tab and shows that exact bilingual toast. The throws happen when downstream Journey code reads a property off a row that the empty/partial response didn't include (e.g., `.find(...).something` when `.find` returned `undefined` because the list came back empty during the auth gap).
+`src/screens/ScannerWizard.tsx`
+- Replace flat `legal` schema with a per-subcategory map. When `subcategory === "Visa"` use:
+  `Visa number, Passport number, Iqama number, Visa holder, Nationality, Issue date, Exit before, Return before`.
+  Keep current generic legal schema as fallback for Passport / National ID / Residency.
+- Wire `Step4AIReview` to pick the schema using `(category, subcategory)` rather than category only.
 
-These three are the same bug viewed from three screens.
+### 2. Unified upload experience
 
-## Fix
+Today:
+- `RelatedDocumentsCard` (used from flight-ticket detail) uploads raw file → `transport_attachments` + storage. No image edits, no extracted fields.
+- `ScannerWizard` (FAB / Records "Scan" CTA) has edits + fields but persists to localStorage only.
 
-### 1. Introduce a real auth‑ready signal
+Change: route both through the scanner's "review + fields" stage while keeping ticket linkage.
 
-Replace `useAuthUserId` (or extend it) with `useAuthSession()` returning `{ userId, isReady }`.
+- `RelatedDocumentsCard`: when user picks a file, open `ScannerWizard` pre-seeded with the file, a default category (`legal` for ticket-linked attachments, configurable), and an `onSave` callback that:
+  - uploads the rasterised first page (image) or original PDF to `transport-attachments` bucket,
+  - inserts a `transport_attachments` row including the new `key_fields` JSON and `subcategory` (added in the next bullet).
+- Add an optional `initialFile` + `attachContext` (ticket id, category) prop to `ScannerWizard`; skip Step 1 (capture) and Step 2 (category) when provided.
 
-```text
-useAuthSession()
-  isReady=false on mount
-  supabase.auth.getSession() resolves   -> userId set, isReady=true
-  onAuthStateChange fires                -> userId updated, isReady stays true
-```
+### 3. Real crop tool
 
-Use `getSession()` (reads from storage synchronously‑ish) not `getUser()` (network round‑trip) so the gap is much smaller and we get an actual "ready" moment.
+`src/screens/ScannerWizard.tsx` Step 3 editor (lines ~580–730):
+- Replace `padding: ${cropPct}%` (which shrinks the visible image — looks like a zoom-out) with an actual crop preview using `clip-path: inset(<pct>% <pct>% <pct>% <pct>%)` on the `<img>` and scaling its parent to the cropped area, so the user sees the trimmed region only.
+- Upgrade the cycling button into a slider/drag-handle crop: 4 corner handles for free crop (state `{ top, right, bottom, left }` as percents 0–40). Persist to canvas using existing `sx/sy/sw/sh` math.
+- Keep "Reset" wiring.
 
-### 2. Gate data hooks on `isReady`
+### 4. De-duplicate visa rows
 
-- `useArtifactCount`: do not run the query until `isReady` is true. While not ready, return `null` (so callers can show a skeleton) or hold the previous count.
-- `useJourneys`: in its `refresh` effect, skip the call while `!isReady`. When `isReady` becomes true, run once. Keep guest mode behaviour unchanged.
+Root cause: scanner stores in `travelScannedRecordsStore` (localStorage) AND a separate user upload via `RelatedDocumentsCard` stores in `transport_attachments`. The Travel Records list merges both → duplicate.
 
-### 3. Stop dashboards flashing zeros
+Fix (depends on §2): make the scanner the single writer. Concretely:
 
-In `HomeScreen` and the Journey landing view: while `!isReady`, render the existing skeleton/placeholder for the counts rather than the literal "0". Only show "0" when we know the query actually returned zero.
+- In `handleScannerSave` (`src/pages/Index.tsx`), for `category === "legal"` write to `transport_attachments` (image of page 1 + extracted JSON in a new `key_fields jsonb` column on `transport_attachments`) instead of the local store, when auth is available. Fall back to local store only for guest mode.
+- Remove duplicate `scanned-travel` rows when an attachment with the same filename + similar created_at exists in the merge in `TravelRecordsList` (defensive client-side dedupe).
+- Migration: add nullable `key_fields jsonb` and `subcategory text` to `transport_attachments`. (DB change is required for §2 to surface fields.)
 
-### 4. Harden `JourneyScreen` against empty/partial first responses
+### 5. PDF preview UX
 
-In `JourneyScreen` (and the helpers it calls), audit the spots that read off `.find(...)`, `journeys[0]`, `dbTrips[0].something`, transport timeline rows, etc., and add `?.` / explicit empty guards so an empty list during the auth gap can never throw. This removes the "We hit a snag" trigger even if a future regression brings the race back.
+`src/components/records/TravelScannedRecordViewer.tsx`
+- When `pageImages` is empty but the source is a PDF stored in `transport_attachments`, render an `<iframe>` of the signed URL (matches `TravelRecordsList` attachment preview style) with the same fullscreen toggle.
+- For local-only scanner records that lack `pageImages` (old data), generate the first-page thumbnail on the fly via existing `src/lib/pdfToImages.ts` when the user opens the viewer, and cache it back into the record.
+- Tighten layout: image area uses `flex-1` instead of fixed 55dvh so the preview fills available space; details collapse into a bottom sheet on small viewports.
 
-Also: in `handleTabRenderError`, log `error.stack` and the failing `tabKey` to `console.error` so the next occurrence shows up cleanly in the preview console — today we only log the message.
+## Files touched
 
-### 5. Validation
+- `src/screens/ScannerWizard.tsx` — visa schema, real crop, optional initial file/context.
+- `src/components/RelatedDocumentsCard.tsx` — open scanner instead of plain upload; on save, upload + insert with `key_fields` and `subcategory`.
+- `src/pages/Index.tsx` — `handleScannerSave` writes legal docs to `transport_attachments`; keeps local fallback for guests.
+- `src/components/records/TravelRecordsList.tsx` — client-side dedupe; pass `key_fields` from attachments to the viewer.
+- `src/components/records/TravelScannedRecordViewer.tsx` — PDF iframe fallback, on-demand thumbnail, flex layout.
+- `src/lib/travelScannedRecordsStore.ts` — keep, used only for guest mode.
 
-- Hard refresh while signed in → Home shows skeletons for Trips/Records/Reminders/Planned, then real counts. Never "0 → real value" flash.
-- Open Journey tab immediately after refresh → list shows skeleton, then journeys. No empty‑state flash.
-- Sign out → in → Home counts and Journey list update without manual reload.
-- Toggle airplane mode briefly to force a slow auth restore → no "We hit a snag" toast.
+## DB migration
 
-## Technical notes
+- `alter table transport_attachments add column key_fields jsonb`, `add column subcategory text`. No backfill needed.
 
-- All changes are client‑side; no schema, RLS, or edge function changes.
-- React Query is not used here, so gating is done by guarding the `useEffect` body on `isReady`, not via an `enabled` flag.
-- `useAuthUserId` is consumed in many places; ship it as a non‑breaking superset by exporting both the old default (`userId`) and the new `useAuthSession` hook, and migrate `HomeScreen`, `JourneyScreen`, `useJourneys`, and `useArtifactCount` to the new one.
+## Out of scope
+
+- No backend logic changes beyond the additive columns.
+- No changes to medical records flow.
