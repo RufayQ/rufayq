@@ -607,7 +607,7 @@ const Step2BatchRecords = ({
 };
 
 /* ─── STEP 2: REVIEW ─── */
-const Step2Review = ({
+export const Step2Review = ({
   file, realFile, onRetake, onConfirm, onTransform,
 }: {
   file: { name: string; type: string; size: string };
