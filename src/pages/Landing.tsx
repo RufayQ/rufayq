@@ -25,6 +25,15 @@ const BADGE_ICONS: Record<string, typeof LockIcon> = {
   sparkles: SparklesIcon,
 };
 
+/** Locale-aware greeting derived from the visitor's local hour. */
+function getGreeting(): { en: string; ar: string } {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12)  return { en: "Good morning",   ar: "صباح الخير" };
+  if (h >= 12 && h < 17) return { en: "Good afternoon", ar: "طاب يومك" };
+  if (h >= 17 && h < 22) return { en: "Good evening",   ar: "مساء الخير" };
+  return { en: "Good evening", ar: "مساء الخير" };
+}
+
 /**
  * Below-the-fold sections (Features → Footer) live in their own chunk.
  * The hero paints first using only inline SVG + tiny providers, so the
@@ -111,8 +120,15 @@ const Landing = () => {
   const subAr     = heroAr?.subtitle || D.subtitleAr;
   const primaryLabel   = heroPrimary?.primaryCta?.label   || (isAr ? D.primaryAr   : D.primaryEn);
   const primaryLink    = heroPrimary?.primaryCta?.link    || "/auth";
-  const secondaryLabel = heroPrimary?.secondaryCta?.label || (isAr ? D.secondaryAr : D.secondaryEn);
-  const secondaryLink  = heroPrimary?.secondaryCta?.link  || "/#pricing";
+
+  // ── Dynamic, locale-aware greeting (visitor's local time) ───────────
+  // Recomputes on mount so SSR/cached HTML doesn't freeze the phrase.
+  const [greeting, setGreeting] = useState<{ en: string; ar: string }>(() => getGreeting());
+  useEffect(() => {
+    setGreeting(getGreeting());
+    const id = window.setInterval(() => setGreeting(getGreeting()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const defaultTrust = [
     { icon: "lock",     en: "End-to-end encrypted",       ar: "تشفير كامل" },
@@ -319,26 +335,11 @@ const Landing = () => {
                 <p className="font-arabic text-sm md:text-base mb-9 leading-relaxed max-w-md" dir="rtl" style={{ color: mode === "ar" ? TEXT_MUTED : "rgba(232,236,240,0.4)" }}>{subAr}</p>
               )}
 
-              {/* CTAs — primary gold + secondary ghost */}
-              <div className="flex flex-wrap items-center gap-3 mt-4" style={{ minHeight: 56 }}>
-                <button onClick={() => navigate(lp(primaryLink))} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02]" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
+              {/* Primary CTA — single, decisive */}
+              <div className="flex mt-4" style={{ minHeight: 56 }}>
+                <button onClick={() => navigate(lp(primaryLink))} className="px-7 py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 btn-press transition-all hover:scale-[1.02] w-full sm:w-auto" style={{ background: GOLD, color: BG_DARK, boxShadow: `0 10px 40px ${GOLD}40` }}>
                   {primaryLabel} <ArrowRightIcon size={15} />
                 </button>
-                {secondaryLabel && (
-                  <a
-                    href={secondaryLink.startsWith("/#") ? secondaryLink.slice(1) : undefined}
-                    onClick={(e) => {
-                      if (secondaryLink.startsWith("#") || secondaryLink.startsWith("/#")) return;
-                      e.preventDefault();
-                      navigate(lp(secondaryLink));
-                    }}
-                    className="px-6 py-4 rounded-full text-sm font-semibold flex items-center gap-2 btn-press transition-all hover:bg-white/[0.04]"
-                    style={{ color: TEXT, border: `1px solid ${GOLD}55` }}
-                  >
-                    {secondaryLabel}
-                    <ChevronDownIcon size={13} />
-                  </a>
-                )}
               </div>
 
               {/* Trust badges — refined row with hairline separators */}
@@ -364,15 +365,17 @@ const Landing = () => {
                     <RufayQLogo size={26} variant="light" />
                     <span className="text-[10px] font-mono" style={{ color: TEXT_MUTED }}>9:41</span>
                   </div>
-                  <p className="font-display text-2xl mb-1" style={{ color: TEXT, fontWeight: 300 }}>{isAr ? <span className="font-arabic">صباح الخير،</span> : "Good morning,"}</p>
+                  <p className="font-display text-2xl mb-1" style={{ color: TEXT, fontWeight: 300 }}>
+                    {isAr ? <span className="font-arabic">{greeting.ar}،</span> : `${greeting.en},`}
+                  </p>
                   <p className="text-sm mb-7" style={{ color: TEXT_MUTED }}>{isAr ? <span className="font-arabic">محمد</span> : "Mohammed"}</p>
 
                   <div className="space-y-2.5">
                     {[
-                      { ic: "✈️", t: "Flight to Cleveland", tAr: "رحلة إلى كليفلاند", s: "in 2 days · 8:30 AM", sAr: "بعد يومين · 8:30 ص", accent: TEAL },
-                      { ic: "💊", t: "Take Metformin", tAr: "تناول ميتفورمين", s: "Due now · 8:00 AM", sAr: "الآن · 8:00 ص", accent: GOLD },
-                      { ic: "🏥", t: "Dr. Smith — Cardiology", tAr: "د. سميث — قلب", s: "Tomorrow · 11:00 AM", sAr: "غداً · 11:00 ص", accent: TEAL },
-                      { ic: "📄", t: "Lab results ready", tAr: "نتائج التحاليل جاهزة", s: "Tap to view", sAr: "اضغط للعرض", accent: GOLD },
+                      { ic: "🛫", t: "Business · LH 770 → Frankfurt", tAr: "أعمال · LH 770 → فرانكفورت", s: "Boarding 22:40 · Gate A22", sAr: "الصعود 22:40 · بوابة A22", accent: TEAL },
+                      { ic: "🛋️", t: "Lounge ready · Visa Companion", tAr: "الصالة جاهزة · رفيق فيزا", s: "DXB · Concourse B", sAr: "دبي · مبنى B", accent: GOLD },
+                      { ic: "🩺", t: "Prof. Klein — Cleveland Clinic", tAr: "البروفيسور كلاين — كليفلاند", s: "Tomorrow · 11:00 AM", sAr: "غداً · 11:00 ص", accent: TEAL },
+                      { ic: "🚘", t: "Chauffeur to The Ritz-Carlton", tAr: "سائق خاص إلى ريتز كارلتون", s: "On arrival · 06:20", sAr: "عند الوصول · 06:20", accent: GOLD },
                     ].map((card, i) => (
                       <div key={i} className="rounded-xl p-3 flex items-center gap-3 backdrop-blur-sm" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: `${card.accent}20`, border: `1px solid ${card.accent}40` }}>{card.ic}</div>

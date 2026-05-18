@@ -143,7 +143,6 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
           highlight: "Every Journey",
           subtitle: "The bilingual AI companion for Gulf patients and travellers worldwide seeking treatment away from home. Track tickets, medications & appointments — and ask anything about your records.",
           primaryCta: { label: "Start free", link: "/auth" },
-          secondaryCta: { label: "Explore pricing", link: "/#pricing" },
           badges: [
             { text: "End-to-end encrypted", icon: "lock" },
             { text: "Bilingual EN / AR", icon: "globe" },
@@ -156,7 +155,6 @@ export const emptyContent = (type: SectionType): { en: Record<string, unknown>; 
           highlight: "كل رحلة",
           subtitle: "رفيقك الذكي ثنائي اللغة لرحلتك العلاجية في الخارج. تابع التذاكر والأدوية والمواعيد، واسأل عن أي تفصيل في سجلاتك الطبية.",
           primaryCta: { label: "ابدأ مجاناً", link: "/auth" },
-          secondaryCta: { label: "استعرض الأسعار", link: "/#pricing" },
           badges: [
             { text: "تشفير كامل", icon: "lock" },
             { text: "ثنائي اللغة عربي/إنجليزي", icon: "globe" },
