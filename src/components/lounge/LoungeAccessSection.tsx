@@ -699,17 +699,60 @@ const LoungeQrSheet = ({
     return () => { root.style.filter = prev; };
   }, [fullscreen]);
 
+  const getHdPng = async (): Promise<string> =>
+    membership.qrImageUrl
+      ? await uploadedQrToPng(membership.qrImageUrl)
+      : await generatedQrToPng(buildQrPayload(membership));
+
+  const buildFilename = () => {
+    const last4 = membership.membershipNumber.replace(/\D/g, "").slice(-4) || "card";
+    return `rufayq-lounge-${slugifyProgram(membership.program)}-${last4}.png`;
+  };
+
   const handleDownload = async () => {
     try {
-      const dataUrl = membership.qrImageUrl
-        ? await uploadedQrToPng(membership.qrImageUrl)
-        : await generatedQrToPng(buildQrPayload(membership));
-      const last4 = membership.membershipNumber.replace(/\D/g, "").slice(-4) || "card";
-      const filename = `rufayq-lounge-${slugifyProgram(membership.program)}-${last4}.png`;
-      triggerDownload(dataUrl, filename);
+      const dataUrl = await getHdPng();
+      triggerDownload(dataUrl, buildFilename());
       notify({ kind: "success", en: "Saved to downloads", ar: "تم الحفظ", duration: 1800 });
     } catch {
       notify({ kind: "error", en: "Couldn't save QR", ar: "تعذر الحفظ" });
+    }
+  };
+
+  const dataUrlToFile = async (dataUrl: string, filename: string): Promise<File> => {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    return new File([blob], filename, { type: blob.type || "image/png" });
+  };
+
+  const handleShare = async () => {
+    try {
+      const dataUrl = await getHdPng();
+      const filename = buildFilename();
+      const file = await dataUrlToFile(dataUrl, filename);
+      const nav = navigator as Navigator & {
+        canShare?: (data: ShareData & { files?: File[] }) => boolean;
+        share?: (data: ShareData & { files?: File[] }) => Promise<void>;
+      };
+      const shareData = {
+        files: [file],
+        title: `${membership.program} lounge access`,
+        text: `${membership.program} · ${membership.cardholderName}`,
+      };
+      if (nav.share && nav.canShare && nav.canShare(shareData)) {
+        await nav.share(shareData);
+        return;
+      }
+      if (nav.share) {
+        await nav.share({ title: shareData.title, text: shareData.text });
+        return;
+      }
+      // Fallback: copy a data URL is unwieldy; just download instead.
+      triggerDownload(dataUrl, filename);
+      notify({ kind: "info", en: "Share not supported — downloaded instead", ar: "المشاركة غير مدعومة — تم التنزيل" });
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      notify({ kind: "error", en: "Couldn't share QR", ar: "تعذرت المشاركة" });
     }
   };
 
