@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, BedDouble, FlaskConical, HeartPulse, Home, PlaneLanding, PlaneTakeoff, Stethoscope,
-  SlidersHorizontal, Check, X, Sparkles,
+  SlidersHorizontal, Check, X,
   type LucideIcon,
 } from "lucide-react";
 import type { JourneyMilestone, MilestoneSubKind } from "@/hooks/useJourneyOverview";
