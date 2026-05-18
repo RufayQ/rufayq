@@ -420,16 +420,18 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
       // scanned-travel: no file URL yet — opening just dismisses the menu.
     };
     const expMMYY = item.kind === "lounge-card" ? loungeExpMMYY(item.membership.expiresOn) : "";
+    const scannedFields = isScanned && item.kind === "scanned-travel" ? (item.record.keyFields ?? []).filter((f) => f.value.trim().length > 0) : [];
     return (
       <div
         key={item.id}
-        className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left card-press relative"
+        className="w-full flex flex-col gap-2 p-3.5 rounded-xl text-left card-press relative"
         style={{
           background: "var(--white)",
           border: isPinned ? "1.5px solid rgba(197,150,90,0.55)" : "1px solid var(--gray-light)",
           boxShadow: isPinned ? "0 4px 14px rgba(197,150,90,0.18)" : "0 1px 6px rgba(0,0,0,0.04)",
         }}
       >
+       <div className="flex items-center gap-3">
         <button onClick={handleOpen} className="flex items-center gap-3 flex-1 min-w-0 text-left">
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
@@ -505,6 +507,21 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
             <MoreVertical size={14} style={{ color: "var(--gray)" }} />
           </button>
         </div>
+       </div>
+        {scannedFields.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
+            {scannedFields.slice(0, 6).map((f, idx) => (
+              <span
+                key={idx}
+                className="text-[10px] px-2 py-1 rounded-full"
+                style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+              >
+                <span style={{ color: "var(--gray)" }}>{f.label}: </span>
+                <span style={{ fontWeight: 600 }}>{f.value}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
