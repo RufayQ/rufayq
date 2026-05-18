@@ -956,6 +956,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         variant={upgradeCtx.variant}
         plan={upgradeCtx.plan}
         resetsAt={upgradeCtx.resetsAt}
+        reason={upgradeCtx.reason}
       />
 
       <ChatRecordsPicker
