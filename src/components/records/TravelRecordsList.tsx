@@ -406,9 +406,11 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
 
   const renderRow = (item: UnifiedRow, isPinned: boolean) => {
     const isLounge = item.kind === "lounge-card";
+    const isScanned = item.kind === "scanned-travel";
     const handleOpen = () => {
       if (item.kind === "lounge-card") setQrTarget(item.membership);
-      else void openPreview(item);
+      else if (item.kind === "attachment") void openPreview(item);
+      // scanned-travel: no file URL yet — opening just dismisses the menu.
     };
     const expMMYY = item.kind === "lounge-card" ? loungeExpMMYY(item.membership.expiresOn) : "";
     return (
