@@ -67,7 +67,7 @@ const AdminLogin = () => {
               <Shield size={26} className="text-amber-400" />
             </div>
             <h1 className="text-xl font-semibold">RufayQ Staff Portal</h1>
-            <p className="text-xs text-slate-400 mt-1">Admin & support sign-in only</p>
+            <p className="text-xs text-slate-400 mt-1">Admin, support & QC tester sign-in</p>
           </div>
 
           <form onSubmit={handleSignIn} className="space-y-4">
