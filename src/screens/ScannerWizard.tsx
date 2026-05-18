@@ -56,11 +56,22 @@ export interface ScannerSavePayload {
   subcategory?: string | null;
   /** Original captured file name — used as fallback for record titles. */
   fileName?: string;
+  /** When the user applied image tools in Step 2, the rasterized result is
+   *  forwarded here so parents (e.g. RelatedDocumentsCard) can upload the
+   *  edited bytes instead of the original capture. */
+  editedFile?: File | null;
 }
 
 interface ScannerWizardProps {
   onClose: () => void;
   preselectedCategory?: string | null;
+  /** Optional sub-category preselect (e.g. "Visa") — skips Step 3 picker. */
+  preselectedSubcategory?: string | null;
+  /** Pre-seeded file — skips Step 1 capture and lands on Step 2 review. */
+  initialFile?: File | null;
+  /** Attachment mode: after Step 4 manual fields, save & close (no Step 5,
+   *  no global navigation). Parent handles the resulting upload via onSave. */
+  attachmentMode?: boolean;
   /** Called on save. For flights, payload contains the parsed legs so the
    * caller can inject them into the Journey timeline. */
   onSave?: (category: string | null, payload?: ScannerSavePayload) => void;
