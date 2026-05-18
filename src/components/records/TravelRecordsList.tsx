@@ -18,9 +18,11 @@ import {
   listTravelScannedRecords,
   removeTravelScannedRecord,
   subscribeToTravelScannedRecords,
+  updateTravelScannedRecord,
   type TravelScannedRecord,
 } from "@/lib/travelScannedRecordsStore";
 import TravelScannedRecordViewer from "@/components/records/TravelScannedRecordViewer";
+import UniversalDocumentPreview, { isImage } from "@/components/records/UniversalDocumentPreview";
 
 /** Unified row shape so attachments and lounge memberships share render code. */
 type UnifiedRow =
@@ -75,7 +77,6 @@ const scannedToRow = (r: TravelScannedRecord): UnifiedRow => ({
 });
 
 const BUCKET = "transport-attachments";
-const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
 
 export type TravelCat = "all" | "passport" | "visa" | "booking" | "insurance" | "lounge" | "other";
 
