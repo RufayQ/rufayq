@@ -1,38 +1,69 @@
-# Plan — QC Smoke Report Upload with Attachments
+# Travel Summary — Language Option for Share & Export
 
-The auto-parse + Case 1–6 classification already exists in `AdminQcSmoke.tsx` (drop / pick → `parseSmokeReport` → verdict badge + Case label + sub-tags). What's missing is the **attachments** half of "smoke report upload + auto-parse" — secondary files (screenshots, raw `logcat.txt`, APK profile dumps) uploaded alongside the report and carried into the saved run and any bug created from it.
+## Goal
+Today the Travel tab's kebab has fixed "Copy / Export / Share Travel Docs" actions that always emit the same bilingual-header + English-body summary. Users want to pick the language of the summary (Arabic, English, or both) when they share or export it.
 
-## 1. DB migration — add `attachment_paths` to `qc_test_runs`
+## Approach
+Add a lightweight **language picker bottom sheet** that opens when the user taps Copy / Export / Share Travel Docs in the Records kebab. Keep the kebab compact instead of tripling its entries.
 
-`qc_bugs` already has `screenshot_paths text[]`. Mirror it on runs:
+All work stays in `src/screens/RecordsScreen.tsx` plus one small new presentational component.
 
-```sql
-ALTER TABLE public.qc_test_runs
-  ADD COLUMN IF NOT EXISTS attachment_paths text[] NOT NULL DEFAULT '{}';
-```
+## UX
 
-No new RLS — existing run policies cover the column.
+1. User opens Records → Travel → kebab → "Copy / Export / Share Travel Docs".
+2. A bottom sheet slides up titled **"Summary language · لغة الملخص"** with three pill options:
+   - **English** · الإنجليزية
+   - **العربية** · Arabic
+   - **Bilingual** · ثنائي اللغة (default highlighted)
+3. Picking an option immediately runs the original action (copy / download / share) with the summary rendered in that language, then closes the sheet.
+4. Toast confirms in the same bilingual style already used elsewhere.
 
-## 2. `AdminQcSmoke.tsx` — attachments UI
+The sheet uses the existing teal/gold tokens, the 390 px mobile shell width, and respects dark mode. No new dependencies.
 
-Add state + UI directly above the Save/Bug buttons. No new component files.
+## Summary content per language
 
-- **State:** `const [attachments, setAttachments] = useState<File[]>([]);` and `const [uploadedPaths, setUploadedPaths] = useState<string[]>([]);`
-- **Picker:** secondary `<input type="file" multiple>` accepting `image/*,.txt,.log` with a small drop zone labelled "Attach screenshots, raw logcat, or profile dumps (optional)". Show selected file names as chips with remove buttons.
-- **Upload on save:** before inserting `qc_test_runs`, upload each `File` to bucket `qc-attachments` under path `runs/<reporter_id>/<timestamp>-<safe-filename>` using `supabase.storage.from("qc-attachments").upload(...)`. Collect returned paths into `uploadedPaths`. Include them in the insert payload as `attachment_paths`.
-- **Failure handling:** if any upload fails, toast the error and abort the save — do not insert a half-attached run. Already-uploaded paths from the same attempt are not cleaned up (acceptable; orphans stay in the private bucket and can be GC'd later).
-- **Display after save:** show the saved attachment list with signed-URL "View" links generated via `supabase.storage.from("qc-attachments").createSignedUrl(path, 3600)` on click (lazy, per item).
-- **Carry-through to bug:** when `createBugFromRun` runs, also pass `screenshot_paths: uploadedPaths.filter(p => /\.(png|jpe?g|webp|gif)$/i.test(p))` so screenshots show up on the bug.
-- **Reset:** clear `attachments` and `uploadedPaths` in `reset()`.
+`buildTravelSummary(lang)` returns:
 
-## 3. Verdict / Case panel — minor reinforcement
+- **en**
+  ```
+  Travel Documents Summary
 
-The Case 1–6 result panel already exists. Two small tweaks for clarity:
-- Add a one-line description under the Case label pulled from `caseLabels[caseCode]` in `parseSmokeReport.ts` when `parsed.caseLabel` is empty (defensive — parser may miss the dash separator on edge formats).
-- Add an "auto-classified" `[10px]` muted hint next to the Case pill so testers know the value came from the parser, not manual entry.
+  - {label} — {file_name} — Added {date}
+  ```
+- **ar** (wrapped `dir="rtl"` only matters for share targets that honor it; the text itself is Arabic)
+  ```
+  ملخص وثائق السفر
+
+  - {label} — {file_name} — أُضيفت {date-ar}
+  ```
+  Dates formatted with `toLocaleDateString("ar")`. Document `label` / `file_name` are user-entered free text and stay as-is in both languages (we do not translate user content).
+- **both** (current behaviour, preserved as default)
+  ```
+  Travel Documents Summary
+  ملخص وثائق السفر
+
+  - {label} — {file_name} — Added {en-date} · أُضيفت {ar-date}
+  ```
+
+Export filename varies: `travel-documents.txt`, `travel-documents-ar.txt`, `travel-documents-bilingual.txt`.
+
+Share sheet `title` also switches: `Travel Documents` / `وثائق السفر` / `Travel Documents · وثائق السفر`.
+
+## Implementation
+
+**New component** `src/components/records/TravelSummaryLanguageSheet.tsx`
+- Props: `open`, `onClose`, `onPick(lang: "en" | "ar" | "both")`.
+- Fixed-position overlay + bottom card, three pill buttons, cancel chip. Pure presentational, no state outside `open`.
+
+**`src/screens/RecordsScreen.tsx`**
+- Add state: `travelAction: null | "copy" | "export" | "share"`.
+- Refactor `buildTravelSummary` to accept `lang` and produce the three variants above.
+- Refactor `handleCopyTravelDocs`, `handleExportTravelDocs`, `handleShareTravelDocs` into a single `runTravelAction(action, lang)` helper; the existing menu handlers now just set `travelAction` to open the sheet (after the empty-state toast guard).
+- Render `<TravelSummaryLanguageSheet open={!!travelAction} onClose={() => setTravelAction(null)} onPick={(lang) => { runTravelAction(travelAction!, lang); setTravelAction(null); }} />`.
+
+No backend, database, hook, or other screen is touched. The Medical-tab kebab actions are unchanged.
 
 ## Out of scope
-- No changes to `AdminQcBugs`, `AdminQcRuns`, `AdminQcValidations`, `AdminQcCrashEvents`.
-- No changes to bash smoke-report script or `parseSmokeReport.ts` logic.
-- No new bucket — reuses existing `qc-attachments` with its existing RLS.
-- No virus scan, no thumbnail generation, no per-attachment metadata table.
+- Translating user-entered document labels / filenames.
+- Language picker for the Medical Records summary (can be added later with the same pattern if requested).
+- PDF/HTML export formats — still plain `.txt`.
