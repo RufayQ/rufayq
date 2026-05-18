@@ -27,6 +27,8 @@ export interface TravelScannedRecord {
   keyFields?: { label: string; value: string }[];
   /** Captured page images (data URLs) used for in-app preview / fullscreen. */
   pageImages?: string[];
+  /** Optional source PDF URL (signed/blob/data) used when pageImages is empty. */
+  pdfUrl?: string;
 }
 
 const read = (): TravelScannedRecord[] => {
