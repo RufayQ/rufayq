@@ -492,7 +492,7 @@ const LoungeFormSheet = ({
                   </p>
                 ) : (
                   <p id="qr-secret-help" className="mt-1 text-[10px]" style={{ color: "var(--gray)" }}>
-                    Numbers only, 6–20 digits. Found after the “=” in your DragonPass QR.
+                    Numbers only, 6–20 digits. Found after the “=” in your Visa Airport Companion QR.
                   </p>
                 )}
               </Field>
