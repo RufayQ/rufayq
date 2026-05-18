@@ -111,8 +111,15 @@ const Landing = () => {
   const subAr     = heroAr?.subtitle || D.subtitleAr;
   const primaryLabel   = heroPrimary?.primaryCta?.label   || (isAr ? D.primaryAr   : D.primaryEn);
   const primaryLink    = heroPrimary?.primaryCta?.link    || "/auth";
-  const secondaryLabel = heroPrimary?.secondaryCta?.label || (isAr ? D.secondaryAr : D.secondaryEn);
-  const secondaryLink  = heroPrimary?.secondaryCta?.link  || "/#pricing";
+
+  // ── Dynamic, locale-aware greeting (visitor's local time) ───────────
+  // Recomputes on mount so SSR/cached HTML doesn't freeze the phrase.
+  const [greeting, setGreeting] = useState<{ en: string; ar: string }>(() => getGreeting());
+  useEffect(() => {
+    setGreeting(getGreeting());
+    const id = window.setInterval(() => setGreeting(getGreeting()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const defaultTrust = [
     { icon: "lock",     en: "End-to-end encrypted",       ar: "تشفير كامل" },
