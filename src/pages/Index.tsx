@@ -328,7 +328,7 @@ const Index = () => {
     setShowScanner(true);
   };
 
-  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string }; selectedDestinations?: { en: string }[]; pageImages?: string[]; manualFields?: { label: string; value: string }[]; subcategory?: string | null; fileName?: string }) => {
+  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string }; selectedDestinations?: { en: string }[]; pageImages?: string[]; manualFields?: { label: string; value: string }[]; subcategory?: string | null; fileName?: string; fileUrl?: string; mimeType?: string | null }) => {
     setShowScanner(false);
     const msg = toastMessages[category || "other"] || toastMessages.other;
 
@@ -358,6 +358,9 @@ const Index = () => {
           pageCount: payload?.pageImages?.length || 1,
           keyFields: keyFields.length ? keyFields : undefined,
           pageImages: payload?.pageImages,
+          fileUrl: payload?.fileUrl,
+          pdfUrl: payload?.mimeType === "application/pdf" ? payload?.fileUrl : undefined,
+          mimeType: payload?.mimeType ?? null,
         });
       } catch (e) { console.warn("[scanner] could not store travel record", e); }
     } else if (isMedicalCategory(category)) {
@@ -370,6 +373,9 @@ const Index = () => {
           source: payload?.passenger?.name ? `Scanned by ${payload.passenger.name}` : "RufayQ Scanner",
           pageCount: payload?.pageImages?.length || 1,
           keyFields: keyFields.length ? keyFields : undefined,
+          fileUrl: payload?.fileUrl,
+          mimeType: payload?.mimeType ?? null,
+          fileName: payload?.fileName,
         });
       } catch (e) { console.warn("[scanner] could not store scanned record", e); }
     }
