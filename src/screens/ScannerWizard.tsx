@@ -195,23 +195,36 @@ const sectionLabels: Record<string, string> = {
 
 type UploadMode = "single" | "multi-page" | "multi-record";
 
-const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
+const ScannerWizard = ({
+  onClose,
+  preselectedCategory,
+  preselectedSubcategory,
+  initialFile,
+  attachmentMode,
+  onSave,
+}: ScannerWizardProps) => {
   const authUserId = useAuthUserId();
   // When the AI extraction path is disabled (currently the case for flights),
   // and the wizard is opened with a preselected flight category, skip the
   // upload/review/category steps and jump straight to manual entry (Step 4).
   const skipAiForFlight = preselectedCategory === "flight" && !FLIGHT_AI_ENABLED;
-  const [step, setStep] = useState(skipAiForFlight ? 4 : 1);
+  // initialFile path: skip Step 1 capture, drop straight into Review.
+  const initialStep = skipAiForFlight ? 4 : initialFile ? 2 : 1;
+  const [step, setStep] = useState(initialStep);
   const [uploadMode, setUploadMode] = useState<UploadMode>("single");
-  const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(null);
-  const [realFile, setRealFile] = useState<File | null>(null);
+  const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(
+    initialFile
+      ? { name: initialFile.name, type: initialFile.type, size: `${(initialFile.size / 1024).toFixed(1)} KB` }
+      : null,
+  );
+  const [realFile, setRealFile] = useState<File | null>(initialFile ?? null);
   // Multi-record batch: each entry will be saved as its own record on submit.
   const [batchFiles, setBatchFiles] = useState<{ file: File; name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(preselectedCategory || null);
-  const [selectedSub, setSelectedSub] = useState<string | null>(null);
+  const [selectedSub, setSelectedSub] = useState<string | null>(preselectedSubcategory || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const totalSteps = 5;
+  const totalSteps = attachmentMode ? 4 : 5;
   const progress = (step / totalSteps) * 100;
 
   // Saved parsed payload from real OCR or manual entry (flight category).
@@ -228,6 +241,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
       pendingSegmentRef,
       subcategory: p.subcategory ?? selectedSub,
       fileName: p.fileName ?? capturedFile?.name,
+      editedFile: p.editedFile ?? realFile,
     } : undefined;
 
   const handleFileCapture = (accept: string) => {
