@@ -238,5 +238,6 @@ export function useChatInbox() {
     reload: load,
     setThreadMuted,
     markThreadUnread,
+    markAllThreadsRead,
   };
 }
