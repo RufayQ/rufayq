@@ -800,6 +800,7 @@ const LoungeQrSheet = ({
           className="w-full rounded-2xl p-5 flex flex-col items-center btn-press"
           style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
           aria-label="Open QR in full screen"
+          data-testid="qr-open-fullscreen"
         >
           <div className="rounded-xl bg-white p-3" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
             {membership.qrImageUrl ? (
