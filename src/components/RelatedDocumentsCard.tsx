@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, FileText, Image as ImageIcon, X, Eye, Loader2, FolderOpen, Pencil, Share2, Check } from "lucide-react";
+import { Plus, FileText, Image as ImageIcon, X, Eye, Loader2, FolderOpen, Pencil, Share2, Check, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard";
 
 export interface TransportAttachment {
   id: string;
@@ -45,8 +46,28 @@ interface Props {
 const BUCKET = "transport-attachments";
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
 const COMMON_LABELS = ["VISA", "Passport", "Insurance", "Hotel", "Other"];
+// Sub-category mapping per common label so the scanner picks the right schema.
+const LABEL_TO_SUBCATEGORY: Record<string, string> = {
+  VISA: "Visa",
+  Passport: "Passport",
+  Insurance: "Travel Insurance Card",
+  Hotel: "Other",
+  Other: "Other",
+};
 
 const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
+const isPdf = (mime?: string | null, name?: string) =>
+  mime === "application/pdf" || (!!name && /\.pdf$/i.test(name));
+const isOffice = (mime?: string | null, name?: string) => {
+  if (mime) {
+    if (
+      mime === "application/msword" ||
+      mime.startsWith("application/vnd.openxmlformats-officedocument") ||
+      mime.startsWith("application/vnd.ms-")
+    ) return true;
+  }
+  return !!name && /\.(docx?|xlsx?|pptx?)$/i.test(name);
+};
 
 /**
  * RelatedDocumentsCard — durable attachments for a transport segment / ticket.
@@ -85,6 +106,8 @@ const RelatedDocumentsCard = ({
   const [poolLoading, setPoolLoading] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  // Smart-scan flow: when set, opens ScannerWizard with this file pre-seeded.
+  const [scanFile, setScanFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
 
@@ -185,9 +208,64 @@ const RelatedDocumentsCard = ({
       toast.error("File is too large", { description: "Max 10 MB per attachment." });
       return;
     }
+    // Route image + PDF captures through the Smart Scanner so users get the
+    // same review/edit/key-fields experience as the global Scan flow.
+    // Office/other formats keep the lightweight label-and-upload path.
+    if (file.type.startsWith("image/") || isPdf(file.type, file.name)) {
+      setScanFile(file);
+      return;
+    }
     setPicking(file);
     setLabelDraft("VISA");
   };
+
+  // Persist a scanner-edited attachment: upload the (possibly rasterized)
+  // file and insert a transport_attachments row with key_fields + subcategory.
+  const saveScannedAttachment = async (_cat: string | null, payload?: ScannerSavePayload) => {
+    const fileToUpload: File | null = (payload?.editedFile as File | undefined) ?? scanFile;
+    if (!fileToUpload) { setScanFile(null); return; }
+    const sub = payload?.subcategory?.trim() || null;
+    const keyFields = (payload?.manualFields ?? []).filter(
+      (f) => f.label.trim().length > 0 && f.value.trim().length > 0,
+    );
+    const label = sub || (payload?.fileName ? payload.fileName.replace(/\.\w+$/, "") : "Document");
+    setUploading(true);
+    try {
+      const ext = fileToUpload.name.split(".").pop() || "bin";
+      const folderRef = ticketId || segmentRef;
+      const path = userId
+        ? `user/${userId}/${folderRef}/${crypto.randomUUID()}.${ext}`
+        : `${deviceId}/${segmentRef}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, fileToUpload, { contentType: fileToUpload.type, upsert: false });
+      if (upErr) throw upErr;
+      const { error: insErr } = await supabase.from("transport_attachments").insert({
+        device_id: deviceId,
+        user_id: userId ?? null,
+        ticket_id: ticketId ?? null,
+        source_document_id: sourceDocumentId ?? null,
+        segment_ref: segmentRef,
+        label,
+        file_name: fileToUpload.name,
+        file_path: path,
+        mime_type: fileToUpload.type,
+        size_bytes: fileToUpload.size,
+        subcategory: sub,
+        key_fields: keyFields.length ? keyFields : null,
+      } as any);
+      if (insErr) throw insErr;
+      toast.success(`${label} attached`, { description: fileToUpload.name });
+      setScanFile(null);
+      await refresh();
+    } catch (e: any) {
+      console.error("[RelatedDocumentsCard] scanner save failed", e);
+      toast.error("Upload failed", { description: e.message });
+    } finally {
+      setUploading(false);
+    }
+  };
+
 
   const confirmUpload = async () => {
     if (!picking) return;
@@ -542,6 +620,47 @@ const RelatedDocumentsCard = ({
                 alt={previewItem.label}
                 className="max-w-full max-h-full object-contain rounded-lg"
               />
+            ) : isPdf(previewItem.mime_type, previewItem.file_name) ? (
+              <object
+                data={`${previewUrl}#view=FitH&toolbar=1`}
+                type="application/pdf"
+                className="w-full h-full rounded-lg bg-white"
+              >
+                <iframe
+                  src={previewUrl}
+                  title={previewItem.file_name}
+                  className="w-full h-full rounded-lg bg-white"
+                />
+              </object>
+            ) : isOffice(previewItem.mime_type, previewItem.file_name) ? (
+              <div className="w-full h-full flex flex-col items-center justify-center text-center px-6 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+                <FileText size={48} className="opacity-70 text-white mb-3" />
+                <p className="text-[13px] font-bold text-white mb-1">{previewItem.file_name}</p>
+                <p className="text-[11px] text-white/70 mb-4">
+                  Office documents can't be previewed inline.
+                  <br />
+                  <span dir="rtl" className="font-arabic">لا يمكن معاينة مستندات Office داخل التطبيق</span>
+                </p>
+                <div className="flex gap-2">
+                  <a
+                    href={previewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-xl text-[12px] font-bold flex items-center gap-1.5 text-white"
+                    style={{ background: "var(--gold)" }}
+                  >
+                    <Eye size={13} /> Open
+                  </a>
+                  <a
+                    href={previewUrl}
+                    download={previewItem.file_name}
+                    className="px-4 py-2 rounded-xl text-[12px] font-bold flex items-center gap-1.5"
+                    style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
+                  >
+                    <Download size={13} /> Download
+                  </a>
+                </div>
+              </div>
             ) : (
               <iframe
                 src={previewUrl}
@@ -681,6 +800,18 @@ const RelatedDocumentsCard = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Smart-Scan wizard for image/PDF attachments — review, edit, key fields. */}
+      {scanFile && (
+        <ScannerWizard
+          onClose={() => setScanFile(null)}
+          preselectedCategory="legal"
+          preselectedSubcategory={LABEL_TO_SUBCATEGORY[labelDraft] || "Visa"}
+          initialFile={scanFile}
+          attachmentMode
+          onSave={saveScannedAttachment}
+        />
       )}
     </div>
   );

@@ -56,11 +56,22 @@ export interface ScannerSavePayload {
   subcategory?: string | null;
   /** Original captured file name — used as fallback for record titles. */
   fileName?: string;
+  /** When the user applied image tools in Step 2, the rasterized result is
+   *  forwarded here so parents (e.g. RelatedDocumentsCard) can upload the
+   *  edited bytes instead of the original capture. */
+  editedFile?: File | null;
 }
 
 interface ScannerWizardProps {
   onClose: () => void;
   preselectedCategory?: string | null;
+  /** Optional sub-category preselect (e.g. "Visa") — skips Step 3 picker. */
+  preselectedSubcategory?: string | null;
+  /** Pre-seeded file — skips Step 1 capture and lands on Step 2 review. */
+  initialFile?: File | null;
+  /** Attachment mode: after Step 4 manual fields, save & close (no Step 5,
+   *  no global navigation). Parent handles the resulting upload via onSave. */
+  attachmentMode?: boolean;
   /** Called on save. For flights, payload contains the parsed legs so the
    * caller can inject them into the Journey timeline. */
   onSave?: (category: string | null, payload?: ScannerSavePayload) => void;
@@ -184,27 +195,42 @@ const sectionLabels: Record<string, string> = {
 
 type UploadMode = "single" | "multi-page" | "multi-record";
 
-const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardProps) => {
+const ScannerWizard = ({
+  onClose,
+  preselectedCategory,
+  preselectedSubcategory,
+  initialFile,
+  attachmentMode,
+  onSave,
+}: ScannerWizardProps) => {
   const authUserId = useAuthUserId();
   // When the AI extraction path is disabled (currently the case for flights),
   // and the wizard is opened with a preselected flight category, skip the
   // upload/review/category steps and jump straight to manual entry (Step 4).
   const skipAiForFlight = preselectedCategory === "flight" && !FLIGHT_AI_ENABLED;
-  const [step, setStep] = useState(skipAiForFlight ? 4 : 1);
+  // initialFile path: skip Step 1 capture, drop straight into Review.
+  const initialStep = skipAiForFlight ? 4 : initialFile ? 2 : 1;
+  const [step, setStep] = useState(initialStep);
   const [uploadMode, setUploadMode] = useState<UploadMode>("single");
-  const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(null);
-  const [realFile, setRealFile] = useState<File | null>(null);
+  const [capturedFile, setCapturedFile] = useState<{ name: string; type: string; size: string } | null>(
+    initialFile
+      ? { name: initialFile.name, type: initialFile.type, size: `${(initialFile.size / 1024).toFixed(1)} KB` }
+      : null,
+  );
+  const [realFile, setRealFile] = useState<File | null>(initialFile ?? null);
   // Multi-record batch: each entry will be saved as its own record on submit.
   const [batchFiles, setBatchFiles] = useState<{ file: File; name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(preselectedCategory || null);
-  const [selectedSub, setSelectedSub] = useState<string | null>(null);
+  const [selectedSub, setSelectedSub] = useState<string | null>(preselectedSubcategory || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const totalSteps = 5;
+  const totalSteps = attachmentMode ? 4 : 5;
   const progress = (step / totalSteps) * 100;
 
   // Saved parsed payload from real OCR or manual entry (flight category).
   const [scannedPayload, setScannedPayload] = useState<ScannerSavePayload | null>(null);
+  const scannedPayloadRef = useRef<ScannerSavePayload | null>(null);
+  const handleParsed = (p: ScannerSavePayload | null) => { scannedPayloadRef.current = p; setScannedPayload(p); };
   // Stable id so related-document attachments uploaded on Step 5 stay linked
   // to the resulting flight ticket on the Journey screen.
   const [pendingSegmentRef] = useState(() =>
@@ -217,6 +243,7 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
       pendingSegmentRef,
       subcategory: p.subcategory ?? selectedSub,
       fileName: p.fileName ?? capturedFile?.name,
+      editedFile: p.editedFile ?? realFile,
     } : undefined;
 
   const handleFileCapture = (accept: string) => {
@@ -311,7 +338,10 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
             }}
             onConfirm={() => {
               if (preselectedCategory) setSelectedCategory(preselectedCategory);
-              setStep(3);
+              // If both category + subcategory are pre-seeded (e.g. attachment
+              // flow from RelatedDocumentsCard), skip Step 3 picker entirely.
+              if (preselectedCategory && (preselectedSubcategory || selectedSub)) setStep(4);
+              else setStep(3);
             }}
           />
         )}
@@ -353,8 +383,19 @@ const ScannerWizard = ({ onClose, preselectedCategory, onSave }: ScannerWizardPr
             subcategory={selectedSub}
             fileName={capturedFile?.name || "document"}
             realFile={realFile}
-            onParsed={setScannedPayload}
-            onSave={() => setStep(5)}
+            onParsed={handleParsed}
+            onSave={() => {
+              if (attachmentMode) {
+                // Skip Step 5 success screen — flush parsed snapshot and save.
+                // scannedPayload was just set via onParsed; read on next tick.
+                setTimeout(() => {
+                  onSave?.(selectedCategory, enrichedPayload(scannedPayloadRef.current ?? scannedPayload));
+                  onClose();
+                }, 0);
+              } else {
+                setStep(5);
+              }
+            }}
           />
         )}
         {step === 5 && (
@@ -581,9 +622,14 @@ const Step2Review = ({
   const [brightness, setBrightness] = useState(100); // %
   const [contrast, setContrast] = useState(100); // %
   const [grayscale, setGrayscale] = useState(0); // 0 or 100
-  const [cropPct, setCropPct] = useState(0); // 0 = none; 10 = trim 10% from each edge
+  // Independent crop edges as percentages 0..45 (sides) of the visible image.
+  const [crop, setCrop] = useState<{ top: number; right: number; bottom: number; left: number }>(
+    { top: 0, right: 0, bottom: 0, left: 0 },
+  );
+  const [cropMode, setCropMode] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
+  const imgWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!realFile || !realFile.type.startsWith("image/")) { setImageUrl(null); return; }
@@ -594,7 +640,44 @@ const Step2Review = ({
 
   const filterCss = `brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%)`;
   const isPureImage = !!realFile && realFile.type.startsWith("image/") && !!imageUrl;
-  const hasEdits = rotation !== 0 || brightness !== 100 || contrast !== 100 || grayscale !== 0 || cropPct !== 0;
+  const cropActive = crop.top + crop.right + crop.bottom + crop.left > 0;
+  const hasEdits = rotation !== 0 || brightness !== 100 || contrast !== 100 || grayscale !== 0 || cropActive;
+
+  // Drag a single crop handle. `edge` controls which side(s) the pointer moves.
+  const startDrag = (
+    edge: "tl" | "tr" | "bl" | "br" | "t" | "b" | "l" | "r",
+    e: React.PointerEvent,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const wrap = imgWrapRef.current;
+    if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      const xPct = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
+      const yPct = Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100));
+      setCrop((prev) => {
+        let { top, right, bottom, left } = prev;
+        if (edge.includes("l")) left = Math.min(xPct, 100 - right - 10);
+        if (edge.includes("r")) right = Math.min(100 - xPct, 100 - left - 10);
+        if (edge.includes("t")) top = Math.min(yPct, 100 - bottom - 10);
+        if (edge.includes("b")) bottom = Math.min(100 - yPct, 100 - top - 10);
+        return {
+          top: Math.max(0, top),
+          right: Math.max(0, right),
+          bottom: Math.max(0, bottom),
+          left: Math.max(0, left),
+        };
+      });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
 
   // Rasterize the current edits into a new File using a canvas.
   const rasterizeAndConfirm = async () => {
@@ -608,22 +691,22 @@ const Step2Review = ({
         img.onerror = () => rej(new Error("img-load-failed"));
         img.src = imageUrl!;
       });
-      const trim = Math.max(0, Math.min(40, cropPct)) / 100;
-      const sx = img.naturalWidth * trim;
-      const sy = img.naturalHeight * trim;
-      const sw = img.naturalWidth - sx * 2;
-      const sh = img.naturalHeight - sy * 2;
+      const sx = img.naturalWidth * (crop.left / 100);
+      const sy = img.naturalHeight * (crop.top / 100);
+      const sw = img.naturalWidth - sx - img.naturalWidth * (crop.right / 100);
+      const sh = img.naturalHeight - sy - img.naturalHeight * (crop.bottom / 100);
       const rotated = rotation % 180 !== 0;
       const cw = rotated ? sh : sw;
       const ch = rotated ? sw : sh;
       const canvas = document.createElement("canvas");
-      canvas.width = cw; canvas.height = ch;
+      canvas.width = Math.max(1, Math.round(cw));
+      canvas.height = Math.max(1, Math.round(ch));
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("no-canvas");
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, cw, ch);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.filter = filterCss;
-      ctx.translate(cw / 2, ch / 2);
+      ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.drawImage(img, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
       const blob: Blob = await new Promise((res, rej) =>
@@ -643,7 +726,14 @@ const Step2Review = ({
   const tools = [
     { icon: <Sun size={18} />, label: "Brightness", active: brightness !== 100, onClick: () => setBrightness((v) => (v >= 140 ? 80 : v + 20)) },
     { icon: <Contrast size={18} />, label: "Contrast", active: contrast !== 100, onClick: () => setContrast((v) => (v >= 140 ? 80 : v + 20)) },
-    { icon: <Crop size={18} />, label: "Crop", active: cropPct !== 0, onClick: () => setCropPct((v) => (v >= 20 ? 0 : v + 5)) },
+    { icon: <Crop size={18} />, label: "Crop", active: cropMode || cropActive, onClick: () => {
+      setCropMode((v) => {
+        const next = !v;
+        // Entering crop mode with no crop yet — seed a small inset so handles are visible.
+        if (next && !cropActive) setCrop({ top: 8, right: 8, bottom: 8, left: 8 });
+        return next;
+      });
+    } },
     { icon: <RotateCw size={18} />, label: "Rotate", active: rotation !== 0, onClick: () => setRotation((v) => (v + 90) % 360) },
     { icon: <Palette size={18} />, label: "B&W", active: grayscale > 0, onClick: () => setGrayscale((v) => (v > 0 ? 0 : 100)) },
   ];
@@ -653,27 +743,59 @@ const Step2Review = ({
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
         {isPureImage ? (
           <div className="w-full rounded-xl overflow-hidden flex items-center justify-center relative" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", maxHeight: 420 }}>
-            <div className="relative w-full" style={{ maxHeight: 420 }}>
+            <div ref={imgWrapRef} className="relative w-full" style={{ maxHeight: 420, touchAction: cropMode ? "none" : undefined }}>
               <img
                 src={imageUrl!}
                 alt={file.name}
-                className="w-full object-contain transition-all"
+                className="w-full object-contain transition-all select-none"
+                draggable={false}
                 style={{
                   filter: filterCss,
                   transform: `rotate(${rotation}deg)`,
                   maxHeight: 380,
-                  clipPath: cropPct > 0 ? `inset(${cropPct}% ${cropPct}% ${cropPct}% ${cropPct}%)` : undefined,
+                  clipPath: cropActive
+                    ? `inset(${crop.top}% ${crop.right}% ${crop.bottom}% ${crop.left}%)`
+                    : undefined,
                 }}
               />
-              {cropPct > 0 && (
-                <div
-                  className="pointer-events-none absolute"
-                  style={{
-                    inset: `${cropPct}%`,
-                    border: "2px dashed var(--gold)",
-                    boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
-                  }}
-                />
+              {cropMode && (
+                <>
+                  {/* Dim mask + crop window outline */}
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      top: `${crop.top}%`,
+                      right: `${crop.right}%`,
+                      bottom: `${crop.bottom}%`,
+                      left: `${crop.left}%`,
+                      border: "2px dashed var(--gold)",
+                      boxShadow: "0 0 0 9999px rgba(0,0,0,0.55)",
+                    }}
+                  />
+                  {/* Corner + edge handles */}
+                  {([
+                    { k: "tl", style: { top: `${crop.top}%`, left: `${crop.left}%`, transform: "translate(-50%,-50%)", cursor: "nwse-resize" } },
+                    { k: "tr", style: { top: `${crop.top}%`, right: `${crop.right}%`, transform: "translate(50%,-50%)", cursor: "nesw-resize" } },
+                    { k: "bl", style: { bottom: `${crop.bottom}%`, left: `${crop.left}%`, transform: "translate(-50%,50%)", cursor: "nesw-resize" } },
+                    { k: "br", style: { bottom: `${crop.bottom}%`, right: `${crop.right}%`, transform: "translate(50%,50%)", cursor: "nwse-resize" } },
+                  ] as const).map((h) => (
+                    <div
+                      key={h.k}
+                      onPointerDown={(e) => startDrag(h.k, e)}
+                      className="absolute rounded-full"
+                      style={{
+                        ...h.style,
+                        width: 22,
+                        height: 22,
+                        background: "var(--gold)",
+                        border: "2px solid #fff",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.45)",
+                        touchAction: "none",
+                      }}
+                      aria-label={`Crop handle ${h.k}`}
+                    />
+                  ))}
+                </>
               )}
             </div>
           </div>
@@ -722,7 +844,7 @@ const Step2Review = ({
                 Edits will be baked in when you continue
               </p>
               <button
-                onClick={() => { setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0); setCropPct(0); }}
+                onClick={() => { setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0); setCrop({ top: 0, right: 0, bottom: 0, left: 0 }); setCropMode(false); }}
                 className="text-[10px] font-bold btn-press"
                 style={{ color: "var(--gold)" }}
               >
