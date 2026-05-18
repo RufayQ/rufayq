@@ -800,6 +800,16 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
           </div>
         </div>
       )}
+      {scannedViewer && (
+        <TravelScannedRecordViewer
+          record={scannedViewer}
+          onClose={() => setScannedViewer(null)}
+          onUpdated={(next) => {
+            setScannedTravel((prev) => prev.map((r) => (r.id === next.id ? next : r)));
+            setScannedViewer(next);
+          }}
+        />
+      )}
     </>
   );
 };
