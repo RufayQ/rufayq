@@ -328,18 +328,41 @@ const Index = () => {
     setShowScanner(true);
   };
 
-  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string }; selectedDestinations?: { en: string }[]; pageImages?: string[] }) => {
+  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string }; selectedDestinations?: { en: string }[]; pageImages?: string[]; manualFields?: { label: string; value: string }[]; subcategory?: string | null; fileName?: string }) => {
     setShowScanner(false);
     const msg = toastMessages[category || "other"] || toastMessages.other;
 
-    // Persist scanned medical/legal docs to the local records store so they
-    // appear immediately in the Records screen.
-    if (isMedicalCategory(category)) {
+    const keyFields = (payload?.manualFields || []).filter((f) => f.value.trim().length > 0);
+    const titleFromFields =
+      payload?.subcategory?.trim() ||
+      keyFields.find((f) => /name|hotel|insurer|test|medication|diagnosis|study|carrier|title/i.test(f.label))?.value ||
+      (payload?.fileName ? payload.fileName.replace(/\.\w+$/, "") : undefined);
+
+    // Travel-side scanned docs (visa/passport/residency, etc.) land in the
+    // Travel Records tab — not Medical. We use a local store so guest sessions
+    // and non-attachment scanner flows still surface the document immediately.
+    const isTravelDoc = category === "legal";
+    if (isTravelDoc) {
+      try {
+        addTravelScannedRecord({
+          category: category!,
+          subcategory: payload?.subcategory ?? null,
+          title: titleFromFields,
+          fileName: payload?.fileName,
+          pageCount: payload?.pageImages?.length || 1,
+          keyFields: keyFields.length ? keyFields : undefined,
+        });
+      } catch (e) { console.warn("[scanner] could not store travel record", e); }
+    } else if (isMedicalCategory(category)) {
+      // Persist scanned medical docs to the local records store so they
+      // appear immediately in the Records screen.
       try {
         addScannedRecord({
           category: category!,
+          titleEn: titleFromFields,
           source: payload?.passenger?.name ? `Scanned by ${payload.passenger.name}` : "RufayQ Scanner",
           pageCount: payload?.pageImages?.length || 1,
+          keyFields: keyFields.length ? keyFields : undefined,
         });
       } catch (e) { console.warn("[scanner] could not store scanned record", e); }
     }
@@ -373,10 +396,9 @@ const Index = () => {
       window.dispatchEvent(new CustomEvent("rufayq:records-segment", { detail: "medical" }));
       setActiveTab("records");
     } else {
-      if (isMedicalCategory(category)) {
-        try { sessionStorage.setItem("rufayq_records_segment", "medical"); } catch { /* noop */ }
-        window.dispatchEvent(new CustomEvent("rufayq:records-segment", { detail: "medical" }));
-      }
+      const segment: "travel" | "medical" = isTravelDoc ? "travel" : "medical";
+      try { sessionStorage.setItem("rufayq_records_segment", segment); } catch { /* noop */ }
+      window.dispatchEvent(new CustomEvent("rufayq:records-segment", { detail: segment }));
       setActiveTab("records");
     }
     setAppView("main");
