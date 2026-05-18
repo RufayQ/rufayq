@@ -740,7 +740,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
             {isImage(previewItem.mime_type) ? (
               <img src={previewUrl} alt={previewItem.label} className="max-w-full max-h-full object-contain rounded-lg" />
             ) : (
-              <iframe src={previewUrl} title={previewItem.file_name} className="w-full h-full rounded-lg bg-white" />
+              <UniversalDocumentPreview url={previewUrl} fileName={previewItem.file_name} title={previewItem.label} mimeType={previewItem.mime_type} className="w-full h-full rounded-lg bg-white" />
             )}
           </div>
         </div>
@@ -774,11 +774,15 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
         onRename={
           menuItem && menuItem.kind === "attachment"
             ? (newName) => renameItem(menuItem, newName)
+            : menuItem && menuItem.kind === "scanned-travel"
+              ? (newName) => renameScanned(menuItem.record, newName)
             : undefined
         }
         onShare={
           menuItem && menuItem.kind === "attachment"
             ? () => shareItem(menuItem)
+            : menuItem && menuItem.kind === "scanned-travel"
+              ? () => shareScanned(menuItem.record)
             : undefined
         }
         onApplyToMilestone={
