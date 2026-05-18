@@ -196,6 +196,38 @@ export function useChatInbox() {
     load();
   }, [load]);
 
+  /** Mark every visible thread as read for this device / user. */
+  const markAllThreadsRead = useCallback(async () => {
+    const deviceId = getDeviceId();
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id ?? null;
+    const ids = Object.keys(unreadByThread).filter((tid) => (unreadByThread[tid] ?? 0) > 0);
+    if (ids.length === 0) return;
+    // Optimistic: zero every thread immediately so badges across the app clear.
+    setUnreadByThread((prev) => {
+      const next = { ...prev };
+      for (const tid of ids) {
+        next[tid] = 0;
+        markThreadReadOptimistic(tid);
+      }
+      return next;
+    });
+    const now = new Date().toISOString();
+    let q = supabase
+      .from("chat_participants")
+      .update({ last_read_at: now })
+      .in("thread_id", ids);
+    q = userId
+      ? q.or(`device_id.eq.${deviceId},user_id.eq.${userId}`)
+      : q.eq("device_id", deviceId);
+    const { error } = await q;
+    if (error) {
+      // Reconcile with server on failure.
+      load();
+      throw error;
+    }
+  }, [unreadByThread, load]);
+
   return {
     threads,
     participants,
@@ -206,5 +238,6 @@ export function useChatInbox() {
     reload: load,
     setThreadMuted,
     markThreadUnread,
+    markAllThreadsRead,
   };
 }

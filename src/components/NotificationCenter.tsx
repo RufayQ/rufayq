@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, BellRing, CalendarClock, Check, MessageCircle, Pill, Receipt, Settings2, Stethoscope, X } from "lucide-react";
+import { Bell, BellRing, CalendarClock, Check, CheckCheck, MessageCircle, Pill, Receipt, Settings2, Stethoscope, X } from "lucide-react";
+import { toast } from "sonner";
 import { usePatientNotifications } from "@/hooks/usePatientNotifications";
 import { useChatInbox } from "@/hooks/useChatInbox";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -51,7 +52,7 @@ const NotificationCenter = ({
   };
 
   const { items, unreadCount: alertUnread, markRead, markAllRead } = usePatientNotifications();
-  const { threads, unreadByThread, totalUnread: chatUnread, participants } = useChatInbox();
+  const { threads, unreadByThread, totalUnread: chatUnread, participants, markAllThreadsRead } = useChatInbox();
   const { showEn, showAr } = useLanguage();
   const { prefs, toggle: togglePref } = useNotificationPrefs();
 
@@ -177,6 +178,23 @@ const NotificationCenter = ({
               {showAr && <p className="mt-1 font-arabic text-[13px] text-accent" dir="rtl">مركز التنبيهات</p>}
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {totalUnread > 0 && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await Promise.all([markAllRead(), markAllThreadsRead()]);
+                      toast.success(showAr && !showEn ? "تم تعليم الكل كمقروء" : "All marked as read");
+                    } catch {
+                      toast.error(showAr && !showEn ? "تعذر التعليم" : "Could not mark all read");
+                    }
+                  }}
+                  aria-label={showAr && !showEn ? "تعليم الكل كمقروء" : "Mark all as read"}
+                  className="flex h-10 items-center gap-1.5 rounded-full border border-primary-foreground/15 bg-primary-foreground/10 px-3 text-[11px] font-semibold text-primary-foreground"
+                >
+                  <CheckCheck size={14} />
+                  <span>{showAr && !showEn ? "تعليم الكل" : "Mark all"}</span>
+                </button>
+              )}
               <button
                 onClick={() => setPrefsOpen((v) => !v)}
                 aria-label={showAr && !showEn ? "تفضيلات الإشعارات" : "Notification preferences"}
