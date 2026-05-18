@@ -333,9 +333,15 @@ const Index = () => {
     const msg = toastMessages[category || "other"] || toastMessages.other;
 
     const keyFields = (payload?.manualFields || []).filter((f) => f.value.trim().length > 0);
+    const sub = payload?.subcategory?.trim();
+    const docNo = keyFields.find((f) => /document\s*no|passport\s*no|visa\s*no|policy\s*no|booking\s*ref|number/i.test(f.label))?.value;
+    const fullName = keyFields.find((f) => /full\s*name|holder|guest|patient|insured|^name$/i.test(f.label))?.value;
+    const fallbackField = keyFields.find((f) => /name|hotel|insurer|test|medication|diagnosis|study|carrier|title/i.test(f.label))?.value;
+    const identifier = fullName || docNo || fallbackField;
     const titleFromFields =
-      payload?.subcategory?.trim() ||
-      keyFields.find((f) => /name|hotel|insurer|test|medication|diagnosis|study|carrier|title/i.test(f.label))?.value ||
+      (sub && identifier) ? `${sub} · ${identifier}` :
+      sub ||
+      identifier ||
       (payload?.fileName ? payload.fileName.replace(/\.\w+$/, "") : undefined);
 
     // Travel-side scanned docs (visa/passport/residency, etc.) land in the
