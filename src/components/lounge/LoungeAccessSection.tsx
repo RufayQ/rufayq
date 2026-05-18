@@ -469,15 +469,32 @@ const LoungeFormSheet = ({
               <Field label="QR verifier · الرقم التحققي للرمز">
                 <input
                   value={qrSecret}
-                  onChange={(e) => setQrSecret(e.target.value.replace(/\D/g, "").slice(0, 20))}
+                  onChange={(e) => {
+                    const next = e.target.value.replace(/\D/g, "").slice(0, 20);
+                    setQrSecret(next);
+                    setQrSecretError(validateQrSecret(next));
+                  }}
+                  onBlur={() => setQrSecretError(validateQrSecret(qrSecret))}
                   placeholder="e.g. 5310572473"
                   inputMode="numeric"
+                  aria-invalid={!!qrSecretError}
+                  aria-describedby="qr-secret-help"
                   className="w-full rounded-xl px-3 py-2 text-[13px] font-mono outline-none"
-                  style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+                  style={{
+                    background: "var(--off-white)",
+                    border: `1px solid ${qrSecretError ? "var(--error)" : "var(--gray-light)"}`,
+                    color: "var(--navy)",
+                  }}
                 />
-                <p className="mt-1 text-[10px]" style={{ color: "var(--gray)" }}>
-                  Number that appears after the “=” in your DragonPass QR.
-                </p>
+                {qrSecretError ? (
+                  <p id="qr-secret-help" className="mt-1 text-[10px] font-bold" style={{ color: "var(--error)" }}>
+                    {qrSecretError}
+                  </p>
+                ) : (
+                  <p id="qr-secret-help" className="mt-1 text-[10px]" style={{ color: "var(--gray)" }}>
+                    Numbers only, 6–20 digits. Found after the “=” in your DragonPass QR.
+                  </p>
+                )}
               </Field>
 
               <Field label="Entitlement refresh · تاريخ التجديد">
