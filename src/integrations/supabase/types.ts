@@ -7020,11 +7020,13 @@ export type Database = {
           file_name: string
           file_path: string
           id: string
+          key_fields: Json | null
           label: string
           mime_type: string | null
           segment_ref: string
           size_bytes: number | null
           source_document_id: string | null
+          subcategory: string | null
           ticket_id: string | null
           updated_at: string
           user_id: string | null
@@ -7036,11 +7038,13 @@ export type Database = {
           file_name: string
           file_path: string
           id?: string
+          key_fields?: Json | null
           label: string
           mime_type?: string | null
           segment_ref: string
           size_bytes?: number | null
           source_document_id?: string | null
+          subcategory?: string | null
           ticket_id?: string | null
           updated_at?: string
           user_id?: string | null
@@ -7052,11 +7056,13 @@ export type Database = {
           file_name?: string
           file_path?: string
           id?: string
+          key_fields?: Json | null
           label?: string
           mime_type?: string | null
           segment_ref?: string
           size_bytes?: number | null
           source_document_id?: string | null
+          subcategory?: string | null
           ticket_id?: string | null
           updated_at?: string
           user_id?: string | null
