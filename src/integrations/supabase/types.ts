@@ -1534,12 +1534,15 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           device_id: string | null
+          entitlement_refresh_on: string | null
           expires_on: string | null
           id: string
           linked_segment_id: string | null
           membership_number: string
           notes: string | null
           program: string
+          qr_image_url: string | null
+          qr_secret: string | null
           updated_at: string
           user_id: string | null
         }
@@ -1549,12 +1552,15 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           device_id?: string | null
+          entitlement_refresh_on?: string | null
           expires_on?: string | null
           id?: string
           linked_segment_id?: string | null
           membership_number: string
           notes?: string | null
           program: string
+          qr_image_url?: string | null
+          qr_secret?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1564,12 +1570,15 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           device_id?: string | null
+          entitlement_refresh_on?: string | null
           expires_on?: string | null
           id?: string
           linked_segment_id?: string | null
           membership_number?: string
           notes?: string | null
           program?: string
+          qr_image_url?: string | null
+          qr_secret?: string | null
           updated_at?: string
           user_id?: string | null
         }
