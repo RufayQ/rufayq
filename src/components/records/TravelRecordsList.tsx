@@ -368,6 +368,19 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     }
   };
 
+  const renameScanned = (record: TravelScannedRecord, newName: string) => {
+    const next = updateTravelScannedRecord(record.id, { title: newName });
+    if (next) setScannedTravel(listTravelScannedRecords());
+  };
+
+  const shareScanned = async (record: TravelScannedRecord) => {
+    const url = record.fileUrl || record.pdfUrl;
+    const text = `📄 ${record.title} — ${record.fileName}${url ? `\n${url}` : ""}`;
+    if (navigator.share) await navigator.share({ title: record.title, text, url }).catch(() => {});
+    else if (url) window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    else await navigator.clipboard.writeText(text);
+  };
+
   const applyToMilestone = async (
     item: TransportAttachment,
     m: { id: string; refId: string; kind: string },
