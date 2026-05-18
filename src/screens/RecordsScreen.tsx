@@ -661,6 +661,17 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
           setHidden((s) => new Set(s).add(menuTarget.key));
         }}
       />
+
+      <TravelSummaryLanguageSheet
+        open={!!travelAction}
+        action={travelAction}
+        onClose={() => setTravelAction(null)}
+        onPick={(lang) => {
+          const a = travelAction;
+          setTravelAction(null);
+          if (a) runTravelAction(a, lang);
+        }}
+      />
     </div>
   );
 };
