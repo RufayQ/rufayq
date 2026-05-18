@@ -203,11 +203,36 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
   }, []);
 
   // Merge attachments + lounge cards + scanned travel docs into one sorted list.
+  // Dedupe: when a scanner-saved record and an uploaded attachment share the
+  // same file name (modulo extension) AND were created within 10 minutes, we
+  // prefer the attachment (it has a real preview) but merge the scanner's
+  // extracted key_fields onto it so the user sees one row with both.
   const unified: UnifiedRow[] = useMemo(() => {
-    const attachments: UnifiedRow[] = items.map((it) => ({ kind: "attachment" as const, ...it }));
+    const normName = (n: string) => n.replace(/\.[a-z0-9]+$/i, "").trim().toLowerCase();
+    const attachments = items.map((it) => ({ ...it, key_fields: it.key_fields as any }));
+    const attByName = new Map<string, typeof attachments[number]>();
+    attachments.forEach((a) => attByName.set(normName(a.file_name), a));
+
+    const scannedRows: UnifiedRow[] = [];
+    scannedTravel.forEach((r) => {
+      const match = attByName.get(normName(r.fileName));
+      if (match) {
+        const dtA = Date.parse(match.created_at);
+        const dtB = Date.parse(r.createdAt);
+        if (Math.abs(dtA - dtB) < 10 * 60 * 1000) {
+          // Merge key_fields into the attachment in-memory if missing.
+          if (!match.key_fields && r.keyFields?.length) {
+            (match as any).key_fields = r.keyFields;
+          }
+          return; // skip duplicate scanned row
+        }
+      }
+      scannedRows.push(scannedToRow(r));
+    });
+
+    const attachmentRows: UnifiedRow[] = attachments.map((it) => ({ kind: "attachment" as const, ...it }));
     const lounge: UnifiedRow[] = loungeCards.map(membershipToRow);
-    const scanned: UnifiedRow[] = scannedTravel.map(scannedToRow);
-    return [...lounge, ...scanned, ...attachments].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    return [...lounge, ...scannedRows, ...attachmentRows].sort((a, b) => b.created_at.localeCompare(a.created_at));
   }, [items, loungeCards, scannedTravel]);
 
   const classifyRow = (r: UnifiedRow): TravelCat =>
