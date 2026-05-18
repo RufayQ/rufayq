@@ -30,11 +30,12 @@ const AdminLogin = () => {
     }
     // Verify role
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
-    const isStaff = roles?.some((r) => r.role === "admin" || r.role === "moderator");
+    const STAFF_ROLES: readonly string[] = ["admin", "moderator", "qc_tester"];
+    const isStaff = roles?.some((r) => STAFF_ROLES.includes(r.role));
     setLoading(false);
     if (!isStaff) {
       await supabase.auth.signOut();
-      toast.error("This account is not a staff account");
+      toast.error("This account doesn't have admin, support, or QC access.");
       return;
     }
     // Audit: staff sign-in
@@ -52,7 +53,7 @@ const AdminLogin = () => {
     <>
       <Seo
         title="Admin sign-in — RufayQ"
-        description="Staff sign-in for RufayQ administrators and moderators."
+        description="Staff sign-in for RufayQ admins, support agents, and QC testers."
         noindex
       />
     <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100 px-4" style={{ fontFamily: "'DM Sans', system-ui" }}>
@@ -66,7 +67,7 @@ const AdminLogin = () => {
               <Shield size={26} className="text-amber-400" />
             </div>
             <h1 className="text-xl font-semibold">RufayQ Staff Portal</h1>
-            <p className="text-xs text-slate-400 mt-1">Admin & support sign-in only</p>
+            <p className="text-xs text-slate-400 mt-1">Admin, support & QC tester sign-in</p>
           </div>
 
           <form onSubmit={handleSignIn} className="space-y-4">
@@ -108,7 +109,7 @@ const AdminLogin = () => {
           </form>
 
           <p className="text-[10px] text-slate-500 text-center mt-6">
-            Patient sign-in is on the main app. This portal is staff-only and access is logged.
+            Patient sign-in is on the main app. This portal is for admin, support, and QC staff. Access is logged.
           </p>
         </div>
       </div>
