@@ -17,7 +17,7 @@ import OnboardingScreen from "@/screens/OnboardingScreen";
 import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
 import { addScannedRecord, isMedicalCategory } from "@/lib/scannedRecordsStore";
-import { addTravelScannedRecord, isTravelCategory } from "@/lib/travelScannedRecordsStore";
+import { addTravelScannedRecord } from "@/lib/travelScannedRecordsStore";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import { EmrScreen } from "@/features/emr";
