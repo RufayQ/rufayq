@@ -420,16 +420,18 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
       // scanned-travel: no file URL yet — opening just dismisses the menu.
     };
     const expMMYY = item.kind === "lounge-card" ? loungeExpMMYY(item.membership.expiresOn) : "";
+    const scannedFields = isScanned && item.kind === "scanned-travel" ? (item.record.keyFields ?? []).filter((f) => f.value.trim().length > 0) : [];
     return (
       <div
         key={item.id}
-        className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left card-press relative"
+        className="w-full flex flex-col gap-2 p-3.5 rounded-xl text-left card-press relative"
         style={{
           background: "var(--white)",
           border: isPinned ? "1.5px solid rgba(197,150,90,0.55)" : "1px solid var(--gray-light)",
           boxShadow: isPinned ? "0 4px 14px rgba(197,150,90,0.18)" : "0 1px 6px rgba(0,0,0,0.04)",
         }}
       >
+       <div className="flex items-center gap-3">
         <button onClick={handleOpen} className="flex items-center gap-3 flex-1 min-w-0 text-left">
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
