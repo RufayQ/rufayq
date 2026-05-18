@@ -106,16 +106,16 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto flex flex-col">
           {/* Image preview */}
-          <div className="relative" style={{ background: "var(--off-white)" }}>
+          <div className="relative flex-shrink-0" style={{ background: "var(--off-white)" }}>
             {currentImage ? (
               <div className="relative">
                 <img
                   src={currentImage}
                   alt={`${record.title} – page ${page + 1}`}
                   className="block w-full"
-                  style={{ maxHeight: "55dvh", objectFit: "contain", background: "#000" }}
+                  style={{ maxHeight: "60dvh", objectFit: "contain", background: "#000" }}
                 />
                 {images.length > 1 && (
                   <>
@@ -147,12 +147,15 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
                 )}
               </div>
             ) : (
-              <div className="px-4 py-10 text-center">
+              <div className="px-4 py-8 text-center">
                 <p className="text-[12px]" style={{ color: "var(--gray)" }}>
                   No preview image was saved with this document.
                 </p>
                 <p className="font-arabic text-[11px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
                   لم يتم حفظ صورة معاينة مع هذا المستند
+                </p>
+                <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
+                  Tip: re-scan or re-upload to attach a preview.
                 </p>
               </div>
             )}
