@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard";
+import UniversalDocumentPreview, { isImage, isPdf, isOffice } from "@/components/records/UniversalDocumentPreview";
 
 export interface TransportAttachment {
   id: string;
@@ -53,20 +54,6 @@ const LABEL_TO_SUBCATEGORY: Record<string, string> = {
   Insurance: "Travel Insurance Card",
   Hotel: "Other",
   Other: "Other",
-};
-
-const isImage = (mime?: string | null) => !!mime && mime.startsWith("image/");
-const isPdf = (mime?: string | null, name?: string) =>
-  mime === "application/pdf" || (!!name && /\.pdf$/i.test(name));
-const isOffice = (mime?: string | null, name?: string) => {
-  if (mime) {
-    if (
-      mime === "application/msword" ||
-      mime.startsWith("application/vnd.openxmlformats-officedocument") ||
-      mime.startsWith("application/vnd.ms-")
-    ) return true;
-  }
-  return !!name && /\.(docx?|xlsx?|pptx?)$/i.test(name);
 };
 
 /**
