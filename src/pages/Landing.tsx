@@ -151,9 +151,10 @@ const Landing = () => {
   const greeting = { en: greetingEn, ar: greetingAr };
 
   const defaultTrust = [
-    { icon: "lock",     en: "End-to-end encrypted",       ar: "تشفير كامل" },
-    { icon: "globe",    en: "Bilingual EN / AR",          ar: "ثنائي اللغة عربي/إنجليزي" },
-    { icon: "heart",    en: "For Gulf & global patients", ar: "لمرضى الخليج والعالم" },
+    { icon: "heart",  en: "Trusted by Saudi families", ar: "موثوق من العائلات السعودية" },
+    { icon: "globe",  en: "Arabic-first support",      ar: "دعم عربي أولاً" },
+    { icon: "lock",   en: "Medical + cultural AI",     ar: "ذكاء اصطناعي طبي وثقافي" },
+    { icon: "heart",  en: "6 AI companions",           ar: "٦ رُفَيِّقات ذكاء اصطناعي" },
   ];
   const cmsBadges = (isAr ? heroAr : heroEn)?.badges ?? [];
   const trustPoints = cmsBadges.length > 0
