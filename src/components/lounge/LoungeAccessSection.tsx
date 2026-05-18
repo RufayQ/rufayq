@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QRCodeSVG } from "qrcode.react";
-import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard, ChevronDown, Maximize2, Minimize2, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Plane, CreditCard, ScanLine, Eye, EyeOff, Upload, IdCard, ChevronDown, Maximize2, Minimize2, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { notify } from "@/lib/bilingualToast";
 import type { TransportSegment } from "@/components/TransportCard";
 import {
   listLoungeMemberships,
