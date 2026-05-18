@@ -10,8 +10,9 @@
  */
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronLeft, ChevronRight, Maximize2, Save, Plus, Trash2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Maximize2, Save, Plus, Trash2, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import UniversalDocumentPreview, { isPdf } from "@/components/records/UniversalDocumentPreview";
 import {
   type TravelScannedRecord,
   updateTravelScannedRecord,
@@ -33,6 +34,9 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
   const images = record.pageImages ?? [];
   const hasImages = images.length > 0;
   const currentImage = hasImages ? images[Math.min(page, images.length - 1)] : null;
+  const fallbackUrl = record.fileUrl || record.pdfUrl || null;
+  const previewMime = record.mimeType || (record.pdfUrl || /\.pdf$/i.test(record.fileName) ? "application/pdf" : null);
+  const totalPages = hasImages ? images.length : Math.max(1, record.pageCount || 1);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -40,12 +44,21 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
         if (fullscreen) setFullscreen(false);
         else onClose();
       }
-      if (e.key === "ArrowLeft" && hasImages) setPage((p) => Math.max(0, p - 1));
-      if (e.key === "ArrowRight" && hasImages) setPage((p) => Math.min(images.length - 1, p + 1));
+      if (e.key === "ArrowLeft" && (hasImages || fallbackUrl)) setPage((p) => Math.max(0, p - 1));
+      if (e.key === "ArrowRight" && (hasImages || fallbackUrl)) setPage((p) => Math.min(totalPages - 1, p + 1));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [fullscreen, hasImages, images.length, onClose]);
+  }, [fullscreen, hasImages, fallbackUrl, totalPages, onClose]);
+
+  const handleShare = async () => {
+    const text = `📄 ${title || record.title} — ${record.fileName}${fallbackUrl ? `\n${fallbackUrl}` : ""}`;
+    try {
+      if (navigator.share) await navigator.share({ title: title || record.title, text, url: fallbackUrl || undefined });
+      else if (fallbackUrl) window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+      else await navigator.clipboard.writeText(text);
+    } catch { /* user cancelled */ }
+  };
 
   const handleSave = () => {
     const cleaned = fields
