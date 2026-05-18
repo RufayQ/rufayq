@@ -91,6 +91,13 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadInstruction, setUploadInstruction] = useState("");
+  const [showRecordsPicker, setShowRecordsPicker] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<PickedRecord | null>(null);
+  const { subscription } = useSubscription();
+  const canAttachFromRecords = ((): boolean => {
+    const code = (subscription?.plan || "").toString().toUpperCase();
+    return code === "COMPANION" || code === "FAMILY";
+  })();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordedAudio, setRecordedAudio] = useState<{ duration: number } | null>(null);
