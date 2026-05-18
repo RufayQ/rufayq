@@ -336,7 +336,10 @@ const ScannerWizard = ({
             }}
             onConfirm={() => {
               if (preselectedCategory) setSelectedCategory(preselectedCategory);
-              setStep(3);
+              // If both category + subcategory are pre-seeded (e.g. attachment
+              // flow from RelatedDocumentsCard), skip Step 3 picker entirely.
+              if (preselectedCategory && (preselectedSubcategory || selectedSub)) setStep(4);
+              else setStep(3);
             }}
           />
         )}
