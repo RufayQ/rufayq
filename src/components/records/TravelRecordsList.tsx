@@ -507,6 +507,21 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
             <MoreVertical size={14} style={{ color: "var(--gray)" }} />
           </button>
         </div>
+       </div>
+        {scannedFields.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
+            {scannedFields.slice(0, 6).map((f, idx) => (
+              <span
+                key={idx}
+                className="text-[10px] px-2 py-1 rounded-full"
+                style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+              >
+                <span style={{ color: "var(--gray)" }}>{f.label}: </span>
+                <span style={{ fontWeight: 600 }}>{f.value}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
