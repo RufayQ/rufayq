@@ -694,6 +694,17 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
             window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
           }
         }}
+        onSendToChat={() => {
+          if (!menuTarget) return;
+          const name = renames[menuTarget.key] ?? menuTarget.doc.titleEn;
+          const ctx = [
+            `📎 From my records: ${name}`,
+            `Category: ${menuTarget.doc.category} · Date: ${menuTarget.doc.date}`,
+            "Please review and explain · رجاءً راجِع واشرح",
+          ].join("\n");
+          onNavigate?.("chat", ctx);
+          toast.success("Sent to chat · أُرسل إلى المحادثة", { duration: 1800 });
+        }}
         onApplyToMilestone={(m) => {
           toast.success(`Linked to ${m.title}`, { description: "Stored for this session · محفوظ مؤقتًا", duration: 2200 });
         }}
