@@ -49,24 +49,37 @@ export default function HumanChatView({
   const [replyTo, setReplyTo] = useState<ChatMessageRow | null>(null);
   const [actionFor, setActionFor] = useState<string | null>(null);
   const [showAttachPicker, setShowAttachPicker] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<PickedRecord | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const me = getDeviceId();
 
-  const handleAttachRecord = async (rec: PickedRecord) => {
+  const handleAttachRecord = (rec: PickedRecord) => {
     setShowAttachPicker(false);
-    const lines = [
-      `📎 ${rec.label} — ${rec.file_name}`,
-      `(${rec.sourceLabelEn} · ${rec.sourceLabelAr})`,
-    ];
-    if (rec.signedUrl) lines.push(rec.signedUrl);
-    try {
-      await send(lines.join("\n"));
-      toast.success("Attachment sent · تم إرسال المرفق", { duration: 1600 });
-    } catch {
-      toast.error("Couldn't send attachment · تعذر إرسال المرفق");
-    }
+    setPendingAttachment(rec);
+  };
+
+  const renderBodyWithLinks = (body: string, mine: boolean) => {
+    const parts = body.split(/(https?:\/\/[^\s]+)/g);
+    return parts.map((part, i) => {
+      if (/^https?:\/\//.test(part)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="underline font-medium"
+            style={{ color: mine ? "var(--gold)" : "var(--teal-deep)", wordBreak: "break-all" }}
+          >
+            {part}
+          </a>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
   };
 
 
@@ -80,12 +93,24 @@ export default function HumanChatView({
   }, [threadId]);
 
   const handleSend = async () => {
-    if (!input.trim() || sending) return;
+    if (sending) return;
+    const text = input.trim();
+    if (!text && !pendingAttachment) return;
     setSending(true);
     try {
-      await send(input, { replyToId: replyTo?.id ?? null });
+      let body = text;
+      if (pendingAttachment) {
+        const lines = [
+          `📎 ${pendingAttachment.label} — ${pendingAttachment.file_name}`,
+          `(${pendingAttachment.sourceLabelEn} · ${pendingAttachment.sourceLabelAr})`,
+        ];
+        if (pendingAttachment.signedUrl) lines.push(pendingAttachment.signedUrl);
+        body = text ? `${lines.join("\n")}\n\n${text}` : lines.join("\n");
+      }
+      await send(body, { replyToId: replyTo?.id ?? null });
       setInput("");
       setReplyTo(null);
+      setPendingAttachment(null);
     } catch {
       toast.error("Couldn't send message · لم تُرسل الرسالة");
     } finally {
@@ -271,7 +296,7 @@ export default function HumanChatView({
                       </p>
                     </button>
                   )}
-                  {m.body}
+                  {renderBodyWithLinks(m.body, mine)}
                   <span className="flex items-center gap-1 font-mono text-[9px] mt-1" style={{ opacity: 0.7, direction: "ltr", justifyContent: mine ? "flex-end" : "flex-start" }}>
                     <span>{time}</span>
                     {mine && <MessageTicks status={m.status} seen={seen} />}
@@ -319,6 +344,34 @@ export default function HumanChatView({
         </div>
       )}
 
+      {/* Pending attachment pill */}
+      {pendingAttachment && (
+        <div
+          className="shrink-0 mx-2 mb-1 mt-1 rounded-xl px-3 py-2 flex items-start gap-2 animate-fade-in-up"
+          style={{ background: "var(--white)", borderLeft: "3px solid var(--teal-deep)", border: "1px solid var(--gray-light)" }}
+        >
+          <Paperclip size={14} style={{ color: "var(--teal-deep)", marginTop: 2 }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold truncate" style={{ color: "var(--teal-deep)" }}>
+              {pendingAttachment.label}
+            </p>
+            <p className="text-[10.5px] truncate" style={{ color: "var(--gray)" }}>
+              {pendingAttachment.file_name}
+            </p>
+            <p className="text-[9.5px] mt-0.5 font-mono tracking-wide" style={{ color: "var(--gray)" }}>
+              {pendingAttachment.sourceLabelEn} · {pendingAttachment.sourceLabelAr}
+            </p>
+          </div>
+          <button
+            onClick={() => setPendingAttachment(null)}
+            className="p-1 rounded-full btn-press shrink-0"
+            aria-label="Remove attachment · إزالة المرفق"
+          >
+            <X size={14} style={{ color: "var(--gray)" }} />
+          </button>
+        </div>
+      )}
+
       {/* Composer */}
       <div className="shrink-0 px-2 py-2.5 flex items-end gap-1.5" style={{ background: "var(--white)", borderTop: "1px solid var(--gray-light)" }}>
         <EmojiPicker onSelect={(e) => setInput((cur) => cur + e)} />
@@ -343,9 +396,9 @@ export default function HumanChatView({
         />
         <button
           onClick={handleSend}
-          disabled={!input.trim() || sending}
+          disabled={(!input.trim() && !pendingAttachment) || sending}
           className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
-          style={{ background: "var(--teal-deep)", opacity: input.trim() && !sending ? 1 : 0.4 }}
+          style={{ background: "var(--teal-deep)", opacity: ((input.trim() || pendingAttachment) && !sending) ? 1 : 0.4 }}
           aria-label="Send"
         >
           <Send size={16} color="#fff" />
