@@ -9,6 +9,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { FileText, Image as ImageIcon, Search, X, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useAuthUserId } from "@/hooks/useAuthUserId";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
@@ -53,9 +54,12 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
           fileBackedOnly: true,
         });
         if (!cancelled) setRows(all.filter((r) => r.sendableToChat));
-      } catch (e) {
+      } catch (e: any) {
         console.warn("[ChatRecordsPicker] load failed", e);
         if (!cancelled) setRows([]);
+        toast.error("Couldn't load records · تعذّر تحميل السجلات", {
+          description: e?.message ?? String(e),
+        });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -83,16 +87,28 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
       sourceLabelAr: row.sourceLabelAr,
       mime_type: row.mimeType ?? null,
     };
+    let signedUrl: string | undefined;
     try {
-      const signedUrl = (await resolveRecordSignedUrl(row, deviceId)) ?? undefined;
+      signedUrl = (await resolveRecordSignedUrl(row, deviceId)) ?? undefined;
+    } catch (e: any) {
+      console.warn("[ChatRecordsPicker] signed-url failed", e);
+      toast.error("Couldn't fetch file link · تعذّر جلب الرابط", {
+        description: e?.message ?? String(e),
+      });
+    }
+    try {
       onPick({ ...base, signedUrl });
-    } catch (e) {
-      console.warn("[ChatRecordsPicker] pick failed", e);
-      onPick(base);
+    } catch (e: any) {
+      console.error("[ChatRecordsPicker] onPick handler threw", e);
+      toast.error("Couldn't attach record · تعذّر إرفاق السجل", {
+        description: e?.message ?? String(e),
+      });
     } finally {
       setPicking(null);
     }
   };
+
+
 
   if (!open) return null;
 
