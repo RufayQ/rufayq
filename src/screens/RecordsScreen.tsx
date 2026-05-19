@@ -391,7 +391,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         {showAuthSkeleton ? (
           <RecordsContentSkeleton />
         ) : segment === "travel" ? (
-          <TravelRecordsList userId={userId} searchQuery={searchQuery} onCountsChange={setTravelStats} onVisibleItemsChange={setVisibleTravelDocs} />
+          <TravelRecordsList userId={userId} searchQuery={searchQuery} onCountsChange={setTravelStats} onVisibleItemsChange={setVisibleTravelDocs} onNavigate={onNavigate} />
         ) : (<>
         {/* Featured Discharge Pack */}
         {activeFilter === "All" && !searchQuery && records.length > 0 && (
