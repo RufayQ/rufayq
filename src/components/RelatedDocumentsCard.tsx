@@ -56,6 +56,12 @@ const LABEL_TO_SUBCATEGORY: Record<string, string> = {
   Other: "Other",
 };
 
+const isScannableFile = (file: File) => file.type.startsWith("image/") || isPdf(file.type, file.name);
+
+const keyFieldsOf = (item: Pick<TransportAttachment, "key_fields"> | null | undefined) =>
+  (Array.isArray(item?.key_fields) ? item!.key_fields : [])
+    .filter((f: any) => typeof f?.label === "string" && typeof f?.value === "string" && f.value.trim().length > 0) as { label: string; value: string }[];
+
 /**
  * RelatedDocumentsCard — durable attachments for a transport segment / ticket.
  *
@@ -97,6 +103,7 @@ const RelatedDocumentsCard = ({
   const [scanFile, setScanFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
+  const isBusy = uploading || !!scanFile;
 
   const refresh = async () => {
     setLoading(true);
@@ -253,7 +260,7 @@ const RelatedDocumentsCard = ({
   const confirmUpload = async () => {
     if (!picking) return;
     // Image / PDF → route to Smart Scanner with the user-chosen subcategory.
-    if (picking.type.startsWith("image/") || isPdf(picking.type, picking.name)) {
+    if (isScannableFile(picking)) {
       setScanFile(picking);
       setPicking(null);
       return;
