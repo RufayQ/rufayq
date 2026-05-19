@@ -539,9 +539,9 @@ const RelatedDocumentsCard = ({
       </div>
 
       {/* Label prompt sheet */}
-      {picking && (
+      {picking && createPortal((
         <div
-          className="fixed inset-0 z-[100] flex items-end justify-center"
+          className="fixed inset-0 z-[1300] flex items-end justify-center"
           style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => !uploading && setPicking(null)}
         >
