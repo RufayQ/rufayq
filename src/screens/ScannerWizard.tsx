@@ -2052,6 +2052,70 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
 };
 
 /* Tap-to-edit field for the Extracted Information card */
+/** Preview the uploaded source document (image / PDF / Word) inside Step 4. */
+const DocumentPreviewStrip = ({
+  realFile, analyzedImages, fileName,
+}: { realFile: File | null; analyzedImages: string[]; fileName: string }) => {
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!realFile) { setObjectUrl(null); return; }
+    const u = URL.createObjectURL(realFile);
+    setObjectUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [realFile]);
+
+  // Multi-page image navigator for scanned pages.
+  const [pageIdx, setPageIdx] = useState(0);
+  useEffect(() => { setPageIdx(0); }, [analyzedImages.length]);
+
+  const hasPages = analyzedImages.length > 0;
+  const url = hasPages ? analyzedImages[pageIdx] : objectUrl;
+  const mime = hasPages ? "image/png" : (realFile?.type || null);
+  const name = realFile?.name || fileName;
+
+  if (!url) return null;
+
+  return (
+    <div className="mx-4 mt-3 rounded-2xl p-3" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+          📄 DOCUMENT PREVIEW · <span className="font-arabic">معاينة المستند</span>
+        </p>
+        {hasPages && analyzedImages.length > 1 && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPageIdx((i) => Math.max(0, i - 1))}
+              disabled={pageIdx === 0}
+              aria-label="Previous page"
+              className="px-2 py-0.5 rounded-full text-[10px] font-bold btn-press"
+              style={{ background: "var(--off-white)", color: "var(--navy)", opacity: pageIdx === 0 ? 0.4 : 1 }}
+            >‹</button>
+            <span className="text-[10px] font-bold" style={{ color: "var(--navy)" }}>
+              {pageIdx + 1} / {analyzedImages.length}
+            </span>
+            <button
+              onClick={() => setPageIdx((i) => Math.min(analyzedImages.length - 1, i + 1))}
+              disabled={pageIdx >= analyzedImages.length - 1}
+              aria-label="Next page"
+              className="px-2 py-0.5 rounded-full text-[10px] font-bold btn-press"
+              style={{ background: "var(--off-white)", color: "var(--navy)", opacity: pageIdx >= analyzedImages.length - 1 ? 0.4 : 1 }}
+            >›</button>
+          </div>
+        )}
+      </div>
+      <div className="rounded-xl overflow-hidden flex items-center justify-center" style={{ height: 220, background: "var(--off-white)" }}>
+        <UniversalDocumentPreview
+          url={url}
+          fileName={name}
+          title={name}
+          mimeType={mime}
+          className="h-full w-full"
+        />
+      </div>
+    </div>
+  );
+};
+
 const fmtDateHuman = (iso: string) => {
   if (!iso) return "";
   const d = new Date(iso);
