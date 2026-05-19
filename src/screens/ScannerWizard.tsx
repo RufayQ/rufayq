@@ -1898,18 +1898,24 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                {(genericFields ?? []).map((f, i) => (
-                  <EditableField
-                    key={`${category}-${i}-${f.label}`}
-                    label={f.label}
-                    value={f.value}
-                    onChange={(v) => {
-                      setGenericFields((prev) =>
-                        (prev ?? []).map((field, idx) => (idx === i ? { ...field, value: v } : field))
-                      );
-                    }}
-                  />
-                ))}
+                {(() => {
+                  const schema = getSchemaFor(category, subcategory);
+                  const kindFor = (label: string): FieldKind =>
+                    schema.find((s) => s.label === label)?.kind || "text";
+                  return (genericFields ?? []).map((f, i) => (
+                    <EditableField
+                      key={`${category}-${subcategory ?? ""}-${i}-${f.label}`}
+                      label={f.label}
+                      value={f.value}
+                      kind={kindFor(f.label)}
+                      onChange={(v) => {
+                        setGenericFields((prev) =>
+                          (prev ?? []).map((field, idx) => (idx === i ? { ...field, value: v } : field))
+                        );
+                      }}
+                    />
+                  ));
+                })()}
               </div>
             </>
           )}
