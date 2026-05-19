@@ -341,20 +341,6 @@ const RelatedDocumentsCard = ({
     refresh();
   };
 
-  const renameItem = async () => {
-    if (!previewItem) return;
-    const name = renameDraft.trim();
-    if (!name || name === previewItem.label) { setRenaming(false); return; }
-    const { error } = await supabase
-      .from("transport_attachments")
-      .update({ label: name })
-      .eq("id", previewItem.id);
-    if (error) { toast.error("Could not rename", { description: error.message }); return; }
-    toast.success("Renamed · تم التغيير");
-    setPreviewItem({ ...previewItem, label: name });
-    setRenaming(false);
-    refresh();
-  };
 
   const shareItem = async (item: TransportAttachment) => {
     const { data } = await supabase.storage.from(BUCKET).createSignedUrl(item.file_path, 60 * 60);
