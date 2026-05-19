@@ -150,9 +150,10 @@ interface Props {
   searchQuery: string;
   onCountsChange?: (counts: { total: number; translated: number; newCount: number }) => void;
   onVisibleItemsChange?: (items: TransportAttachment[]) => void;
+  onNavigate?: (tab: string, context?: string) => void;
 }
 
-const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItemsChange }: Props) => {
+const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItemsChange, onNavigate }: Props) => {
   const deviceId = getDeviceId();
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loungeCards, setLoungeCards] = useState<LoungeMembership[]>(() => listLoungeMemberships());
