@@ -93,9 +93,9 @@ const phases = [
 const subTabs: { key: string; Icon: LucideIcon; en: string; ar: string; premium?: boolean }[] = [
   { key: "overview", Icon: MapIcon, en: "Map", ar: "الخريطة" },
   { key: "tickets", Icon: Plane, en: "Tickets", ar: "التذاكر" },
+  { key: "lounge", Icon: Crown, en: "Lounge", ar: "الصالات", premium: true },
   { key: "stay", Icon: BedDouble, en: "Stay", ar: "الإقامة" },
   { key: "appointments", Icon: Stethoscope, en: "Appts", ar: "المواعيد" },
-  { key: "lounge", Icon: Crown, en: "Lounge", ar: "الصالات", premium: true },
   { key: "steps", Icon: ClipboardList, en: "Steps", ar: "الخطوات" },
 ];
 
