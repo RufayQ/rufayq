@@ -322,6 +322,15 @@ export default function HumanChatView({
       {/* Composer */}
       <div className="shrink-0 px-2 py-2.5 flex items-end gap-1.5" style={{ background: "var(--white)", borderTop: "1px solid var(--gray-light)" }}>
         <EmojiPicker onSelect={(e) => setInput((cur) => cur + e)} />
+        <button
+          onClick={() => setShowAttachPicker(true)}
+          className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
+          style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+          aria-label="Attach from records"
+          title="Attach from records · إرفاق من السجلات"
+        >
+          <Paperclip size={16} style={{ color: "var(--teal-deep)" }} />
+        </button>
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -342,6 +351,13 @@ export default function HumanChatView({
           <Send size={16} color="#fff" />
         </button>
       </div>
+
+      <ChatRecordsPicker
+        open={showAttachPicker}
+        onClose={() => setShowAttachPicker(false)}
+        onPick={handleAttachRecord}
+      />
     </div>
+
   );
 }
