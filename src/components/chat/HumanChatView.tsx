@@ -9,6 +9,7 @@ import { useResolvedContact } from "@/hooks/useResolvedContact";
 import MessageTicks from "./MessageTicks";
 import EmojiPicker from "./EmojiPicker";
 import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
+import ChatPickerErrorBoundary from "@/components/chat/ChatPickerErrorBoundary";
 
 
 interface Props {
@@ -405,11 +406,13 @@ export default function HumanChatView({
         </button>
       </div>
 
-      <ChatRecordsPicker
-        open={showAttachPicker}
-        onClose={() => setShowAttachPicker(false)}
-        onPick={handleAttachRecord}
-      />
+      <ChatPickerErrorBoundary onReset={() => setShowAttachPicker(false)}>
+        <ChatRecordsPicker
+          open={showAttachPicker}
+          onClose={() => setShowAttachPicker(false)}
+          onPick={handleAttachRecord}
+        />
+      </ChatPickerErrorBoundary>
     </div>
 
   );
