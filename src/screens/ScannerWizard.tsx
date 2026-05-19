@@ -16,6 +16,8 @@ import type { FlightInfo } from "@/components/AddTripSheet";
 import { type FlightSegment, segmentToFlightInfo } from "@/lib/transportTickets";
 import Time24Input from "@/components/Time24Input";
 import { FLIGHT_AI_ENABLED } from "@/lib/flightAiFlag";
+import { COUNTRIES } from "@/data/countries";
+import UniversalDocumentPreview from "@/components/records/UniversalDocumentPreview";
 
 export type TravelerKind = "patient" | "companion" | "family";
 
@@ -1050,41 +1052,45 @@ const GENERIC_SCHEMA_BY_CATEGORY: Record<string, { label: string }[]> = {
  * document types (e.g. legal → Visa vs Passport vs Residency Permit) that
  * benefit from a tailored field set. Falls back to the category default.
  */
-const SCHEMA_BY_SUBCATEGORY: Record<string, Record<string, { label: string }[]>> = {
+type FieldKind = "text" | "date" | "country";
+interface FieldSchema { label: string; kind?: FieldKind }
+const SCHEMA_BY_SUBCATEGORY: Record<string, Record<string, FieldSchema[]>> = {
   legal: {
     Visa: [
       { label: "Visa number" },
       { label: "Passport number" },
       { label: "Iqama number" },
       { label: "Visa holder" },
-      { label: "Nationality" },
-      { label: "Iqama expiry" },
-      { label: "Exit before" },
-      { label: "Return before" },
+      { label: "Nationality", kind: "country" },
+      { label: "Iqama expiry", kind: "date" },
+      { label: "Exit before", kind: "date" },
+      { label: "Return before", kind: "date" },
     ],
     Passport: [
-      { label: "Full name" }, { label: "Passport number" }, { label: "Nationality" },
-      { label: "Date of birth" }, { label: "Issue date" }, { label: "Expiry date" },
+      { label: "Full name" }, { label: "Passport number" }, { label: "Nationality", kind: "country" },
+      { label: "Date of birth", kind: "date" }, { label: "Issue date", kind: "date" }, { label: "Expiry date", kind: "date" },
     ],
     "National ID": [
-      { label: "Full name" }, { label: "ID number" }, { label: "Date of birth" }, { label: "Expiry date" },
+      { label: "Full name" }, { label: "ID number" }, { label: "Date of birth", kind: "date" }, { label: "Expiry date", kind: "date" },
     ],
     "Residency Permit": [
-      { label: "Full name" }, { label: "Iqama number" }, { label: "Nationality" },
-      { label: "Sponsor" }, { label: "Issue date" }, { label: "Expiry date" },
+      { label: "Full name" }, { label: "Iqama number" }, { label: "Nationality", kind: "country" },
+      { label: "Sponsor" }, { label: "Issue date", kind: "date" }, { label: "Expiry date", kind: "date" },
     ],
     "Travel Insurance Card": [
       { label: "Insurer" }, { label: "Policy no." }, { label: "Insured name" },
-      { label: "Coverage" }, { label: "Valid from" }, { label: "Valid until" },
+      { label: "Coverage" }, { label: "Valid from", kind: "date" }, { label: "Valid until", kind: "date" },
     ],
   },
 };
-const emptyGenericFields = (category: string | null, subcategory?: string | null) => {
+const getSchemaFor = (category: string | null, subcategory?: string | null): FieldSchema[] => {
   const cat = category || "other";
   const sub = subcategory?.trim();
   const subSchema = sub ? SCHEMA_BY_SUBCATEGORY[cat]?.[sub] : null;
-  const schema = subSchema || GENERIC_SCHEMA_BY_CATEGORY[cat] || GENERIC_SCHEMA_BY_CATEGORY.other;
-  return schema.map((f) => ({ label: f.label, value: "" }));
+  return subSchema || GENERIC_SCHEMA_BY_CATEGORY[cat] || GENERIC_SCHEMA_BY_CATEGORY.other;
+};
+const emptyGenericFields = (category: string | null, subcategory?: string | null) => {
+  return getSchemaFor(category, subcategory).map((f) => ({ label: f.label, value: "" }));
 };
 
 const fmtDateLite = (s: string) => {
@@ -1842,6 +1848,14 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
           </div>
         </>
       ) : (
+        <>
+          {!isFlight && (
+            <DocumentPreviewStrip
+              realFile={realFile ?? null}
+              analyzedImages={analyzedImages}
+              fileName={fileName}
+            />
+          )}
         <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -1892,22 +1906,29 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                {(genericFields ?? []).map((f, i) => (
-                  <EditableField
-                    key={`${category}-${i}-${f.label}`}
-                    label={f.label}
-                    value={f.value}
-                    onChange={(v) => {
-                      setGenericFields((prev) =>
-                        (prev ?? []).map((field, idx) => (idx === i ? { ...field, value: v } : field))
-                      );
-                    }}
-                  />
-                ))}
+                {(() => {
+                  const schema = getSchemaFor(category, subcategory);
+                  const kindFor = (label: string): FieldKind =>
+                    schema.find((s) => s.label === label)?.kind || "text";
+                  return (genericFields ?? []).map((f, i) => (
+                    <EditableField
+                      key={`${category}-${subcategory ?? ""}-${i}-${f.label}`}
+                      label={f.label}
+                      value={f.value}
+                      kind={kindFor(f.label)}
+                      onChange={(v) => {
+                        setGenericFields((prev) =>
+                          (prev ?? []).map((field, idx) => (idx === i ? { ...field, value: v } : field))
+                        );
+                      }}
+                    />
+                  ));
+                })()}
               </div>
             </>
           )}
         </div>
+        </>
       )}
 
       {/* Edit modal for a single flight segment */}
@@ -2031,27 +2052,138 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
 };
 
 /* Tap-to-edit field for the Extracted Information card */
-const EditableField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
+/** Preview the uploaded source document (image / PDF / Word) inside Step 4. */
+const DocumentPreviewStrip = ({
+  realFile, analyzedImages, fileName,
+}: { realFile: File | null; analyzedImages: string[]; fileName: string }) => {
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!realFile) { setObjectUrl(null); return; }
+    const u = URL.createObjectURL(realFile);
+    setObjectUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [realFile]);
+
+  // Multi-page image navigator for scanned pages.
+  const [pageIdx, setPageIdx] = useState(0);
+  useEffect(() => { setPageIdx(0); }, [analyzedImages.length]);
+
+  const hasPages = analyzedImages.length > 0;
+  const url = hasPages ? analyzedImages[pageIdx] : objectUrl;
+  const mime = hasPages ? "image/png" : (realFile?.type || null);
+  const name = realFile?.name || fileName;
+
+  if (!url) return null;
+
+  return (
+    <div className="mx-4 mt-3 rounded-2xl p-3" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>
+          📄 DOCUMENT PREVIEW · <span className="font-arabic">معاينة المستند</span>
+        </p>
+        {hasPages && analyzedImages.length > 1 && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPageIdx((i) => Math.max(0, i - 1))}
+              disabled={pageIdx === 0}
+              aria-label="Previous page"
+              className="px-2 py-0.5 rounded-full text-[10px] font-bold btn-press"
+              style={{ background: "var(--off-white)", color: "var(--navy)", opacity: pageIdx === 0 ? 0.4 : 1 }}
+            >‹</button>
+            <span className="text-[10px] font-bold" style={{ color: "var(--navy)" }}>
+              {pageIdx + 1} / {analyzedImages.length}
+            </span>
+            <button
+              onClick={() => setPageIdx((i) => Math.min(analyzedImages.length - 1, i + 1))}
+              disabled={pageIdx >= analyzedImages.length - 1}
+              aria-label="Next page"
+              className="px-2 py-0.5 rounded-full text-[10px] font-bold btn-press"
+              style={{ background: "var(--off-white)", color: "var(--navy)", opacity: pageIdx >= analyzedImages.length - 1 ? 0.4 : 1 }}
+            >›</button>
+          </div>
+        )}
+      </div>
+      <div className="rounded-xl overflow-hidden flex items-center justify-center" style={{ height: 220, background: "var(--off-white)" }}>
+        <UniversalDocumentPreview
+          url={url}
+          fileName={name}
+          title={name}
+          mimeType={mime}
+          className="h-full w-full"
+        />
+      </div>
+    </div>
+  );
+};
+
+const fmtDateHuman = (iso: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
+const EditableField = ({
+  label, value, onChange, kind = "text",
+}: { label: string; value: string; onChange: (v: string) => void; kind?: FieldKind }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   useEffect(() => { setDraft(value); }, [value]);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
 
-  const commit = () => {
+  const commit = (nextValue?: string) => {
     setEditing(false);
-    if (draft !== value) onChange(draft);
+    const v = nextValue ?? draft;
+    if (v !== value) onChange(v);
   };
+
+  // Date picker — render the native date input inline so the calendar opens on tap.
+  if (kind === "date") {
+    return (
+      <div>
+        <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label}</p>
+        <input
+          type="date"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full text-[13px] font-bold bg-transparent outline-none"
+          style={{ color: "var(--navy)", borderBottom: "1.5px solid var(--gold)", paddingBottom: 2 }}
+        />
+        {value && (
+          <p className="text-[10px] mt-0.5" style={{ color: "var(--gray)" }}>{fmtDateHuman(value)}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Country dropdown — bilingual labels, value persisted as the English name.
+  if (kind === "country") {
+    return (
+      <div>
+        <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label}</p>
+        <select
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full text-[13px] font-bold bg-transparent outline-none"
+          style={{ color: "var(--navy)", borderBottom: "1.5px solid var(--gold)", paddingBottom: 2 }}
+        >
+          <option value="">— Select —</option>
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.name}>{c.name} · {c.nameAr}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
 
   return (
     <div>
       <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label}</p>
       {editing ? (
         <input
-          ref={inputRef}
+          ref={inputRef as React.RefObject<HTMLInputElement>}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
+          onBlur={() => commit()}
           onKeyDown={(e) => {
             if (e.key === "Enter") { e.preventDefault(); commit(); }
             else if (e.key === "Escape") { setDraft(value); setEditing(false); }

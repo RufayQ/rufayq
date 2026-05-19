@@ -195,13 +195,9 @@ const RelatedDocumentsCard = ({
       toast.error("File is too large", { description: "Max 10 MB per attachment." });
       return;
     }
-    // Route image + PDF captures through the Smart Scanner so users get the
-    // same review/edit/key-fields experience as the global Scan flow.
-    // Office/other formats keep the lightweight label-and-upload path.
-    if (file.type.startsWith("image/") || isPdf(file.type, file.name)) {
-      setScanFile(file);
-      return;
-    }
+    // Always show the label sheet first so the user picks the doc type
+    // (VISA / Passport / Insurance / Hotel / Other) BEFORE the scanner opens.
+    // This fixes flight-ticket attachments getting locked into the Visa schema.
     setPicking(file);
     setLabelDraft("VISA");
   };
@@ -256,6 +252,12 @@ const RelatedDocumentsCard = ({
 
   const confirmUpload = async () => {
     if (!picking) return;
+    // Image / PDF → route to Smart Scanner with the user-chosen subcategory.
+    if (picking.type.startsWith("image/") || isPdf(picking.type, picking.name)) {
+      setScanFile(picking);
+      setPicking(null);
+      return;
+    }
     const label = labelDraft.trim() || "Document";
     setUploading(true);
     try {
@@ -570,7 +572,11 @@ const RelatedDocumentsCard = ({
                 style={{ background: "var(--gold)" }}
               >
                 {uploading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                {uploading ? "Uploading…" : "Attach"}
+                {uploading
+                  ? "Uploading…"
+                  : (picking && (picking.type.startsWith("image/") || isPdf(picking.type, picking.name))
+                      ? "Scan & Attach"
+                      : "Attach")}
               </button>
             </div>
           </div>
