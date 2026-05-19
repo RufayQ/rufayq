@@ -26,3 +26,11 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => {},
   }),
 });
+
+// jsdom lacks URL.createObjectURL / revokeObjectURL
+if (typeof URL.createObjectURL !== "function") {
+  (URL as unknown as { createObjectURL: (b: unknown) => string }).createObjectURL = () => "blob:mock";
+}
+if (typeof URL.revokeObjectURL !== "function") {
+  (URL as unknown as { revokeObjectURL: (u: string) => void }).revokeObjectURL = () => {};
+}
