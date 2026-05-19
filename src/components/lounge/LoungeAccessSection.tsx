@@ -14,6 +14,7 @@ import {
   type LoungeMembership,
 } from "@/lib/loungeMemberships";
 import QrImageEditor from "./QrImageEditor";
+import { OverlayLayer } from "@/shared/ui/overlay";
 
 interface Props {
   /** Flight segments shown in the linker dropdown so the user can tag a card to a flight. */
