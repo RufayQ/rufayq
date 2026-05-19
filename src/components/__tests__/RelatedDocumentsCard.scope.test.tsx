@@ -56,6 +56,11 @@ const makeQuery = () => {
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
+    auth: {
+      getUser: async () => ({ data: { user: null }, error: null }),
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    },
     from: (_table: string) => makeQuery(),
     storage: {
       from: (_bucket: string) => ({
@@ -94,7 +99,10 @@ const pickAndConfirm = async (container: HTMLElement) => {
   ) as HTMLInputElement;
   expect(fileInput).toBeTruthy();
 
-  const file = new File(["hello"], "visa.pdf", { type: "application/pdf" });
+  // Use a Word doc — images/PDFs now route to the Smart Scanner wizard which
+  // uploads via its own onSave callback. The direct confirmUpload() path still
+  // applies to office documents and is what this scope test exercises.
+  const file = new File(["hello"], "visa.docx", { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
   await act(async () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
   });
