@@ -80,10 +80,22 @@ const PdfPreview = ({ url, fileName, title, page, className }: { url: string; fi
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
       setStatus((s) => (s === "loading" ? "error" : s));
-    }, 8000);
+    }, 12000);
     (async () => {
       try {
-        const pdf = await pdfjsLib.getDocument({ url, withCredentials: false }).promise;
+        // pdfjs handles http(s) and blob URLs directly; for data: URLs we
+        // decode to a Uint8Array so the worker can parse without a fetch.
+        let source: any;
+        if (url.startsWith("data:")) {
+          const b64 = url.split(",")[1] || "";
+          const bin = atob(b64);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          source = { data: bytes };
+        } else {
+          source = { url, withCredentials: false };
+        }
+        const pdf = await pdfjsLib.getDocument(source).promise;
         const safePage = Math.min(Math.max(1, page), pdf.numPages);
         const pdfPage = await pdf.getPage(safePage);
         const viewport = pdfPage.getViewport({ scale: 1.6 });
