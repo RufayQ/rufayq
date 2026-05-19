@@ -684,11 +684,13 @@ const RelatedDocumentsCard = ({
                         style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
                       >
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--gold-pale)" }}>
-                          {isImage(p.mime_type) ? <ImageIcon size={16} style={{ color: "var(--gold)" }} /> : <FileText size={16} style={{ color: "var(--gold)" }} />}
+                          {isImage(p.mimeType) ? <ImageIcon size={16} style={{ color: "var(--gold)" }} /> : <FileText size={16} style={{ color: "var(--gold)" }} />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{p.label}</p>
-                          <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>{p.file_name}</p>
+                          <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>
+                            {p.fileName} · <span style={{ color: p.origin === "medical-scan" ? "var(--teal-deep)" : "var(--gold)" }}>{p.sourceLabelEn}</span>
+                          </p>
                         </div>
                         {linkingId === p.id ? (
                           <Loader2 size={14} className="animate-spin" style={{ color: "var(--teal-deep)" }} />
