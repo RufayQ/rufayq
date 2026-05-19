@@ -222,16 +222,17 @@ const MilestoneSheet = ({
             </button>
           )}
 
-          {flightTicketId && (
-            <div className="mt-3 -mx-2 animate-fade-in">
+          {resolvedSegmentRef && (
+            <div className="mt-3 -mx-2 animate-fade-in" onClick={(e) => e.stopPropagation()}>
               <RelatedDocumentsCard
-                segmentRef={flightSegmentRef || `flight-${flightTicketId}`}
-                ticketId={flightTicketId}
+                segmentRef={resolvedSegmentRef}
+                ticketId={resolvedTicketId ?? undefined}
                 userId={userId ?? null}
                 compact
               />
             </div>
           )}
+
         </>
       )}
 
