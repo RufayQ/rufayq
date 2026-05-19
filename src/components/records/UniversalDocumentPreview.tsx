@@ -80,10 +80,22 @@ const PdfPreview = ({ url, fileName, title, page, className }: { url: string; fi
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
       setStatus((s) => (s === "loading" ? "error" : s));
-    }, 8000);
+    }, 12000);
     (async () => {
       try {
-        const pdf = await pdfjsLib.getDocument({ url, withCredentials: false }).promise;
+        // pdfjs handles http(s) and blob URLs directly; for data: URLs we
+        // decode to a Uint8Array so the worker can parse without a fetch.
+        let source: any;
+        if (url.startsWith("data:")) {
+          const b64 = url.split(",")[1] || "";
+          const bin = atob(b64);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          source = { data: bytes };
+        } else {
+          source = { url, withCredentials: false };
+        }
+        const pdf = await pdfjsLib.getDocument(source).promise;
         const safePage = Math.min(Math.max(1, page), pdf.numPages);
         const pdfPage = await pdf.getPage(safePage);
         const viewport = pdfPage.getViewport({ scale: 1.6 });
@@ -118,7 +130,9 @@ const PdfPreview = ({ url, fileName, title, page, className }: { url: string; fi
           <ErrorPanel
             url={url}
             fileName={fileName}
-            message="Your browser couldn't render this PDF inline."
+            message={url.startsWith("blob:")
+              ? "This preview link expired after the app reloaded. Please re-scan or re-upload the document."
+              : "Your browser couldn't render this PDF inline."}
             onRetry={() => { setStatus("loading"); setNonce((n) => n + 1); }}
           />
         </div>
@@ -149,7 +163,9 @@ const ImagePreview = ({ url, title, fileName, className }: { url: string; title:
           <ErrorPanel
             url={url}
             fileName={fileName}
-            message="The image could not be loaded."
+            message={url.startsWith("blob:")
+              ? "This preview link expired after the app reloaded. Please re-scan or re-upload the image."
+              : "The image could not be loaded."}
             onRetry={() => { setStatus("loading"); setNonce((n) => n + 1); }}
           />
         </div>
