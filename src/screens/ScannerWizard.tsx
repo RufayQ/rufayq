@@ -2155,22 +2155,18 @@ const EditableField = ({
     );
   }
 
-  // Country dropdown — bilingual labels, value persisted as the English name.
+  // Country dropdown — searchable, bilingual, and persisted through the same field pipeline.
   if (kind === "country") {
     return (
       <div>
         <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label}</p>
-        <select
+        <NationalityCombobox
           value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={onChange}
+          placeholder="— Select —"
           className="w-full text-[13px] font-bold bg-transparent outline-none"
           style={{ color: "var(--navy)", borderBottom: "1.5px solid var(--gold)", paddingBottom: 2 }}
-        >
-          <option value="">— Select —</option>
-          {COUNTRIES.map((c) => (
-            <option key={c.code} value={c.name}>{c.name} · {c.nameAr}</option>
-          ))}
-        </select>
+        />
       </div>
     );
   }
