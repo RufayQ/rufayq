@@ -14,6 +14,7 @@ import {
   fetchLoungeMemberships,
   type LoungeMembership,
 } from "@/lib/loungeMemberships";
+import { LoungeQrSheet } from "@/components/lounge/LoungeAccessSection";
 import {
   listTravelScannedRecords,
   removeTravelScannedRecord,
