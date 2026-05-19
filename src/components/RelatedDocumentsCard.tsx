@@ -628,17 +628,34 @@ const RelatedDocumentsCard = ({
             </button>
           </div>
           <div
-            className="flex-1 flex items-center justify-center px-4 pb-4"
+            className="flex-1 flex flex-col items-center justify-center px-4 pb-4 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {isImage(previewItem.mime_type) ? (
-              <img
-                src={previewUrl}
-                alt={previewItem.label}
-                className="max-w-full max-h-full object-contain rounded-lg"
-              />
-            ) : (
-              <UniversalDocumentPreview url={previewUrl} fileName={previewItem.file_name} title={previewItem.label} mimeType={previewItem.mime_type} className="w-full h-full rounded-lg bg-white" />
+            <div className="flex-1 w-full min-h-[40vh] flex items-center justify-center">
+              {isImage(previewItem.mime_type) ? (
+                <img
+                  src={previewUrl}
+                  alt={previewItem.label}
+                  className="max-w-full max-h-full object-contain rounded-lg"
+                />
+              ) : (
+                <UniversalDocumentPreview url={previewUrl} fileName={previewItem.file_name} title={previewItem.label} mimeType={previewItem.mime_type} className="w-full h-full rounded-lg bg-white" />
+              )}
+            </div>
+            {keyFieldsOf(previewItem).length > 0 && (
+              <div className="w-full mt-3 rounded-xl p-3" style={{ background: "rgba(255,255,255,0.10)" }}>
+                <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+                  EXTRACTED FIELDS · <span className="font-arabic">الحقول المستخرجة</span>
+                </p>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                  {keyFieldsOf(previewItem).map((f, i) => (
+                    <div key={i} className="min-w-0">
+                      <dt className="text-[9px] uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>{f.label}</dt>
+                      <dd className="text-[12px] font-semibold truncate" style={{ color: "white" }} title={f.value}>{f.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
             )}
           </div>
           <div className="px-4 pb-4 space-y-2">
