@@ -406,11 +406,13 @@ export default function HumanChatView({
         </button>
       </div>
 
-      <ChatRecordsPicker
-        open={showAttachPicker}
-        onClose={() => setShowAttachPicker(false)}
-        onPick={handleAttachRecord}
-      />
+      <ChatPickerErrorBoundary onReset={() => setShowAttachPicker(false)}>
+        <ChatRecordsPicker
+          open={showAttachPicker}
+          onClose={() => setShowAttachPicker(false)}
+          onPick={handleAttachRecord}
+        />
+      </ChatPickerErrorBoundary>
     </div>
 
   );
