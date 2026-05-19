@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight, Maximize2, Save, Plus, Trash2, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import UniversalDocumentPreview, { isPdf } from "@/components/records/UniversalDocumentPreview";
+import NationalityCombobox from "@/components/NationalityCombobox";
 import {
   type TravelScannedRecord,
   updateTravelScannedRecord,
@@ -23,6 +24,9 @@ interface Props {
   onClose: () => void;
   onUpdated?: (next: TravelScannedRecord) => void;
 }
+
+const isNationalityField = (label: string) => /nationality/i.test(label);
+const isDateField = (label: string) => /(expiry|expire|before|date|valid)/i.test(label);
 
 const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
   const [page, setPage] = useState(0);
