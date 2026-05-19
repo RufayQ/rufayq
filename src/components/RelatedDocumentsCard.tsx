@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Plus, FileText, Image as ImageIcon, X, Eye, Loader2, FolderOpen, Pencil, Share2, Check, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -538,9 +539,9 @@ const RelatedDocumentsCard = ({
       </div>
 
       {/* Label prompt sheet */}
-      {picking && (
+      {picking && createPortal((
         <div
-          className="fixed inset-0 z-[100] flex items-end justify-center"
+          className="fixed inset-0 z-[1300] flex items-end justify-center"
           style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => !uploading && setPicking(null)}
         >
@@ -605,12 +606,12 @@ const RelatedDocumentsCard = ({
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
 
       {/* Preview modal */}
-      {previewUrl && previewItem && (
+      {previewUrl && previewItem && createPortal((
         <div
-          className="fixed inset-0 z-[110] flex flex-col"
+          className="fixed inset-0 z-[1310] flex flex-col"
           style={{ background: "rgba(0,0,0,0.92)" }}
           onClick={() => { setPreviewUrl(null); setPreviewItem(null); }}
         >
@@ -719,12 +720,12 @@ const RelatedDocumentsCard = ({
             </button>
           </div>
         </div>
-      )}
+      ), document.body)}
 
       {/* From Records picker */}
-      {fromRecordsOpen && (
+      {fromRecordsOpen && createPortal((
         <div
-          className="fixed inset-0 z-[115] flex items-end justify-center"
+          className="fixed inset-0 z-[1320] flex items-end justify-center"
           style={{ background: "rgba(0,0,0,0.55)" }}
           onClick={() => setFromRecordsOpen(false)}
         >
@@ -789,7 +790,7 @@ const RelatedDocumentsCard = ({
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
 
       {/* Smart-Scan wizard for image/PDF attachments — review, edit, key fields. */}
       {scanFile && (

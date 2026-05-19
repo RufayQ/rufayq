@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2, ScanLine, CreditCard, ChevronRight } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
@@ -14,6 +15,7 @@ import {
   fetchLoungeMemberships,
   type LoungeMembership,
 } from "@/lib/loungeMemberships";
+import { LoungeQrSheet } from "@/components/lounge/LoungeAccessSection";
 import {
   listTravelScannedRecords,
   removeTravelScannedRecord,
@@ -337,7 +339,22 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     }
     setPreviewItem(item);
     setPreviewUrl(data.signedUrl);
+    try { window.history.pushState({ rufayqRecordsPreview: true }, ""); } catch {}
   };
+
+  // Mobile back closes preview instead of leaving the screen.
+  useEffect(() => {
+    if (!previewUrl) return;
+    const onPop = () => { setPreviewUrl(null); setPreviewItem(null); };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [previewUrl]);
+
+  const previewFields = previewItem && Array.isArray((previewItem as any).key_fields)
+    ? ((previewItem as any).key_fields as { label: string; value: string }[]).filter(
+        (f) => typeof f?.label === "string" && typeof f?.value === "string" && f.value.trim().length > 0,
+      )
+    : [];
 
   const renameItem = async (item: TransportAttachment, newName: string) => {
     const { error } = await supabase
@@ -718,9 +735,9 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
         {filtered.map((item) => renderRow(item, false))}
       </div>
 
-      {previewUrl && previewItem && (
+      {previewUrl && previewItem && createPortal((
         <div
-          className="fixed inset-0 z-[110] flex flex-col"
+          className="fixed inset-0 z-[1310] flex flex-col"
           style={{ background: "rgba(0,0,0,0.92)" }}
           onClick={() => { setPreviewUrl(null); setPreviewItem(null); }}
         >
@@ -733,19 +750,40 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
               onClick={(e) => { e.stopPropagation(); setPreviewUrl(null); setPreviewItem(null); }}
               className="w-8 h-8 rounded-full flex items-center justify-center"
               style={{ background: "rgba(255,255,255,0.15)" }}
+              aria-label="Close preview"
             >
               <X size={16} color="white" />
             </button>
           </div>
-          <div className="flex-1 flex items-center justify-center px-4 pb-4" onClick={(e) => e.stopPropagation()}>
-            {isImage(previewItem.mime_type) ? (
-              <img src={previewUrl} alt={previewItem.label} className="max-w-full max-h-full object-contain rounded-lg" />
-            ) : (
-              <UniversalDocumentPreview url={previewUrl} fileName={previewItem.file_name} title={previewItem.label} mimeType={previewItem.mime_type} className="w-full h-full rounded-lg bg-white" />
+          <div
+            className="flex-1 flex flex-col items-center justify-center px-4 pb-4 overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex-1 w-full min-h-[40vh] flex items-center justify-center">
+              {isImage(previewItem.mime_type) ? (
+                <img src={previewUrl} alt={previewItem.label} className="max-w-full max-h-full object-contain rounded-lg" />
+              ) : (
+                <UniversalDocumentPreview url={previewUrl} fileName={previewItem.file_name} title={previewItem.label} mimeType={previewItem.mime_type} className="w-full h-full rounded-lg bg-white" />
+              )}
+            </div>
+            {previewFields.length > 0 && (
+              <div className="w-full mt-3 rounded-xl p-3" style={{ background: "rgba(255,255,255,0.10)" }}>
+                <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+                  EXTRACTED FIELDS · <span className="font-arabic">الحقول المستخرجة</span>
+                </p>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                  {previewFields.map((f, i) => (
+                    <div key={i} className="min-w-0">
+                      <dt className="text-[9px] uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>{f.label}</dt>
+                      <dd className="text-[12px] font-semibold truncate" style={{ color: "white" }} title={f.value}>{f.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
             )}
           </div>
         </div>
-      )}
+      ), document.body)}
 
       <ConfirmDialog
         open={clearPinOpen}
@@ -806,48 +844,11 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
       />
 
       {qrTarget && (
-        <div
-          className="fixed inset-0 z-[110] flex items-end justify-center"
-          style={{ background: "rgba(15,23,42,0.6)" }}
-          onClick={() => setQrTarget(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[420px] rounded-t-3xl p-5 animate-slide-up"
-            style={{ background: "var(--white)", boxShadow: "0 -8px 32px rgba(0,0,0,0.25)" }}
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--gray-light)" }} />
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>{qrTarget.program}</p>
-                <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>
-                  اعرض الرمز لموظف الصالة للمسح
-                </p>
-              </div>
-              <button
-                onClick={() => setQrTarget(null)}
-                aria-label="Close"
-                className="flex h-7 w-7 items-center justify-center rounded-full"
-                style={{ background: "var(--off-white)", color: "var(--navy)" }}
-              >
-                <X size={14} />
-              </button>
-            </div>
-            <div className="rounded-2xl p-5 flex flex-col items-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-              <div className="rounded-xl bg-white p-3" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
-                <QRCodeSVG value={qrTarget.membershipNumber} size={196} level="M" includeMargin={false} />
-              </div>
-              <p className="mt-3 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
-                {qrTarget.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
-              </p>
-              <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>{qrTarget.cardholderName}</p>
-              <div className="mt-2 flex gap-3 text-[10px]" style={{ color: "var(--gray)" }}>
-                {qrTarget.cardLast4 && <span>Linked card •••• {qrTarget.cardLast4}</span>}
-                {loungeExpMMYY(qrTarget.expiresOn) && <span>Exp {loungeExpMMYY(qrTarget.expiresOn)}</span>}
-              </div>
-            </div>
-          </div>
-        </div>
+        <LoungeQrSheet
+          membership={qrTarget}
+          onClose={() => setQrTarget(null)}
+          onEdit={() => setQrTarget(null)}
+        />
       )}
       {scannedViewer && (
         <TravelScannedRecordViewer
