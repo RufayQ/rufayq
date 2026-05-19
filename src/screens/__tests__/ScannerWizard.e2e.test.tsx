@@ -39,6 +39,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
       getUser: async () => ({ data: { user: null }, error: null }),
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     },
     functions: { invoke: (...args: any[]) => invokeMock(...args) },
     from: (table: string) => fromMock(table),
