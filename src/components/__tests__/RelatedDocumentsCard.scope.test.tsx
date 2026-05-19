@@ -56,6 +56,11 @@ const makeQuery = () => {
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
+    auth: {
+      getUser: async () => ({ data: { user: null }, error: null }),
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    },
     from: (_table: string) => makeQuery(),
     storage: {
       from: (_bucket: string) => ({
