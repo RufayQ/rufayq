@@ -317,9 +317,7 @@ const RelatedDocumentsCard = ({
     }
     setPreviewItem(item);
     setPreviewUrl(data.signedUrl);
-    // Push a history entry so the device back button closes the preview
-    // instead of navigating away from the milestone screen.
-    try { window.history.pushState({ rufayqPreview: true }, ""); } catch {}
+    // Back-button handling is owned by OverlayLayer / UnifiedAttachmentPreview.
   };
 
 
