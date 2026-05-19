@@ -130,7 +130,9 @@ const PdfPreview = ({ url, fileName, title, page, className }: { url: string; fi
           <ErrorPanel
             url={url}
             fileName={fileName}
-            message="Your browser couldn't render this PDF inline."
+            message={url.startsWith("blob:")
+              ? "This preview link expired after the app reloaded. Please re-scan or re-upload the document."
+              : "Your browser couldn't render this PDF inline."}
             onRetry={() => { setStatus("loading"); setNonce((n) => n + 1); }}
           />
         </div>
