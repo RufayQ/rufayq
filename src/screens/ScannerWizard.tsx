@@ -1050,41 +1050,45 @@ const GENERIC_SCHEMA_BY_CATEGORY: Record<string, { label: string }[]> = {
  * document types (e.g. legal → Visa vs Passport vs Residency Permit) that
  * benefit from a tailored field set. Falls back to the category default.
  */
-const SCHEMA_BY_SUBCATEGORY: Record<string, Record<string, { label: string }[]>> = {
+type FieldKind = "text" | "date" | "country";
+interface FieldSchema { label: string; kind?: FieldKind }
+const SCHEMA_BY_SUBCATEGORY: Record<string, Record<string, FieldSchema[]>> = {
   legal: {
     Visa: [
       { label: "Visa number" },
       { label: "Passport number" },
       { label: "Iqama number" },
       { label: "Visa holder" },
-      { label: "Nationality" },
-      { label: "Iqama expiry" },
-      { label: "Exit before" },
-      { label: "Return before" },
+      { label: "Nationality", kind: "country" },
+      { label: "Iqama expiry", kind: "date" },
+      { label: "Exit before", kind: "date" },
+      { label: "Return before", kind: "date" },
     ],
     Passport: [
-      { label: "Full name" }, { label: "Passport number" }, { label: "Nationality" },
-      { label: "Date of birth" }, { label: "Issue date" }, { label: "Expiry date" },
+      { label: "Full name" }, { label: "Passport number" }, { label: "Nationality", kind: "country" },
+      { label: "Date of birth", kind: "date" }, { label: "Issue date", kind: "date" }, { label: "Expiry date", kind: "date" },
     ],
     "National ID": [
-      { label: "Full name" }, { label: "ID number" }, { label: "Date of birth" }, { label: "Expiry date" },
+      { label: "Full name" }, { label: "ID number" }, { label: "Date of birth", kind: "date" }, { label: "Expiry date", kind: "date" },
     ],
     "Residency Permit": [
-      { label: "Full name" }, { label: "Iqama number" }, { label: "Nationality" },
-      { label: "Sponsor" }, { label: "Issue date" }, { label: "Expiry date" },
+      { label: "Full name" }, { label: "Iqama number" }, { label: "Nationality", kind: "country" },
+      { label: "Sponsor" }, { label: "Issue date", kind: "date" }, { label: "Expiry date", kind: "date" },
     ],
     "Travel Insurance Card": [
       { label: "Insurer" }, { label: "Policy no." }, { label: "Insured name" },
-      { label: "Coverage" }, { label: "Valid from" }, { label: "Valid until" },
+      { label: "Coverage" }, { label: "Valid from", kind: "date" }, { label: "Valid until", kind: "date" },
     ],
   },
 };
-const emptyGenericFields = (category: string | null, subcategory?: string | null) => {
+const getSchemaFor = (category: string | null, subcategory?: string | null): FieldSchema[] => {
   const cat = category || "other";
   const sub = subcategory?.trim();
   const subSchema = sub ? SCHEMA_BY_SUBCATEGORY[cat]?.[sub] : null;
-  const schema = subSchema || GENERIC_SCHEMA_BY_CATEGORY[cat] || GENERIC_SCHEMA_BY_CATEGORY.other;
-  return schema.map((f) => ({ label: f.label, value: "" }));
+  return subSchema || GENERIC_SCHEMA_BY_CATEGORY[cat] || GENERIC_SCHEMA_BY_CATEGORY.other;
+};
+const emptyGenericFields = (category: string | null, subcategory?: string | null) => {
+  return getSchemaFor(category, subcategory).map((f) => ({ label: f.label, value: "" }));
 };
 
 const fmtDateLite = (s: string) => {
