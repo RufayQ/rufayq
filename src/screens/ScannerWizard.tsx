@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, RotateCw, Sun, Contrast, Crop, Palette } from "lucide-react";
 
 import RufayQLogo from "@/components/RufayQLogo";
