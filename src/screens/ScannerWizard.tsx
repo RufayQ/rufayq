@@ -311,6 +311,36 @@ const ScannerWizard = ({
       <div className="w-full shrink-0" style={{ height: 4, background: "rgba(255,255,255,0.1)" }}>
         <div style={{ height: 4, width: `${progress}%`, background: "var(--gold)", transition: "width 400ms ease" }} />
       </div>
+      {/* Step labels — visible processing stepper */}
+      <div className="shrink-0 px-3 py-1.5 flex items-center justify-between gap-1" style={{ background: "var(--scanner-bg)" }}>
+        {(attachmentMode
+          ? ["Capture", "Review", "Categorize", "Details"]
+          : ["Capture", "Review", "Categorize", "Details", "Save"]
+        ).map((label, i) => {
+          const n = i + 1;
+          const isDone = step > n && step !== 99;
+          const isCurrent = step === n;
+          return (
+            <div key={label} className="flex-1 min-w-0 flex items-center gap-1">
+              <span
+                className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
+                style={{
+                  background: isCurrent ? "var(--gold)" : isDone ? "rgba(197,150,90,0.45)" : "rgba(255,255,255,0.12)",
+                  color: isCurrent || isDone ? "white" : "rgba(255,255,255,0.55)",
+                }}
+              >
+                {isDone ? "✓" : n}
+              </span>
+              <span
+                className="text-[9px] truncate"
+                style={{ color: isCurrent ? "white" : "rgba(255,255,255,0.55)", fontWeight: isCurrent ? 700 : 500 }}
+              >
+                {label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Step Content */}
       <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
