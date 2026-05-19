@@ -9,7 +9,7 @@
  *     bounds so users can pinch-zoom the document.
  */
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { OverlayLayer } from "@/shared/ui/overlay";
 import { X, ChevronLeft, ChevronRight, Maximize2, Save, Plus, Trash2, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import UniversalDocumentPreview, { isPdf } from "@/components/records/UniversalDocumentPreview";
