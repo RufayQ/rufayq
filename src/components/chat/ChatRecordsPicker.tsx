@@ -72,6 +72,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
 
   const handlePick = async (row: UnifiedRecord) => {
     setPicking(row.id);
+    const deviceId = getDeviceId();
     const isMedical = row.origin === "medical-scan";
     const base: PickedRecord = {
       kind: isMedical ? "medical" : "travel",
@@ -82,7 +83,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
       mime_type: row.mimeType ?? null,
     };
     try {
-      const signedUrl = (await resolveRecordSignedUrl(row)) ?? undefined;
+      const signedUrl = (await resolveRecordSignedUrl(row, deviceId)) ?? undefined;
       onPick({ ...base, signedUrl });
     } catch (e) {
       console.warn("[ChatRecordsPicker] pick failed", e);

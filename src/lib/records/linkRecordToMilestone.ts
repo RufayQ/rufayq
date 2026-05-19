@@ -11,6 +11,7 @@ import {
   importScanToBucket,
   type UnifiedRecord,
 } from "./recordSources";
+import { withDeviceHeader } from "@/lib/supabaseDeviceScope";
 
 export interface LinkContext {
   userId?: string | null;
@@ -49,17 +50,17 @@ export const linkRecordToMilestone = async (
   if (!filePath) throw new Error("Record has no file to link");
 
   // Idempotency: skip if an identical link already exists for this milestone.
-  const { data: existing } = await supabase
+  const { data: existing } = await withDeviceHeader(supabase
     .from("transport_attachments")
     .select("id")
     .eq("device_id", ctx.deviceId)
     .eq("segment_ref", segmentRef)
     .eq("file_path", filePath)
     .is("deleted_at", null)
-    .limit(1);
+    .limit(1), ctx.deviceId);
   if (existing && existing.length > 0) return;
 
-  const { error } = await supabase.from("transport_attachments").insert({
+  const { error } = await withDeviceHeader(supabase.from("transport_attachments").insert({
     device_id: ctx.deviceId,
     user_id: ctx.userId ?? null,
     ticket_id: ticketId,
@@ -71,7 +72,7 @@ export const linkRecordToMilestone = async (
     mime_type: mimeType,
     size_bytes: sizeBytes,
     key_fields: keyFields && keyFields.length ? (keyFields as unknown as never) : null,
-  } as never);
+  } as never), ctx.deviceId);
   if (error) throw error;
   // Silence unused-var (TRANSPORT_BUCKET) — kept as a stable re-export for callers.
   void TRANSPORT_BUCKET;
