@@ -856,10 +856,19 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
               ? () => shareScanned(menuItem.record)
             : undefined
         }
+        onSendToChat={
+          menuItem && menuItem.kind === "attachment"
+            ? () => sendAttachmentToChat(menuItem)
+            : menuItem && menuItem.kind === "scanned-travel"
+              ? () => sendScannedToChat(menuItem.record)
+              : undefined
+        }
         onApplyToMilestone={
           menuItem && menuItem.kind === "attachment"
-            ? (m) => applyToMilestone(menuItem, m)
-            : undefined
+            ? (m) => applyToMilestoneAttachment(menuItem, m)
+            : menuItem && menuItem.kind === "scanned-travel"
+              ? (m) => applyToMilestoneScanned(menuItem.record, m)
+              : undefined
         }
         onDelete={() => {
           if (!menuItem) return;
