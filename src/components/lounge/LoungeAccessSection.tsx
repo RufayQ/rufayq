@@ -686,7 +686,7 @@ const uploadedQrToPng = async (src: string): Promise<string> => {
   return drawToCanvasPng(img, HD_SIZE);
 };
 
-const LoungeQrSheet = ({
+export const LoungeQrSheet = ({
   membership, onClose, onEdit,
 }: { membership: LoungeMembership; onClose: () => void; onEdit: () => void }) => {
   const [fullscreen, setFullscreen] = useState(false);
