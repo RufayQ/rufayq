@@ -85,19 +85,24 @@ beforeEach(() => {
 });
 
 describe("RelatedDocumentsCard preview", () => {
-  it("renders PDF inline via <object>/<iframe> with the signed URL", async () => {
+  it("renders PDF inline via in-app pdfjs preview (loading panel + retry/open fallback)", async () => {
     render(<RelatedDocumentsCard segmentRef="seg-1" userId={null} />);
     const pdfTile = await screen.findByTitle("Visa");
     fireEvent.click(pdfTile);
 
-    const pdfObject = await waitFor(() => {
-      const el = document.querySelector('object[type="application/pdf"]') as HTMLObjectElement | null;
-      expect(el).not.toBeNull();
-      return el!;
+    // Loading panel appears first
+    await waitFor(() => {
+      expect(screen.getByText(/Loading PDF preview/i)).toBeInTheDocument();
     });
-    expect(pdfObject.getAttribute("data")).toContain(PDF_URL);
-    expect(within(pdfObject as unknown as HTMLElement).getByTitle("visa.pdf")).toBeInTheDocument();
-  });
+    // pdfjs cannot render in jsdom → ErrorPanel surfaces "Open in new tab" pointing at the signed URL
+    const openLink = await waitFor(() => {
+      const link = Array.from(document.querySelectorAll("a")).find((a) => /Open in new tab/i.test(a.textContent || ""));
+      expect(link).toBeTruthy();
+      return link!;
+    }, { timeout: 10000 });
+    expect(openLink).toHaveAttribute("href", PDF_URL);
+  }, 15000);
+
 
   it("renders Office documents with Open + Download fallback (no inline preview)", async () => {
     render(<RelatedDocumentsCard segmentRef="seg-1" userId={null} />);
