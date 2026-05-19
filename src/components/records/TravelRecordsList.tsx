@@ -339,7 +339,6 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     }
     setPreviewItem(item);
     setPreviewUrl(data.signedUrl);
-    try { window.history.pushState({ rufayqRecordsPreview: true }, ""); } catch {}
   };
 
   // Back-button handling is owned by OverlayLayer / UnifiedAttachmentPreview.
