@@ -415,7 +415,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
         sendableToChat: true,
         previewable: true,
         filePath: item.file_path,
-        transport: { keyFields: keyFieldsOf(item) as { label: string; value: string }[] },
+        transport: { keyFields: (Array.isArray(item.key_fields) ? item.key_fields : null) as { label: string; value: string }[] | null },
       },
       m,
       { userId: userId ?? null, deviceId, sourceDocumentId: null },
