@@ -14,6 +14,7 @@ import {
   type LoungeMembership,
 } from "@/lib/loungeMemberships";
 import QrImageEditor from "./QrImageEditor";
+import { OverlayLayer } from "@/shared/ui/overlay";
 
 interface Props {
   /** Flight segments shown in the linker dropdown so the user can tag a card to a flight. */
@@ -443,7 +444,14 @@ const LoungeFormSheet = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.45)" }} onClick={onClose}>
+    <OverlayLayer
+      open
+      onClose={onClose}
+      layer="sheet"
+      ariaLabel={initial ? "Edit lounge card" : "Add lounge card"}
+      backdropClassName="bg-[rgba(15,23,42,0.45)]"
+    >
+      <div className="absolute inset-0 flex items-end justify-center">
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
@@ -619,7 +627,8 @@ const LoungeFormSheet = ({
           }}
         />
       )}
-    </div>
+      </div>
+    </OverlayLayer>
   );
 };
 
@@ -764,9 +773,15 @@ export const LoungeQrSheet = ({
       560,
     );
     return (
+      <OverlayLayer
+        open
+        onClose={() => setFullscreen(false)}
+        layer="scanner"
+        ariaLabel="Lounge QR fullscreen"
+        backdropClassName="bg-white"
+      >
       <div
-        className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4"
-        style={{ background: "#ffffff" }}
+        className="absolute inset-0 flex flex-col items-center justify-center p-4"
         onClick={() => setFullscreen(false)}
         data-testid="qr-fullscreen"
       >
@@ -832,11 +847,19 @@ export const LoungeQrSheet = ({
           Tap anywhere to exit · اضغط للخروج
         </p>
       </div>
+      </OverlayLayer>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.6)" }} onClick={onClose}>
+    <OverlayLayer
+      open
+      onClose={onClose}
+      layer="sheet"
+      ariaLabel="Lounge QR"
+      backdropClassName="bg-[rgba(15,23,42,0.6)]"
+    >
+    <div className="absolute inset-0 flex items-end justify-center">
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[420px] rounded-t-3xl p-5 animate-slide-up"
@@ -924,6 +947,7 @@ export const LoungeQrSheet = ({
         </p>
       </div>
     </div>
+    </OverlayLayer>
   );
 };
 

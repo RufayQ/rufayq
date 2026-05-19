@@ -9,7 +9,7 @@
  *     bounds so users can pinch-zoom the document.
  */
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { OverlayLayer } from "@/shared/ui/overlay";
 import { X, ChevronLeft, ChevronRight, Maximize2, Save, Plus, Trash2, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import UniversalDocumentPreview, { isPdf } from "@/components/records/UniversalDocumentPreview";
@@ -79,9 +79,10 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
     }
   };
 
-  return createPortal(
+  return (
+    <OverlayLayer open onClose={onClose} layer="preview" ariaLabel={`Scanned record: ${record.title}`} backdropClassName="bg-black/85 backdrop-blur-sm">
     <div
-      className="fixed inset-0 z-[1100] flex items-stretch justify-center bg-black/85 backdrop-blur-sm"
+      className="absolute inset-0 flex items-stretch justify-center"
       onClick={onClose}
     >
       <div
@@ -325,27 +326,29 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
 
       {/* Fullscreen image overlay */}
       {fullscreen && (currentImage || fallbackUrl) && (
-        <div
-          className="fixed inset-0 z-[1200] flex items-center justify-center bg-black"
-          onClick={() => setFullscreen(false)}
-        >
-          {currentImage ? (
-            <img src={currentImage} alt={`${record.title} – fullscreen`} className="max-h-[100dvh] max-w-full" style={{ objectFit: "contain" }} />
-          ) : fallbackUrl ? (
-            <UniversalDocumentPreview url={fallbackUrl} fileName={record.fileName} title={record.title} mimeType={previewMime} page={page + 1} className="h-[100dvh] w-full max-w-[960px] bg-white" />
-          ) : null}
-          <button
+        <OverlayLayer open onClose={() => setFullscreen(false)} layer="scanner" ariaLabel="Fullscreen preview" backdropClassName="bg-black">
+          <div
+            className="absolute inset-0 flex items-center justify-center"
             onClick={() => setFullscreen(false)}
-            aria-label="Exit fullscreen"
-            className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full"
-            style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
           >
-            <X size={20} />
-          </button>
-        </div>
+            {currentImage ? (
+              <img src={currentImage} alt={`${record.title} – fullscreen`} className="max-h-[100dvh] max-w-full" style={{ objectFit: "contain" }} />
+            ) : fallbackUrl ? (
+              <UniversalDocumentPreview url={fallbackUrl} fileName={record.fileName} title={record.title} mimeType={previewMime} page={page + 1} className="h-[100dvh] w-full max-w-[960px] bg-white" />
+            ) : null}
+            <button
+              onClick={() => setFullscreen(false)}
+              aria-label="Exit fullscreen"
+              className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full"
+              style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </OverlayLayer>
       )}
-    </div>,
-    document.body,
+    </div>
+    </OverlayLayer>
   );
 };
 

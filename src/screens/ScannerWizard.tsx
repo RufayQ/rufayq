@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { OverlayLayer } from "@/shared/ui/overlay";
 import { X, RotateCw, Sun, Contrast, Crop, Palette } from "lucide-react";
 
 import RufayQLogo from "@/components/RufayQLogo";
@@ -323,8 +323,9 @@ const ScannerWizard = ({
     setStep(2);
   };
 
-  return createPortal((
-    <div className="fixed inset-0 z-[1200] flex flex-col animate-slide-in-right" style={{ background: "var(--scanner-bg)" }}>
+  return (
+    <OverlayLayer open onClose={onClose} layer="scanner" ariaLabel="Document scanner" closeOnBackdrop={false} backdropClassName="bg-transparent">
+    <div className="absolute inset-0 flex flex-col animate-slide-in-right" style={{ background: "var(--scanner-bg)" }}>
       <input ref={fileInputRef} type="file" className="hidden" onChange={onFileSelected} />
 
       {/* Top Bar */}
@@ -485,7 +486,8 @@ const ScannerWizard = ({
         )}
       </div>
     </div>
-  ), document.body);
+    </OverlayLayer>
+  );
 };
 
 /* ─── STEP 1: CAPTURE ─── */

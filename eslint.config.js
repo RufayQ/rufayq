@@ -27,4 +27,36 @@ export default tseslint.config(
       "prefer-const": "warn",
     },
   },
+  {
+    // Canonical overlay guard — no raw `fixed inset-0` modals or `createPortal`
+    // calls outside the shared overlay primitive. All overlays must go
+    // through `src/shared/ui/overlay/OverlayLayer`.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/shared/ui/overlay/**",
+      "src/**/__tests__/**",
+      "src/**/*.test.{ts,tsx}",
+      "src/test/**",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "CallExpression[callee.name='createPortal']",
+          message:
+            "Do not call createPortal directly. Use <OverlayLayer> from '@/shared/ui/overlay' to keep portal mounting, z-index, focus trap, and back-button behavior consistent.",
+        },
+        {
+          selector: "ImportSpecifier[imported.name='createPortal']",
+          message:
+            "Do not import createPortal. Use <OverlayLayer> from '@/shared/ui/overlay'.",
+        },
+        {
+          selector: "Literal[value=/(^|\\s)fixed inset-0(\\s|$)/]",
+          message:
+            "Raw `fixed inset-0` overlay markup is forbidden outside src/shared/ui/overlay. Use <OverlayLayer> from '@/shared/ui/overlay'.",
+        },
+      ],
+    },
+  },
 );
