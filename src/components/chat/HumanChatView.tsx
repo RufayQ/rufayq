@@ -93,12 +93,24 @@ export default function HumanChatView({
   }, [threadId]);
 
   const handleSend = async () => {
-    if (!input.trim() || sending) return;
+    if (sending) return;
+    const text = input.trim();
+    if (!text && !pendingAttachment) return;
     setSending(true);
     try {
-      await send(input, { replyToId: replyTo?.id ?? null });
+      let body = text;
+      if (pendingAttachment) {
+        const lines = [
+          `📎 ${pendingAttachment.label} — ${pendingAttachment.file_name}`,
+          `(${pendingAttachment.sourceLabelEn} · ${pendingAttachment.sourceLabelAr})`,
+        ];
+        if (pendingAttachment.signedUrl) lines.push(pendingAttachment.signedUrl);
+        body = text ? `${lines.join("\n")}\n\n${text}` : lines.join("\n");
+      }
+      await send(body, { replyToId: replyTo?.id ?? null });
       setInput("");
       setReplyTo(null);
+      setPendingAttachment(null);
     } catch {
       toast.error("Couldn't send message · لم تُرسل الرسالة");
     } finally {
