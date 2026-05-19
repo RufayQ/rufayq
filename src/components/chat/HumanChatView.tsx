@@ -344,6 +344,34 @@ export default function HumanChatView({
         </div>
       )}
 
+      {/* Pending attachment pill */}
+      {pendingAttachment && (
+        <div
+          className="shrink-0 mx-2 mb-1 mt-1 rounded-xl px-3 py-2 flex items-start gap-2 animate-fade-in-up"
+          style={{ background: "var(--white)", borderLeft: "3px solid var(--teal-deep)", border: "1px solid var(--gray-light)" }}
+        >
+          <Paperclip size={14} style={{ color: "var(--teal-deep)", marginTop: 2 }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold truncate" style={{ color: "var(--teal-deep)" }}>
+              {pendingAttachment.label}
+            </p>
+            <p className="text-[10.5px] truncate" style={{ color: "var(--gray)" }}>
+              {pendingAttachment.file_name}
+            </p>
+            <p className="text-[9.5px] mt-0.5 font-mono tracking-wide" style={{ color: "var(--gray)" }}>
+              {pendingAttachment.sourceLabelEn} · {pendingAttachment.sourceLabelAr}
+            </p>
+          </div>
+          <button
+            onClick={() => setPendingAttachment(null)}
+            className="p-1 rounded-full btn-press shrink-0"
+            aria-label="Remove attachment · إزالة المرفق"
+          >
+            <X size={14} style={{ color: "var(--gray)" }} />
+          </button>
+        </div>
+      )}
+
       {/* Composer */}
       <div className="shrink-0 px-2 py-2.5 flex items-end gap-1.5" style={{ background: "var(--white)", borderTop: "1px solid var(--gray-light)" }}>
         <EmojiPicker onSelect={(e) => setInput((cur) => cur + e)} />
