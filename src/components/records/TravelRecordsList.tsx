@@ -806,48 +806,11 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
       />
 
       {qrTarget && (
-        <div
-          className="fixed inset-0 z-[110] flex items-end justify-center"
-          style={{ background: "rgba(15,23,42,0.6)" }}
-          onClick={() => setQrTarget(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[420px] rounded-t-3xl p-5 animate-slide-up"
-            style={{ background: "var(--white)", boxShadow: "0 -8px 32px rgba(0,0,0,0.25)" }}
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--gray-light)" }} />
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>{qrTarget.program}</p>
-                <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>
-                  اعرض الرمز لموظف الصالة للمسح
-                </p>
-              </div>
-              <button
-                onClick={() => setQrTarget(null)}
-                aria-label="Close"
-                className="flex h-7 w-7 items-center justify-center rounded-full"
-                style={{ background: "var(--off-white)", color: "var(--navy)" }}
-              >
-                <X size={14} />
-              </button>
-            </div>
-            <div className="rounded-2xl p-5 flex flex-col items-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-              <div className="rounded-xl bg-white p-3" style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}>
-                <QRCodeSVG value={qrTarget.membershipNumber} size={196} level="M" includeMargin={false} />
-              </div>
-              <p className="mt-3 font-mono text-[13px] tracking-[0.2em]" style={{ color: "var(--navy)" }}>
-                {qrTarget.membershipNumber.replace(/(.{4})/g, "$1 ").trim()}
-              </p>
-              <p className="mt-1 text-[12px]" style={{ color: "var(--gray)" }}>{qrTarget.cardholderName}</p>
-              <div className="mt-2 flex gap-3 text-[10px]" style={{ color: "var(--gray)" }}>
-                {qrTarget.cardLast4 && <span>Linked card •••• {qrTarget.cardLast4}</span>}
-                {loungeExpMMYY(qrTarget.expiresOn) && <span>Exp {loungeExpMMYY(qrTarget.expiresOn)}</span>}
-              </div>
-            </div>
-          </div>
-        </div>
+        <LoungeQrSheet
+          membership={qrTarget}
+          onClose={() => setQrTarget(null)}
+          onEdit={() => setQrTarget(null)}
+        />
       )}
       {scannedViewer && (
         <TravelScannedRecordViewer
