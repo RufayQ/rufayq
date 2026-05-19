@@ -16,6 +16,9 @@ import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
 import TravelSummaryLanguageSheet, { type SummaryLang } from "@/components/records/TravelSummaryLanguageSheet";
 import TravelDocsPreviewSheet from "@/components/records/TravelDocsPreviewSheet";
+import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
+import { stashChatAttachment } from "@/lib/records/chatAttachmentHandoff";
+import { getDeviceId } from "@/hooks/useDeviceId";
 
 type RecordsSegment = "medical" | "travel";
 
