@@ -216,9 +216,9 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
 
             <div className="grid grid-cols-2 gap-2">
               {fallbackUrl && (
-                <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" download={record.fileName} className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold btn-press" style={{ background: "var(--gold)", color: "var(--white)" }}>
-                  <Download size={13} /> Open / Download
-                </a>
+                <button onClick={() => setFullscreen(true)} className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold btn-press" style={{ background: "var(--gold)", color: "var(--white)" }}>
+                  <Download size={13} /> Preview document
+                </button>
               )}
               <button onClick={handleShare} className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold btn-press" style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)", gridColumn: fallbackUrl ? undefined : "1 / -1" }}>
                 <Share2 size={13} /> Share
@@ -283,17 +283,22 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
                         className="w-[40%] rounded-lg px-2 py-1.5 text-[12px] outline-none"
                         style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
                       />
-                      <input
-                        value={f.value}
-                        onChange={(e) => {
-                          const next = [...fields];
-                          next[i] = { ...next[i], value: e.target.value };
-                          setFields(next);
-                        }}
-                        placeholder="Value"
-                        className="flex-1 rounded-lg px-2 py-1.5 text-[12px] outline-none"
-                        style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
-                      />
+                      {isNationalityField(f.label) ? (
+                        <NationalityCombobox value={f.value} onChange={(v) => { const next = [...fields]; next[i] = { ...next[i], value: v }; setFields(next); }} className="rounded-lg px-2 py-1.5 text-[12px] outline-none" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }} />
+                      ) : (
+                        <input
+                          type={isDateField(f.label) ? "date" : "text"}
+                          value={f.value}
+                          onChange={(e) => {
+                            const next = [...fields];
+                            next[i] = { ...next[i], value: e.target.value };
+                            setFields(next);
+                          }}
+                          placeholder="Value"
+                          className="flex-1 rounded-lg px-2 py-1.5 text-[12px] outline-none"
+                          style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+                        />
+                      )}
                       <button
                         onClick={() => setFields(fields.filter((_, j) => j !== i))}
                         aria-label="Remove field"
