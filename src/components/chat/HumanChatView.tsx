@@ -48,10 +48,27 @@ export default function HumanChatView({
   const [sending, setSending] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessageRow | null>(null);
   const [actionFor, setActionFor] = useState<string | null>(null);
+  const [showAttachPicker, setShowAttachPicker] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const me = getDeviceId();
+
+  const handleAttachRecord = async (rec: PickedRecord) => {
+    setShowAttachPicker(false);
+    const lines = [
+      `📎 ${rec.label} — ${rec.file_name}`,
+      `(${rec.sourceLabelEn} · ${rec.sourceLabelAr})`,
+    ];
+    if (rec.signedUrl) lines.push(rec.signedUrl);
+    try {
+      await send(lines.join("\n"));
+      toast.success("Attachment sent · تم إرسال المرفق", { duration: 1600 });
+    } catch {
+      toast.error("Couldn't send attachment · تعذر إرسال المرفق");
+    }
+  };
+
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
   useEffect(() => { markRead(); }, [messages.length, markRead]);
