@@ -323,8 +323,9 @@ const ScannerWizard = ({
     setStep(2);
   };
 
-  return createPortal((
-    <div className="fixed inset-0 z-[1200] flex flex-col animate-slide-in-right" style={{ background: "var(--scanner-bg)" }}>
+  return (
+    <OverlayLayer open onClose={onClose} layer="scanner" ariaLabel="Document scanner" closeOnBackdrop={false} backdropClassName="bg-transparent">
+    <div className="absolute inset-0 flex flex-col animate-slide-in-right" style={{ background: "var(--scanner-bg)" }}>
       <input ref={fileInputRef} type="file" className="hidden" onChange={onFileSelected} />
 
       {/* Top Bar */}
