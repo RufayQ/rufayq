@@ -16,6 +16,9 @@ import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
 import TravelSummaryLanguageSheet, { type SummaryLang } from "@/components/records/TravelSummaryLanguageSheet";
 import TravelDocsPreviewSheet from "@/components/records/TravelDocsPreviewSheet";
+import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
+import { stashChatAttachment } from "@/lib/records/chatAttachmentHandoff";
+import { getDeviceId } from "@/hooks/useDeviceId";
 
 type RecordsSegment = "medical" | "travel";
 
@@ -391,7 +394,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         {showAuthSkeleton ? (
           <RecordsContentSkeleton />
         ) : segment === "travel" ? (
-          <TravelRecordsList userId={userId} searchQuery={searchQuery} onCountsChange={setTravelStats} onVisibleItemsChange={setVisibleTravelDocs} />
+          <TravelRecordsList userId={userId} searchQuery={searchQuery} onCountsChange={setTravelStats} onVisibleItemsChange={setVisibleTravelDocs} onNavigate={onNavigate} />
         ) : (<>
         {/* Featured Discharge Pack */}
         {activeFilter === "All" && !searchQuery && records.length > 0 && (
@@ -702,16 +705,52 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
         onSendToChat={() => {
           if (!menuTarget) return;
           const name = renames[menuTarget.key] ?? menuTarget.doc.titleEn;
-          const ctx = [
-            `📎 From my records: ${name}`,
-            `Category: ${menuTarget.doc.category} · Date: ${menuTarget.doc.date}`,
-            "Please review and explain · رجاءً راجِع واشرح",
-          ].join("\n");
-          onNavigate?.("chat", ctx);
+          const scanned = menuTarget.doc as Partial<ScannedRecord>;
+          stashChatAttachment({
+            kind: "medical",
+            label: name,
+            file_name: scanned.fileName || menuTarget.doc.category || `${name}.pdf`,
+            sourceLabelEn: "Medical",
+            sourceLabelAr: "طبي",
+            signedUrl: scanned.fileUrl,
+            mime_type: scanned.mimeType ?? null,
+          });
+          onNavigate?.("chat");
           toast.success("Sent to chat · أُرسل إلى المحادثة", { duration: 1800 });
         }}
-        onApplyToMilestone={(m) => {
-          toast.success(`Linked to ${m.title}`, { description: "Stored for this session · محفوظ مؤقتًا", duration: 2200 });
+        onApplyToMilestone={async (m) => {
+          if (!menuTarget) return;
+          const name = renames[menuTarget.key] ?? menuTarget.doc.titleEn;
+          const scanned = menuTarget.doc as Partial<ScannedRecord>;
+          const scannedId = scanned.id;
+          if (!scanned.fileUrl || !scannedId) {
+            toast.error("No file to link · لا يوجد ملف", { description: "Demo records can't be linked yet." });
+            return;
+          }
+          try {
+            await linkRecordToMilestone(
+              {
+                id: `medical-scan:${scannedId}`,
+                origin: "medical-scan",
+                label: name,
+                fileName: scanned.fileName || `${name}.pdf`,
+                mimeType: scanned.mimeType ?? null,
+                dateLabel: "",
+                createdAt: scanned.createdAt || new Date().toISOString(),
+                sourceLabelEn: "Medical",
+                sourceLabelAr: "طبي",
+                linkableToMilestone: true,
+                sendableToChat: true,
+                previewable: true,
+                medicalScan: scanned as ScannedRecord,
+              },
+              m,
+              { userId: userId ?? null, deviceId: getDeviceId(), sourceDocumentId: null },
+            );
+            toast.success(`Linked to ${m.title}`, { description: "تم الربط بالخطوة", duration: 2000 });
+          } catch (e: any) {
+            toast.error("Could not link · تعذّر الربط", { description: e?.message });
+          }
         }}
         onDelete={() => {
           if (!menuTarget) return;

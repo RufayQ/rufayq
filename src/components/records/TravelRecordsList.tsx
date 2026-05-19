@@ -8,6 +8,9 @@ import { getDeviceId } from "@/hooks/useDeviceId";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet from "@/components/records/RecordActionsSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
+import { stashChatAttachment } from "@/lib/records/chatAttachmentHandoff";
+import { resolveRecordSignedUrl } from "@/lib/records/recordSources";
 import {
   listLoungeMemberships,
   subscribeLoungeMemberships,
@@ -147,9 +150,10 @@ interface Props {
   searchQuery: string;
   onCountsChange?: (counts: { total: number; translated: number; newCount: number }) => void;
   onVisibleItemsChange?: (items: TransportAttachment[]) => void;
+  onNavigate?: (tab: string, context?: string) => void;
 }
 
-const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItemsChange }: Props) => {
+const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItemsChange, onNavigate }: Props) => {
   const deviceId = getDeviceId();
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loungeCards, setLoungeCards] = useState<LoungeMembership[]>(() => listLoungeMemberships());
@@ -392,32 +396,103 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     else await navigator.clipboard.writeText(text);
   };
 
-  const applyToMilestone = async (
+  const applyToMilestoneAttachment = async (
     item: TransportAttachment,
     m: { id: string; refId: string; kind: string },
   ) => {
-    // Map milestone → segment_ref / ticket_id pair used by RelatedDocumentsCard.
-    // Flights store the ticket id under refId (e.g. "departure" / "return"), and
-    // appointments / treatments use the appointment id as refId.
-    const segmentRef =
-      m.kind === "departure" || m.kind === "return"
-        ? `flight-${m.refId}`
-        : `milestone-${m.id}`;
-    const ticketId = m.kind === "departure" || m.kind === "return" ? m.refId : null;
-    const { error } = await supabase.from("transport_attachments").insert({
-      device_id: deviceId,
-      user_id: userId ?? null,
-      ticket_id: ticketId,
-      segment_ref: segmentRef,
-      label: item.label,
-      file_name: item.file_name,
-      file_path: item.file_path, // same underlying storage object
-      mime_type: item.mime_type,
-      size_bytes: item.size_bytes,
-    });
-    if (error) throw error;
+    await linkRecordToMilestone(
+      {
+        id: `transport:${item.id}`,
+        origin: "transport",
+        label: item.label,
+        fileName: item.file_name,
+        mimeType: item.mime_type,
+        dateLabel: "",
+        createdAt: item.created_at,
+        sourceLabelEn: "Travel",
+        sourceLabelAr: "سفر",
+        linkableToMilestone: true,
+        sendableToChat: true,
+        previewable: true,
+        filePath: item.file_path,
+        transport: { keyFields: (Array.isArray(item.key_fields) ? item.key_fields : null) as { label: string; value: string }[] | null },
+      },
+      m,
+      { userId: userId ?? null, deviceId, sourceDocumentId: null },
+    );
     await fetchAll();
   };
+
+  const applyToMilestoneScanned = async (
+    record: TravelScannedRecord,
+    m: { id: string; refId: string; kind: string },
+  ) => {
+    await linkRecordToMilestone(
+      {
+        id: `travel-scan:${record.id}`,
+        origin: "travel-scan",
+        label: record.title,
+        fileName: record.fileName,
+        mimeType: record.mimeType ?? null,
+        dateLabel: "",
+        createdAt: record.createdAt,
+        sourceLabelEn: "Travel",
+        sourceLabelAr: "سفر",
+        linkableToMilestone: true,
+        sendableToChat: true,
+        previewable: true,
+        travelScan: record,
+      },
+      m,
+      { userId: userId ?? null, deviceId, sourceDocumentId: null },
+    );
+    await fetchAll();
+  };
+
+  const sendAttachmentToChat = async (item: TransportAttachment) => {
+    const signedUrl = await resolveRecordSignedUrl({
+      id: `transport:${item.id}`,
+      origin: "transport",
+      label: item.label,
+      fileName: item.file_name,
+      mimeType: item.mime_type,
+      dateLabel: "",
+      createdAt: item.created_at,
+      sourceLabelEn: "Travel",
+      sourceLabelAr: "سفر",
+      linkableToMilestone: true,
+      sendableToChat: true,
+      previewable: true,
+      filePath: item.file_path,
+    });
+    stashChatAttachment({
+      kind: "travel",
+      label: item.label,
+      file_name: item.file_name,
+      sourceLabelEn: "Travel",
+      sourceLabelAr: "سفر",
+      signedUrl: signedUrl ?? undefined,
+      mime_type: item.mime_type,
+    });
+    onNavigate?.("chat");
+    toast.success("Sent to chat · أُرسل إلى المحادثة", { duration: 1600 });
+  };
+
+  const sendScannedToChat = async (record: TravelScannedRecord) => {
+    const url = record.fileUrl || record.pdfUrl || record.pageImages?.[0];
+    stashChatAttachment({
+      kind: "travel",
+      label: record.title,
+      file_name: record.fileName,
+      sourceLabelEn: "Travel",
+      sourceLabelAr: "سفر",
+      signedUrl: url,
+      mime_type: record.mimeType ?? null,
+    });
+    onNavigate?.("chat");
+    toast.success("Sent to chat · أُرسل إلى المحادثة", { duration: 1600 });
+  };
+
 
   const chipStrip = (
     <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 mt-1" style={{ WebkitOverflowScrolling: "touch" }}>
@@ -781,10 +856,19 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
               ? () => shareScanned(menuItem.record)
             : undefined
         }
+        onSendToChat={
+          menuItem && menuItem.kind === "attachment"
+            ? () => sendAttachmentToChat(menuItem)
+            : menuItem && menuItem.kind === "scanned-travel"
+              ? () => sendScannedToChat(menuItem.record)
+              : undefined
+        }
         onApplyToMilestone={
           menuItem && menuItem.kind === "attachment"
-            ? (m) => applyToMilestone(menuItem, m)
-            : undefined
+            ? (m) => applyToMilestoneAttachment(menuItem, m)
+            : menuItem && menuItem.kind === "scanned-travel"
+              ? (m) => applyToMilestoneScanned(menuItem.record, m)
+              : undefined
         }
         onDelete={() => {
           if (!menuItem) return;

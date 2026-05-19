@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
+import { consumeChatAttachment } from "@/lib/records/chatAttachmentHandoff";
 import { useSubscription } from "@/hooks/useSubscription";
 import { canUploadDeviceFiles as canUploadDeviceFilesFn } from "@/features/chat/logic/attachmentGating";
 import { quickPrompts } from "@/constants/data";
@@ -106,6 +107,17 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  // Consume a record handoff from Records → "Send to chat" so the upload
+  // sheet opens pre-filled with the picked record on every entry.
+  useEffect(() => {
+    const pending = consumeChatAttachment();
+    if (pending) {
+      setSelectedRecord(pending);
+      setUploadedFile(null);
+      setShowUploadSheet(true);
+    }
+  }, []);
 
   // Report which human thread (if any) is currently open so the parent can
   // suppress its floating chat-head bubble for that thread.

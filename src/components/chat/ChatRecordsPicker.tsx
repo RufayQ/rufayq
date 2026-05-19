@@ -1,15 +1,21 @@
 /**
- * ChatRecordsPicker — bottom sheet that lets a Companion+ subscriber attach
- * one of their previously saved records (travel attachments + scanned medical
- * records) into the AI chat.
+ * ChatRecordsPicker — bottom sheet that lets ANY tier (including guests)
+ * attach one of their previously saved records into the AI chat. Sharing
+ * already-saved records is free on every plan; only device uploads are gated.
  *
- * Pure presentational + data fetch; tier gating is handled by the caller.
+ * Data is sourced via the unified `listAllUserRecords()` reader so the picker
+ * shows the same items the user sees in the Records screen and in any
+ * Journey milestone's "Attach from Records" picker.
  */
 import { useEffect, useMemo, useState } from "react";
 import { FileText, Image as ImageIcon, Search, X, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
-import { listScannedRecords } from "@/lib/scannedRecordsStore";
+import { useAuthUserId } from "@/hooks/useAuthUserId";
+import {
+  listAllUserRecords,
+  resolveRecordSignedUrl,
+  type UnifiedRecord,
+} from "@/lib/records/recordSources";
 
 export interface PickedRecord {
   kind: "travel" | "medical";
@@ -21,28 +27,6 @@ export interface PickedRecord {
   mime_type?: string | null;
 }
 
-interface RowItem {
-  id: string;
-  kind: "travel" | "medical";
-  label: string;
-  fileName: string;
-  isImage: boolean;
-  dateLabel: string;
-  // Only for travel rows
-  filePath?: string;
-  mimeType?: string | null;
-}
-
-const BUCKET = "transport-attachments";
-
-const formatDate = (iso: string) => {
-  try {
-    return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  } catch {
-    return "";
-  }
-};
-
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -50,8 +34,9 @@ interface Props {
 }
 
 const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
+  const userId = useAuthUserId();
   const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<RowItem[]>([]);
+  const [rows, setRows] = useState<UnifiedRecord[]>([]);
   const [query, setQuery] = useState("");
   const [picking, setPicking] = useState<string | null>(null);
 
@@ -61,42 +46,12 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
     setLoading(true);
     (async () => {
       try {
-        const deviceId = getDeviceId();
-        const [travelRes, medical] = await Promise.all([
-          supabase
-            .from("transport_attachments")
-            .select("id, label, file_name, file_path, mime_type, created_at, deleted_at, device_id")
-            .eq("device_id", deviceId)
-            .is("deleted_at", null)
-            .order("created_at", { ascending: false })
-            .limit(100),
-          Promise.resolve(listScannedRecords()),
-        ]);
-
-        const travelRows: RowItem[] = ((travelRes.data as Array<{
-          id: string; label: string; file_name: string; file_path: string;
-          mime_type: string | null; created_at: string;
-        }>) ?? []).map((r) => ({
-          id: `t-${r.id}`,
-          kind: "travel",
-          label: r.label || "Travel document",
-          fileName: r.file_name,
-          isImage: !!r.mime_type && r.mime_type.startsWith("image/"),
-          dateLabel: formatDate(r.created_at),
-          filePath: r.file_path,
-          mimeType: r.mime_type,
-        }));
-
-        const medRows: RowItem[] = (medical ?? []).map((r) => ({
-          id: `m-${r.id}`,
-          kind: "medical",
-          label: r.titleEn || r.category || "Medical record",
-          fileName: r.source || r.category || "Scanned document",
-          isImage: false,
-          dateLabel: r.date || formatDate(r.createdAt),
-        }));
-
-        if (!cancelled) setRows([...travelRows, ...medRows]);
+        const all = await listAllUserRecords({
+          userId: userId ?? null,
+          deviceId: getDeviceId(),
+          fileBackedOnly: true,
+        });
+        if (!cancelled) setRows(all.filter((r) => r.sendableToChat));
       } catch (e) {
         console.warn("[ChatRecordsPicker] load failed", e);
         if (!cancelled) setRows([]);
@@ -105,7 +60,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
       }
     })();
     return () => { cancelled = true; };
-  }, [open]);
+  }, [open, userId]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -115,32 +70,23 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
     );
   }, [rows, query]);
 
-  const handlePick = async (row: RowItem) => {
+  const handlePick = async (row: UnifiedRecord) => {
     setPicking(row.id);
+    const isMedical = row.origin === "medical-scan";
+    const base: PickedRecord = {
+      kind: isMedical ? "medical" : "travel",
+      label: row.label,
+      file_name: row.fileName,
+      sourceLabelEn: row.sourceLabelEn,
+      sourceLabelAr: row.sourceLabelAr,
+      mime_type: row.mimeType ?? null,
+    };
     try {
-      let signedUrl: string | undefined;
-      if (row.kind === "travel" && row.filePath) {
-        const { data } = await supabase.storage.from(BUCKET).createSignedUrl(row.filePath, 3600);
-        signedUrl = data?.signedUrl;
-      }
-      onPick({
-        kind: row.kind,
-        label: row.label,
-        file_name: row.fileName,
-        sourceLabelEn: row.kind === "travel" ? "Travel" : "Medical",
-        sourceLabelAr: row.kind === "travel" ? "سفر" : "طبي",
-        signedUrl,
-        mime_type: row.mimeType ?? null,
-      });
+      const signedUrl = (await resolveRecordSignedUrl(row)) ?? undefined;
+      onPick({ ...base, signedUrl });
     } catch (e) {
       console.warn("[ChatRecordsPicker] pick failed", e);
-      onPick({
-        kind: row.kind,
-        label: row.label,
-        file_name: row.fileName,
-        sourceLabelEn: row.kind === "travel" ? "Travel" : "Medical",
-        sourceLabelAr: row.kind === "travel" ? "سفر" : "طبي",
-      });
+      onPick(base);
     } finally {
       setPicking(null);
     }
@@ -170,9 +116,9 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
           </div>
           <span
             className="text-[10px] font-mono tracking-wider px-2 py-1 rounded-full shrink-0"
-            style={{ background: "var(--gold-pale)", color: "var(--gold)" }}
+            style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}
           >
-            COMPANION+
+            FREE · مجاني
           </span>
         </div>
 
@@ -205,9 +151,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-10">
-              <p className="text-[13px]" style={{ color: "var(--navy)" }}>
-                No records yet
-              </p>
+              <p className="text-[13px]" style={{ color: "var(--navy)" }}>No records yet</p>
               <p className="font-arabic text-[12px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
                 لا توجد سجلات بعد
               </p>
@@ -215,8 +159,9 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
           ) : (
             <div className="space-y-2">
               {filtered.map((r) => {
-                const Icon = r.isImage ? ImageIcon : FileText;
-                const isTravel = r.kind === "travel";
+                const isMedical = r.origin === "medical-scan";
+                const isImage = !!r.mimeType && r.mimeType.startsWith("image/");
+                const Icon = isImage ? ImageIcon : FileText;
                 return (
                   <button
                     key={r.id}
@@ -232,8 +177,8 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
                     <div
                       className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
                       style={{
-                        background: isTravel ? "var(--gold-pale)" : "var(--teal-light)",
-                        color: isTravel ? "var(--gold)" : "var(--teal-deep)",
+                        background: isMedical ? "var(--teal-light)" : "var(--gold-pale)",
+                        color: isMedical ? "var(--teal-deep)" : "var(--gold)",
                       }}
                     >
                       <Icon size={16} />
@@ -250,11 +195,11 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
                       <span
                         className="text-[9px] font-mono tracking-wider px-1.5 py-0.5 rounded"
                         style={{
-                          background: isTravel ? "var(--gold-pale)" : "var(--teal-light)",
-                          color: isTravel ? "var(--gold)" : "var(--teal-deep)",
+                          background: isMedical ? "var(--teal-light)" : "var(--gold-pale)",
+                          color: isMedical ? "var(--teal-deep)" : "var(--gold)",
                         }}
                       >
-                        {isTravel ? "TRAVEL" : "MEDICAL"}
+                        {r.sourceLabelEn.toUpperCase()}
                       </span>
                       {r.dateLabel && (
                         <span className="text-[10px]" style={{ color: "var(--gray)" }}>

@@ -8,6 +8,8 @@ import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard"
 import { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
 import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
+import { listAllUserRecords, type UnifiedRecord } from "@/lib/records/recordSources";
+import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
 
 export interface TransportAttachment {
   id: string;
@@ -96,7 +98,7 @@ const RelatedDocumentsCard = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
   const [fromRecordsOpen, setFromRecordsOpen] = useState(false);
-  const [pool, setPool] = useState<TransportAttachment[]>([]);
+  const [pool, setPool] = useState<UnifiedRecord[]>([]);
   const [poolLoading, setPoolLoading] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -355,42 +357,47 @@ const RelatedDocumentsCard = ({
   const openFromRecords = async () => {
     setFromRecordsOpen(true);
     setPoolLoading(true);
-    let q = supabase
-      .from("transport_attachments")
-      .select("*")
-      .is("deleted_at", null);
-    if (userId) q = q.or(`user_id.eq.${userId},device_id.eq.${deviceId}`);
-    else q = q.eq("device_id", deviceId);
-    const { data, error } = await q.order("created_at", { ascending: false }).limit(200);
-    if (error) toast.error("Could not load records", { description: error.message });
-    // Exclude rows already linked to this exact segment/ticket (by file_path).
-    const linkedPaths = new Set(items.map((i) => i.file_path));
-    setPool(((data as TransportAttachment[]) ?? []).filter((r) => !linkedPaths.has(r.file_path)));
-    setPoolLoading(false);
+    try {
+      const all = await listAllUserRecords({ userId: userId ?? null, deviceId, fileBackedOnly: true });
+      const linkedPaths = new Set(items.map((i) => i.file_path));
+      // Hide rows already linked to THIS milestone and rows we cannot link.
+      const usable = all.filter((r) => {
+        if (!r.linkableToMilestone) return false;
+        if (r.filePath && linkedPaths.has(r.filePath)) return false;
+        return true;
+      });
+      setPool(usable);
+    } catch (e: any) {
+      console.warn("[RelatedDocumentsCard] pool load failed", e);
+      toast.error("Could not load records", { description: e?.message });
+      setPool([]);
+    } finally {
+      setPoolLoading(false);
+    }
   };
 
-  const linkExisting = async (src: TransportAttachment) => {
+  const linkExisting = async (src: UnifiedRecord) => {
     setLinkingId(src.id);
-    const { error } = await supabase.from("transport_attachments").insert({
-      device_id: deviceId,
-      user_id: userId ?? null,
-      ticket_id: ticketId ?? null,
-      source_document_id: sourceDocumentId ?? null,
-      segment_ref: segmentRef,
-      label: src.label,
-      file_name: src.file_name,
-      file_path: src.file_path, // share the same underlying storage object
-      mime_type: src.mime_type,
-      size_bytes: src.size_bytes,
-      subcategory: src.subcategory ?? null,
-      key_fields: keyFieldsOf(src).length ? keyFieldsOf(src) : null,
-    });
-    setLinkingId(null);
-    if (error) { toast.error("Could not link", { description: error.message }); return; }
-    toast.success(`${src.label} attached`);
-    setFromRecordsOpen(false);
-    refresh();
+    try {
+      await linkRecordToMilestone(
+        src,
+        // Synthesize a milestone-like input from this card's context.
+        // For "flight-XYZ" segment refs we still want a ticket_id.
+        ticketId
+          ? { id: segmentRef, refId: ticketId, kind: "departure" }
+          : { id: segmentRef.replace(/^milestone-/, ""), refId: segmentRef, kind: "appointment" },
+        { userId: userId ?? null, deviceId, sourceDocumentId: sourceDocumentId ?? null },
+      );
+      toast.success(`${src.label} attached`);
+      setFromRecordsOpen(false);
+      refresh();
+    } catch (e: any) {
+      toast.error("Could not link", { description: e?.message });
+    } finally {
+      setLinkingId(null);
+    }
   };
+
 
   return (
     <div
@@ -677,11 +684,13 @@ const RelatedDocumentsCard = ({
                         style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
                       >
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--gold-pale)" }}>
-                          {isImage(p.mime_type) ? <ImageIcon size={16} style={{ color: "var(--gold)" }} /> : <FileText size={16} style={{ color: "var(--gold)" }} />}
+                          {isImage(p.mimeType) ? <ImageIcon size={16} style={{ color: "var(--gold)" }} /> : <FileText size={16} style={{ color: "var(--gold)" }} />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{p.label}</p>
-                          <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>{p.file_name}</p>
+                          <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>
+                            {p.fileName} · <span style={{ color: p.origin === "medical-scan" ? "var(--teal-deep)" : "var(--gold)" }}>{p.sourceLabelEn}</span>
+                          </p>
                         </div>
                         {linkingId === p.id ? (
                           <Loader2 size={14} className="animate-spin" style={{ color: "var(--teal-deep)" }} />
