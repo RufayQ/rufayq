@@ -296,7 +296,7 @@ export default function HumanChatView({
                       </p>
                     </button>
                   )}
-                  {m.body}
+                  {renderBodyWithLinks(m.body, mine)}
                   <span className="flex items-center gap-1 font-mono text-[9px] mt-1" style={{ opacity: 0.7, direction: "ltr", justifyContent: mine ? "flex-end" : "flex-start" }}>
                     <span>{time}</span>
                     {mine && <MessageTicks status={m.status} seen={seen} />}
