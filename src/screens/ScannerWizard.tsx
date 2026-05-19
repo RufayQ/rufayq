@@ -1928,6 +1928,7 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
             </>
           )}
         </div>
+        </>
       )}
 
       {/* Edit modal for a single flight segment */}
