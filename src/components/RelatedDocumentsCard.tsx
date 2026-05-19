@@ -572,7 +572,11 @@ const RelatedDocumentsCard = ({
                 style={{ background: "var(--gold)" }}
               >
                 {uploading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                {uploading ? "Uploading…" : "Attach"}
+                {uploading
+                  ? "Uploading…"
+                  : (picking && (picking.type.startsWith("image/") || isPdf(picking.type, picking.name))
+                      ? "Scan & Attach"
+                      : "Attach")}
               </button>
             </div>
           </div>
