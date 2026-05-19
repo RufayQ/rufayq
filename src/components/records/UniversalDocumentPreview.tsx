@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Download, Eye, FileText, Loader2, RefreshCw } from "lucide-react";
+import * as pdfjsLib from "pdfjs-dist";
+import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+(pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerUrl;
 
 interface Props {
   url: string;
@@ -65,47 +69,45 @@ const ErrorPanel = ({
 /** PDF preview with loading + error + retry. */
 const PdfPreview = ({ url, fileName, title, page, className }: { url: string; fileName: string; title: string; page: number; className?: string }) => {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const timerRef = useRef<number | null>(null);
-  const pageHash = `#page=${Math.max(1, page)}&view=FitH&toolbar=1`;
-  const src = `${url}${pageHash}`;
 
   useEffect(() => {
+    let cancelled = false;
     setStatus("loading");
-    // Some browsers (especially mobile WebViews) never fire load on <object>/PDF.
-    // Treat 8s with no load event as a soft failure so we can offer Open/Download.
+    setImageSrc(null);
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
       setStatus((s) => (s === "loading" ? "error" : s));
     }, 8000);
-    return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
-  }, [src, nonce]);
-
-  const onReady = () => {
-    if (timerRef.current) window.clearTimeout(timerRef.current);
-    setStatus("ready");
-  };
+    (async () => {
+      try {
+        const pdf = await pdfjsLib.getDocument({ url, withCredentials: false }).promise;
+        const safePage = Math.min(Math.max(1, page), pdf.numPages);
+        const pdfPage = await pdf.getPage(safePage);
+        const viewport = pdfPage.getViewport({ scale: 1.6 });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("no-canvas");
+        await pdfPage.render({ canvasContext: ctx, viewport }).promise;
+        if (cancelled) return;
+        if (timerRef.current) window.clearTimeout(timerRef.current);
+        setImageSrc(canvas.toDataURL("image/jpeg", 0.88));
+        setStatus("ready");
+      } catch (e) {
+        console.warn("[UniversalDocumentPreview] PDF render failed", e);
+        if (!cancelled) setStatus("error");
+      }
+    })();
+    return () => { cancelled = true; if (timerRef.current) window.clearTimeout(timerRef.current); };
+  }, [url, page, nonce]);
 
   return (
     <div className={className ?? "relative h-full w-full rounded-lg bg-white"}>
-      <object
-        key={`obj-${nonce}`}
-        data={src}
-        type="application/pdf"
-        aria-label={`${title} PDF preview`}
-        className="h-full w-full rounded-lg bg-white"
-        onLoad={onReady}
-        onError={() => setStatus("error")}
-      >
-        <iframe
-          key={`if-${nonce}`}
-          src={src}
-          title={fileName}
-          className="h-full w-full rounded-lg bg-white"
-          onLoad={onReady}
-          onError={() => setStatus("error")}
-        />
-      </object>
+      {imageSrc && <img src={imageSrc} alt={`${title} PDF page ${page}`} className="h-full w-full rounded-lg object-contain bg-white" />}
       {status === "loading" && (
         <div className="absolute inset-0">
           <LoadingPanel label="Loading PDF preview…" />
