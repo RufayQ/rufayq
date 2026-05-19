@@ -198,6 +198,7 @@ const RelatedDocumentsCard = ({
   }, [items]);
 
   const onPickFile = (file: File) => {
+    if (isBusy) return;
     if (file.size > MAX_BYTES) {
       toast.error("File is too large", { description: "Max 10 MB per attachment." });
       return;
@@ -389,6 +390,8 @@ const RelatedDocumentsCard = ({
       file_path: src.file_path, // share the same underlying storage object
       mime_type: src.mime_type,
       size_bytes: src.size_bytes,
+      subcategory: src.subcategory ?? null,
+      key_fields: keyFieldsOf(src).length ? keyFieldsOf(src) : null,
     });
     setLinkingId(null);
     if (error) { toast.error("Could not link", { description: error.message }); return; }
@@ -479,6 +482,7 @@ const RelatedDocumentsCard = ({
         {/* Add tile */}
         <button
           onClick={() => fileInputRef.current?.click()}
+          disabled={isBusy}
           className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 btn-press"
           style={{
             width: 110,
@@ -494,6 +498,7 @@ const RelatedDocumentsCard = ({
         </button>
         <button
           onClick={openFromRecords}
+          disabled={isBusy}
           className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 btn-press"
           style={{
             width: 110,
@@ -510,7 +515,7 @@ const RelatedDocumentsCard = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,application/pdf"
+          accept="image/*,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
