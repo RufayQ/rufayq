@@ -56,6 +56,12 @@ const LABEL_TO_SUBCATEGORY: Record<string, string> = {
   Other: "Other",
 };
 
+const isScannableFile = (file: File) => file.type.startsWith("image/") || isPdf(file.type, file.name);
+
+const keyFieldsOf = (item: Pick<TransportAttachment, "key_fields"> | null | undefined) =>
+  (Array.isArray(item?.key_fields) ? item!.key_fields : [])
+    .filter((f: any) => typeof f?.label === "string" && typeof f?.value === "string" && f.value.trim().length > 0) as { label: string; value: string }[];
+
 /**
  * RelatedDocumentsCard — durable attachments for a transport segment / ticket.
  *
@@ -97,6 +103,7 @@ const RelatedDocumentsCard = ({
   const [scanFile, setScanFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
+  const isBusy = uploading || !!scanFile;
 
   const refresh = async () => {
     setLoading(true);
@@ -191,6 +198,7 @@ const RelatedDocumentsCard = ({
   }, [items]);
 
   const onPickFile = (file: File) => {
+    if (isBusy) return;
     if (file.size > MAX_BYTES) {
       toast.error("File is too large", { description: "Max 10 MB per attachment." });
       return;
@@ -253,7 +261,7 @@ const RelatedDocumentsCard = ({
   const confirmUpload = async () => {
     if (!picking) return;
     // Image / PDF → route to Smart Scanner with the user-chosen subcategory.
-    if (picking.type.startsWith("image/") || isPdf(picking.type, picking.name)) {
+    if (isScannableFile(picking)) {
       setScanFile(picking);
       setPicking(null);
       return;
@@ -382,6 +390,8 @@ const RelatedDocumentsCard = ({
       file_path: src.file_path, // share the same underlying storage object
       mime_type: src.mime_type,
       size_bytes: src.size_bytes,
+      subcategory: src.subcategory ?? null,
+      key_fields: keyFieldsOf(src).length ? keyFieldsOf(src) : null,
     });
     setLinkingId(null);
     if (error) { toast.error("Could not link", { description: error.message }); return; }
@@ -472,6 +482,7 @@ const RelatedDocumentsCard = ({
         {/* Add tile */}
         <button
           onClick={() => fileInputRef.current?.click()}
+          disabled={isBusy}
           className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 btn-press"
           style={{
             width: 110,
@@ -487,6 +498,7 @@ const RelatedDocumentsCard = ({
         </button>
         <button
           onClick={openFromRecords}
+          disabled={isBusy}
           className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 btn-press"
           style={{
             width: 110,
@@ -503,7 +515,7 @@ const RelatedDocumentsCard = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,application/pdf"
+          accept="image/*,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];

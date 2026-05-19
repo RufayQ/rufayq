@@ -16,7 +16,7 @@ import type { FlightInfo } from "@/components/AddTripSheet";
 import { type FlightSegment, segmentToFlightInfo } from "@/lib/transportTickets";
 import Time24Input from "@/components/Time24Input";
 import { FLIGHT_AI_ENABLED } from "@/lib/flightAiFlag";
-import { COUNTRIES } from "@/data/countries";
+import NationalityCombobox from "@/components/NationalityCombobox";
 import UniversalDocumentPreview from "@/components/records/UniversalDocumentPreview";
 
 export type TravelerKind = "patient" | "companion" | "family";
@@ -292,7 +292,7 @@ const ScannerWizard = ({
   };
 
   return (
-    <div className="absolute inset-0 z-[60] flex flex-col animate-slide-in-right" style={{ background: "var(--scanner-bg)" }}>
+    <div className="fixed left-1/2 top-0 z-[1200] flex h-[100dvh] w-full max-w-[420px] -translate-x-1/2 flex-col animate-slide-in-right" style={{ background: "var(--scanner-bg)", boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)" }}>
       <input ref={fileInputRef} type="file" className="hidden" onChange={onFileSelected} />
 
       {/* Top Bar */}
@@ -2155,22 +2155,18 @@ const EditableField = ({
     );
   }
 
-  // Country dropdown — bilingual labels, value persisted as the English name.
+  // Country dropdown — searchable, bilingual, and persisted through the same field pipeline.
   if (kind === "country") {
     return (
       <div>
         <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label}</p>
-        <select
+        <NationalityCombobox
           value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={onChange}
+          placeholder="— Select —"
           className="w-full text-[13px] font-bold bg-transparent outline-none"
           style={{ color: "var(--navy)", borderBottom: "1.5px solid var(--gold)", paddingBottom: 2 }}
-        >
-          <option value="">— Select —</option>
-          {COUNTRIES.map((c) => (
-            <option key={c.code} value={c.name}>{c.name} · {c.nameAr}</option>
-          ))}
-        </select>
+        />
       </div>
     );
   }
