@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, RotateCw, Sun, Contrast, Crop, Palette } from "lucide-react";
 
 import RufayQLogo from "@/components/RufayQLogo";
@@ -322,8 +323,8 @@ const ScannerWizard = ({
     setStep(2);
   };
 
-  return (
-    <div className="fixed left-1/2 top-0 z-[1200] flex h-[100dvh] w-full max-w-[420px] -translate-x-1/2 flex-col animate-slide-in-right" style={{ background: "var(--scanner-bg)", boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)" }}>
+  return createPortal((
+    <div className="fixed inset-0 z-[1200] flex flex-col animate-slide-in-right" style={{ background: "var(--scanner-bg)" }}>
       <input ref={fileInputRef} type="file" className="hidden" onChange={onFileSelected} />
 
       {/* Top Bar */}
@@ -484,7 +485,7 @@ const ScannerWizard = ({
         )}
       </div>
     </div>
-  );
+  ), document.body);
 };
 
 /* ─── STEP 1: CAPTURE ─── */
