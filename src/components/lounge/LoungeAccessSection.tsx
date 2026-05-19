@@ -852,7 +852,14 @@ export const LoungeQrSheet = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.6)" }} onClick={onClose}>
+    <OverlayLayer
+      open
+      onClose={onClose}
+      layer="sheet"
+      ariaLabel="Lounge QR"
+      backdropClassName="bg-[rgba(15,23,42,0.6)]"
+    >
+    <div className="absolute inset-0 flex items-end justify-center">
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[420px] rounded-t-3xl p-5 animate-slide-up"
