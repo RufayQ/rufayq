@@ -1,40 +1,131 @@
-## Issues & root-cause analysis
+Great callout. Your issue is really about **one canonical UX** across sections, not isolated fixes per screen.
 
-### 1. Attach on flight tickets is broken
-`RelatedDocumentsCard.onPickFile` now routes every image/PDF into `ScannerWizard` with `preselectedCategory="legal"`, `preselectedSubcategory={LABEL_TO_SUBCATEGORY[labelDraft] || "Visa"}`. `labelDraft` defaults to `"VISA"` and is never re-set before the file picker fires, so a flight-ticket attachment is forced through the Visa schema and saved with no chance to label it correctly. Also, the user never gets a chance to choose what kind of document they're attaching (VISA / Passport / Insurance / Hotel / Other) before the scanner takes over — which makes the flow feel "broken" because the Attach button no longer leads to a labeled upload.
+Here is a **revised plan** that enforces UX/UI consistency app-wide, with Journey as the source of truth where you specified.
 
-**Fix:** Show the label sheet first for every file (image / PDF / office) so the user picks `VISA / Passport / Insurance / Hotel / Other / custom`, then route to the scanner if it's an image/PDF using the chosen subcategory, or keep the lightweight upload path otherwise. Image/PDF uploads still get the full review-and-key-fields experience, just under the correct subcategory.
+## **Unified UX/UI Plan (Revised)**
 
-### 2. Visa preview after upload
-The scanner already produces `pageImages` and (post-recent change) `fileUrl` + `mimeType`. The Step-4 "Extracted Information" card for non-flight documents only shows the AI hint + manual fields — there is no visible preview of the uploaded VISA itself. Inside the scanner wizard we'll add a compact preview strip above the manual fields using `UniversalDocumentPreview` (image / PDF / Word fallback) sourced from `analyzedImages[0]` or the underlying `realFile` (via `URL.createObjectURL`). Multi-page PDFs use the existing page nav.
+1. **Define canonical components first (Journey as source of truth)**
+  - Treat Journey implementations as the baseline for:
+    - Lounge card/sheet UX
+    - Attachment preview UX (PDF/images)
+  - Create shared components/hooks (instead of copying UI into Records):
+    - UnifiedAttachmentPreview (modal + actions + rendering + back handling)
+    - UnifiedLoungeCard / UnifiedLoungeSheet (card, details, QR flow, actions)
+  - Replace section-specific variants in Records (and other tabs where applicable) with these shared components.
+2. **Fix overlay architecture globally (not only milestones)**
+  - Portal all attachment-related overlays to document.body:
+    - label picker
+    - preview modal
+    - “From Records” picker
+  - Standardize z-index layering tokens so overlays always sit above:
+    - milestone sheets
+    - bottom nav
+    - nested cards/containers
+  - Ensure this applies everywhere these overlays are used, not just Journey milestones.
+3. **Unify attachment preview behavior across app**
+  - Replace Records preview flow with the same interaction model used in Journey:
+    - full-screen dark modal
+    - title/file header
+    - close button
+    - identical action row (share/open/rename/delete as allowed)
+    - robust rendering for image and PDF using a shared renderer
+  - Keep metadata/key-fields visible in the same structured layout for visa/passport and similar docs.
+  - Add consistent mobile back behavior: back closes preview first, then returns to originating context.
+4. **Unify Lounge UX/UI across Journey, Records, and other applicable screens**
+  - Make Journey lounge UX the canonical implementation.
+  - Replace simplified Records lounge UI with the shared lounge component:
+    - same card visuals, hierarchy, and spacing
+    - same QR panel and full-screen scan flow
+    - same upload/edit/download/share actions
+    - same metadata presentation and states
+  - Remove duplicate lounge logic and keep one behavior path for all sections.
+5. **Scanner/layout consistency in embedded contexts**
+  - Audit ScannerWizard container behavior when launched from milestones/sheets:
+    - full viewport size
+    - safe-area handling
+    - independent internal scrolling
+    - no clipping from parent transforms/overflow
+  - Reuse shared overlay primitives for scanner child modals where applicable.
+6. **Interaction consistency & state contracts**
+  - Standardize modal state and close semantics:
+    - tap backdrop
+    - close button
+    - hardware/browser back
+  - Add a single overlay state pattern so section origin (Journey vs Records) does not change behavior.
+  - Preserve origin context on close (return user to same milestone/card state).
+7. **Focused verification with parity checks**
+  - Tests (unit/integration) for shared components:
+    - portal mounting
+    - modal layering
+    - back-button close behavior
+    - PDF/image rendering parity
+  - Regression tests for both Journey and Records entry points ensuring identical UX outcomes.
+  - Manual mobile-size QA checklist:
+    - no clipped overlays
+    - same lounge UX in Journey and Records
+    - same preview UX in Journey and Records
+    - same close/back behavior from all entry points.
 
-### 3. Visa fields need typed inputs
-Currently the Visa schema uses generic free-text `EditableField` rows. We'll specialize the rendering for the Visa subcategory only:
-- **Nationality** → dropdown bound to `COUNTRIES` from `src/data/countries.ts` (bilingual labels, Saudi-first ordering preserved).
-- **Iqama expiry**, **Exit before**, **Return before** → `<input type="date">` with a small calendar affordance, ISO `YYYY-MM-DD` stored as the field value (so existing persistence + the visa e2e test continue to pass).
+---
 
-The schema (`SCHEMA_BY_SUBCATEGORY.legal.Visa`) gets a `kind` hint per field (`"text" | "date" | "country"`) and `EditableField` is extended to render the right control based on that hint. All other subcategories keep the existing free-text behavior — no regressions.
+If you want, I can convert this into an **implementation sequence** (PR slices) so it’s easy to execute without regressions (e.g., Slice 1 shared preview, Slice 2 overlay portals, Slice 3 lounge unification, Slice 4 cleanup/tests).Great callout. Your issue is really about **one canonical UX** across sections, not isolated fixes per screen.
 
-## Files to touch
+Here is a **revised plan** that enforces UX/UI consistency app-wide, with Journey as the source of truth where you specified.
 
-- `src/components/RelatedDocumentsCard.tsx`
-  - `onPickFile`: always open the label sheet first; after `Attach`, branch to scanner (image/PDF) with the chosen subcategory, or upload directly (office/other).
-  - Pass `LABEL_TO_SUBCATEGORY[labelDraft]` to `ScannerWizard` at scan-launch time, not at render time.
-- `src/screens/ScannerWizard.tsx`
-  - Extend `SCHEMA_BY_SUBCATEGORY.legal.Visa` entries with `kind` ("text" | "date" | "country").
-  - Extend `EditableField` (or wrap it) to render `<input type="date">` for date kinds and a searchable native `<select>` of `COUNTRIES` for country kind.
-  - In Step-4 success view, render a preview strip above the "Extracted Information" card for non-flight categories using `UniversalDocumentPreview` sourced from `analyzedImages` / `realFile` (object URL).
-- No DB changes — values still stored as strings in `manualFields` / `key_fields`.
+## **Unified UX/UI Plan (Revised)**
 
-## Technical notes
-
-- `EditableField` API stays `{ label, value, onChange }`; we'll add an optional `kind` plus `options` (for country) so the visa fields keep using the same change pipeline (`setGenericFields`).
-- For the country control, value persisted is the country `name` (English) so it round-trips cleanly with existing `key_fields` rows; the dropdown shows `Name · العربية`.
-- Date inputs use a controlled string in `YYYY-MM-DD`. `fmtDateLite` already handles either ISO or pre-formatted strings on display, so the existing record viewer keeps working.
-- Preview strip respects `attachmentMode` (scanner launched from RelatedDocumentsCard) — same code path, no extra plumbing.
-
-## Out of scope
-
-- No backend / RLS changes.
-- No changes to `RelatedDocumentsCard` preview modal (already uses `UniversalDocumentPreview`).
-- No new dependencies.
+1. **Define canonical components first (Journey as source of truth)**
+  - Treat Journey implementations as the baseline for:
+    - Lounge card/sheet UX
+    - Attachment preview UX (PDF/images)
+  - Create shared components/hooks (instead of copying UI into Records):
+    - UnifiedAttachmentPreview (modal + actions + rendering + back handling)
+    - UnifiedLoungeCard / UnifiedLoungeSheet (card, details, QR flow, actions)
+  - Replace section-specific variants in Records (and other tabs where applicable) with these shared components.
+2. **Fix overlay architecture globally (not only milestones)**
+  - Portal all attachment-related overlays to document.body:
+    - label picker
+    - preview modal
+    - “From Records” picker
+  - Standardize z-index layering tokens so overlays always sit above:
+    - milestone sheets
+    - bottom nav
+    - nested cards/containers
+  - Ensure this applies everywhere these overlays are used, not just Journey milestones.
+3. **Unify attachment preview behavior across app**
+  - Replace Records preview flow with the same interaction model used in Journey:
+    - full-screen dark modal
+    - title/file header
+    - close button
+    - identical action row (share/open/rename/delete as allowed)
+    - robust rendering for image and PDF using a shared renderer
+  - Keep metadata/key-fields visible in the same structured layout for visa/passport and similar docs.
+  - Add consistent mobile back behavior: back closes preview first, then returns to originating context.
+4. **Unify Lounge UX/UI across Journey, Records, and other applicable screens**
+  - Make Journey lounge UX the canonical implementation.
+  - Replace simplified Records lounge UI with the shared lounge component:
+    - same card visuals, hierarchy, and spacing
+    - same QR panel and full-screen scan flow
+    - same upload/edit/download/share actions
+    - same metadata presentation and states
+  - Remove duplicate lounge logic and keep one behavior path for all sections.
+5. **Scanner/layout consistency in embedded contexts**
+  - Audit ScannerWizard container behavior when launched from milestones/sheets:
+    - full viewport size
+    - safe-area handling
+    - independent internal scrolling
+    - no clipping from parent transforms/overflow
+  - Reuse shared overlay primitives for scanner child modals where applicable.
+6. **Interaction consistency & state contracts**
+  - Standardize modal state and close semantics:
+    - tap backdrop
+    - close button
+    - hardware/browser back
+  - Add a single overlay state pattern so section origin (Journey vs Records) does not change behavior.
+  - Preserve origin context on close (return user to same milestone/card state).
+7. **Focused verification with parity checks**
+  - Tests (unit/integration) for shared components:
+    - portal mounting
+    - modal layering
+    - back-button close behavior
+    - PDF/image rendering parity
