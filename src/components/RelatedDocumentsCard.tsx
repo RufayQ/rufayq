@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
