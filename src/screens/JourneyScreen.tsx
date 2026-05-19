@@ -906,12 +906,12 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         </div>
       </div>
 
-      {/* Sub-tab pills — rounded icon tiles, horizontally scrollable, with bilingual labels */}
+      {/* Sub-tab row — editorial line icons; active gets a raised teal disc + gold underline */}
       <div
-        className="shrink-0 overflow-x-auto px-4 py-3"
+        className="shrink-0 overflow-x-auto px-4 pt-3 pb-2"
         style={{ background: "var(--off-white)", scrollbarWidth: "none" }}
       >
-        <div className="flex items-end gap-3 min-w-max">
+        <div className="flex items-end gap-5 min-w-max">
           {subTabs.map((tab) => {
             const active = activeSubTab === tab.key;
             const isPremium = !!tab.premium;
@@ -924,37 +924,34 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                 aria-pressed={active}
                 aria-label={`${tab.en} · ${tab.ar}`}
                 className="group flex shrink-0 flex-col items-center btn-press"
+                style={{ minWidth: 56 }}
               >
                 <div
-                  className="mb-1.5 flex h-14 w-14 items-center justify-center rounded-2xl transition-all"
+                  className="mb-1.5 flex items-center justify-center transition-all"
                   style={{
-                    background: active
-                      ? accent
-                      : "var(--white)",
-                    border: active
-                      ? "none"
-                      : `1px solid ${isPremium ? "rgba(197,150,90,0.30)" : "rgba(15,46,61,0.06)"}`,
+                    height: active ? 44 : 28,
+                    width: active ? 44 : 28,
+                    borderRadius: active ? 9999 : 0,
+                    background: active ? accent : "transparent",
                     boxShadow: active
                       ? isPremium
-                        ? "0 8px 20px rgba(197,150,90,0.28)"
-                        : "0 8px 20px rgba(0,77,91,0.22)"
-                      : isPremium
-                      ? "0 1px 4px rgba(197,150,90,0.10)"
-                      : "0 1px 2px rgba(15,46,61,0.04)",
+                        ? "0 8px 18px rgba(197,150,90,0.32)"
+                        : "0 8px 18px rgba(0,77,91,0.28)"
+                      : "none",
+                    transform: active ? "translateY(-4px)" : "none",
                   }}
                 >
                   <Icon
-                    size={22}
-                    strokeWidth={1.6}
-                    color={active ? "#fff" : accent}
+                    size={active ? 20 : 22}
+                    strokeWidth={active ? 2 : 1.5}
+                    color={active ? "#fff" : isPremium ? "var(--gold)" : "var(--gray)"}
                   />
                 </div>
                 <span
-                  className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                  className="text-[10px] font-semibold uppercase tracking-[0.14em]"
                   style={{
                     fontFamily: "'DM Sans'",
-                    color: active ? accent : isPremium ? "var(--gold)" : "var(--navy)",
-                    opacity: active || isPremium ? 1 : 0.7,
+                    color: active ? "var(--navy)" : isPremium ? "var(--gold)" : "var(--gray)",
                   }}
                 >
                   {tab.en}
@@ -962,15 +959,27 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                 <span
                   className="font-arabic mt-0.5 text-[9px]"
                   dir="rtl"
-                  style={{ color: active ? accent : isPremium ? "var(--gold)" : "var(--gray)", opacity: 0.85 }}
+                  style={{
+                    color: active ? "var(--navy)" : isPremium ? "var(--gold)" : "var(--gray)",
+                    opacity: active ? 0.75 : 0.6,
+                  }}
                 >
                   {tab.ar}
                 </span>
+                <div
+                  className="mt-1 rounded-full transition-all"
+                  style={{
+                    height: 2,
+                    width: active ? 22 : 0,
+                    background: "var(--gold)",
+                  }}
+                />
               </button>
             );
           })}
         </div>
       </div>
+
 
       {/* Tab content — scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-6 relative" style={{ background: "var(--off-white)", WebkitOverflowScrolling: "touch" }}>
