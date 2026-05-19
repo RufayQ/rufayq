@@ -625,13 +625,15 @@ const RelatedDocumentsCard = ({
 
 
 
-      {/* From Records picker */}
-      {fromRecordsOpen && createPortal((
-        <div
-          className="fixed inset-0 z-[1320] flex items-end justify-center"
-          style={{ background: "rgba(0,0,0,0.55)" }}
-          onClick={() => setFromRecordsOpen(false)}
-        >
+      {/* From Records picker — canonical overlay primitive. */}
+      <OverlayLayer
+        open={fromRecordsOpen}
+        onClose={() => setFromRecordsOpen(false)}
+        layer="picker"
+        ariaLabel="Attach from Records"
+        backdropClassName="bg-black/55"
+      >
+        <div className="flex h-full w-full items-end justify-center">
           <div
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-[420px] rounded-t-3xl pb-5"
@@ -647,6 +649,7 @@ const RelatedDocumentsCard = ({
               </div>
               <button
                 onClick={() => setFromRecordsOpen(false)}
+                aria-label="Close"
                 className="w-7 h-7 rounded-full flex items-center justify-center"
                 style={{ background: "var(--off-white)" }}
               >
@@ -693,7 +696,8 @@ const RelatedDocumentsCard = ({
             </div>
           </div>
         </div>
-      ), document.body)}
+      </OverlayLayer>
+
 
       {/* Smart-Scan wizard for image/PDF attachments — review, edit, key fields. */}
       {scanFile && (
