@@ -455,11 +455,8 @@ const ScannerWizard = ({
             onParsed={handleParsed}
             onSave={() => {
               if (attachmentMode) {
-                // Skip Step 5 success screen — flush parsed snapshot and save.
-                // scannedPayload was just set via onParsed; read on next tick.
                 setTimeout(() => {
-                  onSave?.(selectedCategory, enrichedPayload(scannedPayloadRef.current ?? scannedPayload));
-                  onClose();
+                  void runSave(enrichedPayload(scannedPayloadRef.current ?? scannedPayload)).then(() => onClose());
                 }, 0);
               } else {
                 setStep(5);
@@ -473,7 +470,7 @@ const ScannerWizard = ({
             payload={scannedPayload}
             pendingSegmentRef={pendingSegmentRef}
             userId={authUserId}
-            onViewSection={() => { if (onSave) onSave(selectedCategory, enrichedPayload(scannedPayload)); else onClose(); }}
+            onViewSection={() => { if (onSave) void runSave(enrichedPayload(scannedPayload)); else onClose(); }}
             onScanAnother={() => {
               setStep(1);
               setCapturedFile(null);
@@ -482,7 +479,7 @@ const ScannerWizard = ({
               setSelectedCategory(preselectedCategory || null);
               setSelectedSub(null);
             }}
-            onDone={() => { if (onSave) onSave(selectedCategory, enrichedPayload(scannedPayload)); else onClose(); }}
+            onDone={() => { if (onSave) void runSave(enrichedPayload(scannedPayload)); else onClose(); }}
           />
         )}
       </div>
