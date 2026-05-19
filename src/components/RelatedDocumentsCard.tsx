@@ -324,13 +324,8 @@ const RelatedDocumentsCard = ({
     try { window.history.pushState({ rufayqPreview: true }, ""); } catch {}
   };
 
-  // Close preview when the user taps the device back button.
-  useEffect(() => {
-    if (!previewUrl) return;
-    const onPop = () => { setPreviewUrl(null); setPreviewItem(null); };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [previewUrl]);
+
+
 
 
   const removeItem = async (item: TransportAttachment) => {
