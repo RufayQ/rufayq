@@ -1,166 +1,216 @@
-## Problems found
+Plan to fix the two attachment regressions:
 
-After tracing the code paths for the three behaviours in the screenshots:
+1. Journey milestone attachments
 
-### 1. "Attach from Records" picker (Journey milestone) is empty
+- Update `MilestoneSheet` so every selected milestone has a valid document scope, not only flight milestones.
+- Use the canonical `milestoneKeyFor(...)` mapping for `segmentRef` / `ticketId` so Journey, Records, and “Attach from Records” all link to the same milestone key.
+- Make `RelatedDocumentsCard` safer inside the milestone sheet:
+  - prevent attachment tile / remove / picker clicks from bubbling into the parent milestone card,
+  - guard preview opening when a file path is missing or storage URL creation fails,
+  - keep the “From Records” picker open/closed state isolated so a failed load shows a toast instead of crashing the screen.
 
-`openFromRecords()` in `src/components/RelatedDocumentsCard.tsx` (lines 355–369) queries **only** `transport_attachments`. It ignores:
+2. Chat attachment entry point
 
-- `listTravelScannedRecords()` — the 7 visa/passport/booking scans shown in Records
-- `listScannedRecords()` — medical scans
-- Lounge cards
+- Fix the AI chat paperclip button so it opens the attachment sheet instead of bypassing it by launching the scanner directly.
+- Keep “My Records” visible and free for all tiers from the attachment sheet.
+- Keep Camera / Files gated to Companion+ using the existing `attachmentGating` logic.
 
-So a user with a full Records list still sees "No other records available".
+3. Human/direct chat attachments from the screenshot
 
-### 2. "Apply to milestone" is greyed out in Records
+- Add a paperclip attachment button to `HumanChatView` beside the emoji/input composer.
+- Reuse `ChatRecordsPicker` for “My Records” so already-listed records can be shared from Free/Starter.
+- Add Camera / Files actions in a bottom sheet and gate them to Companion+.
+- Send attachments through existing `chat_messages.metadata` plus a readable message body, then render an attachment chip in chat bubbles so the UI visibly shows the attached record/file.
 
-- `TravelRecordsList.tsx` (line 784) only passes `onApplyToMilestone` when `kind === "attachment"`. The screenshot is a `scanned-travel` row → callback is `undefined` → the action is disabled.
-- `RecordsScreen.tsx` (line 713) wires the callback but only fires a toast: no row is inserted, so the milestone's Related Documents card never updates.
+4. Shared behavior and validation
 
-### 3. Chat attachment + tier wiring
+- Reuse the existing unified record source (`listAllUserRecords`, `resolveRecordSignedUrl`) so Journey and Chat show the same records.
+- Add/update focused tests around:
+  - Journey milestone “From Records” open/link flow,
+  - AI chat paperclip opening the attachment sheet,
+  - human chat showing the attachment button and sending a metadata-backed attachment.
+- Run focused tests to verify the crash is gone and attachment options appear in both chat modes.
 
-- `ChatRecordsPicker.tsx` queries `transport_attachments` by `device_id` only (drops signed-in cross-device) and merges `listScannedRecords()` (medical) — but never `listTravelScannedRecords()`. So the very rows the user sees in Records are missing.
-- `TravelRecordsList.tsx` never passes `onSendToChat`, so "Send to chat" in the kebab menu is always disabled.
-- `RecordsScreen.tsx`'s `onSendToChat` just inserts a text snippet into the chat input — no `PickedRecord` payload, no signed URL.
-- `ChatRecordsPicker` shows a "COMPANION+" badge that contradicts `attachmentGating.ts` (records-sharing is FREE on every tier). The device-upload gate to Companion+ is correct but the paywall path needs a clearer hint.
+&nbsp;
 
----
+## **Enhancements I strongly recommend**
 
-## Slices
+### **1) Milestone attachments are currently flight-only in MilestoneSheet**
 
-### Slice A — Unified record source
+Today, RelatedDocumentsCard is rendered only when flightTicketId exists. Non-flight milestones have no per-milestone attachments UI there. 【F:src/components/journey/MilestoneSheet.tsx†L211-L222】
 
-Add `src/lib/records/recordSources.ts` exposing `listAllUserRecords({ userId, deviceId })` and a `resolveSignedUrl(record)` helper. It aggregates four sources into one `UnifiedRecord` shape:
+✅ Your plan should explicitly include:
 
-```ts
-type UnifiedRecord = {
-  id: string;                  // stable, source-prefixed
-  origin: "transport" | "travel-scan" | "medical-scan" | "lounge";
-  label: string;
-  fileName: string;
-  mimeType: string | null;
-  dateLabel: string;
-  sourceLabelEn: string;       // "Travel" | "Medical" | "Lounge"
-  sourceLabelAr: string;
-  // For storage-backed rows
-  filePath?: string;
-  // For local-store rows that need URL on demand
-  resolveUrl?: () => Promise<string | null>;
-};
-```
-
-Sources:
-
-1. `transport_attachments` — OR-shaped query (`user_id` OR `device_id`), `deleted_at IS NULL`.
-2. `listTravelScannedRecords()` — Records' travel scans.
-3. `listScannedRecords()` — medical scans.
-4. `listLoungeMemberships()` — exposed but flagged `linkable: false` for milestone/chat where a file is required.
-
-### Slice B — Journey "Attach from Records" picker
-
-Rewrite `openFromRecords()` in `RelatedDocumentsCard.tsx` to call `listAllUserRecords()` and drop rows whose file_path already exists in the current milestone. On `linkExisting()`:
-
-- `origin === "transport"` → current behaviour (insert sibling row pointing at the same `file_path`).
-- `origin === "travel-scan" | "medical-scan"` → upload the scan's rendered file/blob into the `transport-attachments` bucket once (idempotent path `scan-imports/{record.id}.<ext>`), then insert the `transport_attachments` row with `segment_ref + ticket_id` plus `key_fields` copied across.
-
-Picker UI updates: section headers ("Saved attachments · المرفقات", "From Records · من السجلات"), inline source badge, search box (parity with chat picker).
-
-### Slice C — "Apply to milestone" works everywhere
-
-1. `TravelRecordsList.tsx` — extend `onApplyToMilestone` to handle `scanned-travel` (reuse the same scan-import path from Slice B). Leave `lounge-card` excluded (no file to link).
-2. `RecordsScreen.tsx` — replace the toast-only stub with a real `transport_attachments` insert keyed by `segment_ref = "milestone-<id>"` (or `flight-<refId>` for departure/return), mirroring `applyToMilestone()` in `TravelRecordsList`. After insert, the relevant milestone's `RelatedDocumentsCard` auto-refreshes through its existing query.
-3. Centralise the milestone-key derivation in `src/lib/records/milestoneKey.ts` so both screens use one mapping.
-
-### Slice D — Chat attachment + tier semantics
-
-1. `ChatRecordsPicker.tsx` — load via `listAllUserRecords()` (now includes travel scans). Resolve `signedUrl` on pick through `resolveSignedUrl()`.
-2. Replace the misleading "COMPANION+" badge with a "FREE · مجاني" pill; keep `handleOpenRecords` ungated (already correct).
-3. `TravelRecordsList.tsx` — wire `onSendToChat` for both `attachment` and `scanned-travel` rows. Store a `PickedRecord` payload via a tiny handoff (`sessionStorage["chat:pendingAttachment"]`) and `onNavigate?.("chat")`. `ChatScreen` reads & clears the handoff on mount, pre-selecting the record in the upload sheet.
-4. `ChatScreen.tsx` — when device-upload paywall fires, surface the existing `UpgradeSheet` (already wired) with copy: "Camera & Files are Companion+ — sharing saved records is free on every plan."
-5. Update `attachmentGating.test.ts` to assert the contract for every plan code (FREE, STARTER, COMPANION, FAMILY, null/guest).
-
-### Slice E — Tests + QA doc
-
-- New unit tests for `listAllUserRecords()` (merges three stores + dedupes).
-- E2E (vitest + RTL) for:
-  - Journey picker shows travel + medical scans.
-  - "Apply to milestone" on a scanned-travel row inserts an attachment row.
-  - "Send to chat" hands the record over and the chat upload sheet pre-fills it.
-- Append a "Records ↔ Journey ↔ Chat parity" section to `docs/qa/canonical-ux-parity.md` covering the new flows.
+- add a non-flight attachment scope path in MilestoneSheet (not just “valid scope” wording),
+- and align with the same key mapping used by Records linking.
 
 ---
 
-### **Enhancements I strongly recommend**
+### **2) RelatedDocumentsCard “From Records” is still source-limited**
 
-## **1) Add deterministic dedupe strategy in Slice A**
+openFromRecords() still queries only transport_attachments, so users with scanned travel/medical records can still get an empty picker despite having records elsewhere. 【F:src/components/RelatedDocumentsCard.tsx†L259-L268】
 
-In listAllUserRecords(), define explicit dedupe key priority:
-
-1. origin+filePath (if present),
-2. else origin+id.  
-Also define deterministic sort (newest first, with source tie-breaker) so picker order is stable and testable.
-
-### **2) Define explicit import idempotency contract**
-
-For scan-imports in Slice B/C:
-
-- Path should be content-stable (or record-id stable) and **upsert-safe**.
-- Before upload, check if scan-imports/{[record.id](http://record.id)}.* already mapped in DB (or storage metadata), to prevent duplicate file copies.
-- If two actions race (“Apply to milestone” + “Send to chat”), handle gracefully.
-
-### **3) Keep UnifiedRecord capability flags**
-
-Extend shape with:
-
-- linkableToMilestone: boolean
-- sendableToChat: boolean
-- previewable: boolean  
-This avoids ad-hoc origin checks spread through UI.
-
-### **4) Apply-to-milestone should be shared util, not duplicated logic**
-
-You already propose milestoneKey.ts — great.  
-Also add one shared helper like:  
-linkRecordToMilestone(unifiedRecord, milestone, context)  
-and use it from both TravelRecordsList and RecordsScreen so behavior can’t drift.
-
-### **5) Chat handoff should support both sessionStorage + in-memory fallback**
-
-sessionStorage["chat:pendingAttachment"] is good.  
-Also support direct state handoff when same-page navigation happens without reload, then clear both sources on consume.
-
-### **6) Clarify guest behavior in acceptance criteria**
-
-Explicitly state:
-
-- Guest can see and send **their local/device records**.
-- Cross-device records require signed-in identity.  
-This avoids confusion when validating “works on every tier including guests.”
-
-### **7) Add one migration/compat section**
-
-If old picker code expects TransportAttachment, include adapter mappers during transition, then remove in Slice E cleanup.
-
-  
-
+✅ Your plan should explicitly require replacing this query with unified records source (not an additional parallel query path).
 
 ---
 
-### **Suggested extra tests (high-value)**
+### **3) “Apply to milestone” behavior for scanned travel is still blocked by implementation**
 
-- **Idempotent import test:** applying same scanned-travel record to same milestone twice does not duplicate.
-- **Cross-device signed-in fetch test:** OR query returns records when device_id differs but user_id matches.
-- **Handoff expiry test:** stale chat:pendingAttachment is ignored.
-- **Capability matrix test:** each origin’s linkable/chatSendable flags.  
-  
-  
-**Acceptance criteria**
+TravelRecordsList.applyToMilestone exits early for local scanned-travel rows and only inserts for storage-backed attachments. 【F:src/components/records/TravelRecordsList.tsx†L188-L191】【F:src/components/records/TravelRecordsList.tsx†L200-L210】
 
-- From any milestone, "Attach from Records" lists every record the user has in the Records screen (travel scans + medical scans + previously linked attachments) and linking persists.
-- From any Records row (attachment OR scanned-travel), "Apply to milestone" is enabled, opens the milestone picker, and the linked row appears in that milestone's Related Documents card.
-- From any Records row, "Send to chat" navigates to chat with the record pre-attached as a `PickedRecord` (no manual re-pick required).
-- Chat upload sheet: Camera/Files gated to Companion+ with a clear paywall sheet; "My Records" works on every tier including guests and lists travel + medical scans.
-- ESLint canonical-overlay guard from the previous slice still passes (new pickers reuse `OverlayLayer`).
-- All new + existing tests green.
-- **No duplicate storage artifacts:** repeated link/send actions for same scanned record do not create duplicate bucket files or duplicate attachment rows for same milestone+file path.
-- **Stable picker UX:** same user/data always yields same ordering and source badges in Journey and Chat pickers.
+✅ Your plan should state:
+
+- scanned-travel requires import-to-storage + insert row,
+- idempotent import key, and
+- shared helper used by both Journey picker and Records action.
+
+---
+
+### **4) Chat attachment architecture needs explicit metadata contract**
+
+Right now AI upload sends attachment as plain text message body (📎 filename...) not structured record metadata. 【F:src/screens/ChatScreen.tsx†L328-L334】
+
+✅ Add explicit chat_messages.metadata.attachment contract in plan so renderer can show consistent chip and deep-link behavior in both AI and human threads.
+
+---
+
+### **5) Paperclip regression root cause must be explicitly patched**
+
+Current AI paperclip handler conditionally calls onOpenScanner first, which bypasses upload sheet. 【F:src/screens/ChatScreen.tsx†L710-L711】【F:src/screens/ChatScreen.tsx†L726-L727】
+
+✅ Update plan to mandate:
+
+- paperclip always opens attachment sheet,
+- scanner stays as one option *inside* sheet (not direct shortcut).
+
+---
+
+## **Enhanced version of your plan (recommended)**
+
+1. **Canonical milestone scope mapping**
+  - Introduce/standardize milestoneKeyFor(milestone) used by:
+    - MilestoneSheet,
+    - RelatedDocumentsCard link paths,
+    - TravelRecordsList apply flow.
+  - Cover both flight and non-flight milestones.
+2. **Single unified “From Records” source**
+  - RelatedDocumentsCard.openFromRecords() must consume listAllUserRecords.
+  - Keep dedupe by file_path for storage-backed records.
+  - For local scans, use source+id dedupe and import-on-link.
+3. **Shared link helper**
+  - Add one helper: linkRecordToMilestone(record, milestoneKey, actorContext).
+  - Handles:
+    - existing transport attachment row clone,
+    - scan import + insert,
+    - permission/guard errors with toast-safe fallback.
+4. **AI + Human chat parity**
+  - AI paperclip always opens sheet (never direct scanner launch).
+  - Add Human paperclip with same sheet primitives/components.
+  - “My Records” available on all tiers; Camera/Files gated.
+5. **Attachment message model**
+  - Send structured payload in chat_messages.metadata:
+    - recordId, source, label, mimeType, signedUrl/filePath, optional preview fields.
+  - Bubble renderer shows a reusable attachment chip in both AI and human conversations.
+6. **Focused regression coverage**
+  - Milestone non-flight attach renders and persists.
+  - From Records includes travel scan + medical scan + transport attachments.
+  - AI paperclip opens sheet.
+  - Human paperclip exists and can send metadata-backed attachment.
+
+---
+
+## **Implementation risk notes (so this doesn’t regress again)**
+
+- Don’t duplicate logic between Journey and Records; put linking logic in src/lib/records/*.
+- Keep upload-sheet UI component shared between AI and Human chat modes.
+- Back/close semantics should reuse the same overlay primitive you already planned previously.
+
+---
+
+## **Suggested execution order (minimal risk)**
+
+1. **Canonical key + scope fix** (MilestoneSheet + key helpers).
+2. **RelatedDocumentsCard resilience** (event bubbling + preview/picker guards).
+3. **AI paperclip routing fix** (open sheet, not scanner).
+4. **HumanChatView paperclip + shared sheet integration**.
+5. **Attachment metadata rendering in bubbles**.
+6. **Focused tests + QA pass**.  
+  
+
+
+## **Acceptance Criteria (must all pass)**
+
+### **1) Journey milestone attachments are scope-correct for all milestone types**
+
+- For a **flight** milestone, attachments save/reload under the same flight scope key (ticket-based).
+- For a **non-flight** milestone (appointment/treatment/etc.), attachments save/reload under milestone scope key (not flight-only behavior).
+- Reopening the same milestone shows previously linked attachments consistently after refresh.
+
+### **2) “From Records” in RelatedDocumentsCard is no longer incomplete**
+
+- “From Records” lists:
+  - transport attachments,
+  - scanned travel records,
+  - scanned medical records  
+  for the same user/device context.
+- If a source fetch fails, user gets a toast and the screen does not crash.
+- Already-linked records are excluded from picker results (no duplicate link rows for same source object).
+
+### **3) “Apply to milestone” works from Records for both row types**
+
+- For **attachment** rows: action inserts link row and appears in destination milestone card.
+- For **scanned-travel** rows: action is enabled, performs import/link flow, and appears in destination milestone card.
+- Disabled only for intentionally unsupported origins (e.g., lounge rows if no file/link target exists).
+
+### **4) Milestone key mapping is canonical and shared**
+
+- Journey linking, Records “Apply to milestone,” and Journey “From Records” all use the same mapping helper (single source of truth).
+- No divergent ad hoc segment_ref/ticket_id mapping remains in these paths.
+- Regression check: same milestone selected from different entry points resolves to identical persisted keys.
+
+### **5) AI chat paperclip behavior is corrected**
+
+- Tapping paperclip in AI chat always opens the attachment sheet first (never directly launches scanner).
+- Sheet contains:
+  - My Records (available for all tiers),
+  - Camera / Files actions (gated by existing plan logic).
+- If gated action is tapped on ineligible tier, paywall/upgrade UX appears with correct messaging.
+
+### **6) Human chat has parity attachment entry**
+
+- Human chat composer has paperclip button.
+- Paperclip opens same attachment sheet pattern.
+- “My Records” selection can send selected record into conversation without manual re-pick.
+- Sent item persists as metadata-backed attachment payload and renders visibly as attachment chip in message bubble UI.
+
+### **7) Tier semantics are consistent and non-contradictory**
+
+- “My Records” shows as free/open in UI across FREE/STARTER/COMPANION/FAMILY/guest.
+- Camera/Files remain Companion+ gated (or current product policy) with consistent labels and behavior.
+- No UI badge/text contradicts attachmentGating policy.
+
+### **8) No crash / no clipping regressions**
+
+- Milestone “From Records” open/close is stable.
+- Preview opening is guarded when file path or signed URL fails.
+- Attachment tile actions (open/remove/picker) don’t bubble into parent milestone tap handlers.
+
+### **9) Test coverage (focused, required)**
+
+- Unit/integration tests added/updated for:
+  - milestone key mapping helper,
+  - Journey “From Records” list composition and link flow,
+  - Records “Apply to milestone” for scanned-travel and attachment rows,
+  - AI paperclip opening sheet,
+  - Human chat paperclip presence + metadata-backed send path.
+- Existing related tests continue to pass.
+
+### **10) QA checklist pass (manual)**
+
+At mobile viewport:
+
+- Journey milestone → From Records shows real records and links successfully.
+- Records → Apply to milestone updates Journey milestone docs.
+- AI chat and Human chat both expose attachment sheet.
+- My Records works on free tier; Camera/Files gate correctly.
+- Refresh app: linked attachments remain visible in correct milestone.
