@@ -606,12 +606,12 @@ const RelatedDocumentsCard = ({
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
 
       {/* Preview modal */}
-      {previewUrl && previewItem && (
+      {previewUrl && previewItem && createPortal((
         <div
-          className="fixed inset-0 z-[110] flex flex-col"
+          className="fixed inset-0 z-[1310] flex flex-col"
           style={{ background: "rgba(0,0,0,0.92)" }}
           onClick={() => { setPreviewUrl(null); setPreviewItem(null); }}
         >
