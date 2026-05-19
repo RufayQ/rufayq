@@ -78,6 +78,16 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
   const handlePick = async (row: UnifiedRecord) => {
     setPicking(row.id);
     const deviceId = getDeviceId();
+    const route = "chat-records-picker";
+    const ctx = {
+      route,
+      rowId: row.id,
+      origin: row.origin,
+      fileName: row.fileName,
+      mimeType: row.mimeType ?? null,
+      deviceId,
+      userId: userId ?? null,
+    };
     const isMedical = row.origin === "medical-scan";
     const base: PickedRecord = {
       kind: isMedical ? "medical" : "travel",
@@ -87,21 +97,34 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
       sourceLabelAr: row.sourceLabelAr,
       mime_type: row.mimeType ?? null,
     };
+    const shortCause = (e: any) => {
+      const msg = e?.message ?? String(e ?? "unknown error");
+      return msg.length > 90 ? `${msg.slice(0, 87)}…` : msg;
+    };
     let signedUrl: string | undefined;
     try {
       signedUrl = (await resolveRecordSignedUrl(row, deviceId)) ?? undefined;
     } catch (e: any) {
-      console.warn("[ChatRecordsPicker] signed-url failed", e);
+      console.error("[ChatRecordsPicker] signed-url failed", {
+        ...ctx,
+        stage: "resolveRecordSignedUrl",
+        error: { name: e?.name, message: e?.message, stack: e?.stack },
+      });
       toast.error("Couldn't fetch file link · تعذّر جلب الرابط", {
-        description: e?.message ?? String(e),
+        description: `${shortCause(e)} (${row.id.slice(0, 8)} · ${route})`,
       });
     }
     try {
       onPick({ ...base, signedUrl });
     } catch (e: any) {
-      console.error("[ChatRecordsPicker] onPick handler threw", e);
+      console.error("[ChatRecordsPicker] onPick handler threw", {
+        ...ctx,
+        stage: "onPick",
+        hasSignedUrl: !!signedUrl,
+        error: { name: e?.name, message: e?.message, stack: e?.stack },
+      });
       toast.error("Couldn't attach record · تعذّر إرفاق السجل", {
-        description: e?.message ?? String(e),
+        description: `${shortCause(e)} (${row.id.slice(0, 8)} · ${route})`,
       });
     } finally {
       setPicking(null);
