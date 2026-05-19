@@ -720,12 +720,12 @@ const RelatedDocumentsCard = ({
             </button>
           </div>
         </div>
-      )}
+      ), document.body)}
 
       {/* From Records picker */}
-      {fromRecordsOpen && (
+      {fromRecordsOpen && createPortal((
         <div
-          className="fixed inset-0 z-[115] flex items-end justify-center"
+          className="fixed inset-0 z-[1320] flex items-end justify-center"
           style={{ background: "rgba(0,0,0,0.55)" }}
           onClick={() => setFromRecordsOpen(false)}
         >
