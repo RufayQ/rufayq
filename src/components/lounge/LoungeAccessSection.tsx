@@ -773,9 +773,15 @@ export const LoungeQrSheet = ({
       560,
     );
     return (
+      <OverlayLayer
+        open
+        onClose={() => setFullscreen(false)}
+        layer="scanner"
+        ariaLabel="Lounge QR fullscreen"
+        backdropClassName="bg-white"
+      >
       <div
-        className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4"
-        style={{ background: "#ffffff" }}
+        className="absolute inset-0 flex flex-col items-center justify-center p-4"
         onClick={() => setFullscreen(false)}
         data-testid="qr-fullscreen"
       >
@@ -841,6 +847,7 @@ export const LoungeQrSheet = ({
           Tap anywhere to exit · اضغط للخروج
         </p>
       </div>
+      </OverlayLayer>
     );
   }
 
