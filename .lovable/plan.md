@@ -1,131 +1,126 @@
-Great callout. Your issue is really about **one canonical UX** across sections, not isolated fixes per screen.
+## Canonical UX Unification — PR Slices
 
-Here is a **revised plan** that enforces UX/UI consistency app-wide, with Journey as the source of truth where you specified.
-
-## **Unified UX/UI Plan (Revised)**
-
-1. **Define canonical components first (Journey as source of truth)**
-  - Treat Journey implementations as the baseline for:
-    - Lounge card/sheet UX
-    - Attachment preview UX (PDF/images)
-  - Create shared components/hooks (instead of copying UI into Records):
-    - UnifiedAttachmentPreview (modal + actions + rendering + back handling)
-    - UnifiedLoungeCard / UnifiedLoungeSheet (card, details, QR flow, actions)
-  - Replace section-specific variants in Records (and other tabs where applicable) with these shared components.
-2. **Fix overlay architecture globally (not only milestones)**
-  - Portal all attachment-related overlays to document.body:
-    - label picker
-    - preview modal
-    - “From Records” picker
-  - Standardize z-index layering tokens so overlays always sit above:
-    - milestone sheets
-    - bottom nav
-    - nested cards/containers
-  - Ensure this applies everywhere these overlays are used, not just Journey milestones.
-3. **Unify attachment preview behavior across app**
-  - Replace Records preview flow with the same interaction model used in Journey:
-    - full-screen dark modal
-    - title/file header
-    - close button
-    - identical action row (share/open/rename/delete as allowed)
-    - robust rendering for image and PDF using a shared renderer
-  - Keep metadata/key-fields visible in the same structured layout for visa/passport and similar docs.
-  - Add consistent mobile back behavior: back closes preview first, then returns to originating context.
-4. **Unify Lounge UX/UI across Journey, Records, and other applicable screens**
-  - Make Journey lounge UX the canonical implementation.
-  - Replace simplified Records lounge UI with the shared lounge component:
-    - same card visuals, hierarchy, and spacing
-    - same QR panel and full-screen scan flow
-    - same upload/edit/download/share actions
-    - same metadata presentation and states
-  - Remove duplicate lounge logic and keep one behavior path for all sections.
-5. **Scanner/layout consistency in embedded contexts**
-  - Audit ScannerWizard container behavior when launched from milestones/sheets:
-    - full viewport size
-    - safe-area handling
-    - independent internal scrolling
-    - no clipping from parent transforms/overflow
-  - Reuse shared overlay primitives for scanner child modals where applicable.
-6. **Interaction consistency & state contracts**
-  - Standardize modal state and close semantics:
-    - tap backdrop
-    - close button
-    - hardware/browser back
-  - Add a single overlay state pattern so section origin (Journey vs Records) does not change behavior.
-  - Preserve origin context on close (return user to same milestone/card state).
-7. **Focused verification with parity checks**
-  - Tests (unit/integration) for shared components:
-    - portal mounting
-    - modal layering
-    - back-button close behavior
-    - PDF/image rendering parity
-  - Regression tests for both Journey and Records entry points ensuring identical UX outcomes.
-  - Manual mobile-size QA checklist:
-    - no clipped overlays
-    - same lounge UX in Journey and Records
-    - same preview UX in Journey and Records
-    - same close/back behavior from all entry points.
+**Rule (now in memory):** Lounge/attachment UX uses shared canonical components only. No section-local variants. No mirrored lookalikes. True reuse only.
 
 ---
 
-If you want, I can convert this into an **implementation sequence** (PR slices) so it’s easy to execute without regressions (e.g., Slice 1 shared preview, Slice 2 overlay portals, Slice 3 lounge unification, Slice 4 cleanup/tests).Great callout. Your issue is really about **one canonical UX** across sections, not isolated fixes per screen.
+### Slice 1 — Shared overlay primitive
 
-Here is a **revised plan** that enforces UX/UI consistency app-wide, with Journey as the source of truth where you specified.
+Create `src/shared/ui/OverlayLayer.tsx` + `useOverlayBack.ts`:
 
-## **Unified UX/UI Plan (Revised)**
+- Portal mount to `document.body`
+- Standard z-index tokens in `index.css` (`--z-overlay-sheet`, `--z-overlay-preview`, `--z-overlay-picker`) above milestone sheets and bottom nav
+- Unified close contract: backdrop tap, X button, hardware/browser back (popstate)
+- Safe-area padding, body-scroll lock
+- Acceptance: any consumer gets identical layering/back behavior with zero per-call config.
 
-1. **Define canonical components first (Journey as source of truth)**
-  - Treat Journey implementations as the baseline for:
-    - Lounge card/sheet UX
-    - Attachment preview UX (PDF/images)
-  - Create shared components/hooks (instead of copying UI into Records):
-    - UnifiedAttachmentPreview (modal + actions + rendering + back handling)
-    - UnifiedLoungeCard / UnifiedLoungeSheet (card, details, QR flow, actions)
-  - Replace section-specific variants in Records (and other tabs where applicable) with these shared components.
-2. **Fix overlay architecture globally (not only milestones)**
-  - Portal all attachment-related overlays to document.body:
-    - label picker
-    - preview modal
-    - “From Records” picker
-  - Standardize z-index layering tokens so overlays always sit above:
-    - milestone sheets
-    - bottom nav
-    - nested cards/containers
-  - Ensure this applies everywhere these overlays are used, not just Journey milestones.
-3. **Unify attachment preview behavior across app**
-  - Replace Records preview flow with the same interaction model used in Journey:
-    - full-screen dark modal
-    - title/file header
-    - close button
-    - identical action row (share/open/rename/delete as allowed)
-    - robust rendering for image and PDF using a shared renderer
-  - Keep metadata/key-fields visible in the same structured layout for visa/passport and similar docs.
-  - Add consistent mobile back behavior: back closes preview first, then returns to originating context.
-4. **Unify Lounge UX/UI across Journey, Records, and other applicable screens**
-  - Make Journey lounge UX the canonical implementation.
-  - Replace simplified Records lounge UI with the shared lounge component:
-    - same card visuals, hierarchy, and spacing
-    - same QR panel and full-screen scan flow
-    - same upload/edit/download/share actions
-    - same metadata presentation and states
-  - Remove duplicate lounge logic and keep one behavior path for all sections.
-5. **Scanner/layout consistency in embedded contexts**
-  - Audit ScannerWizard container behavior when launched from milestones/sheets:
-    - full viewport size
-    - safe-area handling
-    - independent internal scrolling
-    - no clipping from parent transforms/overflow
-  - Reuse shared overlay primitives for scanner child modals where applicable.
-6. **Interaction consistency & state contracts**
-  - Standardize modal state and close semantics:
-    - tap backdrop
-    - close button
-    - hardware/browser back
-  - Add a single overlay state pattern so section origin (Journey vs Records) does not change behavior.
-  - Preserve origin context on close (return user to same milestone/card state).
-7. **Focused verification with parity checks**
-  - Tests (unit/integration) for shared components:
-    - portal mounting
-    - modal layering
-    - back-button close behavior
-    - PDF/image rendering parity
+### Slice 2 — UnifiedAttachmentPreview
+
+Extract Journey's preview into `src/shared/ui/UnifiedAttachmentPreview.tsx`:
+
+- Full-screen dark modal, file header (title + filename), X close
+- Shared action row (open/share/download/rename/delete via props)
+- Renders via `UniversalDocumentPreview` (PDF/image/Office)
+- Optional `keyFields` slot for visa/passport metadata
+- **Wire Journey first** (`RelatedDocumentsCard`), then **migrate Records** (`TravelRecordsList`, `TravelScannedRecordViewer`) to consume it. Delete the Records-local preview JSX in the same slice.
+
+### Slice 3 — UnifiedLounge components
+
+Extract Journey's lounge UX into `src/shared/ui/UnifiedLoungeCard.tsx` + `UnifiedLoungeSheet.tsx`:
+
+- Same card visuals/hierarchy, QR panel, full-screen scan flow, upload/edit/download/share actions, metadata states
+- **Wire Journey** (keep `LoungeAccessSection` as the canonical owner, export shared pieces), then **migrate Records** lounge to consume them. Remove the Records lounge inline path.
+
+### Slice 4 — Scanner embedded layout normalization
+
+`ScannerWizard`: ensure portal + `fixed inset-0` + safe-area + internal scroll work identically from every entry point (Journey milestone, Records, milestone sheets). Reuse Slice 1 primitive for child modals.
+
+### Slice 5 — Cleanup, parity tests, QA checklist
+
+- Remove dead section-specific preview/lounge code paths
+- Add parity tests: same component renders from Journey and Records entry points; portal mounted to body; popstate closes overlay; PDF + image render identically
+- Add `docs/qa/canonical-ux-parity.md` checklist (no clipped overlays, identical lounge in both sections, identical preview in both sections, back/close from every entry point)
+
+---
+
+### Acceptance criteria (all slices)
+
+- Journey and Records attachment preview match behaviorally **and** visually (same component instance).
+- Records lounge card/sheet rendered by the same component used in Journey.
+- No remaining section-local preview/lounge variants in the repo (grep clean).
+- All overlays go through the Slice 1 primitive.
+
+### Recommended Enhancements
+
+### **1) Add a hard “no direct modal markup” guard**
+
+In addition to “all overlays go through Slice 1 primitive,” add:
+
+- ESLint rule or code-review grep gate for:
+  - className="fixed inset-0" in non-shared overlay files
+  - createPortal( outside approved shared overlay utilities
+
+This prevents reintroducing section-local modals later.
+
+---
+
+### **2) Expand UnifiedAttachmentPreview data contract now**
+
+Define one interface up front (avoid retrofitting later), including:
+
+- mimeType, fileName, title, signedUrl/localUrl
+- keyFields
+- optional actions with capability flags (canRename, canDelete, etc.)
+- callbacks for open/share/download/rename/delete
+- onClose
+
+This keeps Journey/Records from diverging due to prop mismatch.
+
+---
+
+### **3) Include focus trap + escape key in Slice 1 acceptance**
+
+Overlay primitive should guarantee:
+
+- focus trap
+- initial focus on close button
+- Esc closes
+- return focus to opener
+
+You already have back handling; accessibility/input consistency should be part of canonical behavior.
+
+---
+
+### **4) Add deterministic z-index scale in CSS tokens**
+
+Don’t only define tokens — define order contract in docs:
+
+picker < sheet < preview < scanner-critical (or your chosen hierarchy)
+
+And assert via visual test/checklist.
+
+---
+
+### **5) Add migration safety for old callers**
+
+For RelatedDocumentsCard, TravelRecordsList, and lounge consumers:
+
+- keep temporary adapter wrappers for one slice
+- then remove wrappers in Slice 5 cleanup
+
+This reduces break risk while wiring old callsites.
+
+---
+
+### **6) Strengthen “grep clean” acceptance**
+
+Make it explicit:
+
+- no section-local preview/lounge components remain **except** thin adapters that only pass props into shared canonical components
+- adapters removed by end of Slice 5
+
+### Technical notes
+
+- Files touched per slice are scoped — no cross-slice edits.
+- Each slice is independently shippable; no slice leaves the app in a broken state.
+- `LoungeQrSheet` (already exported) becomes part of Slice 3's shared module.

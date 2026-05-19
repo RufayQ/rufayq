@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { Plus, FileText, Image as ImageIcon, X, Eye, Loader2, FolderOpen, Pencil, Share2, Check, Download } from "lucide-react";
+
+import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard";
-import UniversalDocumentPreview, { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
+import { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
+import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
+import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
 
 export interface TransportAttachment {
   id: string;
@@ -93,8 +95,6 @@ const RelatedDocumentsCard = ({
   const [labelDraft, setLabelDraft] = useState("VISA");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
-  const [renaming, setRenaming] = useState(false);
-  const [renameDraft, setRenameDraft] = useState("");
   const [fromRecordsOpen, setFromRecordsOpen] = useState(false);
   const [pool, setPool] = useState<TransportAttachment[]>([]);
   const [poolLoading, setPoolLoading] = useState(false);
@@ -318,18 +318,11 @@ const RelatedDocumentsCard = ({
     }
     setPreviewItem(item);
     setPreviewUrl(data.signedUrl);
-    // Push a history entry so the device back button closes the preview
-    // instead of navigating away from the milestone screen.
-    try { window.history.pushState({ rufayqPreview: true }, ""); } catch {}
+    // Back-button handling is owned by OverlayLayer / UnifiedAttachmentPreview.
   };
 
-  // Close preview when the user taps the device back button.
-  useEffect(() => {
-    if (!previewUrl) return;
-    const onPop = () => { setPreviewUrl(null); setPreviewItem(null); };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [previewUrl]);
+
+
 
 
   const removeItem = async (item: TransportAttachment) => {
@@ -347,20 +340,6 @@ const RelatedDocumentsCard = ({
     refresh();
   };
 
-  const renameItem = async () => {
-    if (!previewItem) return;
-    const name = renameDraft.trim();
-    if (!name || name === previewItem.label) { setRenaming(false); return; }
-    const { error } = await supabase
-      .from("transport_attachments")
-      .update({ label: name })
-      .eq("id", previewItem.id);
-    if (error) { toast.error("Could not rename", { description: error.message }); return; }
-    toast.success("Renamed · تم التغيير");
-    setPreviewItem({ ...previewItem, label: name });
-    setRenaming(false);
-    refresh();
-  };
 
   const shareItem = async (item: TransportAttachment) => {
     const { data } = await supabase.storage.from(BUCKET).createSignedUrl(item.file_path, 60 * 60);
@@ -538,13 +517,15 @@ const RelatedDocumentsCard = ({
         />
       </div>
 
-      {/* Label prompt sheet */}
-      {picking && createPortal((
-        <div
-          className="fixed inset-0 z-[1300] flex items-end justify-center"
-          style={{ background: "rgba(0,0,0,0.5)" }}
-          onClick={() => !uploading && setPicking(null)}
-        >
+      {/* Label prompt sheet — uses the canonical overlay primitive. */}
+      <OverlayLayer
+        open={!!picking}
+        onClose={() => { if (!uploading) setPicking(null); }}
+        layer="sheet"
+        ariaLabel="Label this document"
+        backdropClassName="bg-black/50"
+      >
+        <div className="flex h-full w-full items-end justify-center">
           <div
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-[420px] rounded-t-3xl p-5"
@@ -556,9 +537,11 @@ const RelatedDocumentsCard = ({
             <p className="font-arabic text-[11px] mb-3" dir="rtl" style={{ color: "var(--gray)" }}>
               ضع تسمية للمستند
             </p>
-            <p className="text-[11px] mb-3 truncate" style={{ color: "var(--gray)" }}>
-              {picking.name} · {(picking.size / 1024).toFixed(0)} KB
-            </p>
+            {picking && (
+              <p className="text-[11px] mb-3 truncate" style={{ color: "var(--gray)" }}>
+                {picking.name} · {(picking.size / 1024).toFixed(0)} KB
+              </p>
+            )}
             <div className="flex flex-wrap gap-1.5 mb-3">
               {COMMON_LABELS.map((l) => (
                 <button
@@ -606,129 +589,51 @@ const RelatedDocumentsCard = ({
             </div>
           </div>
         </div>
-      ), document.body)}
+      </OverlayLayer>
 
-      {/* Preview modal */}
-      {previewUrl && previewItem && createPortal((
-        <div
-          className="fixed inset-0 z-[1310] flex flex-col"
-          style={{ background: "rgba(0,0,0,0.92)" }}
-          onClick={() => { setPreviewUrl(null); setPreviewItem(null); }}
-        >
-          <div className="flex items-center justify-between px-4 py-3 text-white">
-            <div className="min-w-0">
-              <p className="text-[13px] font-bold truncate">{previewItem.label}</p>
-              <p className="text-[10px] opacity-70 truncate">{previewItem.file_name}</p>
-            </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); setPreviewUrl(null); setPreviewItem(null); }}
-              className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(255,255,255,0.15)" }}
-            >
-              <X size={16} color="white" />
-            </button>
-          </div>
-          <div
-            className="flex-1 flex flex-col items-center justify-center px-4 pb-4 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex-1 w-full min-h-[40vh] flex items-center justify-center">
-              {isImage(previewItem.mime_type) ? (
-                <img
-                  src={previewUrl}
-                  alt={previewItem.label}
-                  className="max-w-full max-h-full object-contain rounded-lg"
-                />
-              ) : (
-                <UniversalDocumentPreview url={previewUrl} fileName={previewItem.file_name} title={previewItem.label} mimeType={previewItem.mime_type} className="w-full h-full rounded-lg bg-white" />
-              )}
-            </div>
-            {keyFieldsOf(previewItem).length > 0 && (
-              <div className="w-full mt-3 rounded-xl p-3" style={{ background: "rgba(255,255,255,0.10)" }}>
-                <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
-                  EXTRACTED FIELDS · <span className="font-arabic">الحقول المستخرجة</span>
-                </p>
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                  {keyFieldsOf(previewItem).map((f, i) => (
-                    <div key={i} className="min-w-0">
-                      <dt className="text-[9px] uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>{f.label}</dt>
-                      <dd className="text-[12px] font-semibold truncate" style={{ color: "white" }} title={f.value}>{f.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
-          </div>
-          <div className="px-4 pb-4 space-y-2">
-            {renaming ? (
-              <div className="flex gap-2">
-                <input
-                  autoFocus
-                  value={renameDraft}
-                  onChange={(e) => setRenameDraft(e.target.value)}
-                  className="flex-1 px-3 py-2.5 rounded-xl text-[13px] outline-none"
-                  style={{ background: "var(--white)", color: "var(--navy)" }}
-                />
-                <button
-                  onClick={renameItem}
-                  className="px-3 rounded-xl text-white font-bold flex items-center gap-1"
-                  style={{ background: "var(--teal-deep)" }}
-                >
-                  <Check size={14} /> Save
-                </button>
-                <button
-                  onClick={() => setRenaming(false)}
-                  className="px-3 rounded-xl font-bold"
-                  style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => { setRenameDraft(previewItem.label); setRenaming(true); }}
-                  className="py-3 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5"
-                  style={{ background: "rgba(255,255,255,0.14)", color: "white" }}
-                >
-                  <Pencil size={13} /> Rename
-                </button>
-                <button
-                  onClick={() => shareItem(previewItem)}
-                  className="py-3 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5"
-                  style={{ background: "rgba(255,255,255,0.14)", color: "white" }}
-                >
-                  <Share2 size={13} /> Share
-                </button>
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-3 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 text-white"
-                  style={{ background: "var(--gold)" }}
-                >
-                  <Eye size={13} /> Open
-                </a>
-              </div>
-            )}
-            <button
-              onClick={() => { void removeItem(previewItem); setPreviewUrl(null); setPreviewItem(null); }}
-              className="w-full py-2.5 rounded-xl text-[12px] font-semibold flex items-center justify-center gap-1.5"
-              style={{ background: "rgba(192,57,43,0.18)", color: "white" }}
-            >
-              <X size={13} /> Delete attachment
-            </button>
-          </div>
-        </div>
-      ), document.body)}
 
-      {/* From Records picker */}
-      {fromRecordsOpen && createPortal((
-        <div
-          className="fixed inset-0 z-[1320] flex items-end justify-center"
-          style={{ background: "rgba(0,0,0,0.55)" }}
-          onClick={() => setFromRecordsOpen(false)}
-        >
+
+      {/* Canonical attachment preview — shared with Records and any future section. */}
+      <UnifiedAttachmentPreview
+        open={!!previewUrl && !!previewItem}
+        onClose={() => { setPreviewUrl(null); setPreviewItem(null); }}
+        url={previewUrl}
+        fileName={previewItem?.file_name ?? ""}
+        title={previewItem?.label ?? ""}
+        mimeType={previewItem?.mime_type ?? null}
+        keyFields={previewItem ? keyFieldsOf(previewItem) : []}
+        actions={{ canRename: true, canShare: true, canOpen: true, canDelete: true }}
+        onShare={() => previewItem && shareItem(previewItem)}
+        onRename={async (next) => {
+          if (!previewItem) return;
+          const { error } = await supabase
+            .from("transport_attachments")
+            .update({ label: next })
+            .eq("id", previewItem.id);
+          if (error) { toast.error("Could not rename", { description: error.message }); return; }
+          toast.success("Renamed · تم التغيير");
+          setPreviewItem({ ...previewItem, label: next });
+          refresh();
+        }}
+        onDelete={() => {
+          if (!previewItem) return;
+          void removeItem(previewItem);
+          setPreviewUrl(null);
+          setPreviewItem(null);
+        }}
+      />
+
+
+
+      {/* From Records picker — canonical overlay primitive. */}
+      <OverlayLayer
+        open={fromRecordsOpen}
+        onClose={() => setFromRecordsOpen(false)}
+        layer="picker"
+        ariaLabel="Attach from Records"
+        backdropClassName="bg-black/55"
+      >
+        <div className="flex h-full w-full items-end justify-center">
           <div
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-[420px] rounded-t-3xl pb-5"
@@ -744,6 +649,7 @@ const RelatedDocumentsCard = ({
               </div>
               <button
                 onClick={() => setFromRecordsOpen(false)}
+                aria-label="Close"
                 className="w-7 h-7 rounded-full flex items-center justify-center"
                 style={{ background: "var(--off-white)" }}
               >
@@ -790,7 +696,8 @@ const RelatedDocumentsCard = ({
             </div>
           </div>
         </div>
-      ), document.body)}
+      </OverlayLayer>
+
 
       {/* Smart-Scan wizard for image/PDF attachments — review, edit, key fields. */}
       {scanFile && (

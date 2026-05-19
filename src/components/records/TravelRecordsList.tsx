@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
 import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2, ScanLine, CreditCard, ChevronRight } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
@@ -24,7 +24,7 @@ import {
   type TravelScannedRecord,
 } from "@/lib/travelScannedRecordsStore";
 import TravelScannedRecordViewer from "@/components/records/TravelScannedRecordViewer";
-import UniversalDocumentPreview, { isImage } from "@/components/records/UniversalDocumentPreview";
+import { isImage } from "@/components/records/UniversalDocumentPreview";
 
 /** Unified row shape so attachments and lounge memberships share render code. */
 type UnifiedRow =
@@ -339,16 +339,10 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     }
     setPreviewItem(item);
     setPreviewUrl(data.signedUrl);
-    try { window.history.pushState({ rufayqRecordsPreview: true }, ""); } catch {}
   };
 
-  // Mobile back closes preview instead of leaving the screen.
-  useEffect(() => {
-    if (!previewUrl) return;
-    const onPop = () => { setPreviewUrl(null); setPreviewItem(null); };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [previewUrl]);
+  // Back-button handling is owned by OverlayLayer / UnifiedAttachmentPreview.
+
 
   const previewFields = previewItem && Array.isArray((previewItem as any).key_fields)
     ? ((previewItem as any).key_fields as { label: string; value: string }[]).filter(
@@ -735,55 +729,18 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
         {filtered.map((item) => renderRow(item, false))}
       </div>
 
-      {previewUrl && previewItem && createPortal((
-        <div
-          className="fixed inset-0 z-[1310] flex flex-col"
-          style={{ background: "rgba(0,0,0,0.92)" }}
-          onClick={() => { setPreviewUrl(null); setPreviewItem(null); }}
-        >
-          <div className="flex items-center justify-between px-4 py-3 text-white">
-            <div className="min-w-0">
-              <p className="text-[13px] font-bold truncate">{previewItem.label}</p>
-              <p className="text-[10px] opacity-70 truncate">{previewItem.file_name}</p>
-            </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); setPreviewUrl(null); setPreviewItem(null); }}
-              className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(255,255,255,0.15)" }}
-              aria-label="Close preview"
-            >
-              <X size={16} color="white" />
-            </button>
-          </div>
-          <div
-            className="flex-1 flex flex-col items-center justify-center px-4 pb-4 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex-1 w-full min-h-[40vh] flex items-center justify-center">
-              {isImage(previewItem.mime_type) ? (
-                <img src={previewUrl} alt={previewItem.label} className="max-w-full max-h-full object-contain rounded-lg" />
-              ) : (
-                <UniversalDocumentPreview url={previewUrl} fileName={previewItem.file_name} title={previewItem.label} mimeType={previewItem.mime_type} className="w-full h-full rounded-lg bg-white" />
-              )}
-            </div>
-            {previewFields.length > 0 && (
-              <div className="w-full mt-3 rounded-xl p-3" style={{ background: "rgba(255,255,255,0.10)" }}>
-                <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
-                  EXTRACTED FIELDS · <span className="font-arabic">الحقول المستخرجة</span>
-                </p>
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                  {previewFields.map((f, i) => (
-                    <div key={i} className="min-w-0">
-                      <dt className="text-[9px] uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>{f.label}</dt>
-                      <dd className="text-[12px] font-semibold truncate" style={{ color: "white" }} title={f.value}>{f.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
-          </div>
-        </div>
-      ), document.body)}
+      {/* Canonical attachment preview — same component used in Journey. */}
+      <UnifiedAttachmentPreview
+        open={!!previewUrl && !!previewItem}
+        onClose={() => { setPreviewUrl(null); setPreviewItem(null); }}
+        url={previewUrl}
+        fileName={previewItem?.file_name ?? ""}
+        title={previewItem?.label ?? ""}
+        mimeType={previewItem?.mime_type ?? null}
+        keyFields={previewFields}
+        actions={{ canOpen: true }}
+      />
+
 
       <ConfirmDialog
         open={clearPinOpen}
