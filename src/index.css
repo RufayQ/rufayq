@@ -48,6 +48,14 @@
     --pending: #C0C8D0;
     --accent-surgery: #993556;
 
+    /* Canonical overlay z-index scale.
+       Order contract: picker < sheet < preview < scanner-critical.
+       All overlay primitives MUST use these tokens — never raw z-[NNNN]. */
+    --z-overlay-picker: 1280;
+    --z-overlay-sheet: 1300;
+    --z-overlay-preview: 1320;
+    --z-overlay-scanner: 1400;
+
     /* Agent brand colors — used by the homepage "Your AI Companions" cards */
     /* Brightened to meet WCAG AA (>=4.5:1) against agent-tile bg #0B1A28 */
     --color-medai:     #4FB8C9;
