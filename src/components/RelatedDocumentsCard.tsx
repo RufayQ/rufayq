@@ -7,6 +7,7 @@ import { getDeviceId } from "@/hooks/useDeviceId";
 import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard";
 import { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
 import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
+import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
 
 export interface TransportAttachment {
   id: string;
