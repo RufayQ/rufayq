@@ -972,16 +972,18 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         reason={upgradeCtx.reason}
       />
 
-      <ChatRecordsPicker
-        open={showRecordsPicker}
-        onClose={() => setShowRecordsPicker(false)}
-        onPick={(rec) => {
-          setSelectedRecord(rec);
-          setUploadedFile(null);
-          setShowRecordsPicker(false);
-          toast.success("Record attached · تم إرفاق السجل", { duration: 1800 });
-        }}
-      />
+      <ChatPickerErrorBoundary onReset={() => setShowRecordsPicker(false)}>
+        <ChatRecordsPicker
+          open={showRecordsPicker}
+          onClose={() => setShowRecordsPicker(false)}
+          onPick={(rec) => {
+            setSelectedRecord(rec);
+            setUploadedFile(null);
+            setShowRecordsPicker(false);
+            toast.success("Record attached · تم إرفاق السجل", { duration: 1800 });
+          }}
+        />
+      </ChatPickerErrorBoundary>
     </div>
   );
 };
