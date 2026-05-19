@@ -230,7 +230,8 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
           Cancel · <span className="font-arabic">إلغاء</span>
         </button>
       </div>
-    </div>
+      </div>
+    </OverlayLayer>
   );
 };
 
