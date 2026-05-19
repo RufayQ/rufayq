@@ -16,6 +16,8 @@ import type { FlightInfo } from "@/components/AddTripSheet";
 import { type FlightSegment, segmentToFlightInfo } from "@/lib/transportTickets";
 import Time24Input from "@/components/Time24Input";
 import { FLIGHT_AI_ENABLED } from "@/lib/flightAiFlag";
+import { COUNTRIES } from "@/data/countries";
+import UniversalDocumentPreview from "@/components/records/UniversalDocumentPreview";
 
 export type TravelerKind = "patient" | "companion" | "family";
 
