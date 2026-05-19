@@ -2043,27 +2043,74 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
 };
 
 /* Tap-to-edit field for the Extracted Information card */
-const EditableField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
+const fmtDateHuman = (iso: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
+const EditableField = ({
+  label, value, onChange, kind = "text",
+}: { label: string; value: string; onChange: (v: string) => void; kind?: FieldKind }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   useEffect(() => { setDraft(value); }, [value]);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
 
-  const commit = () => {
+  const commit = (nextValue?: string) => {
     setEditing(false);
-    if (draft !== value) onChange(draft);
+    const v = nextValue ?? draft;
+    if (v !== value) onChange(v);
   };
+
+  // Date picker — render the native date input inline so the calendar opens on tap.
+  if (kind === "date") {
+    return (
+      <div>
+        <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label}</p>
+        <input
+          type="date"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full text-[13px] font-bold bg-transparent outline-none"
+          style={{ color: "var(--navy)", borderBottom: "1.5px solid var(--gold)", paddingBottom: 2 }}
+        />
+        {value && (
+          <p className="text-[10px] mt-0.5" style={{ color: "var(--gray)" }}>{fmtDateHuman(value)}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Country dropdown — bilingual labels, value persisted as the English name.
+  if (kind === "country") {
+    return (
+      <div>
+        <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label}</p>
+        <select
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full text-[13px] font-bold bg-transparent outline-none"
+          style={{ color: "var(--navy)", borderBottom: "1.5px solid var(--gold)", paddingBottom: 2 }}
+        >
+          <option value="">— Select —</option>
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.name}>{c.name} · {c.nameAr}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
 
   return (
     <div>
       <p className="font-mono text-[8px] tracking-wider" style={{ color: "var(--gray)" }}>{label}</p>
       {editing ? (
         <input
-          ref={inputRef}
+          ref={inputRef as React.RefObject<HTMLInputElement>}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
+          onBlur={() => commit()}
           onKeyDown={(e) => {
             if (e.key === "Enter") { e.preventDefault(); commit(); }
             else if (e.key === "Escape") { setDraft(value); setEditing(false); }
