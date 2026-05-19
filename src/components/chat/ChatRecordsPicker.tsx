@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FileText, Image as ImageIcon, Search, X, Loader2 } from "lucide-react";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useAuthUserId } from "@/hooks/useAuthUserId";
+import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
 import {
   listAllUserRecords,
   resolveRecordSignedUrl,
