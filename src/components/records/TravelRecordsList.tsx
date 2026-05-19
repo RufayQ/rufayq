@@ -464,7 +464,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
       sendableToChat: true,
       previewable: true,
       filePath: item.file_path,
-    });
+    }, deviceId);
     stashChatAttachment({
       kind: "travel",
       label: item.label,
