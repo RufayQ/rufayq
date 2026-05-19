@@ -8,6 +8,8 @@ import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard"
 import { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
 import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
+import { listAllUserRecords, type UnifiedRecord } from "@/lib/records/recordSources";
+import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
 
 export interface TransportAttachment {
   id: string;
