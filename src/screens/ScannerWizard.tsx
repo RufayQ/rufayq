@@ -1848,6 +1848,14 @@ const Step4AIReview = ({ category, subcategory, fileName, realFile, onParsed, on
           </div>
         </>
       ) : (
+        <>
+          {!isFlight && (
+            <DocumentPreviewStrip
+              realFile={realFile ?? null}
+              analyzedImages={analyzedImages}
+              fileName={fileName}
+            />
+          )}
         <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: "var(--white)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
           <div className="flex items-center justify-between mb-3">
             <div>
