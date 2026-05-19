@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2 } from "lucide-react";
+import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
@@ -8,6 +8,8 @@ import { setActiveThread } from "@/lib/chat/activeThread";
 import { useResolvedContact } from "@/hooks/useResolvedContact";
 import MessageTicks from "./MessageTicks";
 import EmojiPicker from "./EmojiPicker";
+import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
+
 
 interface Props {
   threadId: string;
@@ -46,10 +48,27 @@ export default function HumanChatView({
   const [sending, setSending] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessageRow | null>(null);
   const [actionFor, setActionFor] = useState<string | null>(null);
+  const [showAttachPicker, setShowAttachPicker] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const me = getDeviceId();
+
+  const handleAttachRecord = async (rec: PickedRecord) => {
+    setShowAttachPicker(false);
+    const lines = [
+      `📎 ${rec.label} — ${rec.file_name}`,
+      `(${rec.sourceLabelEn} · ${rec.sourceLabelAr})`,
+    ];
+    if (rec.signedUrl) lines.push(rec.signedUrl);
+    try {
+      await send(lines.join("\n"));
+      toast.success("Attachment sent · تم إرسال المرفق", { duration: 1600 });
+    } catch {
+      toast.error("Couldn't send attachment · تعذر إرسال المرفق");
+    }
+  };
+
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
   useEffect(() => { markRead(); }, [messages.length, markRead]);
@@ -303,6 +322,15 @@ export default function HumanChatView({
       {/* Composer */}
       <div className="shrink-0 px-2 py-2.5 flex items-end gap-1.5" style={{ background: "var(--white)", borderTop: "1px solid var(--gray-light)" }}>
         <EmojiPicker onSelect={(e) => setInput((cur) => cur + e)} />
+        <button
+          onClick={() => setShowAttachPicker(true)}
+          className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
+          style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+          aria-label="Attach from records"
+          title="Attach from records · إرفاق من السجلات"
+        >
+          <Paperclip size={16} style={{ color: "var(--teal-deep)" }} />
+        </button>
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -323,6 +351,13 @@ export default function HumanChatView({
           <Send size={16} color="#fff" />
         </button>
       </div>
+
+      <ChatRecordsPicker
+        open={showAttachPicker}
+        onClose={() => setShowAttachPicker(false)}
+        onPick={handleAttachRecord}
+      />
     </div>
+
   );
 }

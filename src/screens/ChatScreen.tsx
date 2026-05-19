@@ -770,7 +770,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
             </>
           ) : recordedAudio ? (
             <>
-              <button onClick={() => onOpenScanner ? onOpenScanner() : setShowUploadSheet(true)} className="shrink-0">
+              <button onClick={() => setShowUploadSheet(true)} className="shrink-0" aria-label="Attach">
                 <Paperclip size={24} style={{ color: "var(--teal-deep)" }} />
               </button>
               <div className="flex-1 flex items-center justify-center">
@@ -786,9 +786,10 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
             </>
           ) : (
             <>
-              <button onClick={() => onOpenScanner ? onOpenScanner() : setShowUploadSheet(true)} className="shrink-0">
+              <button onClick={() => setShowUploadSheet(true)} className="shrink-0" aria-label="Attach">
                 <Paperclip size={24} style={{ color: "var(--teal-deep)" }} />
               </button>
+
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

@@ -4,6 +4,8 @@ import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
 import { formatChipDate } from "@/lib/journeyOverview";
 import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
+import { milestoneKeyFor } from "@/lib/records/milestoneKey";
+
 
 export type SheetItemKind = "lab" | "rad" | "med" | "visit" | "flight";
 export type SheetItemTone = "now" | "active" | "soon" | "done" | "muted";
@@ -66,17 +68,28 @@ const MilestoneSheet = ({
   userId,
   defaultExpanded = false,
 }: MilestoneSheetProps) => {
+  // Canonical scope for THIS milestone's attachments. For flight milestones
+  // this resolves to the parent ticket; for any other milestone it falls back
+  // to a stable milestone-scoped segment_ref so non-flight stops (appointments,
+  // surgeries, follow-ups, etc.) also persist documents instead of crashing
+  // when the previously flight-only code path was hit.
+  const canonical = milestone ? milestoneKeyFor(milestone) : null;
+  const resolvedSegmentRef = flightSegmentRef
+    ?? (flightTicketId ? `flight-${flightTicketId}` : null)
+    ?? canonical?.segmentRef
+    ?? null;
+  const resolvedTicketId = flightTicketId ?? canonical?.ticketId ?? null;
   const attachmentCount = useArtifactCount({
     userId: userId ?? null,
-    segmentRef: flightSegmentRef || (flightTicketId ? `flight-${flightTicketId}` : null),
-    ticketId: flightTicketId ?? null,
+    segmentRef: resolvedSegmentRef,
+    ticketId: resolvedTicketId,
   });
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   if (!milestone) return null;
   const visible = items.slice(0, 4);
   const overflow = Math.max(0, items.length - visible.length);
-  const totalArtifacts = items.length + (flightTicketId ? attachmentCount : 0);
+  const totalArtifacts = items.length + (resolvedSegmentRef ? attachmentCount : 0);
   const pill = headerPill(milestone.state);
   const dateLabel =
     milestone.state === "current"
@@ -84,7 +97,8 @@ const MilestoneSheet = ({
       : milestone.date
       ? formatChipDate(milestone.date)
       : "TBD";
-  const hasExpandable = visible.length > 0 || !!flightTicketId;
+  const hasExpandable = visible.length > 0 || !!resolvedSegmentRef;
+
 
   return (
     <section
@@ -208,16 +222,17 @@ const MilestoneSheet = ({
             </button>
           )}
 
-          {flightTicketId && (
-            <div className="mt-3 -mx-2 animate-fade-in">
+          {resolvedSegmentRef && (
+            <div className="mt-3 -mx-2 animate-fade-in" onClick={(e) => e.stopPropagation()}>
               <RelatedDocumentsCard
-                segmentRef={flightSegmentRef || `flight-${flightTicketId}`}
-                ticketId={flightTicketId}
+                segmentRef={resolvedSegmentRef}
+                ticketId={resolvedTicketId ?? undefined}
                 userId={userId ?? null}
                 compact
               />
             </div>
           )}
+
         </>
       )}
 
