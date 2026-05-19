@@ -485,7 +485,7 @@ const ScannerWizard = ({
         )}
       </div>
     </div>
-  );
+  ), document.body);
 };
 
 /* ─── STEP 1: CAPTURE ─── */
