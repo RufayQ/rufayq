@@ -627,7 +627,8 @@ const LoungeFormSheet = ({
           }}
         />
       )}
-    </div>
+      </div>
+    </OverlayLayer>
   );
 };
 
