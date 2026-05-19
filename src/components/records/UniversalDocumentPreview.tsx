@@ -163,7 +163,9 @@ const ImagePreview = ({ url, title, fileName, className }: { url: string; title:
           <ErrorPanel
             url={url}
             fileName={fileName}
-            message="The image could not be loaded."
+            message={url.startsWith("blob:")
+              ? "This preview link expired after the app reloaded. Please re-scan or re-upload the image."
+              : "The image could not be loaded."}
             onRetry={() => { setStatus("loading"); setNonce((n) => n + 1); }}
           />
         </div>
