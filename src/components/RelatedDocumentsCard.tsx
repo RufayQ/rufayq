@@ -516,13 +516,15 @@ const RelatedDocumentsCard = ({
         />
       </div>
 
-      {/* Label prompt sheet */}
-      {picking && createPortal((
-        <div
-          className="fixed inset-0 z-[1300] flex items-end justify-center"
-          style={{ background: "rgba(0,0,0,0.5)" }}
-          onClick={() => !uploading && setPicking(null)}
-        >
+      {/* Label prompt sheet — uses the canonical overlay primitive. */}
+      <OverlayLayer
+        open={!!picking}
+        onClose={() => { if (!uploading) setPicking(null); }}
+        layer="sheet"
+        ariaLabel="Label this document"
+        backdropClassName="bg-black/50"
+      >
+        <div className="flex h-full w-full items-end justify-center">
           <div
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-[420px] rounded-t-3xl p-5"
@@ -534,9 +536,11 @@ const RelatedDocumentsCard = ({
             <p className="font-arabic text-[11px] mb-3" dir="rtl" style={{ color: "var(--gray)" }}>
               ضع تسمية للمستند
             </p>
-            <p className="text-[11px] mb-3 truncate" style={{ color: "var(--gray)" }}>
-              {picking.name} · {(picking.size / 1024).toFixed(0)} KB
-            </p>
+            {picking && (
+              <p className="text-[11px] mb-3 truncate" style={{ color: "var(--gray)" }}>
+                {picking.name} · {(picking.size / 1024).toFixed(0)} KB
+              </p>
+            )}
             <div className="flex flex-wrap gap-1.5 mb-3">
               {COMMON_LABELS.map((l) => (
                 <button
@@ -584,7 +588,9 @@ const RelatedDocumentsCard = ({
             </div>
           </div>
         </div>
-      ), document.body)}
+      </OverlayLayer>
+
+
 
       {/* Canonical attachment preview — shared with Records and any future section. */}
       <UnifiedAttachmentPreview
