@@ -79,9 +79,10 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
     }
   };
 
-  return createPortal(
+  return (
+    <OverlayLayer open onClose={onClose} layer="preview" ariaLabel={`Scanned record: ${record.title}`} backdropClassName="bg-black/85 backdrop-blur-sm">
     <div
-      className="fixed inset-0 z-[1100] flex items-stretch justify-center bg-black/85 backdrop-blur-sm"
+      className="absolute inset-0 flex items-stretch justify-center"
       onClick={onClose}
     >
       <div
