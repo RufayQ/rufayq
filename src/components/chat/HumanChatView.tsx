@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2 } from "lucide-react";
+import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
@@ -8,6 +8,8 @@ import { setActiveThread } from "@/lib/chat/activeThread";
 import { useResolvedContact } from "@/hooks/useResolvedContact";
 import MessageTicks from "./MessageTicks";
 import EmojiPicker from "./EmojiPicker";
+import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
+
 
 interface Props {
   threadId: string;
