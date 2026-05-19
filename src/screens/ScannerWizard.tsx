@@ -323,7 +323,6 @@ const ScannerWizard = ({
     setStep(2);
   };
 
-  return (
   return createPortal((
     <div className="fixed inset-0 z-[1200] flex flex-col animate-slide-in-right" style={{ background: "var(--scanner-bg)" }}>
       <input ref={fileInputRef} type="file" className="hidden" onChange={onFileSelected} />
