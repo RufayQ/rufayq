@@ -55,10 +55,18 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
         });
         if (!cancelled) setRows(all.filter((r) => r.sendableToChat));
       } catch (e: any) {
-        console.warn("[ChatRecordsPicker] load failed", e);
+        const deviceId = getDeviceId();
+        console.error("[ChatRecordsPicker] load failed", {
+          route: "chat-records-picker",
+          stage: "listAllUserRecords",
+          deviceId,
+          userId: userId ?? null,
+          error: { name: e?.name, message: e?.message, stack: e?.stack },
+        });
         if (!cancelled) setRows([]);
+        const msg = e?.message ?? String(e ?? "unknown error");
         toast.error("Couldn't load records · تعذّر تحميل السجلات", {
-          description: e?.message ?? String(e),
+          description: `${msg.length > 90 ? msg.slice(0, 87) + "…" : msg} (chat-records-picker)`,
         });
       } finally {
         if (!cancelled) setLoading(false);
