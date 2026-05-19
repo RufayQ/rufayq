@@ -254,6 +254,37 @@ const ScannerWizard = ({
       mimeType: p.mimeType ?? realFile?.type ?? capturedFile?.type ?? null,
     } : undefined;
 
+  /**
+   * Convert the captured File into a persistent base64 data URL so the
+   * preview survives reloads (blob: URLs die with the document). Falls back
+   * to the original payload when the file is missing or too large to inline.
+   * Cap: ~8 MB raw → ~11 MB base64 (well under typical 5–10 MB localStorage).
+   */
+  const finalizePayload = async (p: ScannerSavePayload | undefined): Promise<ScannerSavePayload | undefined> => {
+    if (!p) return p;
+    const f = (p.editedFile as File | undefined) ?? realFile;
+    if (!f) return p;
+    const MAX = 8 * 1024 * 1024;
+    if (f.size > MAX) return p; // keep blob URL for current session
+    try {
+      const dataUrl: string = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(String(r.result));
+        r.onerror = () => rej(r.error);
+        r.readAsDataURL(f);
+      });
+      return { ...p, fileUrl: dataUrl, mimeType: p.mimeType ?? f.type ?? null };
+    } catch (e) {
+      console.warn("[ScannerWizard] finalize → dataURL failed", e);
+      return p;
+    }
+  };
+
+  const runSave = async (payload: ScannerSavePayload | undefined) => {
+    const finalized = await finalizePayload(payload);
+    onSave?.(selectedCategory, finalized);
+  };
+
   const handleFileCapture = (accept: string) => {
     if (fileInputRef.current) {
       fileInputRef.current.accept = accept;
