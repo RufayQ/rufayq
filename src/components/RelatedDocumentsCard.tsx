@@ -604,119 +604,37 @@ const RelatedDocumentsCard = ({
         </div>
       ), document.body)}
 
-      {/* Preview modal */}
-      {previewUrl && previewItem && createPortal((
-        <div
-          className="fixed inset-0 z-[1310] flex flex-col"
-          style={{ background: "rgba(0,0,0,0.92)" }}
-          onClick={() => { setPreviewUrl(null); setPreviewItem(null); }}
-        >
-          <div className="flex items-center justify-between px-4 py-3 text-white">
-            <div className="min-w-0">
-              <p className="text-[13px] font-bold truncate">{previewItem.label}</p>
-              <p className="text-[10px] opacity-70 truncate">{previewItem.file_name}</p>
-            </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); setPreviewUrl(null); setPreviewItem(null); }}
-              className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(255,255,255,0.15)" }}
-            >
-              <X size={16} color="white" />
-            </button>
-          </div>
-          <div
-            className="flex-1 flex flex-col items-center justify-center px-4 pb-4 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex-1 w-full min-h-[40vh] flex items-center justify-center">
-              {isImage(previewItem.mime_type) ? (
-                <img
-                  src={previewUrl}
-                  alt={previewItem.label}
-                  className="max-w-full max-h-full object-contain rounded-lg"
-                />
-              ) : (
-                <UniversalDocumentPreview url={previewUrl} fileName={previewItem.file_name} title={previewItem.label} mimeType={previewItem.mime_type} className="w-full h-full rounded-lg bg-white" />
-              )}
-            </div>
-            {keyFieldsOf(previewItem).length > 0 && (
-              <div className="w-full mt-3 rounded-xl p-3" style={{ background: "rgba(255,255,255,0.10)" }}>
-                <p className="font-mono text-[9px] tracking-widest mb-2" style={{ color: "var(--gold)" }}>
-                  EXTRACTED FIELDS · <span className="font-arabic">الحقول المستخرجة</span>
-                </p>
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                  {keyFieldsOf(previewItem).map((f, i) => (
-                    <div key={i} className="min-w-0">
-                      <dt className="text-[9px] uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>{f.label}</dt>
-                      <dd className="text-[12px] font-semibold truncate" style={{ color: "white" }} title={f.value}>{f.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
-          </div>
-          <div className="px-4 pb-4 space-y-2">
-            {renaming ? (
-              <div className="flex gap-2">
-                <input
-                  autoFocus
-                  value={renameDraft}
-                  onChange={(e) => setRenameDraft(e.target.value)}
-                  className="flex-1 px-3 py-2.5 rounded-xl text-[13px] outline-none"
-                  style={{ background: "var(--white)", color: "var(--navy)" }}
-                />
-                <button
-                  onClick={renameItem}
-                  className="px-3 rounded-xl text-white font-bold flex items-center gap-1"
-                  style={{ background: "var(--teal-deep)" }}
-                >
-                  <Check size={14} /> Save
-                </button>
-                <button
-                  onClick={() => setRenaming(false)}
-                  className="px-3 rounded-xl font-bold"
-                  style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => { setRenameDraft(previewItem.label); setRenaming(true); }}
-                  className="py-3 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5"
-                  style={{ background: "rgba(255,255,255,0.14)", color: "white" }}
-                >
-                  <Pencil size={13} /> Rename
-                </button>
-                <button
-                  onClick={() => shareItem(previewItem)}
-                  className="py-3 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5"
-                  style={{ background: "rgba(255,255,255,0.14)", color: "white" }}
-                >
-                  <Share2 size={13} /> Share
-                </button>
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-3 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 text-white"
-                  style={{ background: "var(--gold)" }}
-                >
-                  <Eye size={13} /> Open
-                </a>
-              </div>
-            )}
-            <button
-              onClick={() => { void removeItem(previewItem); setPreviewUrl(null); setPreviewItem(null); }}
-              className="w-full py-2.5 rounded-xl text-[12px] font-semibold flex items-center justify-center gap-1.5"
-              style={{ background: "rgba(192,57,43,0.18)", color: "white" }}
-            >
-              <X size={13} /> Delete attachment
-            </button>
-          </div>
-        </div>
-      ), document.body)}
+      {/* Canonical attachment preview — shared with Records and any future section. */}
+      <UnifiedAttachmentPreview
+        open={!!previewUrl && !!previewItem}
+        onClose={() => { setPreviewUrl(null); setPreviewItem(null); }}
+        url={previewUrl}
+        fileName={previewItem?.file_name ?? ""}
+        title={previewItem?.label ?? ""}
+        mimeType={previewItem?.mime_type ?? null}
+        keyFields={previewItem ? keyFieldsOf(previewItem) : []}
+        actions={{ canRename: true, canShare: true, canOpen: true, canDelete: true }}
+        onShare={() => previewItem && shareItem(previewItem)}
+        onRename={async (next) => {
+          if (!previewItem) return;
+          const { error } = await supabase
+            .from("transport_attachments")
+            .update({ label: next })
+            .eq("id", previewItem.id);
+          if (error) { toast.error("Could not rename", { description: error.message }); return; }
+          toast.success("Renamed · تم التغيير");
+          setPreviewItem({ ...previewItem, label: next });
+          refresh();
+        }}
+        onDelete={() => {
+          if (!previewItem) return;
+          void removeItem(previewItem);
+          setPreviewUrl(null);
+          setPreviewItem(null);
+        }}
+      />
+
+
 
       {/* From Records picker */}
       {fromRecordsOpen && createPortal((
