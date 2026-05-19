@@ -153,7 +153,7 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
     lounges = listLoungeMemberships().map((l) => ({
       id: `lounge:${l.id}`,
       origin: "lounge",
-      label: l.programName || "Lounge card",
+      label: l.program || "Lounge card",
       fileName: l.membershipNumber || "—",
       mimeType: null,
       dateLabel: formatDate(l.createdAt ?? null),
