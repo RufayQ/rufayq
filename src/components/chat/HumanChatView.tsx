@@ -49,24 +49,37 @@ export default function HumanChatView({
   const [replyTo, setReplyTo] = useState<ChatMessageRow | null>(null);
   const [actionFor, setActionFor] = useState<string | null>(null);
   const [showAttachPicker, setShowAttachPicker] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<PickedRecord | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const me = getDeviceId();
 
-  const handleAttachRecord = async (rec: PickedRecord) => {
+  const handleAttachRecord = (rec: PickedRecord) => {
     setShowAttachPicker(false);
-    const lines = [
-      `📎 ${rec.label} — ${rec.file_name}`,
-      `(${rec.sourceLabelEn} · ${rec.sourceLabelAr})`,
-    ];
-    if (rec.signedUrl) lines.push(rec.signedUrl);
-    try {
-      await send(lines.join("\n"));
-      toast.success("Attachment sent · تم إرسال المرفق", { duration: 1600 });
-    } catch {
-      toast.error("Couldn't send attachment · تعذر إرسال المرفق");
-    }
+    setPendingAttachment(rec);
+  };
+
+  const renderBodyWithLinks = (body: string, mine: boolean) => {
+    const parts = body.split(/(https?:\/\/[^\s]+)/g);
+    return parts.map((part, i) => {
+      if (/^https?:\/\//.test(part)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="underline font-medium"
+            style={{ color: mine ? "var(--gold)" : "var(--teal-deep)", wordBreak: "break-all" }}
+          >
+            {part}
+          </a>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
   };
 
 
