@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus, FileText, Image as ImageIcon, X, Eye, Loader2, FolderOpen, Pencil, Share2, Check, Download } from "lucide-react";
+import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard";
-import UniversalDocumentPreview, { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
+import { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
+import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
 
 export interface TransportAttachment {
   id: string;
