@@ -342,13 +342,8 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     try { window.history.pushState({ rufayqRecordsPreview: true }, ""); } catch {}
   };
 
-  // Mobile back closes preview instead of leaving the screen.
-  useEffect(() => {
-    if (!previewUrl) return;
-    const onPop = () => { setPreviewUrl(null); setPreviewItem(null); };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [previewUrl]);
+  // Back-button handling is owned by OverlayLayer / UnifiedAttachmentPreview.
+
 
   const previewFields = previewItem && Array.isArray((previewItem as any).key_fields)
     ? ((previewItem as any).key_fields as { label: string; value: string }[]).filter(
