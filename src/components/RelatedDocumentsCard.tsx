@@ -10,6 +10,7 @@ import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentP
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
 import { listAllUserRecords, type UnifiedRecord } from "@/lib/records/recordSources";
 import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
+import { storageWithDeviceHeader, withDeviceHeader } from "@/lib/supabaseDeviceScope";
 
 export interface TransportAttachment {
   id: string;
@@ -130,7 +131,7 @@ const RelatedDocumentsCard = ({
         query = query.eq("segment_ref", segmentRef);
       }
 
-      const { data, error } = await query.order("created_at", { ascending: true });
+      const { data, error } = await withDeviceHeader(query.order("created_at", { ascending: true }), deviceId);
 
       if (error) {
         // Keep last-known items on screen — never blank the list on a transient error.
@@ -156,10 +157,10 @@ const RelatedDocumentsCard = ({
           if (userId && !r.user_id) patch.user_id = userId;
           if (ticketId && !r.ticket_id) patch.ticket_id = ticketId;
           // Fire-and-forget; failures are non-blocking.
-          void supabase
+          void withDeviceHeader(supabase
             .from("transport_attachments")
             .update(patch)
-            .eq("id", r.id)
+            .eq("id", r.id), deviceId)
             .then(({ error: relinkErr }) => {
               if (relinkErr) console.warn("[RelatedDocumentsCard] relink failed", relinkErr);
             });
@@ -183,8 +184,7 @@ const RelatedDocumentsCard = ({
     if (pending.length === 0) return;
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase.storage
-        .from(BUCKET)
+      const { data, error } = await storageWithDeviceHeader(BUCKET, deviceId)
         .createSignedUrls(pending.map((p) => p.file_path), 60 * 30);
       if (cancelled || error || !data) return;
       const next: Record<string, string> = {};
