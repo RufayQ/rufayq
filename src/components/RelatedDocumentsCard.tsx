@@ -252,6 +252,12 @@ const RelatedDocumentsCard = ({
 
   const confirmUpload = async () => {
     if (!picking) return;
+    // Image / PDF → route to Smart Scanner with the user-chosen subcategory.
+    if (picking.type.startsWith("image/") || isPdf(picking.type, picking.name)) {
+      setScanFile(picking);
+      setPicking(null);
+      return;
+    }
     const label = labelDraft.trim() || "Document";
     setUploading(true);
     try {
