@@ -230,11 +230,10 @@ const RelatedDocumentsCard = ({
       const path = userId
         ? `user/${userId}/${folderRef}/${crypto.randomUUID()}.${ext}`
         : `${deviceId}/${segmentRef}/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
+      const { error: upErr } = await storageWithDeviceHeader(BUCKET, deviceId)
         .upload(path, fileToUpload, { contentType: fileToUpload.type, upsert: false });
       if (upErr) throw upErr;
-      const { error: insErr } = await supabase.from("transport_attachments").insert({
+      const { error: insErr } = await withDeviceHeader(supabase.from("transport_attachments").insert({
         device_id: deviceId,
         user_id: userId ?? null,
         ticket_id: ticketId ?? null,
@@ -247,7 +246,7 @@ const RelatedDocumentsCard = ({
         size_bytes: fileToUpload.size,
         subcategory: sub,
         key_fields: keyFields.length ? keyFields : null,
-      } as any);
+      } as any), deviceId);
       if (insErr) throw insErr;
       toast.success(`${label} attached`, { description: fileToUpload.name });
       setScanFile(null);
@@ -281,12 +280,11 @@ const RelatedDocumentsCard = ({
         ? `user/${userId}/${folderRef}/${crypto.randomUUID()}.${ext}`
         : `${deviceId}/${segmentRef}/${crypto.randomUUID()}.${ext}`;
 
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
+      const { error: upErr } = await storageWithDeviceHeader(BUCKET, deviceId)
         .upload(path, picking, { contentType: picking.type, upsert: false });
       if (upErr) throw upErr;
 
-      const { error: insErr } = await supabase.from("transport_attachments").insert({
+      const { error: insErr } = await withDeviceHeader(supabase.from("transport_attachments").insert({
         device_id: deviceId,
         user_id: userId ?? null,
         ticket_id: ticketId ?? null,
@@ -297,7 +295,7 @@ const RelatedDocumentsCard = ({
         file_path: path,
         mime_type: picking.type,
         size_bytes: picking.size,
-      });
+      }), deviceId);
       if (insErr) throw insErr;
       toast.success(`${label} attached`, { description: picking.name });
       setPicking(null);
@@ -311,8 +309,7 @@ const RelatedDocumentsCard = ({
   };
 
   const openPreview = async (item: TransportAttachment) => {
-    const { data, error } = await supabase.storage
-      .from(BUCKET)
+    const { data, error } = await storageWithDeviceHeader(BUCKET, deviceId)
       .createSignedUrl(item.file_path, 60 * 5);
     if (error || !data?.signedUrl) {
       toast.error("Could not open file");
@@ -330,10 +327,10 @@ const RelatedDocumentsCard = ({
   const removeItem = async (item: TransportAttachment) => {
     if (!confirm(`Remove "${item.label} · ${item.file_name}"?`)) return;
     // Soft-delete only — file stays in the bucket so accidental taps are recoverable.
-    const { error } = await supabase
+    const { error } = await withDeviceHeader(supabase
       .from("transport_attachments")
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", item.id);
+      .eq("id", item.id), deviceId);
     if (error) {
       toast.error("Could not remove", { description: error.message });
       return;
@@ -344,7 +341,7 @@ const RelatedDocumentsCard = ({
 
 
   const shareItem = async (item: TransportAttachment) => {
-    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(item.file_path, 60 * 60);
+    const { data } = await storageWithDeviceHeader(BUCKET, deviceId).createSignedUrl(item.file_path, 60 * 60);
     const url = data?.signedUrl;
     const text = `📄 ${item.label} — ${item.file_name}${url ? `\n${url}` : ""}`;
     if (navigator.share) {
