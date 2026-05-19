@@ -11,6 +11,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
 import { stashChatAttachment } from "@/lib/records/chatAttachmentHandoff";
 import { resolveRecordSignedUrl } from "@/lib/records/recordSources";
+import { storageWithDeviceHeader, withDeviceHeader } from "@/lib/supabaseDeviceScope";
 import {
   listLoungeMemberships,
   subscribeLoungeMemberships,
@@ -178,7 +179,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     } else {
       q = q.eq("device_id", deviceId);
     }
-    const { data, error } = await q.order("created_at", { ascending: false });
+    const { data, error } = await withDeviceHeader(q.order("created_at", { ascending: false }), deviceId);
     if (error) console.warn("[TravelRecordsList] fetch failed", error);
     else setItems((data as TransportAttachment[]) ?? []);
     setLoading(false);
@@ -334,8 +335,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
   }, [items, loungeCards, cat, searchQuery, pinnedIds.join("|")]);
 
   const openPreview = async (item: TransportAttachment) => {
-    const { data, error } = await supabase.storage
-      .from(BUCKET)
+    const { data, error } = await storageWithDeviceHeader(BUCKET, deviceId)
       .createSignedUrl(item.file_path, 60 * 5);
     if (error || !data?.signedUrl) {
       toast.error("Could not open file");
@@ -355,25 +355,25 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
     : [];
 
   const renameItem = async (item: TransportAttachment, newName: string) => {
-    const { error } = await supabase
+    const { error } = await withDeviceHeader(supabase
       .from("transport_attachments")
       .update({ label: newName })
-      .eq("id", item.id);
+      .eq("id", item.id), deviceId);
     if (error) throw error;
     await fetchAll();
   };
 
   const deleteItem = async (item: TransportAttachment) => {
-    const { error } = await supabase
+    const { error } = await withDeviceHeader(supabase
       .from("transport_attachments")
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", item.id);
+      .eq("id", item.id), deviceId);
     if (error) throw error;
     await fetchAll();
   };
 
   const shareItem = async (item: TransportAttachment) => {
-    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(item.file_path, 60 * 60);
+    const { data } = await storageWithDeviceHeader(BUCKET, deviceId).createSignedUrl(item.file_path, 60 * 60);
     const url = data?.signedUrl;
     const text = `📄 ${item.label} — ${item.file_name}${url ? `\n${url}` : ""}`;
     if (navigator.share) {
