@@ -396,9 +396,9 @@ export default function HumanChatView({
         />
         <button
           onClick={handleSend}
-          disabled={!input.trim() || sending}
+          disabled={(!input.trim() && !pendingAttachment) || sending}
           className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
-          style={{ background: "var(--teal-deep)", opacity: input.trim() && !sending ? 1 : 0.4 }}
+          style={{ background: "var(--teal-deep)", opacity: ((input.trim() || pendingAttachment) && !sending) ? 1 : 0.4 }}
           aria-label="Send"
         >
           <Send size={16} color="#fff" />
