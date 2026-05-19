@@ -87,11 +87,11 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
   try {
     const { data, error } = await q;
     if (error) console.warn("[recordSources] transport_attachments load failed", error.message);
-    for (const r of (data ?? []) as Array<{
+    for (const r of ((data ?? []) as unknown as Array<{
       id: string; label: string; file_name: string; file_path: string;
       mime_type: string | null; created_at: string;
       key_fields: { label: string; value: string }[] | null;
-    }>) {
+    }>)) {
       transportRows.push({
         id: `transport:${r.id}`,
         origin: "transport",
