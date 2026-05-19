@@ -444,7 +444,14 @@ const LoungeFormSheet = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.45)" }} onClick={onClose}>
+    <OverlayLayer
+      open
+      onClose={onClose}
+      layer="sheet"
+      ariaLabel={initial ? "Edit lounge card" : "Add lounge card"}
+      backdropClassName="bg-[rgba(15,23,42,0.45)]"
+    >
+      <div className="absolute inset-0 flex items-end justify-center">
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
