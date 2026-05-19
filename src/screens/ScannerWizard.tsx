@@ -486,7 +486,8 @@ const ScannerWizard = ({
         )}
       </div>
     </div>
-  ), document.body);
+    </OverlayLayer>
+  );
 };
 
 /* ─── STEP 1: CAPTURE ─── */
