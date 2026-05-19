@@ -790,7 +790,7 @@ const RelatedDocumentsCard = ({
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
 
       {/* Smart-Scan wizard for image/PDF attachments — review, edit, key fields. */}
       {scanFile && (
