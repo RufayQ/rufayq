@@ -97,10 +97,16 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
   if (!open) return null;
 
   return (
-    <div className="absolute inset-0 z-[60] flex flex-col justify-end" onClick={onClose}>
-      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.5)" }} />
+    <OverlayLayer
+      open={open}
+      onClose={onClose}
+      layer="picker"
+      ariaLabel="Attach from My Records"
+      backdropClassName="bg-black/55"
+    >
+      <div className="flex h-full w-full items-end justify-center" onClick={onClose}>
       <div
-        className="relative animate-slide-up rounded-t-3xl flex flex-col"
+        className="relative animate-slide-up rounded-t-3xl flex flex-col w-full max-w-[420px]"
         style={{ background: "var(--white)", maxHeight: "82%" }}
         onClick={(e) => e.stopPropagation()}
       >
