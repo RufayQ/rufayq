@@ -317,7 +317,19 @@ const RelatedDocumentsCard = ({
     }
     setPreviewItem(item);
     setPreviewUrl(data.signedUrl);
+    // Push a history entry so the device back button closes the preview
+    // instead of navigating away from the milestone screen.
+    try { window.history.pushState({ rufayqPreview: true }, ""); } catch {}
   };
+
+  // Close preview when the user taps the device back button.
+  useEffect(() => {
+    if (!previewUrl) return;
+    const onPop = () => { setPreviewUrl(null); setPreviewItem(null); };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [previewUrl]);
+
 
   const removeItem = async (item: TransportAttachment) => {
     if (!confirm(`Remove "${item.label} · ${item.file_name}"?`)) return;
