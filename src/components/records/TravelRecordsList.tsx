@@ -8,6 +8,9 @@ import { getDeviceId } from "@/hooks/useDeviceId";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet from "@/components/records/RecordActionsSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
+import { stashChatAttachment } from "@/lib/records/chatAttachmentHandoff";
+import { resolveRecordSignedUrl } from "@/lib/records/recordSources";
 import {
   listLoungeMemberships,
   subscribeLoungeMemberships,
