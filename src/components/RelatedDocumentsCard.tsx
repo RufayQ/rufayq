@@ -610,10 +610,10 @@ const RelatedDocumentsCard = ({
         onShare={() => previewItem && shareItem(previewItem)}
         onRename={async (next) => {
           if (!previewItem) return;
-          const { error } = await supabase
+          const { error } = await withDeviceHeader(supabase
             .from("transport_attachments")
             .update({ label: next })
-            .eq("id", previewItem.id);
+            .eq("id", previewItem.id), deviceId);
           if (error) { toast.error("Could not rename", { description: error.message }); return; }
           toast.success("Renamed · تم التغيير");
           setPreviewItem({ ...previewItem, label: next });
