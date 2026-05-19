@@ -947,6 +947,7 @@ export const LoungeQrSheet = ({
         </p>
       </div>
     </div>
+    </OverlayLayer>
   );
 };
 
