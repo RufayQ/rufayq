@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import RufayQLogo from "@/components/RufayQLogo";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
+import ChatPickerErrorBoundary from "@/components/chat/ChatPickerErrorBoundary";
 import { consumeChatAttachment } from "@/lib/records/chatAttachmentHandoff";
 import { useSubscription } from "@/hooks/useSubscription";
 import { canUploadDeviceFiles as canUploadDeviceFilesFn } from "@/features/chat/logic/attachmentGating";
