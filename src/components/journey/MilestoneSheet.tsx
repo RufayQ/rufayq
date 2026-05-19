@@ -4,6 +4,8 @@ import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
 import { formatChipDate } from "@/lib/journeyOverview";
 import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
+import { milestoneKeyFor } from "@/lib/records/milestoneKey";
+
 
 export type SheetItemKind = "lab" | "rad" | "med" | "visit" | "flight";
 export type SheetItemTone = "now" | "active" | "soon" | "done" | "muted";
