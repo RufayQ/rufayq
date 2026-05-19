@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { listTravelScannedRecords, type TravelScannedRecord } from "@/lib/travelScannedRecordsStore";
 import { listScannedRecords, type ScannedRecord } from "@/lib/scannedRecordsStore";
 import { listLoungeMemberships, type LoungeMembership } from "@/lib/loungeMemberships";
+import { storageWithDeviceHeader, withDeviceHeader } from "@/lib/supabaseDeviceScope";
 
 export const TRANSPORT_BUCKET = "transport-attachments";
 const SIGNED_URL_TTL = 60 * 60;
@@ -85,7 +86,7 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
 
   const transportRows: UnifiedRecord[] = [];
   try {
-    const { data, error } = await q;
+    const { data, error } = await withDeviceHeader(q, deviceId);
     if (error) console.warn("[recordSources] transport_attachments load failed", error.message);
     for (const r of ((data ?? []) as unknown as Array<{
       id: string; label: string; file_name: string; file_path: string;
@@ -197,10 +198,11 @@ const hasScanBytes = (s: TravelScannedRecord): boolean =>
 /** Best-effort signed URL resolver for previews / chat handoff. */
 export const resolveRecordSignedUrl = async (
   rec: UnifiedRecord,
+  deviceId?: string,
 ): Promise<string | null> => {
   if (rec.filePath) {
-    const { data } = await supabase.storage
-      .from(TRANSPORT_BUCKET)
+    const bucket = deviceId ? storageWithDeviceHeader(TRANSPORT_BUCKET, deviceId) : supabase.storage.from(TRANSPORT_BUCKET);
+    const { data } = await bucket
       .createSignedUrl(rec.filePath, SIGNED_URL_TTL);
     return data?.signedUrl ?? null;
   }
@@ -269,8 +271,7 @@ export const importScanToBucket = async (
   const filePath = `${owner}/scan-imports/${localId}.${ext}`;
   const fileName = preferredName || `${rec.label}.${ext}`;
 
-  const { error } = await supabase.storage
-    .from(TRANSPORT_BUCKET)
+  const { error } = await storageWithDeviceHeader(TRANSPORT_BUCKET, opts.deviceId)
     .upload(filePath, blob, { contentType: mimeType, upsert: true });
   if (error) throw error;
 
