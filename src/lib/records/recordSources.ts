@@ -106,6 +106,7 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
       transportRows.push({
         id: `transport:${r.id}`,
         origin: "transport",
+        domain: "travel",
         label: r.label || "Document",
         fileName: r.file_name,
         mimeType: r.mime_type,
@@ -128,6 +129,7 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
   const travelScans: UnifiedRecord[] = listTravelScannedRecords().map((s) => ({
     id: `travel-scan:${s.id}`,
     origin: "travel-scan",
+    domain: "travel",
     label: s.title || s.subcategory || "Travel document",
     fileName: s.fileName || `${s.title || "document"}.pdf`,
     mimeType: s.mimeType ?? null,
@@ -145,6 +147,7 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
   const medicalScans: UnifiedRecord[] = listScannedRecords().map((s) => ({
     id: `medical-scan:${s.id}`,
     origin: "medical-scan",
+    domain: "medical",
     label: s.titleEn || s.category || "Medical record",
     fileName: s.fileName || s.source || `${s.titleEn || "record"}.pdf`,
     mimeType: s.mimeType ?? null,
@@ -164,6 +167,7 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
     lounges = listLoungeMemberships().map((l) => ({
       id: `lounge:${l.id}`,
       origin: "lounge",
+      domain: "travel",
       label: l.program || "Lounge card",
       fileName: l.membershipNumber || "—",
       mimeType: null,
