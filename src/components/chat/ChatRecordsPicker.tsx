@@ -59,6 +59,9 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [picking, setPicking] = useState<string | null>(null);
   const [isSearchArmed, setIsSearchArmed] = useState(false);
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
+  const retryCountRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const focusRafRef = useRef<number | null>(null);
   const isOpenRef = useRef(open);
