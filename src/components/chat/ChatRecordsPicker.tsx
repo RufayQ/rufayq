@@ -48,6 +48,25 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   const [query, setQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [picking, setPicking] = useState<string | null>(null);
+  const [isSearchArmed, setIsSearchArmed] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset armed/typing state whenever the sheet closes so reopening
+  // never inherits stale focus and pops the soft keyboard.
+  useEffect(() => {
+    if (!open) {
+      setIsSearchArmed(false);
+      try { inputRef.current?.blur(); } catch { /* noop */ }
+    }
+  }, [open]);
+
+  const armSearch = () => {
+    if (isSearchArmed) return;
+    setIsSearchArmed(true);
+    requestAnimationFrame(() => {
+      try { inputRef.current?.focus(); } catch { /* noop */ }
+    });
+  };
 
   useEffect(() => {
     if (!open) return;
