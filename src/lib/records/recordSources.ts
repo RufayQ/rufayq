@@ -291,3 +291,17 @@ export const importScanToBucket = async (
 
   return { filePath, fileName, mimeType, sizeBytes: blob.size };
 };
+
+/**
+ * Records-domain canonical alias. Use this name from new call sites so it
+ * reads as "list all records for a user" rather than the legacy
+ * chat-flavoured name.
+ */
+export const listAllRecordsForUser = listAllUserRecords;
+
+/**
+ * Public alias kept for naming parity with the spec — same as
+ * `resolveRecordSignedUrl` and resolves a previewable URL for any
+ * UnifiedRecord regardless of origin.
+ */
+export const resolveRecordUrl = resolveRecordSignedUrl;
