@@ -100,19 +100,11 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
       sourceLabelAr: row.sourceLabelAr,
       mime_type: row.mimeType ?? null,
     };
-    const shortCause = (e: any) => {
-      const msg = e?.message ?? String(e ?? "unknown error");
-      return msg.length > 90 ? `${msg.slice(0, 87)}…` : msg;
-    };
     let signedUrl: string | undefined;
     try {
       signedUrl = (await resolveRecordSignedUrl(row, deviceId)) ?? undefined;
     } catch (e: any) {
-      console.error("[ChatRecordsPicker] signed-url failed", {
-        ...ctx,
-        stage: "resolveRecordSignedUrl",
-        error: { name: e?.name, message: e?.message, stack: e?.stack },
-      });
+      void logAttachErrorTelemetry({ stage: "resolveRecordSignedUrl", route, deviceId, rowId: row.id, error: e });
       toast.error("Couldn't fetch file link · تعذّر جلب الرابط", {
         description: `${shortCause(e)} (${row.id.slice(0, 8)} · ${route})`,
       });
@@ -120,12 +112,8 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     try {
       onPick({ ...base, signedUrl });
     } catch (e: any) {
-      console.error("[ChatRecordsPicker] onPick handler threw", {
-        ...ctx,
-        stage: "onPick",
-        hasSignedUrl: !!signedUrl,
-        error: { name: e?.name, message: e?.message, stack: e?.stack },
-      });
+      console.error("[ChatRecordsPicker] onPick handler threw", { ...ctx, stage: "onPick", hasSignedUrl: !!signedUrl });
+      void logAttachErrorTelemetry({ stage: "onPick", route, deviceId, rowId: row.id, error: e });
       toast.error("Couldn't attach record · تعذّر إرفاق السجل", {
         description: `${shortCause(e)} (${row.id.slice(0, 8)} · ${route})`,
       });
