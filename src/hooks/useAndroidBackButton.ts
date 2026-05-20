@@ -59,6 +59,9 @@ export function useAndroidBackButton({ onBack, enabled = true }: Options) {
         try {
           const { App } = await import("@capacitor/app");
           const handle = await App.addListener("backButton", async () => {
+            // Same overlay-pop guard as the web path — never treat an
+            // overlay's internal sentinel pop as a real user back-press.
+            if (consumeOverlayInternalPop()) return;
             const handled = onBackRef.current();
             if (handled) return;
             await handleAttemptExit(async () => {

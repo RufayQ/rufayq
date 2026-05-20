@@ -28,11 +28,17 @@ export const TRANSPORT_BUCKET = "transport-attachments";
 const SIGNED_URL_TTL = 60 * 60;
 
 export type RecordOrigin = "transport" | "travel-scan" | "medical-scan" | "lounge";
+export type RecordDomain = "travel" | "medical";
+
+const domainForOrigin = (o: RecordOrigin): RecordDomain =>
+  o === "medical-scan" ? "medical" : "travel";
 
 export interface UnifiedRecord {
   /** Source-prefixed stable id for React keys & dedupe (e.g. "transport:abc"). */
   id: string;
   origin: RecordOrigin;
+  /** Records-domain tag — drives Travel vs Medical filtering everywhere. */
+  domain: RecordDomain;
   label: string;
   fileName: string;
   mimeType: string | null;
