@@ -464,23 +464,38 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
               ))}
             </div>
           ) : loadError ? (
-            <div className="text-center py-8" role="alert" data-testid="records-picker-error">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>
+            <div className="py-6 px-3 rounded-xl" role="alert" data-testid="records-picker-error" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+              <p className="text-[13px] font-semibold text-center" style={{ color: "var(--navy)" }}>
                 Couldn't load records
               </p>
-              <p className="font-arabic text-[12px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
+              <p className="font-arabic text-[12px] mt-1 text-center" dir="rtl" style={{ color: "var(--gray)" }}>
                 تعذّر تحميل السجلات
               </p>
-              <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
-                {shortCause(loadError)}
-              </p>
-              <button
-                onClick={handleManualRetry}
-                className="mt-4 px-4 py-2 rounded-full text-[12px] font-bold btn-press"
-                style={{ background: "var(--teal-deep)", color: "white" }}
-              >
-                Try again · <span className="font-arabic">إعادة المحاولة</span>
-              </button>
+              <div className="mt-3 rounded-lg p-2.5 font-mono text-[10px] leading-relaxed" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
+                <div data-testid="records-picker-error-stage">stage: {lastErrorStage ?? "unknown"}</div>
+                <div>route: {route}</div>
+                <div>retries: {retryCountRef.current}</div>
+                <div className="break-words" style={{ color: "var(--gray)" }}>
+                  {loadError.name}: {shortCause(loadError)}
+                </div>
+              </div>
+              <div className="flex gap-2 justify-center mt-3">
+                <button
+                  onClick={handleManualRetry}
+                  className="px-4 py-2 rounded-full text-[12px] font-bold btn-press"
+                  style={{ background: "var(--teal-deep)", color: "white" }}
+                >
+                  Try again · <span className="font-arabic">إعادة المحاولة</span>
+                </button>
+                <button
+                  onClick={handleCopyErrorContext}
+                  className="px-4 py-2 rounded-full text-[12px] font-bold btn-press"
+                  style={{ background: "var(--white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+                  data-testid="records-picker-copy-error"
+                >
+                  Copy details · <span className="font-arabic">نسخ</span>
+                </button>
+              </div>
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-10">
