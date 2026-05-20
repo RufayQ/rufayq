@@ -575,6 +575,19 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
         >
           Cancel · <span className="font-arabic">إلغاء</span>
         </button>
+        {isAttaching && (
+          <div
+            className="absolute inset-0 rounded-t-3xl flex items-center justify-center"
+            style={{ background: "rgba(255,255,255,0.65)", backdropFilter: "blur(2px)" }}
+            data-testid="records-picker-attaching"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <div className="px-4 py-2 rounded-full text-[12px] font-semibold animate-pulse" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
+              Attaching… · <span className="font-arabic">جارٍ الإرفاق…</span>
+            </div>
+          </div>
+        )}
       </div>
       </div>
     </OverlayLayer>
