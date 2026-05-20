@@ -8045,6 +8045,17 @@ export type Database = {
         }
         Returns: Json
       }
+      log_attach_error_event: {
+        Args: {
+          _device_hash: string
+          _error_name: string
+          _recurrent_key?: string
+          _route: string
+          _row_id_short: string
+          _stage: string
+        }
+        Returns: undefined
+      }
       log_audit_event: {
         Args: {
           _action: string
