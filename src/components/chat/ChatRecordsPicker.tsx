@@ -34,7 +34,7 @@ export interface PickedRecord {
 interface Props {
   open: boolean;
   onClose: () => void;
-  onPick: (pick: PickedRecord) => void;
+  onPick: (pick: PickedRecord) => void | Promise<void>;
   route?: string;
   filterRecord?: (record: UnifiedRecord) => boolean;
 }
@@ -110,7 +110,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
       });
     }
     try {
-      onPick({ ...base, signedUrl });
+      await onPick({ ...base, signedUrl });
     } catch (e: any) {
       console.error("[ChatRecordsPicker] onPick handler threw", { ...ctx, stage: "onPick", hasSignedUrl: !!signedUrl });
       void logAttachErrorTelemetry({ stage: "onPick", route, deviceId, rowId: row.id, error: e });
