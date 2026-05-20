@@ -60,7 +60,10 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   const [picking, setPicking] = useState<string | null>(null);
   const [isSearchArmed, setIsSearchArmed] = useState(false);
   const [loadError, setLoadError] = useState<Error | null>(null);
+  const [lastErrorStage, setLastErrorStage] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [isAttaching, setIsAttaching] = useState(false);
   const retryCountRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const focusRafRef = useRef<number | null>(null);
@@ -167,6 +170,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     let retryTimer: number | null = null;
     setLoading(true);
     setLoadError(null);
+    setLastErrorStage(null);
     (async () => {
       try {
         const all = await listAllUserRecords({
@@ -177,6 +181,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
         if (cancelled) return;
         setRows(all.filter((r) => r.sendableToChat && (!filterRecord || filterRecord(r))));
         setLoadError(null);
+        setLastErrorStage(null);
         retryCountRef.current = 0;
       } catch (e: any) {
         if (cancelled) return;
@@ -191,8 +196,9 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
           }, 600);
           return;
         }
-        setRows([]);
+        // Keep prior rows mounted so the sheet never flashes empty.
         setLoadError(e instanceof Error ? e : new Error(String(e ?? "unknown error")));
+        setLastErrorStage("listAllUserRecords");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -206,22 +212,61 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   const handleManualRetry = useCallback(() => {
     retryCountRef.current = 0;
     setLoadError(null);
+    setLastErrorStage(null);
     setRetryNonce((n) => n + 1);
   }, []);
 
+  const handleCopyErrorContext = useCallback(async () => {
+    if (!loadError) return;
+    const payload = [
+      `stage: ${lastErrorStage ?? "unknown"}`,
+      `route: ${route}`,
+      `retries: ${retryCountRef.current}`,
+      `error: ${loadError.name}: ${loadError.message}`,
+    ].join("\n");
+    try {
+      await navigator.clipboard?.writeText(payload);
+      toast.success("Copied diagnostics · تم نسخ التفاصيل");
+    } catch {
+      toast.error("Couldn't copy · تعذّر النسخ", { description: payload });
+    }
+  }, [loadError, lastErrorStage, route]);
 
+  // Defensive filter: if the predicate throws (e.g. malformed row from a
+  // racing store update), keep the sheet alive and fall back to the previous
+  // unfiltered list rather than crashing the picker.
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (sourceFilter === "travel" && !(r.origin === "transport" || r.origin === "travel-scan")) return false;
-      if (sourceFilter === "medical" && r.origin !== "medical-scan") return false;
-      if (!q) return true;
-      return r.label.toLowerCase().includes(q) || r.fileName.toLowerCase().includes(q);
-    });
-  }, [rows, query, sourceFilter]);
+    try {
+      const q = query.trim().toLowerCase();
+      return rows.filter((r) => {
+        if (sourceFilter === "travel" && !(r.origin === "transport" || r.origin === "travel-scan")) return false;
+        if (sourceFilter === "medical" && r.origin !== "medical-scan") return false;
+        if (!q) return true;
+        return r.label.toLowerCase().includes(q) || r.fileName.toLowerCase().includes(q);
+      });
+    } catch (e) {
+      void logAttachErrorTelemetry({
+        stage: "filterRows",
+        route,
+        deviceId: getDeviceId(),
+        error: e,
+      });
+      return rows;
+    }
+  }, [rows, query, sourceFilter, route]);
+
+  // Brief "refreshing" shimmer when the query/source filter changes so the
+  // list never appears to vanish during a transient recompute on slow devices.
+  useEffect(() => {
+    if (!open) return;
+    setIsFiltering(true);
+    const id = window.setTimeout(() => setIsFiltering(false), 120);
+    return () => clearTimeout(id);
+  }, [query, sourceFilter, open]);
 
   const handlePick = async (row: UnifiedRecord) => {
     setPicking(row.id);
+    setIsAttaching(true);
     const deviceId = getDeviceId();
     const ctx = {
       route,
@@ -262,6 +307,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
       });
     } finally {
       setPicking(null);
+      setIsAttaching(false);
     }
   };
 
@@ -418,23 +464,38 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
               ))}
             </div>
           ) : loadError ? (
-            <div className="text-center py-8" role="alert" data-testid="records-picker-error">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>
+            <div className="py-6 px-3 rounded-xl" role="alert" data-testid="records-picker-error" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+              <p className="text-[13px] font-semibold text-center" style={{ color: "var(--navy)" }}>
                 Couldn't load records
               </p>
-              <p className="font-arabic text-[12px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
+              <p className="font-arabic text-[12px] mt-1 text-center" dir="rtl" style={{ color: "var(--gray)" }}>
                 تعذّر تحميل السجلات
               </p>
-              <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
-                {shortCause(loadError)}
-              </p>
-              <button
-                onClick={handleManualRetry}
-                className="mt-4 px-4 py-2 rounded-full text-[12px] font-bold btn-press"
-                style={{ background: "var(--teal-deep)", color: "white" }}
-              >
-                Try again · <span className="font-arabic">إعادة المحاولة</span>
-              </button>
+              <div className="mt-3 rounded-lg p-2.5 font-mono text-[10px] leading-relaxed" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
+                <div data-testid="records-picker-error-stage">stage: {lastErrorStage ?? "unknown"}</div>
+                <div>route: {route}</div>
+                <div>retries: {retryCountRef.current}</div>
+                <div className="break-words" style={{ color: "var(--gray)" }}>
+                  {loadError.name}: {shortCause(loadError)}
+                </div>
+              </div>
+              <div className="flex gap-2 justify-center mt-3">
+                <button
+                  onClick={handleManualRetry}
+                  className="px-4 py-2 rounded-full text-[12px] font-bold btn-press"
+                  style={{ background: "var(--teal-deep)", color: "white" }}
+                >
+                  Try again · <span className="font-arabic">إعادة المحاولة</span>
+                </button>
+                <button
+                  onClick={handleCopyErrorContext}
+                  className="px-4 py-2 rounded-full text-[12px] font-bold btn-press"
+                  style={{ background: "var(--white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+                  data-testid="records-picker-copy-error"
+                >
+                  Copy details · <span className="font-arabic">نسخ</span>
+                </button>
+              </div>
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-10">
@@ -445,7 +506,12 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
             </div>
 
           ) : (
-            <div className="space-y-2">
+            <div
+              className="space-y-2 transition-opacity duration-150"
+              style={{ opacity: isFiltering ? 0.55 : 1 }}
+              data-testid="records-picker-list"
+              aria-busy={isFiltering || isAttaching ? true : undefined}
+            >
               {filtered.map((r) => {
                 const isMedical = r.origin === "medical-scan";
                 const isImage = !!r.mimeType && r.mimeType.startsWith("image/");
@@ -509,6 +575,19 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
         >
           Cancel · <span className="font-arabic">إلغاء</span>
         </button>
+        {isAttaching && (
+          <div
+            className="absolute inset-0 rounded-t-3xl flex items-center justify-center"
+            style={{ background: "rgba(255,255,255,0.65)", backdropFilter: "blur(2px)" }}
+            data-testid="records-picker-attaching"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <div className="px-4 py-2 rounded-full text-[12px] font-semibold animate-pulse" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
+              Attaching… · <span className="font-arabic">جارٍ الإرفاق…</span>
+            </div>
+          </div>
+        )}
       </div>
       </div>
     </OverlayLayer>
