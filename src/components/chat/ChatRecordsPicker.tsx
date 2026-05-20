@@ -28,6 +28,7 @@ export interface PickedRecord {
   sourceLabelAr: string;
   signedUrl?: string;
   mime_type?: string | null;
+  sourceRecord?: UnifiedRecord;
 }
 
 interface Props {
@@ -97,6 +98,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
       sourceLabelEn: row.sourceLabelEn,
       sourceLabelAr: row.sourceLabelAr,
       mime_type: row.mimeType ?? null,
+      sourceRecord: row,
     };
     let signedUrl: string | undefined;
     try {
