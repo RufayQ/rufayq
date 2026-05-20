@@ -170,6 +170,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     let retryTimer: number | null = null;
     setLoading(true);
     setLoadError(null);
+    setLastErrorStage(null);
     (async () => {
       try {
         const all = await listAllUserRecords({
@@ -180,6 +181,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
         if (cancelled) return;
         setRows(all.filter((r) => r.sendableToChat && (!filterRecord || filterRecord(r))));
         setLoadError(null);
+        setLastErrorStage(null);
         retryCountRef.current = 0;
       } catch (e: any) {
         if (cancelled) return;
@@ -194,8 +196,9 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
           }, 600);
           return;
         }
-        setRows([]);
+        // Keep prior rows mounted so the sheet never flashes empty.
         setLoadError(e instanceof Error ? e : new Error(String(e ?? "unknown error")));
+        setLastErrorStage("listAllUserRecords");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -209,19 +212,57 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   const handleManualRetry = useCallback(() => {
     retryCountRef.current = 0;
     setLoadError(null);
+    setLastErrorStage(null);
     setRetryNonce((n) => n + 1);
   }, []);
 
+  const handleCopyErrorContext = useCallback(async () => {
+    if (!loadError) return;
+    const payload = [
+      `stage: ${lastErrorStage ?? "unknown"}`,
+      `route: ${route}`,
+      `retries: ${retryCountRef.current}`,
+      `error: ${loadError.name}: ${loadError.message}`,
+    ].join("\n");
+    try {
+      await navigator.clipboard?.writeText(payload);
+      toast.success("Copied diagnostics · تم نسخ التفاصيل");
+    } catch {
+      toast.error("Couldn't copy · تعذّر النسخ", { description: payload });
+    }
+  }, [loadError, lastErrorStage, route]);
 
+  // Defensive filter: if the predicate throws (e.g. malformed row from a
+  // racing store update), keep the sheet alive and fall back to the previous
+  // unfiltered list rather than crashing the picker.
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (sourceFilter === "travel" && !(r.origin === "transport" || r.origin === "travel-scan")) return false;
-      if (sourceFilter === "medical" && r.origin !== "medical-scan") return false;
-      if (!q) return true;
-      return r.label.toLowerCase().includes(q) || r.fileName.toLowerCase().includes(q);
-    });
-  }, [rows, query, sourceFilter]);
+    try {
+      const q = query.trim().toLowerCase();
+      return rows.filter((r) => {
+        if (sourceFilter === "travel" && !(r.origin === "transport" || r.origin === "travel-scan")) return false;
+        if (sourceFilter === "medical" && r.origin !== "medical-scan") return false;
+        if (!q) return true;
+        return r.label.toLowerCase().includes(q) || r.fileName.toLowerCase().includes(q);
+      });
+    } catch (e) {
+      void logAttachErrorTelemetry({
+        stage: "filterRows",
+        route,
+        deviceId: getDeviceId(),
+        error: e,
+      });
+      return rows;
+    }
+  }, [rows, query, sourceFilter, route]);
+
+  // Brief "refreshing" shimmer when the query/source filter changes so the
+  // list never appears to vanish during a transient recompute on slow devices.
+  useEffect(() => {
+    if (!open) return;
+    setIsFiltering(true);
+    const id = window.setTimeout(() => setIsFiltering(false), 120);
+    return () => clearTimeout(id);
+  }, [query, sourceFilter, open]);
 
   const handlePick = async (row: UnifiedRecord) => {
     setPicking(row.id);
