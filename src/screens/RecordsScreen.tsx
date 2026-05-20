@@ -11,6 +11,7 @@ import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { useAuthUserId, useAuthSession } from "@/hooks/useAuthUserId";
 import RecordsContentSkeleton from "@/components/records/RecordsContentSkeleton";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
+import { useUnifiedRecordCount } from "@/hooks/useUnifiedRecordCount";
 import TravelRecordsList, { CAT_DEFS, classify, type TravelCat } from "@/components/records/TravelRecordsList";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
@@ -70,6 +71,7 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const { isReady: authReady } = useAuthSession();
   const showAuthSkeleton = !isGuest && !authReady;
   const travelCount = useArtifactCount({ userId });
+  const unifiedCounts = useUnifiedRecordCount({ userId, enabled: !showAuthSkeleton });
   const [travelStats, setTravelStats] = useState({ total: 0, translated: 0, newCount: 0 });
   const [visibleTravelDocs, setVisibleTravelDocs] = useState<TransportAttachment[]>([]);
 
@@ -84,7 +86,14 @@ const RecordsScreen = ({ onOpenScanner, onNavigate }: { onOpenScanner?: () => vo
   const totalFiles = records.length;
   const translatedCount = records.filter(r => r.translationStatus === "translated").length;
   const newCount = records.filter(r => r.isNew).length;
-  const travelTabCount = Math.max(travelStats.total, travelCount);
+  // Single source of truth: derive the Travel chip count from the unified
+  // record reader so Home dashboard and Records screen can never disagree.
+  // Fall back to the legacy heuristic only while unified hook is still
+  // hydrating (returns 0 before first load completes).
+  const unifiedTravelCount = unifiedCounts.byDomain.travel;
+  const travelTabCount = unifiedTravelCount > 0
+    ? unifiedTravelCount
+    : Math.max(travelStats.total, travelCount);
   const headerTotalFiles = segment === "travel" ? travelTabCount : totalFiles;
   const headerTranslatedCount = segment === "travel" ? travelStats.translated : translatedCount;
   const headerNewCount = segment === "travel" ? travelStats.newCount : newCount;
