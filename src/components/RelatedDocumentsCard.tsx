@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
@@ -8,8 +8,11 @@ import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard"
 import { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
 import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
-import { listAllUserRecords, type UnifiedRecord } from "@/lib/records/recordSources";
+import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
+import ChatPickerErrorBoundary from "@/components/chat/ChatPickerErrorBoundary";
+import type { UnifiedRecord } from "@/lib/records/recordSources";
 import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
+import { logAttachErrorTelemetry, shortCause } from "@/lib/records/attachErrorTelemetry";
 import { storageWithDeviceHeader, withDeviceHeader } from "@/lib/supabaseDeviceScope";
 
 export interface TransportAttachment {
@@ -99,15 +102,18 @@ const RelatedDocumentsCard = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
   const [fromRecordsOpen, setFromRecordsOpen] = useState(false);
-  const [pool, setPool] = useState<UnifiedRecord[]>([]);
-  const [poolLoading, setPoolLoading] = useState(false);
-  const [linkingId, setLinkingId] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   // Smart-scan flow: when set, opens ScannerWizard with this file pre-seeded.
   const [scanFile, setScanFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
   const isBusy = uploading || !!scanFile;
+  const linkedFilePaths = useMemo(() => new Set(items.map((i) => i.file_path)), [items]);
+  const filterJourneyRecord = useCallback((record: UnifiedRecord) => {
+    if (!record.linkableToMilestone) return false;
+    if (record.filePath && linkedFilePaths.has(record.filePath)) return false;
+    return true;
+  }, [linkedFilePaths]);
 
   const refresh = async () => {
     setLoading(true);
@@ -353,28 +359,15 @@ const RelatedDocumentsCard = ({
 
   const openFromRecords = async () => {
     setFromRecordsOpen(true);
-    setPoolLoading(true);
-    try {
-      const all = await listAllUserRecords({ userId: userId ?? null, deviceId, fileBackedOnly: true });
-      const linkedPaths = new Set(items.map((i) => i.file_path));
-      // Hide rows already linked to THIS milestone and rows we cannot link.
-      const usable = all.filter((r) => {
-        if (!r.linkableToMilestone) return false;
-        if (r.filePath && linkedPaths.has(r.filePath)) return false;
-        return true;
-      });
-      setPool(usable);
-    } catch (e: any) {
-      console.warn("[RelatedDocumentsCard] pool load failed", e);
-      toast.error("Could not load records", { description: e?.message });
-      setPool([]);
-    } finally {
-      setPoolLoading(false);
-    }
   };
 
-  const linkExisting = async (src: UnifiedRecord) => {
-    setLinkingId(src.id);
+  const linkExisting = async (src: UnifiedRecord | null | undefined) => {
+    if (!src) {
+      const error = new Error("Picker returned no source record");
+      void logAttachErrorTelemetry({ stage: "missingSourceRecord", route: "journey-from-records", deviceId, rowId: null, error });
+      toast.error("Could not link · تعذّر الربط", { description: shortCause(error) });
+      return;
+    }
     try {
       await linkRecordToMilestone(
         src,
@@ -389,9 +382,8 @@ const RelatedDocumentsCard = ({
       setFromRecordsOpen(false);
       refresh();
     } catch (e: any) {
-      toast.error("Could not link", { description: e?.message });
-    } finally {
-      setLinkingId(null);
+      void logAttachErrorTelemetry({ stage: "linkRecordToMilestone", route: "journey-from-records", deviceId, rowId: src.id, error: e });
+      toast.error("Could not link · تعذّر الربط", { description: shortCause(e) });
     }
   };
 
@@ -629,80 +621,19 @@ const RelatedDocumentsCard = ({
 
 
 
-      {/* From Records picker — canonical overlay primitive. */}
-      <OverlayLayer
-        open={fromRecordsOpen}
-        onClose={() => setFromRecordsOpen(false)}
-        layer="picker"
-        ariaLabel="Attach from Records"
-        backdropClassName="bg-black/55"
-      >
-        <div className="flex h-full w-full items-end justify-center">
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[420px] rounded-t-3xl pb-5"
-            style={{ background: "var(--white)", maxHeight: "80%" }}
-          >
-            <div className="flex justify-center pt-3 pb-2">
-              <div style={{ width: 36, height: 4, background: "#DEE4E9", borderRadius: 2 }} />
-            </div>
-            <div className="px-5 pb-2 flex items-center justify-between">
-              <div>
-                <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Attach from Records</p>
-                <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>إرفاق من السجلات</p>
-              </div>
-              <button
-                onClick={() => setFromRecordsOpen(false)}
-                aria-label="Close"
-                className="w-7 h-7 rounded-full flex items-center justify-center"
-                style={{ background: "var(--off-white)" }}
-              >
-                <X size={14} style={{ color: "var(--gray)" }} />
-              </button>
-            </div>
-            <div className="px-3 overflow-y-auto" style={{ maxHeight: "60vh" }}>
-              {poolLoading ? (
-                <div className="flex items-center justify-center gap-2 py-8" style={{ color: "var(--gray)" }}>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span className="text-[12px]">Loading…</span>
-                </div>
-              ) : pool.length === 0 ? (
-                <p className="text-[12px] text-center py-8" style={{ color: "var(--gray)" }}>
-                  No other records available · لا توجد سجلات أخرى
-                </p>
-              ) : (
-                <ul className="space-y-1.5 pb-3">
-                  {pool.map((p) => (
-                    <li key={p.id}>
-                      <button
-                        onClick={() => linkExisting(p)}
-                        disabled={linkingId === p.id}
-                        className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left btn-press"
-                        style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
-                      >
-                        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--gold-pale)" }}>
-                          {isImage(p.mimeType) ? <ImageIcon size={16} style={{ color: "var(--gold)" }} /> : <FileText size={16} style={{ color: "var(--gold)" }} />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{p.label}</p>
-                          <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>
-                            {p.fileName} · <span style={{ color: p.origin === "medical-scan" ? "var(--teal-deep)" : "var(--gold)" }}>{p.sourceLabelEn}</span>
-                          </p>
-                        </div>
-                        {linkingId === p.id ? (
-                          <Loader2 size={14} className="animate-spin" style={{ color: "var(--teal-deep)" }} />
-                        ) : (
-                          <Plus size={14} style={{ color: "var(--teal-deep)" }} />
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      </OverlayLayer>
+      {fromRecordsOpen && (
+        <ChatPickerErrorBoundary onReset={() => setFromRecordsOpen(false)}>
+          <ChatRecordsPicker
+            open={fromRecordsOpen}
+            onClose={() => setFromRecordsOpen(false)}
+            route="journey-from-records"
+            filterRecord={filterJourneyRecord}
+            onPick={async (pick: PickedRecord) => {
+              await linkExisting(pick.sourceRecord);
+            }}
+          />
+        </ChatPickerErrorBoundary>
+      )}
 
 
       {/* Smart-Scan wizard for image/PDF attachments — review, edit, key fields. */}

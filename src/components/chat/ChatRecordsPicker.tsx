@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useAuthUserId } from "@/hooks/useAuthUserId";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
+import { logAttachErrorTelemetry, shortCause } from "@/lib/records/attachErrorTelemetry";
 import {
   listAllUserRecords,
   resolveRecordSignedUrl,
@@ -27,15 +28,18 @@ export interface PickedRecord {
   sourceLabelAr: string;
   signedUrl?: string;
   mime_type?: string | null;
+  sourceRecord?: UnifiedRecord;
 }
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onPick: (pick: PickedRecord) => void;
+  onPick: (pick: PickedRecord) => void | Promise<void>;
+  route?: string;
+  filterRecord?: (record: UnifiedRecord) => boolean;
 }
 
-const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
+const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker", filterRecord }: Props) => {
   const userId = useAuthUserId();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<UnifiedRecord[]>([]);
@@ -53,27 +57,20 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
           deviceId: getDeviceId(),
           fileBackedOnly: true,
         });
-        if (!cancelled) setRows(all.filter((r) => r.sendableToChat));
+        if (!cancelled) setRows(all.filter((r) => r.sendableToChat && (!filterRecord || filterRecord(r))));
       } catch (e: any) {
         const deviceId = getDeviceId();
-        console.error("[ChatRecordsPicker] load failed", {
-          route: "chat-records-picker",
-          stage: "listAllUserRecords",
-          deviceId,
-          userId: userId ?? null,
-          error: { name: e?.name, message: e?.message, stack: e?.stack },
-        });
+        void logAttachErrorTelemetry({ stage: "listAllUserRecords", route, deviceId, error: e });
         if (!cancelled) setRows([]);
-        const msg = e?.message ?? String(e ?? "unknown error");
         toast.error("Couldn't load records · تعذّر تحميل السجلات", {
-          description: `${msg.length > 90 ? msg.slice(0, 87) + "…" : msg} (chat-records-picker)`,
+          description: `${shortCause(e)} (${route})`,
         });
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [open, userId]);
+  }, [filterRecord, open, route, userId]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -86,13 +83,10 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
   const handlePick = async (row: UnifiedRecord) => {
     setPicking(row.id);
     const deviceId = getDeviceId();
-    const route = "chat-records-picker";
     const ctx = {
       route,
       rowId: row.id,
       origin: row.origin,
-      fileName: row.fileName,
-      mimeType: row.mimeType ?? null,
       deviceId,
       userId: userId ?? null,
     };
@@ -104,33 +98,22 @@ const ChatRecordsPicker = ({ open, onClose, onPick }: Props) => {
       sourceLabelEn: row.sourceLabelEn,
       sourceLabelAr: row.sourceLabelAr,
       mime_type: row.mimeType ?? null,
-    };
-    const shortCause = (e: any) => {
-      const msg = e?.message ?? String(e ?? "unknown error");
-      return msg.length > 90 ? `${msg.slice(0, 87)}…` : msg;
+      sourceRecord: row,
     };
     let signedUrl: string | undefined;
     try {
       signedUrl = (await resolveRecordSignedUrl(row, deviceId)) ?? undefined;
     } catch (e: any) {
-      console.error("[ChatRecordsPicker] signed-url failed", {
-        ...ctx,
-        stage: "resolveRecordSignedUrl",
-        error: { name: e?.name, message: e?.message, stack: e?.stack },
-      });
+      void logAttachErrorTelemetry({ stage: "resolveRecordSignedUrl", route, deviceId, rowId: row.id, error: e });
       toast.error("Couldn't fetch file link · تعذّر جلب الرابط", {
         description: `${shortCause(e)} (${row.id.slice(0, 8)} · ${route})`,
       });
     }
     try {
-      onPick({ ...base, signedUrl });
+      await onPick({ ...base, signedUrl });
     } catch (e: any) {
-      console.error("[ChatRecordsPicker] onPick handler threw", {
-        ...ctx,
-        stage: "onPick",
-        hasSignedUrl: !!signedUrl,
-        error: { name: e?.name, message: e?.message, stack: e?.stack },
-      });
+      console.error("[ChatRecordsPicker] onPick handler threw", { ...ctx, stage: "onPick", hasSignedUrl: !!signedUrl });
+      void logAttachErrorTelemetry({ stage: "onPick", route, deviceId, rowId: row.id, error: e });
       toast.error("Couldn't attach record · تعذّر إرفاق السجل", {
         description: `${shortCause(e)} (${row.id.slice(0, 8)} · ${route})`,
       });
