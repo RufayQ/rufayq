@@ -39,11 +39,14 @@ interface Props {
   filterRecord?: (record: UnifiedRecord) => boolean;
 }
 
+type SourceFilter = "all" | "travel" | "medical";
+
 const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker", filterRecord }: Props) => {
   const userId = useAuthUserId();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<UnifiedRecord[]>([]);
   const [query, setQuery] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [picking, setPicking] = useState<string | null>(null);
 
   useEffect(() => {
