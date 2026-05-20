@@ -625,80 +625,17 @@ const RelatedDocumentsCard = ({
 
 
 
-      {/* From Records picker — canonical overlay primitive. */}
-      <OverlayLayer
-        open={fromRecordsOpen}
-        onClose={() => setFromRecordsOpen(false)}
-        layer="picker"
-        ariaLabel="Attach from Records"
-        backdropClassName="bg-black/55"
-      >
-        <div className="flex h-full w-full items-end justify-center">
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[420px] rounded-t-3xl pb-5"
-            style={{ background: "var(--white)", maxHeight: "80%" }}
-          >
-            <div className="flex justify-center pt-3 pb-2">
-              <div style={{ width: 36, height: 4, background: "#DEE4E9", borderRadius: 2 }} />
-            </div>
-            <div className="px-5 pb-2 flex items-center justify-between">
-              <div>
-                <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>Attach from Records</p>
-                <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>إرفاق من السجلات</p>
-              </div>
-              <button
-                onClick={() => setFromRecordsOpen(false)}
-                aria-label="Close"
-                className="w-7 h-7 rounded-full flex items-center justify-center"
-                style={{ background: "var(--off-white)" }}
-              >
-                <X size={14} style={{ color: "var(--gray)" }} />
-              </button>
-            </div>
-            <div className="px-3 overflow-y-auto" style={{ maxHeight: "60vh" }}>
-              {poolLoading ? (
-                <div className="flex items-center justify-center gap-2 py-8" style={{ color: "var(--gray)" }}>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span className="text-[12px]">Loading…</span>
-                </div>
-              ) : pool.length === 0 ? (
-                <p className="text-[12px] text-center py-8" style={{ color: "var(--gray)" }}>
-                  No other records available · لا توجد سجلات أخرى
-                </p>
-              ) : (
-                <ul className="space-y-1.5 pb-3">
-                  {pool.map((p) => (
-                    <li key={p.id}>
-                      <button
-                        onClick={() => linkExisting(p)}
-                        disabled={linkingId === p.id}
-                        className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left btn-press"
-                        style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
-                      >
-                        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--gold-pale)" }}>
-                          {isImage(p.mimeType) ? <ImageIcon size={16} style={{ color: "var(--gold)" }} /> : <FileText size={16} style={{ color: "var(--gold)" }} />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{p.label}</p>
-                          <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>
-                            {p.fileName} · <span style={{ color: p.origin === "medical-scan" ? "var(--teal-deep)" : "var(--gold)" }}>{p.sourceLabelEn}</span>
-                          </p>
-                        </div>
-                        {linkingId === p.id ? (
-                          <Loader2 size={14} className="animate-spin" style={{ color: "var(--teal-deep)" }} />
-                        ) : (
-                          <Plus size={14} style={{ color: "var(--teal-deep)" }} />
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      </OverlayLayer>
+      <ChatPickerErrorBoundary onReset={() => setFromRecordsOpen(false)}>
+        <ChatRecordsPicker
+          open={fromRecordsOpen}
+          onClose={() => setFromRecordsOpen(false)}
+          route="journey-from-records"
+          filterRecord={filterJourneyRecord}
+          onPick={async (pick: PickedRecord) => {
+            await linkExisting(pick.sourceRecord);
+          }}
+        />
+      </ChatPickerErrorBoundary>
 
 
       {/* Smart-Scan wizard for image/PDF attachments — review, edit, key fields. */}
