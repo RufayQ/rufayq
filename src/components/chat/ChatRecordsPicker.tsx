@@ -7,7 +7,7 @@
  * shows the same items the user sees in the Records screen and in any
  * Journey milestone's "Attach from Records" picker.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, Image as ImageIcon, Search, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getDeviceId } from "@/hooks/useDeviceId";
@@ -48,6 +48,25 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   const [query, setQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [picking, setPicking] = useState<string | null>(null);
+  const [isSearchArmed, setIsSearchArmed] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset armed/typing state whenever the sheet closes so reopening
+  // never inherits stale focus and pops the soft keyboard.
+  useEffect(() => {
+    if (!open) {
+      setIsSearchArmed(false);
+      try { inputRef.current?.blur(); } catch { /* noop */ }
+    }
+  }, [open]);
+
+  const armSearch = () => {
+    if (isSearchArmed) return;
+    setIsSearchArmed(true);
+    requestAnimationFrame(() => {
+      try { inputRef.current?.focus(); } catch { /* noop */ }
+    });
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -167,23 +186,49 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
 
         <div className="px-5 pb-2">
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-xl"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-text"
             style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+            onClick={armSearch}
+            role={isSearchArmed ? undefined : "button"}
+            tabIndex={isSearchArmed ? undefined : 0}
+            onKeyDown={(e) => {
+              if (!isSearchArmed && (e.key === "Enter" || e.key === " ")) {
+                e.preventDefault();
+                armSearch();
+              }
+            }}
           >
             <Search size={14} style={{ color: "var(--gray)" }} />
             <input
+              ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setIsSearchArmed(true)}
               placeholder="Search records · ابحث في السجلات"
               className="flex-1 bg-transparent outline-none text-[13px]"
               style={{ color: "var(--navy)" }}
+              autoFocus={false}
+              readOnly={!isSearchArmed}
+              inputMode={isSearchArmed ? "search" : "none"}
+              enterKeyHint="search"
+              autoComplete="off"
+              aria-label="Search records"
             />
             {query && (
-              <button onClick={() => setQuery("")} className="btn-press">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setQuery("");
+                  try { inputRef.current?.blur(); } catch { /* noop */ }
+                  setIsSearchArmed(false);
+                }}
+                className="btn-press"
+              >
                 <X size={14} style={{ color: "var(--gray)" }} />
               </button>
             )}
           </div>
+
           <div className="flex gap-1.5 mt-2">
             {([
               { id: "all", en: "All", ar: "الكل" },
