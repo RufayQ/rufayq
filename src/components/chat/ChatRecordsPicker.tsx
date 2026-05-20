@@ -6,8 +6,18 @@
  * Data is sourced via the unified `listAllUserRecords()` reader so the picker
  * shows the same items the user sees in the Records screen and in any
  * Journey milestone's "Attach from Records" picker.
+ *
+ * Mobile keyboard-on-demand contract:
+ *  - The search input mounts read-only with `inputMode="none"` so opening the
+ *    sheet never auto-summons the soft keyboard (which on Android WebViews
+ *    races with the first data load and crashes the picker).
+ *  - The wrapping row acts as a button. Only after the user explicitly taps
+ *    or activates it does the input arm, become writable, switch to
+ *    `inputMode="search"`, and receive focus.
+ *  - On close/unmount we cancel any pending focus rAF, disarm, and blur so
+ *    reopening never inherits stale focus.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { FileText, Image as ImageIcon, Search, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getDeviceId } from "@/hooks/useDeviceId";
@@ -50,23 +60,103 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   const [picking, setPicking] = useState<string | null>(null);
   const [isSearchArmed, setIsSearchArmed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const focusRafRef = useRef<number | null>(null);
+  const isOpenRef = useRef(open);
+  const helpId = useId();
+  const statusId = useId();
+
+  // Centralised cleanup: cancel any pending focus rAF, disarm, blur the input.
+  // Called on close, unmount, successful pick close, and after the search row
+  // is cleared. Safe to call multiple times.
+  const cleanupFocus = useCallback(() => {
+    if (focusRafRef.current !== null) {
+      try { cancelAnimationFrame(focusRafRef.current); } catch { /* noop */ }
+      focusRafRef.current = null;
+    }
+    setIsSearchArmed(false);
+    try { inputRef.current?.blur(); } catch { /* noop */ }
+  }, []);
+
+  // Track latest open value so the deferred focus callback can bail if the
+  // sheet was closed in the meantime (prevents a delayed keyboard pop-up).
+  useEffect(() => { isOpenRef.current = open; }, [open]);
 
   // Reset armed/typing state whenever the sheet closes so reopening
   // never inherits stale focus and pops the soft keyboard.
   useEffect(() => {
-    if (!open) {
-      setIsSearchArmed(false);
-      try { inputRef.current?.blur(); } catch { /* noop */ }
-    }
-  }, [open]);
+    if (!open) cleanupFocus();
+  }, [open, cleanupFocus]);
 
-  const armSearch = () => {
+  // Final unmount cleanup — covers route navigation away from the screen.
+  useEffect(() => () => { cleanupFocus(); }, [cleanupFocus]);
+
+  // Telemetry: detect "unexpected focus" or "unexpected keyboard" right after
+  // the picker opens. If either happens while the input is still unarmed it
+  // means something on the host page (autofocus, IME, restored focus) is
+  // racing with us — log it via the existing attach telemetry channel.
+  useEffect(() => {
+    if (!open) return;
+    const deviceId = getDeviceId();
+    const initialViewport = typeof window !== "undefined" && (window as any).visualViewport
+      ? (window as any).visualViewport.height as number
+      : typeof window !== "undefined" ? window.innerHeight : 0;
+    let armedAtCheck = false;
+    const armedSnapshot = () => isSearchArmed;
+
+    // Re-check on the next frame: if our input ended up focused even though
+    // we never armed it, log telemetry.
+    const checkFocus = requestAnimationFrame(() => {
+      armedAtCheck = armedSnapshot();
+      const active = typeof document !== "undefined" ? document.activeElement : null;
+      if (!armedAtCheck && inputRef.current && active === inputRef.current) {
+        void logAttachErrorTelemetry({
+          stage: "unexpectedFocusOnOpen",
+          route,
+          deviceId,
+          error: new Error("ChatRecordsPicker mounted with focused search input"),
+        });
+      }
+    });
+
+    // visualViewport shrink heuristic — Android soft keyboard reduces the
+    // visible viewport height by ~30%+. Only log if it happens before the
+    // user explicitly armed search.
+    const onResize = () => {
+      const vv = (window as any).visualViewport;
+      if (!vv || armedSnapshot()) return;
+      const current = vv.height as number;
+      if (initialViewport > 0 && current < initialViewport * 0.7) {
+        void logAttachErrorTelemetry({
+          stage: "unexpectedKeyboardOnOpen",
+          route,
+          deviceId,
+          error: new Error(`viewport shrank ${Math.round((1 - current / initialViewport) * 100)}% while unarmed`),
+        });
+      }
+    };
+    const vv = typeof window !== "undefined" ? (window as any).visualViewport : null;
+    vv?.addEventListener?.("resize", onResize);
+    return () => {
+      cancelAnimationFrame(checkFocus);
+      vv?.removeEventListener?.("resize", onResize);
+    };
+  }, [open, route, isSearchArmed]);
+
+  const armSearch = useCallback(() => {
+    if (!isOpenRef.current) return;
     if (isSearchArmed) return;
     setIsSearchArmed(true);
-    requestAnimationFrame(() => {
+    if (focusRafRef.current !== null) {
+      try { cancelAnimationFrame(focusRafRef.current); } catch { /* noop */ }
+    }
+    focusRafRef.current = requestAnimationFrame(() => {
+      focusRafRef.current = null;
+      // Guard: bail if the sheet was closed in the meantime — otherwise
+      // we'd refocus the input after close and re-summon the keyboard.
+      if (!isOpenRef.current) return;
       try { inputRef.current?.focus(); } catch { /* noop */ }
     });
-  };
+  }, [isSearchArmed]);
 
   useEffect(() => {
     if (!open) return;
@@ -134,6 +224,9 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
       });
     }
     try {
+      // Disarm + blur before handing off so the parent's close call doesn't
+      // race with a still-focused input on mobile.
+      cleanupFocus();
       await onPick({ ...base, signedUrl });
     } catch (e: any) {
       console.error("[ChatRecordsPicker] onPick handler threw", { ...ctx, stage: "onPick", hasSignedUrl: !!signedUrl });
@@ -146,19 +239,22 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     }
   };
 
-
+  const handleClose = useCallback(() => {
+    cleanupFocus();
+    onClose();
+  }, [cleanupFocus, onClose]);
 
   if (!open) return null;
 
   return (
     <OverlayLayer
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       layer="picker"
       ariaLabel="Attach from My Records"
       backdropClassName="bg-black/55"
     >
-      <div className="flex h-full w-full items-end justify-center" onClick={onClose}>
+      <div className="flex h-full w-full items-end justify-center" onClick={handleClose}>
       <div
         className="relative animate-slide-up rounded-t-3xl flex flex-col w-full max-w-[420px]"
         style={{ background: "var(--white)", maxHeight: "82%" }}
@@ -185,12 +281,24 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
         </div>
 
         <div className="px-5 pb-2">
+          {/* SR-only help describing the two-stage arming pattern. */}
+          <span id={helpId} className="sr-only">
+            Tap to enable searching records. Keyboard will only open after you activate this control.
+          </span>
+          {/* SR-only live status so screen readers announce the state change. */}
+          <span id={statusId} className="sr-only" aria-live="polite">
+            {isSearchArmed ? "Search ready. Type to filter records." : "Search not active. Tap to enable."}
+          </span>
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-text"
             style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
             onClick={armSearch}
             role={isSearchArmed ? undefined : "button"}
             tabIndex={isSearchArmed ? undefined : 0}
+            aria-label={isSearchArmed ? undefined : "Enable search · تفعيل البحث"}
+            aria-describedby={isSearchArmed ? undefined : helpId}
+            aria-pressed={isSearchArmed ? undefined : false}
+            aria-controls={isSearchArmed ? undefined : `search-input-${helpId}`}
             onKeyDown={(e) => {
               if (!isSearchArmed && (e.key === "Enter" || e.key === " ")) {
                 e.preventDefault();
@@ -198,9 +306,10 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
               }
             }}
           >
-            <Search size={14} style={{ color: "var(--gray)" }} />
+            <Search size={14} style={{ color: "var(--gray)" }} aria-hidden="true" />
             <input
               ref={inputRef}
+              id={`search-input-${helpId}`}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onPointerDown={armSearch}
@@ -214,23 +323,27 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
               enterKeyHint="search"
               autoComplete="off"
               aria-label="Search records"
+              aria-describedby={statusId}
+              // Hide the input from the tab order until armed so AT users
+              // first hit the "Enable search" button, not a silent input.
+              tabIndex={isSearchArmed ? 0 : -1}
             />
             {query && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setQuery("");
-                  try { inputRef.current?.blur(); } catch { /* noop */ }
-                  setIsSearchArmed(false);
+                  cleanupFocus();
                 }}
                 className="btn-press"
+                aria-label="Clear search · مسح البحث"
               >
                 <X size={14} style={{ color: "var(--gray)" }} />
               </button>
             )}
           </div>
 
-          <div className="flex gap-1.5 mt-2">
+          <div className="flex gap-1.5 mt-2" role="tablist" aria-label="Filter records by source">
             {([
               { id: "all", en: "All", ar: "الكل" },
               { id: "travel", en: "Travel", ar: "سفر" },
@@ -242,6 +355,8 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
                   key={chip.id}
                   onClick={() => setSourceFilter(chip.id)}
                   className="px-3 py-1 rounded-full text-[11px] font-bold btn-press"
+                  role="tab"
+                  aria-selected={active}
                   style={{
                     background: active ? "var(--teal-deep)" : "var(--off-white)",
                     color: active ? "white" : "var(--navy)",
@@ -329,7 +444,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
         </div>
 
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="w-full py-3 text-[13px] font-medium mb-4 btn-press"
           style={{ color: "var(--gray)" }}
         >
