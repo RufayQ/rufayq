@@ -11,6 +11,7 @@ import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { useAuthUserId, useAuthSession } from "@/hooks/useAuthUserId";
 import RecordsContentSkeleton from "@/components/records/RecordsContentSkeleton";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
+import { useUnifiedRecordCount } from "@/hooks/useUnifiedRecordCount";
 import TravelRecordsList, { CAT_DEFS, classify, type TravelCat } from "@/components/records/TravelRecordsList";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet, { type RecordTarget } from "@/components/records/RecordActionsSheet";
