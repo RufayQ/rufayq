@@ -400,9 +400,41 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
 
         <div className="flex-1 overflow-y-auto px-5 pb-4">
           {loading ? (
-            <div className="flex items-center justify-center py-10" style={{ color: "var(--gray)" }}>
-              <Loader2 size={18} className="animate-spin" />
-              <span className="ml-2 text-[12px]">Loading records · جارٍ التحميل</span>
+            <div className="space-y-2" aria-busy="true" aria-live="polite" data-testid="records-picker-skeleton">
+              <span className="sr-only">Loading records · جارٍ التحميل</span>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl animate-pulse"
+                  style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+                >
+                  <div className="shrink-0 w-9 h-9 rounded-lg" style={{ background: "var(--off-white)" }} />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-2.5 rounded" style={{ width: "70%", background: "var(--off-white)" }} />
+                    <div className="h-2 rounded" style={{ width: "45%", background: "var(--off-white)" }} />
+                  </div>
+                  <div className="h-3 w-10 rounded" style={{ background: "var(--off-white)" }} />
+                </div>
+              ))}
+            </div>
+          ) : loadError ? (
+            <div className="text-center py-8" role="alert" data-testid="records-picker-error">
+              <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>
+                Couldn't load records
+              </p>
+              <p className="font-arabic text-[12px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>
+                تعذّر تحميل السجلات
+              </p>
+              <p className="text-[11px] mt-2" style={{ color: "var(--gray)" }}>
+                {shortCause(loadError)}
+              </p>
+              <button
+                onClick={handleManualRetry}
+                className="mt-4 px-4 py-2 rounded-full text-[12px] font-bold btn-press"
+                style={{ background: "var(--teal-deep)", color: "white" }}
+              >
+                Try again · <span className="font-arabic">إعادة المحاولة</span>
+              </button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-10">
@@ -411,6 +443,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
                 لا توجد سجلات بعد
               </p>
             </div>
+
           ) : (
             <div className="space-y-2">
               {filtered.map((r) => {
