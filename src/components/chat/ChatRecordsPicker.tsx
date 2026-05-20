@@ -506,7 +506,12 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
             </div>
 
           ) : (
-            <div className="space-y-2">
+            <div
+              className="space-y-2 transition-opacity duration-150"
+              style={{ opacity: isFiltering ? 0.55 : 1 }}
+              data-testid="records-picker-list"
+              aria-busy={isFiltering || isAttaching ? true : undefined}
+            >
               {filtered.map((r) => {
                 const isMedical = r.origin === "medical-scan";
                 const isImage = !!r.mimeType && r.mimeType.startsWith("image/");
