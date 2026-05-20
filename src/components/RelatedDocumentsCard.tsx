@@ -384,7 +384,6 @@ const RelatedDocumentsCard = ({
     } catch (e: any) {
       void logAttachErrorTelemetry({ stage: "linkRecordToMilestone", route: "journey-from-records", deviceId, rowId: src.id, error: e });
       toast.error("Could not link · تعذّر الربط", { description: shortCause(e) });
-    } finally {
     }
   };
 
@@ -622,17 +621,19 @@ const RelatedDocumentsCard = ({
 
 
 
-      <ChatPickerErrorBoundary onReset={() => setFromRecordsOpen(false)}>
-        <ChatRecordsPicker
-          open={fromRecordsOpen}
-          onClose={() => setFromRecordsOpen(false)}
-          route="journey-from-records"
-          filterRecord={filterJourneyRecord}
-          onPick={async (pick: PickedRecord) => {
-            await linkExisting(pick.sourceRecord);
-          }}
-        />
-      </ChatPickerErrorBoundary>
+      {fromRecordsOpen && (
+        <ChatPickerErrorBoundary onReset={() => setFromRecordsOpen(false)}>
+          <ChatRecordsPicker
+            open={fromRecordsOpen}
+            onClose={() => setFromRecordsOpen(false)}
+            route="journey-from-records"
+            filterRecord={filterJourneyRecord}
+            onPick={async (pick: PickedRecord) => {
+              await linkExisting(pick.sourceRecord);
+            }}
+          />
+        </ChatPickerErrorBoundary>
+      )}
 
 
       {/* Smart-Scan wizard for image/PDF attachments — review, edit, key fields. */}
