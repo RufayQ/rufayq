@@ -7,7 +7,7 @@
  * shows the same items the user sees in the Records screen and in any
  * Journey milestone's "Attach from Records" picker.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, Image as ImageIcon, Search, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getDeviceId } from "@/hooks/useDeviceId";
