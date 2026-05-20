@@ -266,6 +266,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
 
   const handlePick = async (row: UnifiedRecord) => {
     setPicking(row.id);
+    setIsAttaching(true);
     const deviceId = getDeviceId();
     const ctx = {
       route,
