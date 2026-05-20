@@ -86,8 +86,6 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
       route,
       rowId: row.id,
       origin: row.origin,
-      fileName: row.fileName,
-      mimeType: row.mimeType ?? null,
       deviceId,
       userId: userId ?? null,
     };
