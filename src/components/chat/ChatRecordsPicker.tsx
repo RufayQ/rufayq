@@ -164,7 +164,9 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    let retryTimer: number | null = null;
     setLoading(true);
+    setLoadError(null);
     (async () => {
       try {
         const all = await listAllUserRecords({
@@ -172,20 +174,41 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
           deviceId: getDeviceId(),
           fileBackedOnly: true,
         });
-        if (!cancelled) setRows(all.filter((r) => r.sendableToChat && (!filterRecord || filterRecord(r))));
+        if (cancelled) return;
+        setRows(all.filter((r) => r.sendableToChat && (!filterRecord || filterRecord(r))));
+        setLoadError(null);
+        retryCountRef.current = 0;
       } catch (e: any) {
+        if (cancelled) return;
         const deviceId = getDeviceId();
         void logAttachErrorTelemetry({ stage: "listAllUserRecords", route, deviceId, error: e });
-        if (!cancelled) setRows([]);
-        toast.error("Couldn't load records · تعذّر تحميل السجلات", {
-          description: `${shortCause(e)} (${route})`,
-        });
+        // Auto-retry once with backoff to absorb transient races (auth refresh,
+        // device-header timing) without yanking the menu away from the user.
+        if (retryCountRef.current < 1) {
+          retryCountRef.current += 1;
+          retryTimer = window.setTimeout(() => {
+            if (!cancelled) setRetryNonce((n) => n + 1);
+          }, 600);
+          return;
+        }
+        setRows([]);
+        setLoadError(e instanceof Error ? e : new Error(String(e ?? "unknown error")));
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
-  }, [filterRecord, open, route, userId]);
+    return () => {
+      cancelled = true;
+      if (retryTimer !== null) clearTimeout(retryTimer);
+    };
+  }, [filterRecord, open, route, userId, retryNonce]);
+
+  const handleManualRetry = useCallback(() => {
+    retryCountRef.current = 0;
+    setLoadError(null);
+    setRetryNonce((n) => n + 1);
+  }, []);
+
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
