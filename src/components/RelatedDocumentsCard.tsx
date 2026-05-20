@@ -368,7 +368,6 @@ const RelatedDocumentsCard = ({
       toast.error("Could not link · تعذّر الربط", { description: shortCause(error) });
       return;
     }
-    setLinkingId(src.id);
     try {
       await linkRecordToMilestone(
         src,
@@ -386,7 +385,6 @@ const RelatedDocumentsCard = ({
       void logAttachErrorTelemetry({ stage: "linkRecordToMilestone", route: "journey-from-records", deviceId, rowId: src.id, error: e });
       toast.error("Could not link · تعذّر الربط", { description: shortCause(e) });
     } finally {
-      setLinkingId(null);
     }
   };
 
