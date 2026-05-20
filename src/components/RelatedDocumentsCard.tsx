@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
@@ -8,8 +8,11 @@ import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard"
 import { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
 import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
-import { listAllUserRecords, type UnifiedRecord } from "@/lib/records/recordSources";
+import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
+import ChatPickerErrorBoundary from "@/components/chat/ChatPickerErrorBoundary";
+import type { UnifiedRecord } from "@/lib/records/recordSources";
 import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
+import { logAttachErrorTelemetry, shortCause } from "@/lib/records/attachErrorTelemetry";
 import { storageWithDeviceHeader, withDeviceHeader } from "@/lib/supabaseDeviceScope";
 
 export interface TransportAttachment {
@@ -99,8 +102,6 @@ const RelatedDocumentsCard = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
   const [fromRecordsOpen, setFromRecordsOpen] = useState(false);
-  const [pool, setPool] = useState<UnifiedRecord[]>([]);
-  const [poolLoading, setPoolLoading] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   // Smart-scan flow: when set, opens ScannerWizard with this file pre-seeded.
@@ -108,6 +109,12 @@ const RelatedDocumentsCard = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
   const isBusy = uploading || !!scanFile;
+  const linkedFilePaths = useMemo(() => new Set(items.map((i) => i.file_path)), [items]);
+  const filterJourneyRecord = useCallback((record: UnifiedRecord) => {
+    if (!record.linkableToMilestone) return false;
+    if (record.filePath && linkedFilePaths.has(record.filePath)) return false;
+    return true;
+  }, [linkedFilePaths]);
 
   const refresh = async () => {
     setLoading(true);
