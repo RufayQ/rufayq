@@ -102,7 +102,6 @@ const RelatedDocumentsCard = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
   const [fromRecordsOpen, setFromRecordsOpen] = useState(false);
-  const [linkingId, setLinkingId] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   // Smart-scan flow: when set, opens ScannerWizard with this file pre-seeded.
   const [scanFile, setScanFile] = useState<File | null>(null);
