@@ -77,11 +77,13 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      r.label.toLowerCase().includes(q) || r.fileName.toLowerCase().includes(q)
-    );
-  }, [rows, query]);
+    return rows.filter((r) => {
+      if (sourceFilter === "travel" && !(r.origin === "transport" || r.origin === "travel-scan")) return false;
+      if (sourceFilter === "medical" && r.origin !== "medical-scan") return false;
+      if (!q) return true;
+      return r.label.toLowerCase().includes(q) || r.fileName.toLowerCase().includes(q);
+    });
+  }, [rows, query, sourceFilter]);
 
   const handlePick = async (row: UnifiedRecord) => {
     setPicking(row.id);
