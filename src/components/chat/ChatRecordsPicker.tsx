@@ -307,6 +307,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
       });
     } finally {
       setPicking(null);
+      setIsAttaching(false);
     }
   };
 
