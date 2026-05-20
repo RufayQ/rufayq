@@ -203,6 +203,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onPointerDown={armSearch}
               onFocus={() => setIsSearchArmed(true)}
               placeholder="Search records · ابحث في السجلات"
               className="flex-1 bg-transparent outline-none text-[13px]"
