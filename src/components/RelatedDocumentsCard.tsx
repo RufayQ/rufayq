@@ -360,27 +360,15 @@ const RelatedDocumentsCard = ({
 
   const openFromRecords = async () => {
     setFromRecordsOpen(true);
-    setPoolLoading(true);
-    try {
-      const all = await listAllUserRecords({ userId: userId ?? null, deviceId, fileBackedOnly: true });
-      const linkedPaths = new Set(items.map((i) => i.file_path));
-      // Hide rows already linked to THIS milestone and rows we cannot link.
-      const usable = all.filter((r) => {
-        if (!r.linkableToMilestone) return false;
-        if (r.filePath && linkedPaths.has(r.filePath)) return false;
-        return true;
-      });
-      setPool(usable);
-    } catch (e: any) {
-      console.warn("[RelatedDocumentsCard] pool load failed", e);
-      toast.error("Could not load records", { description: e?.message });
-      setPool([]);
-    } finally {
-      setPoolLoading(false);
-    }
   };
 
-  const linkExisting = async (src: UnifiedRecord) => {
+  const linkExisting = async (src: UnifiedRecord | null | undefined) => {
+    if (!src) {
+      const error = new Error("Picker returned no source record");
+      void logAttachErrorTelemetry({ stage: "missingSourceRecord", route: "journey-from-records", deviceId, rowId: null, error });
+      toast.error("Could not link · تعذّر الربط", { description: shortCause(error) });
+      return;
+    }
     setLinkingId(src.id);
     try {
       await linkRecordToMilestone(
@@ -396,7 +384,8 @@ const RelatedDocumentsCard = ({
       setFromRecordsOpen(false);
       refresh();
     } catch (e: any) {
-      toast.error("Could not link", { description: e?.message });
+      void logAttachErrorTelemetry({ stage: "linkRecordToMilestone", route: "journey-from-records", deviceId, rowId: src.id, error: e });
+      toast.error("Could not link · تعذّر الربط", { description: shortCause(e) });
     } finally {
       setLinkingId(null);
     }
