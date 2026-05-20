@@ -184,7 +184,32 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
               </button>
             )}
           </div>
+          <div className="flex gap-1.5 mt-2">
+            {([
+              { id: "all", en: "All", ar: "الكل" },
+              { id: "travel", en: "Travel", ar: "سفر" },
+              { id: "medical", en: "Medical", ar: "طبي" },
+            ] as { id: SourceFilter; en: string; ar: string }[]).map((chip) => {
+              const active = sourceFilter === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  onClick={() => setSourceFilter(chip.id)}
+                  className="px-3 py-1 rounded-full text-[11px] font-bold btn-press"
+                  style={{
+                    background: active ? "var(--teal-deep)" : "var(--off-white)",
+                    color: active ? "white" : "var(--navy)",
+                    border: "1px solid var(--gray-light)",
+                  }}
+                >
+                  {chip.en} · <span className="font-arabic">{chip.ar}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+
 
         <div className="flex-1 overflow-y-auto px-5 pb-4">
           {loading ? (
