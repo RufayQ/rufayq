@@ -18,7 +18,7 @@
  *    reopening never inherits stale focus.
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { FileText, Image as ImageIcon, Search, X, Loader2 } from "lucide-react";
+import { FileText, Image as ImageIcon, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { useAuthUserId } from "@/hooks/useAuthUserId";
