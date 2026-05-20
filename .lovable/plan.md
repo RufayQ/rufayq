@@ -1,44 +1,27 @@
-## Records picker — keyboard-on-demand fix
+## one critical mismatch in your current branch:
 
-**Request:** when the menu opens "Attach from My Records", don't pop the soft keyboard; only show it when the user actually taps the search field to type.
+- I don’t see a src/components/chat/ChatRecordsPicker.tsx file in this repo snapshot, and there are no references to ChatRecordsPicker in src/.
+- The keyboard-risk surface you currently have is in the milestone picker search inside RelatedDocumentsCard (which now already uses a “search armed” approach). 【F:src/components/RelatedDocumentsCard.tsx†L93-L94】【F:src/components/RelatedDocumentsCard.tsx†L678-L684】
 
-**Current behaviour (`src/components/chat/ChatRecordsPicker.tsx`):** the search `<input>` has no explicit `autoFocus`, but on Android/iOS WebViews a visible text input inside a freshly mounted bottom-sheet can still attract focus (focus trap, native IME heuristics, or any ancestor calling `.focus()`). Result: keyboard slides up under the sheet → layout reflow → race with the picker's mount/data-load → crash + journey route unwind described earlier.
+&nbsp;
 
-**Plan (UI-only, presentation layer):Exact implementation requirements for ChatRecordsPicker**
+**Plan**
 
-Ask Lovable to implement these **specific safeguards**:
+**No source edits.** The fix is on the correct (and only) picker component for this branch. The earlier validation pointed at a file/line range from a different branch.
 
-1. **Never auto-focus search on open**
-  - Ensure search input has autoFocus={false} (or removed).
-  - Do not call .focus() in mount effects.
-2. **Use explicit “enable typing” intent**
-  - Add isSearchArmed state default false.
-  - Render input as:
-    - readOnly={!isSearchArmed}
-    - inputMode={isSearchArmed ? "search" : "none"}
-  - On tap/click of the input container:
-    - set isSearchArmed(true)
-    - then requestAnimationFrame(() => inputRef.current?.focus())
-3. **Reset on close**
-  - On sheet close/unmount:
-    - blur input
-    - clear isSearchArmed(false)
-  - Prevent stale focus returning when re-opened.
-4. **Guard against parent focus traps**
-  - Ensure no parent effect/focus-trap grabs first input automatically.
-  - If using a modal/focus-lock lib, disable initial focus targeting for this sheet.
-5. **Viewport stability on mobile keyboard**
-  - Keep list container height stable (max-height / internal scroll).
-  - Avoid layout jumps when visual viewport changes.
+If you want extra hardening, the only safe additions would be:
 
----
+1. Add `onPointerDown={armSearch}` to the input (currently we only arm on container click / input focus). Belt-and-suspenders against pointer-routing quirks on some Android WebViews.
+2. Add a regression test (`ChatRecordsPicker.keyboard.test.tsx`) asserting `document.activeElement !== input` after open, and that tapping the row arms + focuses.
 
-## **Acceptance criteria for this keyboard fix**
+### **Recommendation (exact)**
 
-- Opening “Attach from My Records” does **not** open keyboard.
-- Keyboard opens **only after user taps search**.
-- Closing/reopening sheet remains stable (no instant keyboard).
-- No crash/route unwind during open + first data fetch.
-- Search still works normally once armed.
+Use the same safeguards in the real picker component:
 
-  
+1. No auto-focus on open.
+2. isSearchArmed gate (readOnly, optional inputMode control).
+3. On user tap: arm + requestAnimationFrame(() => input.focus()).
+4. On close: blur + reset armed state.
+5. Keep list in fixed max-height/internal scroll to avoid viewport jumps.
+
+Your acceptance criteria are solid and should be kept exactly as written.
