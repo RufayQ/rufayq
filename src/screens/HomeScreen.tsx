@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import { usePatientName } from "@/hooks/usePatientName";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
 import { useJourneys } from "@/hooks/useJourneys";
-import { useMedicalRecords } from "@/hooks/useMedicalRecords";
-import { useArtifactCount } from "@/hooks/useArtifactCount";
+// useMedicalRecords removed — record count now comes from useUnifiedRecordCount.
+import { useUnifiedRecordCount } from "@/hooks/useUnifiedRecordCount";
 import { useAuthSession } from "@/hooks/useAuthUserId";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -31,9 +31,11 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const { showEn, showAr } = useLanguage();
   const overview = useJourneyOverview({ isGuest });
   const { journeys } = useJourneys(isGuest ? [] : []);
-  const { items: recordItems } = useMedicalRecords();
+  // (medical records list is no longer needed here — count comes from useUnifiedRecordCount)
   const { userId: authUserId, isReady: authReady } = useAuthSession();
-  const attachmentCount = useArtifactCount({
+  // Single source-of-truth count: same merger the Records Travel chip and
+  // the picker use, so Home/Records/Picker can never disagree.
+  const unifiedRecords = useUnifiedRecordCount({
     userId: authUserId,
     enabled: isGuest || authReady,
   });
@@ -49,9 +51,9 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const stats = useMemo(() => ({
     trips: dataReady ? (journeys.length || (activeTrip ? 1 : 0)) : null,
     reminders: dataReady ? alerts.length : null,
-    records: dataReady ? (recordItems.length + attachmentCount) : null,
+    records: dataReady ? unifiedRecords.total : null,
     plannedAhead: dataReady ? upcomingAppointments.length : null,
-  }), [dataReady, journeys.length, activeTrip, alerts.length, recordItems.length, attachmentCount, upcomingAppointments.length]);
+  }), [dataReady, journeys.length, activeTrip, alerts.length, unifiedRecords.total, upcomingAppointments.length]);
 
   // Default selection: the "current" milestone (or first upcoming, then first).
   const defaultSelectedId = useMemo(() => {

@@ -28,11 +28,21 @@ export const TRANSPORT_BUCKET = "transport-attachments";
 const SIGNED_URL_TTL = 60 * 60;
 
 export type RecordOrigin = "transport" | "travel-scan" | "medical-scan" | "lounge";
+export type RecordDomain = "travel" | "medical";
+
+export const domainForOrigin = (o: RecordOrigin): RecordDomain =>
+  o === "medical-scan" ? "medical" : "travel";
+
+/** Convenience accessor — works on partial rows that pre-date the `domain` field. */
+export const domainOf = (r: Pick<UnifiedRecord, "origin" | "domain">): RecordDomain =>
+  r.domain ?? domainForOrigin(r.origin);
 
 export interface UnifiedRecord {
   /** Source-prefixed stable id for React keys & dedupe (e.g. "transport:abc"). */
   id: string;
   origin: RecordOrigin;
+  /** Records-domain tag — drives Travel vs Medical filtering everywhere. Optional for back-compat; use `domainOf(r)` to read. */
+  domain?: RecordDomain;
   label: string;
   fileName: string;
   mimeType: string | null;
@@ -96,6 +106,7 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
       transportRows.push({
         id: `transport:${r.id}`,
         origin: "transport",
+        domain: "travel",
         label: r.label || "Document",
         fileName: r.file_name,
         mimeType: r.mime_type,
@@ -118,6 +129,7 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
   const travelScans: UnifiedRecord[] = listTravelScannedRecords().map((s) => ({
     id: `travel-scan:${s.id}`,
     origin: "travel-scan",
+    domain: "travel",
     label: s.title || s.subcategory || "Travel document",
     fileName: s.fileName || `${s.title || "document"}.pdf`,
     mimeType: s.mimeType ?? null,
@@ -135,6 +147,7 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
   const medicalScans: UnifiedRecord[] = listScannedRecords().map((s) => ({
     id: `medical-scan:${s.id}`,
     origin: "medical-scan",
+    domain: "medical",
     label: s.titleEn || s.category || "Medical record",
     fileName: s.fileName || s.source || `${s.titleEn || "record"}.pdf`,
     mimeType: s.mimeType ?? null,
@@ -154,6 +167,7 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
     lounges = listLoungeMemberships().map((l) => ({
       id: `lounge:${l.id}`,
       origin: "lounge",
+      domain: "travel",
       label: l.program || "Lounge card",
       fileName: l.membershipNumber || "—",
       mimeType: null,
@@ -277,3 +291,17 @@ export const importScanToBucket = async (
 
   return { filePath, fileName, mimeType, sizeBytes: blob.size };
 };
+
+/**
+ * Records-domain canonical alias. Use this name from new call sites so it
+ * reads as "list all records for a user" rather than the legacy
+ * chat-flavoured name.
+ */
+export const listAllRecordsForUser = listAllUserRecords;
+
+/**
+ * Public alias kept for naming parity with the spec — same as
+ * `resolveRecordSignedUrl` and resolves a previewable URL for any
+ * UnifiedRecord regardless of origin.
+ */
+export const resolveRecordUrl = resolveRecordSignedUrl;

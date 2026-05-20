@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { isNative, platform } from "@/lib/native";
+import { consumeOverlayInternalPop } from "@/shared/ui/overlay/useOverlayBack";
 
 /**
  * Android hardware back-button handler.
@@ -58,6 +59,9 @@ export function useAndroidBackButton({ onBack, enabled = true }: Options) {
         try {
           const { App } = await import("@capacitor/app");
           const handle = await App.addListener("backButton", async () => {
+            // Same overlay-pop guard as the web path — never treat an
+            // overlay's internal sentinel pop as a real user back-press.
+            if (consumeOverlayInternalPop()) return;
             const handled = onBackRef.current();
             if (handled) return;
             await handleAttemptExit(async () => {
@@ -83,6 +87,14 @@ export function useAndroidBackButton({ onBack, enabled = true }: Options) {
     if (!isNative) {
       pushGuard();
       popHandler = () => {
+        // If this popstate is from an overlay closing (sentinel cleanup
+        // called history.back()), swallow it: re-push the guard and bail.
+        // Otherwise the user gets bounced out of the current tab whenever
+        // they pick/cancel from a picker.
+        if (consumeOverlayInternalPop()) {
+          pushGuard();
+          return;
+        }
         const handled = onBackRef.current();
         if (handled) {
           pushGuard();
