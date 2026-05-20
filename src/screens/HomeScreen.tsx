@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { usePatientName } from "@/hooks/usePatientName";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
 import { useJourneys } from "@/hooks/useJourneys";
-import { useMedicalRecords } from "@/hooks/useMedicalRecords";
+// useMedicalRecords removed — record count now comes from useUnifiedRecordCount.
 import { useUnifiedRecordCount } from "@/hooks/useUnifiedRecordCount";
 import { useAuthSession } from "@/hooks/useAuthUserId";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -31,7 +31,7 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const { showEn, showAr } = useLanguage();
   const overview = useJourneyOverview({ isGuest });
   const { journeys } = useJourneys(isGuest ? [] : []);
-  const { items: recordItems } = useMedicalRecords();
+  // (medical records list is no longer needed here — count comes from useUnifiedRecordCount)
   const { userId: authUserId, isReady: authReady } = useAuthSession();
   // Single source-of-truth count: same merger the Records Travel chip and
   // the picker use, so Home/Records/Picker can never disagree.
