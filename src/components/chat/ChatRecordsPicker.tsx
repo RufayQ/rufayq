@@ -39,11 +39,14 @@ interface Props {
   filterRecord?: (record: UnifiedRecord) => boolean;
 }
 
+type SourceFilter = "all" | "travel" | "medical";
+
 const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker", filterRecord }: Props) => {
   const userId = useAuthUserId();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<UnifiedRecord[]>([]);
   const [query, setQuery] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [picking, setPicking] = useState<string | null>(null);
 
   useEffect(() => {
@@ -74,11 +77,13 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      r.label.toLowerCase().includes(q) || r.fileName.toLowerCase().includes(q)
-    );
-  }, [rows, query]);
+    return rows.filter((r) => {
+      if (sourceFilter === "travel" && !(r.origin === "transport" || r.origin === "travel-scan")) return false;
+      if (sourceFilter === "medical" && r.origin !== "medical-scan") return false;
+      if (!q) return true;
+      return r.label.toLowerCase().includes(q) || r.fileName.toLowerCase().includes(q);
+    });
+  }, [rows, query, sourceFilter]);
 
   const handlePick = async (row: UnifiedRecord) => {
     setPicking(row.id);
@@ -179,7 +184,32 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
               </button>
             )}
           </div>
+          <div className="flex gap-1.5 mt-2">
+            {([
+              { id: "all", en: "All", ar: "الكل" },
+              { id: "travel", en: "Travel", ar: "سفر" },
+              { id: "medical", en: "Medical", ar: "طبي" },
+            ] as { id: SourceFilter; en: string; ar: string }[]).map((chip) => {
+              const active = sourceFilter === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  onClick={() => setSourceFilter(chip.id)}
+                  className="px-3 py-1 rounded-full text-[11px] font-bold btn-press"
+                  style={{
+                    background: active ? "var(--teal-deep)" : "var(--off-white)",
+                    color: active ? "white" : "var(--navy)",
+                    border: "1px solid var(--gray-light)",
+                  }}
+                >
+                  {chip.en} · <span className="font-arabic">{chip.ar}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+
 
         <div className="flex-1 overflow-y-auto px-5 pb-4">
           {loading ? (
