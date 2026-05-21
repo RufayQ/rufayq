@@ -37,10 +37,15 @@ export function useDomainData<Row extends { id: string }>(
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(enabled ? api.lastSyncedAt() : null);
 
   const refresh = useCallback(async () => {
+    if (enabled && !authReady) {
+      setIsLoading(true);
+      setIsSyncing(false);
+      return;
+    }
     if (!effectiveEnabled) {
       setItems([]);
       setLastSyncedAt(null);
-      setIsLoading(enabled && !authReady);
+      setIsLoading(false);
       setIsSyncing(false);
       return;
     }
