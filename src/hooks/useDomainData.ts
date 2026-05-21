@@ -3,6 +3,7 @@
  * Pattern: cache-first paint → DB refresh → optimistic save/remove rollback.
  */
 import { useCallback, useEffect, useState } from "react";
+import { useAuthSession } from "@/hooks/useAuthUserId";
 
 export interface DomainApiShape<Row extends { id: string }> {
   list: () => Promise<Row[]>;
@@ -27,6 +28,8 @@ export function useDomainData<Row extends { id: string }>(
   api: DomainApiShape<Row>,
   enabled = true,
 ): DomainHookResult<Row> {
+  const { isReady: authReady } = useAuthSession();
+  const effectiveEnabled = enabled && authReady;
   const [items, setItems] = useState<Row[]>(() => (enabled ? api.listCached() : []));
   const [isLoading, setIsLoading] = useState(enabled);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -34,7 +37,12 @@ export function useDomainData<Row extends { id: string }>(
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(enabled ? api.lastSyncedAt() : null);
 
   const refresh = useCallback(async () => {
-    if (!enabled) {
+    if (enabled && !authReady) {
+      setIsLoading(true);
+      setIsSyncing(false);
+      return;
+    }
+    if (!effectiveEnabled) {
       setItems([]);
       setLastSyncedAt(null);
       setIsLoading(false);
@@ -54,7 +62,7 @@ export function useDomainData<Row extends { id: string }>(
       setIsSyncing(false);
       setIsLoading(false);
     }
-  }, [api, enabled]);
+  }, [api, effectiveEnabled, enabled, authReady]);
 
   useEffect(() => {
     void refresh();
