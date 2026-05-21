@@ -382,7 +382,6 @@ const RelatedDocumentsCard = ({
         { userId: userId ?? null, deviceId, sourceDocumentId: sourceDocumentId ?? null },
       );
       toast.success(`${src.label} attached`);
-      setFromRecordsOpen(false);
       refresh();
     } catch (e: any) {
       void logAttachErrorTelemetry({ stage: "linkRecordToMilestone", route: "journey-from-records", deviceId, rowId: src.id, error: e });
