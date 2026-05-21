@@ -21,7 +21,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { listTravelScannedRecords, type TravelScannedRecord } from "@/lib/travelScannedRecordsStore";
 import { listScannedRecords, type ScannedRecord } from "@/lib/scannedRecordsStore";
-import { listLoungeMemberships, type LoungeMembership } from "@/lib/loungeMemberships";
+import { fetchLoungeMemberships, listLoungeMemberships, type LoungeMembership } from "@/lib/loungeMemberships";
 import { storageWithDeviceHeader, withDeviceHeader } from "@/lib/supabaseDeviceScope";
 
 export const TRANSPORT_BUCKET = "transport-attachments";
@@ -161,9 +161,14 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
     medicalScan: s,
   }));
 
-  // 4) Lounge cards — surface only when caller allows non-file rows
+  // 4) Lounge cards — surface only when caller allows non-file rows. Pull the
+  // DB cache first so Home/Records count from the same freshly hydrated source,
+  // not from a stale in-memory lounge cache.
   let lounges: UnifiedRecord[] = [];
   if (!fileBackedOnly) {
+    await fetchLoungeMemberships().catch((e) => {
+      console.warn("[recordSources] lounge memberships refresh failed", e);
+    });
     lounges = listLoungeMemberships().map((l) => ({
       id: `lounge:${l.id}`,
       origin: "lounge",
