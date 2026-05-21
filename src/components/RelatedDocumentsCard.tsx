@@ -96,6 +96,7 @@ const RelatedDocumentsCard = ({
   title,
   compact,
 }: Props) => {
+  const targetLabel = title?.replace(/·.*$/, "").trim() || segmentRef.replace(/^milestone-/, "Milestone ").replace(/^flight-/, "Flight ");
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -630,6 +631,8 @@ const RelatedDocumentsCard = ({
             onClose={() => setFromRecordsOpen(false)}
             route="journey-from-records"
             filterRecord={filterJourneyRecord}
+            attachTargetLabel={targetLabel}
+            attachTargetLabelAr="المحطة المختارة"
             onPick={async (pick: PickedRecord) => {
               await linkExisting(pick.sourceRecord);
             }}
