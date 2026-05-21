@@ -500,18 +500,10 @@ const Index = () => {
 
   const handleTabRenderError = useCallback((key: string, error: Error) => {
     console.error("[tab-fallback] render failed", { tabKey: key, name: error?.name, message: error?.message, stack: error?.stack });
-    const prev = lastGoodRef.current;
-    const sameAsCurrent = `${prev.appView}:${prev.activeTab}` === key;
-    const fallbackView: AppView = sameAsCurrent ? "main" : prev.appView;
-    const fallbackTab: Tab = sameAsCurrent ? "home" : prev.activeTab;
-    setShowScanner(false);
-    setPendingChatThreadId(null);
-    setAppView(fallbackView);
-    setActiveTab(fallbackTab);
     const firstStackLine = (error?.stack ?? "").split("\n").find((l) => l.trim().startsWith("at "))?.trim();
     const cause = `${error?.name ?? "Error"}: ${error?.message ?? "unknown"}`;
     toast.error("We hit a snag loading that screen", {
-      description: `تعذّر فتح هذه الشاشة — أعدناك إلى آخر مكان عملت فيه\n${cause}${firstStackLine ? `\n${firstStackLine}` : ""}`,
+      description: `تعذّر فتح هذه الشاشة — بقيت في نفس القسم لتعيد المحاولة\n${cause}${firstStackLine ? `\n${firstStackLine}` : ""}`,
       duration: 6000,
     });
   }, []);
