@@ -80,7 +80,7 @@ describe("ChatRecordsPicker · keyboard-on-demand", () => {
     listAllUserRecords.mockResolvedValue([RECORD]);
     const onPick = vi.fn().mockResolvedValue(undefined);
 
-    render(<ChatRecordsPicker open onClose={() => {}} onPick={onPick} />);
+    render(<ChatRecordsPicker open onClose={() => {}} onPick={onPick} attachTargetLabel="Borg El Arab" attachTargetLabelAr="برج العرب" />);
     // Keyboard must NOT have opened on mount.
     const input = await screen.findByLabelText("Search records") as HTMLInputElement;
     expect(document.activeElement).not.toBe(input);
@@ -100,6 +100,9 @@ describe("ChatRecordsPicker · keyboard-on-demand", () => {
     expect(arg.signedUrl).toBe(SIGNED_URL);
     expect(arg.kind).toBe("medical");
     expect(arg.file_name).toBe("lab.pdf");
+    expect(await screen.findByTestId("records-picker-attached-summary")).toHaveTextContent("Lab Report");
+    expect(screen.getByTestId("records-picker-attached-summary")).toHaveTextContent("Medical");
+    expect(screen.getByTestId("records-picker-attached-summary")).toHaveTextContent("Borg El Arab");
   });
 
   it("disarms and blurs on close, and a delayed focus does not fire after close", async () => {
