@@ -13,6 +13,7 @@ import { ensurePatient } from "@/lib/api/patientDataApi";
 import type { JourneyStep } from "@/constants/data";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { journeySteps as defaultJourneySteps } from "@/constants/data";
+import { useAuthSession } from "@/hooks/useAuthUserId";
 
 type UiStep = JourneyStep & { dbId?: string };
 
@@ -29,12 +30,14 @@ export interface UseJourneyStepsResult {
 
 export function useJourneySteps(journeyId: string | null): UseJourneyStepsResult {
   const isGuest = useGuestMode();
+  const { isReady: authReady } = useAuthSession();
   const [rows, setRows] = useState<JourneyStepRow[]>([]);
   const [guestSteps, setGuestSteps] = useState<UiStep[]>(isGuest ? defaultJourneySteps.map((s) => ({ ...s })) : []);
   const [isLoading, setIsLoading] = useState(false);
   const [patientId, setPatientId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!isGuest && !authReady) return;
     if (isGuest || !journeyId) return;
     setIsLoading(true);
     try {
@@ -54,7 +57,7 @@ export function useJourneySteps(journeyId: string | null): UseJourneyStepsResult
     } finally {
       setIsLoading(false);
     }
-  }, [isGuest, journeyId, patientId]);
+  }, [isGuest, authReady, journeyId, patientId]);
 
   useEffect(() => {
     void refresh();
