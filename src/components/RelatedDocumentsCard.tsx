@@ -96,6 +96,7 @@ const RelatedDocumentsCard = ({
   title,
   compact,
 }: Props) => {
+  const targetLabel = title?.replace(/·.*$/, "").trim() || segmentRef.replace(/^milestone-/, "Milestone ").replace(/^flight-/, "Flight ");
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -381,7 +382,6 @@ const RelatedDocumentsCard = ({
         { userId: userId ?? null, deviceId, sourceDocumentId: sourceDocumentId ?? null },
       );
       toast.success(`${src.label} attached`);
-      setFromRecordsOpen(false);
       refresh();
     } catch (e: any) {
       void logAttachErrorTelemetry({ stage: "linkRecordToMilestone", route: "journey-from-records", deviceId, rowId: src.id, error: e });
@@ -630,6 +630,8 @@ const RelatedDocumentsCard = ({
             onClose={() => setFromRecordsOpen(false)}
             route="journey-from-records"
             filterRecord={filterJourneyRecord}
+            attachTargetLabel={targetLabel}
+            attachTargetLabelAr="المحطة المختارة"
             onPick={async (pick: PickedRecord) => {
               await linkExisting(pick.sourceRecord);
             }}

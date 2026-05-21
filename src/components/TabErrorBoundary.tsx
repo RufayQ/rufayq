@@ -43,7 +43,21 @@ export default class TabErrorBoundary extends Component<Props, State> {
   }
 
   render() {
-    if (this.state.failedKey === this.props.tabKey) return null;
+    if (this.state.failedKey === this.props.tabKey) {
+      return (
+        <div className="m-4 rounded-2xl p-4 text-center" role="alert" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
+          <p className="font-display text-lg">We hit a snag loading this screen</p>
+          <p className="font-arabic text-sm mt-1" dir="rtl" style={{ color: "var(--gray)" }}>تعذّر فتح هذه الشاشة</p>
+          <button
+            onClick={() => this.setState({ failedKey: null })}
+            className="mt-3 rounded-full px-4 py-2 text-[12px] font-bold btn-press"
+            style={{ background: "var(--teal-deep)", color: "white" }}
+          >
+            Try again · <span className="font-arabic">إعادة المحاولة</span>
+          </button>
+        </div>
+      );
+    }
     return this.props.children;
   }
 }

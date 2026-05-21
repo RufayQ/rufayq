@@ -47,11 +47,15 @@ interface Props {
   onPick: (pick: PickedRecord) => void | Promise<void>;
   route?: string;
   filterRecord?: (record: UnifiedRecord) => boolean;
+  /** Optional Journey context. When present, successful picks render a summary in-sheet. */
+  attachTargetLabel?: string;
+  attachTargetLabelAr?: string;
 }
 
 type SourceFilter = "all" | "travel" | "medical";
+type AttachedSummary = { documentName: string; sourceType: string; targetLabel: string; targetLabelAr?: string };
 
-const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker", filterRecord }: Props) => {
+const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker", filterRecord, attachTargetLabel, attachTargetLabelAr }: Props) => {
   const userId = useAuthUserId();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<UnifiedRecord[]>([]);
@@ -64,6 +68,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   const [retryNonce, setRetryNonce] = useState(0);
   const [isFiltering, setIsFiltering] = useState(false);
   const [isAttaching, setIsAttaching] = useState(false);
+  const [attachedSummary, setAttachedSummary] = useState<AttachedSummary | null>(null);
   const retryCountRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const focusRafRef = useRef<number | null>(null);
@@ -90,7 +95,10 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   // Reset armed/typing state whenever the sheet closes so reopening
   // never inherits stale focus and pops the soft keyboard.
   useEffect(() => {
-    if (!open) cleanupFocus();
+    if (!open) {
+      cleanupFocus();
+      setAttachedSummary(null);
+    }
   }, [open, cleanupFocus]);
 
   // Final unmount cleanup — covers route navigation away from the screen.
@@ -299,6 +307,12 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
       // race with a still-focused input on mobile.
       cleanupFocus();
       await onPick({ ...base, signedUrl });
+      setAttachedSummary({
+        documentName: row.label || row.fileName,
+        sourceType: row.sourceLabelEn,
+        targetLabel: attachTargetLabel ?? "Chat draft",
+        targetLabelAr: attachTargetLabelAr,
+      });
     } catch (e: any) {
       console.error("[ChatRecordsPicker] onPick handler threw", { ...ctx, stage: "onPick", hasSignedUrl: !!signedUrl });
       void logAttachErrorTelemetry({ stage: "onPick", route, deviceId, rowId: row.id, error: e });
@@ -445,7 +459,33 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
 
 
         <div className="flex-1 overflow-y-auto px-5 pb-4">
-          {loading ? (
+          {attachedSummary ? (
+            <div className="py-4 px-3 rounded-xl" role="status" aria-live="polite" data-testid="records-picker-attached-summary" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+              <p className="text-[13px] font-semibold text-center" style={{ color: "var(--navy)" }}>
+                Document attached
+              </p>
+              <p className="font-arabic text-[12px] mt-1 text-center" dir="rtl" style={{ color: "var(--gray)" }}>
+                تم إرفاق المستند
+              </p>
+              <dl className="mt-3 space-y-2 text-[11px]">
+                <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+                  <dt style={{ color: "var(--gray)" }}>Document</dt>
+                  <dd className="font-semibold text-right truncate" style={{ color: "var(--navy)" }}>{attachedSummary.documentName}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+                  <dt style={{ color: "var(--gray)" }}>Source</dt>
+                  <dd className="font-semibold" style={{ color: "var(--teal-deep)" }}>{attachedSummary.sourceType}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+                  <dt style={{ color: "var(--gray)" }}>Milestone</dt>
+                  <dd className="font-semibold text-right truncate" style={{ color: "var(--navy)" }}>
+                    {attachedSummary.targetLabel}
+                    {attachedSummary.targetLabelAr ? <span className="font-arabic" dir="rtl"> · {attachedSummary.targetLabelAr}</span> : null}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ) : loading ? (
             <div className="space-y-2" aria-busy="true" aria-live="polite" data-testid="records-picker-skeleton">
               <span className="sr-only">Loading records · جارٍ التحميل</span>
               {Array.from({ length: 4 }).map((_, i) => (

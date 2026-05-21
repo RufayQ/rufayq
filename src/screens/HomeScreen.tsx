@@ -51,9 +51,12 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
   const stats = useMemo(() => ({
     trips: dataReady ? (journeys.length || (activeTrip ? 1 : 0)) : null,
     reminders: dataReady ? alerts.length : null,
-    records: dataReady ? unifiedRecords.total : null,
+    // Keep the dashboard stable while the canonical records API hydrates.
+    // This avoids the visible 4→7 hesitation when transport rows + lounge cache
+    // finish after local scanned records.
+    records: dataReady && !unifiedRecords.isLoading ? unifiedRecords.total : null,
     plannedAhead: dataReady ? upcomingAppointments.length : null,
-  }), [dataReady, journeys.length, activeTrip, alerts.length, unifiedRecords.total, upcomingAppointments.length]);
+  }), [dataReady, journeys.length, activeTrip, alerts.length, unifiedRecords.total, unifiedRecords.isLoading, upcomingAppointments.length]);
 
   // Default selection: the "current" milestone (or first upcoming, then first).
   const defaultSelectedId = useMemo(() => {
