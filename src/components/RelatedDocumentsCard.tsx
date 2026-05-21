@@ -625,7 +625,7 @@ const RelatedDocumentsCard = ({
 
       {fromRecordsOpen && (
         <ChatPickerErrorBoundary onReset={() => setFromRecordsOpen(false)}>
-          <ChatRecordsPicker
+          <UnifiedRecordsPicker
             open={fromRecordsOpen}
             onClose={() => setFromRecordsOpen(false)}
             route="journey-from-records"
