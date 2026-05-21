@@ -179,7 +179,6 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     setLoading(true);
     setLoadError(null);
     setLastErrorStage(null);
-    setAttachedSummary(null);
     (async () => {
       try {
         const all = await listAllUserRecords({
