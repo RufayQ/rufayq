@@ -47,11 +47,15 @@ interface Props {
   onPick: (pick: PickedRecord) => void | Promise<void>;
   route?: string;
   filterRecord?: (record: UnifiedRecord) => boolean;
+  /** Optional Journey context. When present, successful picks render a summary in-sheet. */
+  attachTargetLabel?: string;
+  attachTargetLabelAr?: string;
 }
 
 type SourceFilter = "all" | "travel" | "medical";
+type AttachedSummary = { documentName: string; sourceType: string; targetLabel: string; targetLabelAr?: string };
 
-const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker", filterRecord }: Props) => {
+const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker", filterRecord, attachTargetLabel, attachTargetLabelAr }: Props) => {
   const userId = useAuthUserId();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<UnifiedRecord[]>([]);
@@ -64,6 +68,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   const [retryNonce, setRetryNonce] = useState(0);
   const [isFiltering, setIsFiltering] = useState(false);
   const [isAttaching, setIsAttaching] = useState(false);
+  const [attachedSummary, setAttachedSummary] = useState<AttachedSummary | null>(null);
   const retryCountRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const focusRafRef = useRef<number | null>(null);
@@ -90,7 +95,10 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   // Reset armed/typing state whenever the sheet closes so reopening
   // never inherits stale focus and pops the soft keyboard.
   useEffect(() => {
-    if (!open) cleanupFocus();
+    if (!open) {
+      cleanupFocus();
+      setAttachedSummary(null);
+    }
   }, [open, cleanupFocus]);
 
   // Final unmount cleanup — covers route navigation away from the screen.
@@ -171,6 +179,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     setLoading(true);
     setLoadError(null);
     setLastErrorStage(null);
+    setAttachedSummary(null);
     (async () => {
       try {
         const all = await listAllUserRecords({
