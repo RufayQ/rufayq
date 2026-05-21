@@ -45,6 +45,9 @@ vi.mock("@/lib/scannedRecordsStore", () => ({
 }));
 
 vi.mock("@/lib/loungeMemberships", () => ({
+  fetchLoungeMemberships: () => Promise.resolve([
+    { id: "l1", program: "Plaza Premium", membershipNumber: "X", createdAt: new Date().toISOString() },
+  ]),
   listLoungeMemberships: () => [
     { id: "l1", program: "Plaza Premium", membershipNumber: "X", createdAt: new Date().toISOString() },
   ],
