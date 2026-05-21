@@ -8,7 +8,9 @@ import ScannerWizard, { type ScannerSavePayload } from "@/screens/ScannerWizard"
 import { isImage, isPdf } from "@/components/records/UniversalDocumentPreview";
 import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
-import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
+// Journey milestones read from the SAME unified records source as Chat.
+// We import the neutral alias to make the data contract explicit.
+import UnifiedRecordsPicker, { type PickedRecord } from "@/components/records/UnifiedRecordsPicker";
 import ChatPickerErrorBoundary from "@/components/chat/ChatPickerErrorBoundary";
 import type { UnifiedRecord } from "@/lib/records/recordSources";
 import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
