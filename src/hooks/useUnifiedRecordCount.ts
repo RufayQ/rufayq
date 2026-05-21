@@ -20,6 +20,8 @@ interface Args {
 interface RecordCounts {
   total: number;
   byDomain: Record<RecordDomain, number>;
+  isLoading: boolean;
+  error: Error | null;
 }
 
 /**
@@ -30,22 +32,34 @@ interface RecordCounts {
  */
 export function useUnifiedRecordCount({ userId, enabled = true }: Args = {}): RecordCounts {
   const [rows, setRows] = useState<UnifiedRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(enabled);
+  const [error, setError] = useState<Error | null>(null);
   const deviceId = getDeviceId();
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setIsLoading(true);
+      return;
+    }
     let cancelled = false;
 
     const run = async () => {
+      setIsLoading(true);
       try {
         const all = await listAllRecordsForUser({
           userId: userId ?? null,
           deviceId,
           fileBackedOnly: false,
         });
-        if (!cancelled) setRows(all);
+        if (!cancelled) {
+          setRows(all);
+          setError(null);
+        }
       } catch (e) {
         console.warn("[useUnifiedRecordCount] load failed", e);
+        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     };
 
@@ -78,6 +92,6 @@ export function useUnifiedRecordCount({ userId, enabled = true }: Args = {}): Re
   return useMemo<RecordCounts>(() => {
     const byDomain: Record<RecordDomain, number> = { travel: 0, medical: 0 };
     for (const r of rows) byDomain[domainOf(r)] += 1;
-    return { total: rows.length, byDomain };
-  }, [rows]);
+    return { total: rows.length, byDomain, isLoading, error };
+  }, [rows, isLoading, error]);
 }
