@@ -164,8 +164,6 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
     requestAnimationFrame(() => positionMarker(nearestId));
   }, [nearestId, filtered.length]);
 
-  if (milestones.length === 0) return null;
-
   const doneCount = milestones.filter((m) => m.state === "done").length;
   const activeId = nearestId ?? selectedId ?? null;
   const phaseCounts = useMemo(() => {
@@ -181,6 +179,8 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
     upcoming: milestones.filter((m) => m.state === "upcoming").length,
   }), [milestones]);
   const activeFilterCount = (phaseFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0);
+
+  if (milestones.length === 0) return null;
 
   return (
     <section className="px-4 pt-3" aria-label="Helicopter timeline · الخط الزمني الشامل">

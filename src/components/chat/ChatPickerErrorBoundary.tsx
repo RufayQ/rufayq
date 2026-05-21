@@ -12,10 +12,10 @@ interface State {
 }
 
 /**
- * Localised error boundary for the chat attachment picker. When the picker
- * tree throws during render/lifecycle, we suppress the blank screen, fire a
- * bilingual toast with the error cause, and ask the parent to close the
- * picker so the user can keep chatting.
+  * Localised error boundary for the records picker. When the picker tree
+  * throws during render/lifecycle, keep the sheet area mounted and offer a
+  * local retry instead of closing the menu (closing was the unstable WebView
+  * path users experienced as the picker "disappearing").
  */
 export default class ChatPickerErrorBoundary extends Component<Props, State> {
   state: State = { crashed: false };
@@ -29,14 +29,35 @@ export default class ChatPickerErrorBoundary extends Component<Props, State> {
     toast.error("Couldn't open records picker · تعذّر فتح منتقي السجلات", {
       description: error?.message ?? String(error),
     });
-    queueMicrotask(() => {
-      try { this.props.onReset?.(); } catch { /* noop */ }
-      this.setState({ crashed: false });
-    });
   }
 
   render() {
-    if (this.state.crashed) return null;
+    if (this.state.crashed) {
+      return (
+        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55" role="alert">
+          <div className="w-full max-w-[420px] rounded-t-3xl p-5 text-center" style={{ background: "var(--white)", color: "var(--navy)" }}>
+            <p className="font-display text-lg">Records picker recovered</p>
+            <p className="font-arabic text-sm mt-1" dir="rtl" style={{ color: "var(--gray)" }}>تم احتواء خطأ منتقي السجلات</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => this.setState({ crashed: false })}
+                className="flex-1 rounded-full px-4 py-2 text-[12px] font-bold btn-press"
+                style={{ background: "var(--teal-deep)", color: "white" }}
+              >
+                Try again · <span className="font-arabic">إعادة المحاولة</span>
+              </button>
+              <button
+                onClick={this.props.onReset}
+                className="flex-1 rounded-full px-4 py-2 text-[12px] font-bold btn-press"
+                style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+              >
+                Close · <span className="font-arabic">إغلاق</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return this.props.children;
   }
 }

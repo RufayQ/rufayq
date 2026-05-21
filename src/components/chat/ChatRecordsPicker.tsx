@@ -187,7 +187,24 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
           fileBackedOnly: true,
         });
         if (cancelled) return;
-        setRows(all.filter((r) => r.sendableToChat && (!filterRecord || filterRecord(r))));
+        const nextRows: UnifiedRecord[] = [];
+        for (const record of all) {
+          if (!record?.sendableToChat) continue;
+          try {
+            if (!filterRecord || filterRecord(record)) nextRows.push(record);
+          } catch (filterError) {
+            void logAttachErrorTelemetry({
+              stage: "initialFilterRecord",
+              route,
+              deviceId: getDeviceId(),
+              rowId: record?.id,
+              error: filterError,
+            });
+            // Skip only the malformed racing row; keep the sheet and the rest
+            // of the records mounted instead of treating this as a load crash.
+          }
+        }
+        setRows(nextRows);
         setLoadError(null);
         setLastErrorStage(null);
         retryCountRef.current = 0;
