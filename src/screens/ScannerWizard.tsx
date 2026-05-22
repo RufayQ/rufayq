@@ -681,30 +681,47 @@ const Step1Capture = ({ onCapture, uploadMode, onChangeMode }: { onCapture: (acc
 
 /* ─── STEP 2 (BATCH): MULTI-RECORD RENAME & SAVE ─── */
 const Step2BatchRecords = ({
-  batch, onChange, onCancel, onSaveAll,
+  batch, onChange, onCancel, onSaveAll, saving, progress, error, category, subcategory,
 }: {
   batch: { file: File; name: string }[];
   onChange: (next: { file: File; name: string }[]) => void;
   onCancel: () => void;
   onSaveAll: () => void;
+  saving?: boolean;
+  progress?: { done: number; total: number } | null;
+  error?: string | null;
+  category?: string | null;
+  subcategory?: string | null;
 }) => {
   if (batch.length === 0) return null;
   const updateName = (i: number, name: string) => onChange(batch.map((b, idx) => idx === i ? { ...b, name } : b));
-  const removeAt = (i: number) => onChange(batch.filter((_, idx) => idx !== i));
+  const removeAt = (i: number) => {
+    if (saving) return;
+    onChange(batch.filter((_, idx) => idx !== i));
+  };
   const allNamed = batch.every((b) => b.name.trim().length > 0);
+  const canSave = allNamed && !saving && !!category;
+  const categoryMeta = categories.find((c) => c.id === category);
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--off-white)" }}>
       <div className="px-5 py-4" style={{ background: "var(--white)", borderBottom: "1px solid var(--gray-light)" }}>
         <p className="text-[18px] font-bold" style={{ color: "var(--navy)" }}>{batch.length} records to save</p>
         <p className="font-arabic text-[13px]" dir="rtl" style={{ color: "var(--gray)" }}>سيتم حفظ كل ملف كسجل منفصل</p>
+        {categoryMeta && (
+          <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-medium" style={{ background: categoryMeta.paleBg, color: categoryMeta.color }}>
+            <span>{categoryMeta.emoji}</span>
+            <span>{categoryMeta.en}{subcategory ? ` · ${subcategory}` : ""}</span>
+          </div>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
         {batch.map((b, i) => (
-          <div key={i} className="rounded-xl p-3 flex items-center gap-3" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+          <div key={i} className="rounded-xl p-3 flex items-center gap-3" style={{ background: "var(--white)", border: "1px solid var(--gray-light)", opacity: saving ? 0.7 : 1 }}>
             <span className="text-2xl shrink-0">{b.file.type.startsWith("image/") ? "🖼️" : "📄"}</span>
             <div className="flex-1 min-w-0">
               <input
                 value={b.name}
+                disabled={saving}
                 onChange={(e) => updateName(i, e.target.value)}
                 placeholder="Record name"
                 className="w-full text-[13px] font-semibold bg-transparent outline-none border-b py-1"
@@ -712,18 +729,29 @@ const Step2BatchRecords = ({
               />
               <p className="font-mono text-[9px] mt-1" style={{ color: "var(--gray)" }}>{b.file.name} · {(b.file.size/1024).toFixed(1)} KB</p>
             </div>
-            <button onClick={() => removeAt(i)} className="w-7 h-7 rounded-full flex items-center justify-center btn-press" style={{ background: "var(--off-white)" }} aria-label="Remove">
+            <button onClick={() => removeAt(i)} disabled={saving} className="w-7 h-7 rounded-full flex items-center justify-center btn-press disabled:opacity-40" style={{ background: "var(--off-white)" }} aria-label="Remove">
               <X size={13} style={{ color: "var(--gray)" }} />
             </button>
           </div>
         ))}
       </div>
+      {(saving || error) && (
+        <div className="px-5 pt-2 text-[11px]" style={{ color: error ? "var(--danger, #c0392b)" : "var(--gray)" }}>
+          {error
+            ? error
+            : progress
+              ? `Saving ${progress.done} / ${progress.total}…`
+              : "Saving…"}
+        </div>
+      )}
       <div className="flex gap-3 px-5 pb-8 pt-3" style={{ background: "var(--off-white)" }}>
-        <button onClick={onCancel} className="flex-1 py-3.5 rounded-xl text-[13px] font-medium btn-press" style={{ border: "1px solid var(--gray-light)", color: "var(--navy)", background: "var(--white)" }}>
+        <button onClick={onCancel} disabled={saving} className="flex-1 py-3.5 rounded-xl text-[13px] font-medium btn-press disabled:opacity-50" style={{ border: "1px solid var(--gray-light)", color: "var(--navy)", background: "var(--white)" }}>
           Cancel · <span className="font-arabic">إلغاء</span>
         </button>
-        <button onClick={onSaveAll} disabled={!allNamed} className="flex-1 py-3.5 rounded-xl text-[13px] font-bold text-white btn-press" style={{ background: "var(--teal-deep)", opacity: allNamed ? 1 : 0.5 }}>
-          Save all ({batch.length}) · <span className="font-arabic">احفظ الكل</span>
+        <button onClick={onSaveAll} disabled={!canSave} className="flex-1 py-3.5 rounded-xl text-[13px] font-bold text-white btn-press" style={{ background: "var(--teal-deep)", opacity: canSave ? 1 : 0.5 }}>
+          {saving
+            ? `Saving${progress ? ` ${progress.done}/${progress.total}` : "…"}`
+            : <>Save all ({batch.length}) · <span className="font-arabic">احفظ الكل</span></>}
         </button>
       </div>
     </div>
