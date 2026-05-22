@@ -333,6 +333,15 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   }, [query, sourceFilter, open]);
 
   const handlePick = async (row: UnifiedRecord) => {
+    // Records-parity contract: rows without bytes are visible but not
+    // pickable. Guard here too so a row that flips attachable=false mid-
+    // render still can't be sent without bytes.
+    if (row.attachable === false) {
+      toast("No file attached · لا يوجد ملف", {
+        description: "This record has no file to send. Open it in Records to add one.",
+      });
+      return;
+    }
     setPicking(row.id);
     setIsAttaching(true);
     const deviceId = getDeviceId();
