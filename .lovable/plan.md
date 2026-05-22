@@ -1,51 +1,112 @@
-Plan:
+Plan to fix the Records scanner upload crash and add durable QC logging:  
+  
+Please **fix and harden the scanner upload implementation** with an API-first approach and production-safe behavior.
 
-1. Update the canonical records picker only
+#### **Context / objective**
 
-- Apply to the **actual shared picker component in this branch** (currently milestone picker in RelatedDocumentsCard.tsx; if chat has its own picker in your local branch, mirror the same behavior there).”
-- Keep existing naming/imports exactly as they are in this branch.
+The previous implementation attempted to persist scanner files in IndexedDB and add QC telemetry, but the design and integration are incomplete.  
+I need a clean, correct fix focused on:
 
-2. Improve accessibility for the search arming flow
+1. stable scanner uploads (single / multi-page / multi-record),
+2. durable preview rehydration after refresh,
+3. sanitized QC telemetry with explicit API contract,
+4. lightweight localStorage metadata only (no heavy payload persistence),
+5. updated docs/OpenAPI that match the real behavior.
 
-- Give the search row an explicit accessible name and state so screen readers understand it is an action before the input is armed.
-- Add stable IDs/ARIA wiring between the search container, search input, and screen-reader status/help text.
-- Preserve keyboard activation with Enter/Space and make the state transition predictable: unarmed row behaves like a button; armed state transfers focus to the actual search input.
+---
 
-3. Harden focus/blur cleanup
+## **Requirements**
 
-- Replace scattered blur/disarm logic with one cleanup helper.
-- Cancel any pending `requestAnimationFrame` focus call when the sheet closes or unmounts.
-- Disarm and blur the input on close, unmount, route/navigation lifecycle events, and after successful pick/close paths.
-- Guard delayed focus so it cannot refocus the input after the sheet has been closed.
+### **1) Effective API first (must be explicit and correct)**
 
-4. Add unexpected focus/keyboard telemetry
+Implement the telemetry/storage contract first, then wire UI/store code to it.
 
-- Reuse the existing attach telemetry path instead of adding new backend schema.
-- On picker open, capture the initial focused element and viewport height.
-- Log a telemetry event if the search input becomes focused while still unarmed, or if the visual viewport shrinks like a keyboard opened before the user armed search.
-- Include the existing `route`, device ID hash, and stage names such as `unexpectedFocusOnOpen` / `unexpectedKeyboardOnOpen` for diagnosis.
+- Add/verify a dedicated scanner telemetry RPC (do **not** piggyback unrelated RPCs):
+  - log_scanner_qc_event(...)
+- Ensure it records sanitized scanner-stage events into existing QC tables:
+  - stage events in qc_crash_events
+  - terminal pass/fail run entries in qc_test_runs (for save_completed/save_failed)
+- Sanitize data strictly:
+  - allowed: scenario type, file counts/sizes, MIME families, storage mode, quota estimate, error name/message
+  - forbidden: document content, OCR text, raw image/PDF bytes, full filenames, patient identifiers
+- Keep telemetry non-blocking and failure-tolerant (never crash or delay upload flow).
 
-5. Add/extend e2e-style test coverage
+### **2) Scanner file durability + memory stability**
 
-- Extend `src/components/chat/__tests__/ChatRecordsPicker.keyboard.test.tsx` or add a sibling e2e test for the full flow.
-- Test that opening “Attach from My Records” does not focus the input, keeps it read-only, and keeps `inputMode="none"`.
-- Test that tapping the search row arms/focuses the input, filtering still works, and clicking a returned record calls `onPick` with the expected signed URL/source record.
-- Add assertions that close/unmount cleanup blurs/disarms the input and does not allow a pending delayed focus to fire after close.
+- Persist selected files to IndexedDB as Blob entries immediately after selection/finalization.
+- Persist only lightweight metadata in React/localStorage:
+  - blob key, mimeType, file size, redacted/safe filename metadata policy
+- Remove any base64 persistence path for large scanner payloads.
+- Avoid retaining large page image arrays in localStorage.
+- Reset hidden file input after each selection so selecting the same file retriggers flow.
+- Revoke temporary object URLs where practical to reduce WebView memory leaks.
 
-6. Validation
+### **3) Store hardening + rehydration**
 
-- Run the repo’s targeted Vitest tests for the records picker and record sources after implementation.
-- I will not perform rename refactors or unrelated UI changes.
+Update medical/travel scanned record stores to:
 
-### **Commands used for this validation**
+- store lightweight metadata + blobKey
+- rehydrate missing preview URLs from IndexedDB on refresh/reopen
+- handle fallback paths safely:
+  - IndexedDB unavailable
+  - quota failures
+  - blob missing/corrupted
+  - metadata-only fallback
+- preserve existing list behavior without regressions.
 
-- ✅ rg -n "ChatRecordsPicker|Attach from My Records|autoFocus|search" src/components/chat src/components src/screens
-- ✅ nl -ba src/components/RelatedDocumentsCard.tsx | sed -n '80,110p'
-- ✅ nl -ba src/components/RelatedDocumentsCard.tsx | sed -n '270,310p'
-- ✅ nl -ba src/components/RelatedDocumentsCard.tsx | sed -n '670,705p'Your plan is **strong**, but for this branch I’d adjust scope wording:
+### **4) Scanner flow telemetry stages (wire these)**
 
-## **Validation Verdict**
+Emit stages:
 
-- **Conceptually valid:** yes (arming search, cleanup, delayed-focus guard, tests).
-- **:** your Step 1 saysChatRecordsPicker.ts, but this repo currently implements the milestone “ from Records UI in RelatedCardx` (and already has partial-arming).【F:src/componentsRelatedDocuments.tsx†L88-L95】【F:src/components/RelatedDocumentsCard.tsx†L678-L684】
-- I found **no ChatRecordsPicker** symbol/file references in current src/ search output. (See command below.)
+- file_selected
+- indexeddb_store_started
+- indexeddb_store_completed
+- review_opened
+- save_started
+- save_completed
+- save_failed
+- quota_fallback_used
+
+For each event include:
+
+- scenario: single | multi-page | multi-record
+- fileCount, totalBytes, largestFileBytes
+- mimeFamilies
+- storageMode: indexeddb | memory | metadata-only
+- quotaEstimateBytes when available
+- errorName/errorMessage for failures only
+
+### **5) OpenAPI/docs alignment**
+
+Update scanner docs/OpenAPI to reflect actual contract:
+
+- single upload, multi-page upload, multi-record upload
+- IndexedDB blob-reference contract
+- telemetry payload fields and sanitization policy
+- quota/error fallback behavior
+
+### **6) Quality bar / acceptance criteria**
+
+- No scanner crashes with large file batches.
+- No base64-heavy persistence to localStorage.
+- Refresh restores previews from IndexedDB blob references.
+- Telemetry rows appear for both success and failure scenarios.
+- No console errors in normal flow.
+- TypeScript passes for touched modules.
+- Add/update focused tests for:
+  - single image/PDF
+  - multi-page
+  - multi-record
+  - quota fallback
+  - refresh rehydration
+
+---
+
+## **Deliverables**
+
+1. Code changes
+2. Migration/RPC changes
+3. Updated OpenAPI/docs
+4. Test updates + test results
+5. Short “what changed and why” summary
+6. Explicit list of any remaining known risks
