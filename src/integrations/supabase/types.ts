@@ -7866,6 +7866,8 @@ export type Database = {
         Args: { _journey_id: string }
         Returns: number
       }
+      _rt_device_id: { Args: never; Returns: string }
+      _rt_topic_allowed: { Args: { _topic: string }; Returns: boolean }
       admin_adjust_wallet: {
         Args: {
           _amount: number
