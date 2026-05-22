@@ -328,7 +328,7 @@ const Index = () => {
     setShowScanner(true);
   };
 
-  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string }; selectedDestinations?: { en: string }[]; pageImages?: string[]; manualFields?: { label: string; value: string }[]; subcategory?: string | null; fileName?: string; fileUrl?: string; mimeType?: string | null }) => {
+  const handleScannerSave = useCallback((category: string | null, payload?: { outbound?: any; return?: any; rawOutbound?: any; rawReturn?: any; passenger?: { name?: string; passport?: string }; selectedDestinations?: { en: string }[]; pageImages?: string[]; manualFields?: { label: string; value: string }[]; subcategory?: string | null; fileName?: string; fileUrl?: string; mimeType?: string | null; blobKey?: string; fileBytes?: number }) => {
     setShowScanner(false);
     const msg = toastMessages[category || "other"] || toastMessages.other;
 
@@ -361,6 +361,8 @@ const Index = () => {
           fileUrl: payload?.fileUrl,
           pdfUrl: payload?.mimeType === "application/pdf" ? payload?.fileUrl : undefined,
           mimeType: payload?.mimeType ?? null,
+          blobKey: payload?.blobKey,
+          fileBytes: payload?.fileBytes,
         });
       } catch (e) { console.warn("[scanner] could not store travel record", e); }
     } else if (isMedicalCategory(category)) {
@@ -376,6 +378,8 @@ const Index = () => {
           fileUrl: payload?.fileUrl,
           mimeType: payload?.mimeType ?? null,
           fileName: payload?.fileName,
+          blobKey: payload?.blobKey,
+          fileBytes: payload?.fileBytes,
         });
       } catch (e) { console.warn("[scanner] could not store scanned record", e); }
     }
@@ -447,6 +451,8 @@ const Index = () => {
             fileUrl: payload?.fileUrl,
             pdfUrl: payload?.mimeType === "application/pdf" ? payload?.fileUrl : undefined,
             mimeType: payload?.mimeType ?? null,
+            blobKey: payload?.blobKey,
+            fileBytes: payload?.fileBytes,
           });
           stored += 1;
         } else if (medical && category) {
@@ -459,6 +465,8 @@ const Index = () => {
             fileUrl: payload?.fileUrl,
             mimeType: payload?.mimeType ?? null,
             fileName: payload?.fileName,
+            blobKey: payload?.blobKey,
+            fileBytes: payload?.fileBytes,
           });
           stored += 1;
         }
