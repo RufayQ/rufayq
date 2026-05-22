@@ -1,86 +1,47 @@
-## Goals
+## Goal
 
-1. Add an internal admin dashboard page listing security findings with status (fixed / ignored / remaining) and timestamps.
-2. Add CI checks that re-scan RLS policies and edge-function auth requirements on every change.
-3. Verify the Vault `CRON_SECRET` is set correctly so `chat-push` and `push-dispatch-scheduled` stop returning 401.
+Close the two `realtime.messages` topic-policy gaps flagged by the scanner:
 
----
+1. `lounge_memberships_realtime_no_topic_policy` — anyone subscribing to the global `lounge-memberships` channel receives row-change payloads (card_last4, membership_number, program) for other users.
+2. `realtime_chat_tables_no_topic_policy` — anyone subscribing to `chat-thread-<id>`, `chat-receipts-<id>`, `chat-inbox-shared`, or `global-chat-awareness` can receive change events for `chat_threads`, `chat_messages`, `chat_participants`.
 
-## 1. Security Findings Dashboard (`/admin/security`)
+Today only `pn:<device_id>` and `pf:<device_id>` topics are allowed by `realtime.messages` RLS. We will (a) move all lounge/chat channels to device- or participant-scoped topic names and (b) extend the topic SELECT policy to match those new scopes.
 
-**New table** `public.security_findings` (managed via migration):
-- `scanner_name`, `internal_id` (composite unique), `title`, `severity` (low/medium/high/critical), `description`, `status` (open/fixed/ignored), `first_seen_at`, `last_seen_at`, `resolved_at`, `resolution_note`.
-- RLS: only `admin` role (via `has_role`) can `SELECT/UPDATE`.
+## Plan
 
-**New edge function** `security-findings-sync` (admin-only, JWT validated + `has_role` check):
-- Pulls the latest Lovable security scan results, upserts into `security_findings`, marks missing-but-previously-open rows as `fixed` with `resolved_at = now()`.
-- Manual trigger from the dashboard "Refresh" button; also invoked by CI (see §2).
+### 1. Rename frontend channel topics to include device / thread scoping
 
-**New page** `src/pages/AdminSecurity.tsx` + route `/admin/security` (lazy, wrapped in `Shelled`, admin-gated):
-- Summary tiles: Total, Open, Fixed (30d), Ignored.
-- Filter chips by severity + status; search box.
-- Table columns: Severity, Title, Scanner, Status badge, First seen, Last seen, Resolved at, Note.
-- Row action: mark ignored / re-open (writes back via RPC that wraps `manage_security_finding` semantics — status + note + audit log entry in `admin_audit_log`).
-- Link added to `AdminDashboard` quick links row ("Security findings").
+Update channel names so the topic itself encodes who is allowed to subscribe. No business-logic changes — same `postgres_changes` handlers.
 
----
+- `src/lib/loungeMemberships.ts` → `lm:<device_id>`
+- `src/hooks/useChatInbox.ts` → `ci:<device_id>`
+- `src/hooks/useGlobalChat.ts` → `ga:<device_id>`
+- `src/hooks/useChatThread.ts` → `ct:<thread_id>:<device_id>`
+- `src/hooks/useThreadReadReceipts.ts` → `cr:<thread_id>:<device_id>`
 
-## 2. CI Security Re-scans
+Each hook already has access to the device id (via the same helper used elsewhere, e.g. `getDeviceId()` / the existing device-id context). The thread-scoped topics still include `device_id` so the topic policy can verify the caller is a participant of that thread using their device id.
 
-Extend `.github/workflows/ci.yml` with a new job `security-checks` (runs in parallel with lint/test):
+### 2. New SQL migration: extend `realtime.messages` SELECT policy
 
-**a. RLS policy guard** — `scripts/ci/check-rls.mjs`:
-- Greps `supabase/migrations/**/*.sql` for `CREATE TABLE public.*` and verifies a matching `ENABLE ROW LEVEL SECURITY` exists in the same or later migration.
-- Fails if any public table is missing RLS enablement or has only `USING (true)` policies without a justifying `-- @security-public` annotation.
+Add a helper and broaden the existing topic allowlist. Single migration:
 
-**b. Edge-function auth guard** — `scripts/ci/check-edge-auth.mjs`:
-- Walks `supabase/functions/*/index.ts`.
-- For each function not in an allowlist (`send-otp`, `verify-otp`, `openapi-spec`, public webhooks), asserts the source contains either `getClaims(` (JWT validation) or `x-cron-secret` header validation.
-- Cross-checks `supabase/config.toml`: any function with `verify_jwt = false` must appear in the allowlist or implement in-code auth.
+- Create `public.realtime_caller_in_thread(_thread uuid, _device text) returns boolean` as `SECURITY DEFINER`, that returns true when a `chat_participants` row exists with `thread_id = _thread` AND (`device_id = _device` OR caller is an org member of that participant's `organization_id`). Reuse the same logic as `chat_caller_participates`.
+- Drop and recreate `"Device-scoped realtime topic read"` on `realtime.messages` to also allow:
+  - `lm:<device_id>`, `ci:<device_id>`, `ga:<device_id>` (device-owned topics)
+  - `ct:<thread_id>:<device_id>` / `cr:<thread_id>:<device_id>` when `realtime_caller_in_thread(thread_id, device_id)` returns true.
+- Mirror the same conditions in the INSERT (`write`) policy so future broadcast publishes are equally scoped.
 
-**c. Supabase linter (optional, on main only)** — uses `supabase--linter` equivalent via the Supabase CLI in a nightly scheduled workflow `.github/workflows/security-nightly.yml`, posting results as a GitHub issue if new criticals appear.
+The header `x-device-id` is already injected by the Supabase JS client setup for realtime auth, matching the pattern used by the existing `pn:` / `pf:` policies.
 
-Both new scripts run with `node scripts/ci/...` — no extra deps.
+### 3. No business-logic changes
 
----
+Underlying table RLS on `lounge_memberships`, `chat_messages`, `chat_participants`, `chat_threads` already filters rows. This change only restricts who can subscribe to the topic in the first place, eliminating the cross-user payload leak.
 
-## 3. CRON_SECRET Vault Verification
+### 4. Mark findings fixed
 
-Currently `chat-push` and `push-dispatch-scheduled` require header `x-cron-secret === Deno.env.get("CRON_SECRET")`. The `chat_message_dispatch_push` trigger reads the secret from `vault.decrypted_secrets`.
+After the migration is approved and clients are updated, mark `lounge_memberships_realtime_no_topic_policy` and `realtime_chat_tables_no_topic_policy` as fixed via `security--manage_security_finding` with an explanation referencing the new topic-scoped policy.
 
-Steps:
-1. **Add Edge Function secret** `CRON_SECRET` via the secrets tool (user pastes a strong random value once).
-2. **Mirror into Vault** via a one-off migration that calls `vault.create_secret('<value>', 'CRON_SECRET')` — but since the value is sensitive, instead we add a SQL helper `public.set_cron_secret(text)` (SECURITY DEFINER, admin-only) and instruct the user to run it once from the SQL editor with the same value. The trigger already reads `vault.decrypted_secrets` by name `CRON_SECRET`.
-3. **Self-test endpoint**: extend `chat-push` with a `GET /health` branch that, when called with the correct `x-cron-secret`, returns `{ ok: true, vault_match: <bool> }` by invoking a `verify_cron_secret()` SQL function comparing the Vault value to a hash of the provided header (no plaintext leak).
-4. Add a "Push/Cron health" tile to the new Security dashboard that hits `/health` and shows green/red — confirms env + Vault are in sync.
+## Files touched
 
----
-
-## Files
-
-**Created**
-- `supabase/migrations/<ts>_security_findings.sql`
-- `supabase/migrations/<ts>_cron_secret_helpers.sql`
-- `supabase/functions/security-findings-sync/index.ts`
-- `src/pages/AdminSecurity.tsx`
-- `src/features/admin/security/SecurityFindingsTable.tsx`
-- `src/features/admin/security/CronHealthTile.tsx`
-- `scripts/ci/check-rls.mjs`
-- `scripts/ci/check-edge-auth.mjs`
-- `.github/workflows/security-nightly.yml`
-
-**Edited**
-- `.github/workflows/ci.yml` — add `security-checks` job
-- `src/App.tsx` — register `/admin/security` route
-- `src/components/admin/AdminDashboard.tsx` — add quick link
-- `supabase/functions/chat-push/index.ts` — `/health` branch
-- `supabase/functions/openapi-spec/spec.json` — document the new function + dashboard endpoints
-
----
-
-## Validation
-
-- Run new CI scripts locally against current repo; confirm they pass and fail on a seeded counter-example.
-- Visit `/admin/security` as admin → see findings, mark one ignored, confirm audit log entry.
-- Call `chat-push` `/health` with correct/incorrect `x-cron-secret` → 200 vs 401; confirm `vault_match: true` after user runs `set_cron_secret`.
-- Trigger a scheduled push campaign → delivered (no 401 in edge logs).
+- New: `supabase/migrations/<ts>_realtime_topic_scoping.sql`
+- Edited: `src/lib/loungeMemberships.ts`, `src/hooks/useChatInbox.ts`, `src/hooks/useGlobalChat.ts`, `src/hooks/useChatThread.ts`, `src/hooks/useThreadReadReceipts.ts`
