@@ -3,6 +3,10 @@
  * via the Scanner wizard. Until the full Supabase medical_records pipeline is
  * wired up for real users, this lets scanned items appear in the Records
  * screen immediately so users see what they just captured.
+ *
+ * File previews are persisted in IndexedDB (via `recordBlobDb`) using a
+ * `blobKey`. localStorage only ever stores lightweight metadata, so the
+ * Records screen survives refreshes and never trips the localStorage quota.
  */
 import type { DocRecord } from "@/constants/data";
 import {
@@ -11,6 +15,11 @@ import {
   getCachedRecordBlob,
   isHeavyDataUrl,
 } from "@/lib/records/recordBlobCache";
+import {
+  deleteRecordBlob,
+  makeBlobKey,
+  resolveRecordBlobUrl,
+} from "@/lib/records/recordBlobDb";
 
 const STORAGE_KEY = "rufayq_scanned_records_v1";
 const UPDATE_EVENT = "rufayq:scanned-records-updated";
@@ -21,9 +30,6 @@ const CATEGORY_LABEL: Record<string, { en: string; emoji: string; accent: string
   discharge:    { en: "Discharge",      emoji: "📋", accent: "var(--gold)",      bg: "var(--gold-pale)" },
   imaging:      { en: "Imaging",        emoji: "🩻", accent: "var(--gray)",      bg: "#F0F2F5" },
   insurance:    { en: "Insurance",      emoji: "🛡️", accent: "#7C5CFC",          bg: "#EDE8FD" },
-  // NOTE: `legal` (passport/visa/residency) is intentionally NOT listed here —
-  // those documents belong to Travel Records, not Medical Records. See
-  // src/lib/travelScannedRecordsStore.ts for the travel-side store.
   other:        { en: "Consultations",  emoji: "📄", accent: "var(--navy)",      bg: "var(--off-white)" },
 };
 
@@ -42,7 +48,13 @@ export interface ScannedRecord extends DocRecord {
   mimeType?: string | null;
   /** Original uploaded filename. */
   fileName?: string;
+  /** Stable IndexedDB key used to rehydrate `fileUrl` after refresh. */
+  blobKey?: string;
+  /** Original file size in bytes (used by Records preview + QC telemetry). */
+  fileBytes?: number;
 }
+
+let hydrationStarted = false;
 
 const read = (): ScannedRecord[] => {
   try {
@@ -51,23 +63,57 @@ const read = (): ScannedRecord[] => {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     // Rehydrate any heavy file payloads kept in the in-memory cache for this session.
-    return parsed.map((r: ScannedRecord) => {
+    const items = parsed.map((r: ScannedRecord) => {
       if (!r?.fileUrl && r?.id) {
-        const cached = getCachedRecordBlob(r.id);
+        const cached = getCachedRecordBlob(r.blobKey || r.id);
         if (cached) return { ...r, fileUrl: cached };
       }
       return r;
     });
+    // First read after a fresh load → warm IndexedDB-backed previews in the
+    // background. We fire UPDATE_EVENT after each successful warm so the
+    // Records screen re-renders with the preview URL.
+    if (!hydrationStarted) {
+      hydrationStarted = true;
+      void hydrateMissingPreviews(items);
+    }
+    return items;
   } catch {
     return [];
   }
 };
 
+const hydrateMissingPreviews = async (items: ScannedRecord[]) => {
+  let dirty = false;
+  for (const r of items) {
+    if (!r?.id) continue;
+    if (r.fileUrl && !isHeavyDataUrl(r.fileUrl)) continue;
+    const key = r.blobKey || r.id;
+    const cached = getCachedRecordBlob(key);
+    if (cached) { dirty = true; continue; }
+    try {
+      const url = await resolveRecordBlobUrl(key);
+      if (url) dirty = true;
+    } catch { /* noop */ }
+  }
+  if (dirty) {
+    try { window.dispatchEvent(new CustomEvent(UPDATE_EVENT)); } catch { /* noop */ }
+  }
+};
+
 const write = (items: ScannedRecord[]) => {
-  // Move heavy data URLs into the in-memory cache so localStorage stays small.
+  // Always strip heavy data URLs before writing. The Blob is the durable copy
+  // (in IndexedDB via blobKey); localStorage only holds metadata.
   const slim = items.map((r) => {
+    const key = r.blobKey || r.id;
     if (r?.id && isHeavyDataUrl(r.fileUrl)) {
-      cacheRecordBlob(r.id, r.fileUrl as string);
+      cacheRecordBlob(key, r.fileUrl as string);
+      const { fileUrl: _fileUrl, ...rest } = r;
+      return rest as ScannedRecord;
+    }
+    if (r?.fileUrl && r.fileUrl.startsWith("blob:")) {
+      // Object URLs cannot be persisted across reloads. Drop them; the
+      // rehydrator will rebuild from IndexedDB next session.
       const { fileUrl: _fileUrl, ...rest } = r;
       return rest as ScannedRecord;
     }
@@ -103,6 +149,8 @@ export const addScannedRecord = (input: {
   fileUrl?: string;
   mimeType?: string | null;
   fileName?: string;
+  blobKey?: string;
+  fileBytes?: number;
 }): ScannedRecord => {
   const id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
     ? crypto.randomUUID()
@@ -132,6 +180,8 @@ export const addScannedRecord = (input: {
     fileUrl: input.fileUrl,
     mimeType: input.mimeType ?? null,
     fileName: input.fileName,
+    blobKey: input.blobKey || makeBlobKey(id, "file"),
+    fileBytes: input.fileBytes,
   };
   const next = [rec, ...read()];
   write(next);
@@ -139,8 +189,12 @@ export const addScannedRecord = (input: {
 };
 
 export const removeScannedRecord = (id: string) => {
-  dropCachedRecordBlob(id);
-  write(read().filter((r) => r.id !== id));
+  const all = read();
+  const target = all.find((r) => r.id === id);
+  const key = target?.blobKey || id;
+  dropCachedRecordBlob(key);
+  void deleteRecordBlob(key);
+  write(all.filter((r) => r.id !== id));
 };
 
 export const subscribeToScannedRecords = (handler: () => void): (() => void) => {
