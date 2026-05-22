@@ -44,6 +44,7 @@ export default function HumanChatView({
   onBack,
   onOpenProfile,
   onMinimize,
+  initialPendingAttachment = null,
 }: Props) {
   const { messages, send, retry, markRead } = useChatThread(threadId);
   const { othersLastReadAt } = useThreadReadReceipts(threadId);
@@ -52,11 +53,17 @@ export default function HumanChatView({
   const [replyTo, setReplyTo] = useState<ChatMessageRow | null>(null);
   const [actionFor, setActionFor] = useState<string | null>(null);
   const [showAttachPicker, setShowAttachPicker] = useState(false);
-  const [pendingAttachment, setPendingAttachment] = useState<PickedRecord | null>(null);
+  const [pendingAttachment, setPendingAttachment] = useState<PickedRecord | null>(initialPendingAttachment);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const me = getDeviceId();
+
+  // Re-pin attachment if parent hands off a new one (e.g. opening a thread
+  // from "Send to chat" after the view is already mounted).
+  useEffect(() => {
+    if (initialPendingAttachment) setPendingAttachment(initialPendingAttachment);
+  }, [initialPendingAttachment]);
 
   const handleAttachRecord = (rec: PickedRecord) => {
     setShowAttachPicker(false);
