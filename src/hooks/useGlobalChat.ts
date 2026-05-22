@@ -61,7 +61,7 @@ export function useGlobalChat(activeThreadId?: string | null) {
     if (!enabled) return;
     const deviceId = getDeviceId();
     const ch = supabase
-      .channel("global-chat-awareness")
+      .channel(`ga:${deviceId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages" },
