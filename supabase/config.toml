@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.chat-push]
 verify_jwt = false
+
+[functions.security-rescan]
+verify_jwt = false
