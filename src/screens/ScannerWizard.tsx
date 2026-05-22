@@ -19,6 +19,8 @@ import Time24Input from "@/components/Time24Input";
 import { FLIGHT_AI_ENABLED } from "@/lib/flightAiFlag";
 import NationalityCombobox from "@/components/NationalityCombobox";
 import UniversalDocumentPreview from "@/components/records/UniversalDocumentPreview";
+import { putRecordBlob, makeBlobKey } from "@/lib/records/recordBlobDb";
+import { logScannerEvent, deriveScenario, summarizeMimes, type ScannerScenario } from "@/lib/records/scannerTelemetry";
 
 export type TravelerKind = "patient" | "companion" | "family";
 
@@ -67,6 +69,10 @@ export interface ScannerSavePayload {
   fileUrl?: string;
   /** Original uploaded MIME type for PDF/Office/image fallback routing. */
   mimeType?: string | null;
+  /** Stable IndexedDB blob key — preview survives reloads via recordBlobDb. */
+  blobKey?: string;
+  /** Original file size in bytes — used by Records UI + sanitized QC telemetry. */
+  fileBytes?: number;
 }
 
 interface ScannerWizardProps {
@@ -266,28 +272,57 @@ const ScannerWizard = ({
     } : undefined;
 
   /**
-   * Convert the captured File into a persistent base64 data URL so the
-   * preview survives reloads (blob: URLs die with the document). Falls back
-   * to the original payload when the file is missing or too large to inline.
-   * Cap: ~8 MB raw → ~11 MB base64 (well under typical 5–10 MB localStorage).
+   * Persist the captured File into IndexedDB (via recordBlobDb) and return a
+   * payload carrying a stable `blobKey` + a session object URL for instant
+   * preview. NO base64 conversion is performed — that was the legacy source
+   * of localStorage QuotaExceeded crashes for large files. Survives refresh
+   * because the durable bytes live in IndexedDB.
    */
   const finalizePayload = async (p: ScannerSavePayload | undefined): Promise<ScannerSavePayload | undefined> => {
     if (!p) return p;
     const f = (p.editedFile as File | undefined) ?? realFile;
     if (!f) return p;
-    const MAX = 8 * 1024 * 1024;
-    if (f.size > MAX) return p; // keep blob URL for current session
+    const blobKey = p.blobKey || makeBlobKey(
+      (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `rec-${Date.now()}`,
+      "file",
+    );
     try {
-      const dataUrl: string = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(String(r.result));
-        r.onerror = () => rej(r.error);
-        r.readAsDataURL(f);
+      const meta = await putRecordBlob(blobKey, f);
+      // Prefer the cached/object-URL from putRecordBlob for the current session.
+      const previewUrl = p.fileUrl && !p.fileUrl.startsWith("blob:") ? p.fileUrl : URL.createObjectURL(f);
+      logScannerEvent({
+        stage: "indexeddb_store_completed",
+        scenario: deriveScenario(uploadMode, 1),
+        storageMode: meta.storageMode,
+        fileCount: 1,
+        totalBytes: meta.size,
+        largestFileBytes: meta.size,
+        mimeFamilies: summarizeMimes([meta.mimeType]),
       });
-      return { ...p, fileUrl: dataUrl, mimeType: p.mimeType ?? f.type ?? null };
+      return {
+        ...p,
+        fileUrl: previewUrl,
+        mimeType: p.mimeType ?? f.type ?? null,
+        blobKey,
+        fileBytes: f.size,
+      };
     } catch (e) {
-      console.warn("[ScannerWizard] finalize → dataURL failed", e);
-      return p;
+      logScannerEvent({
+        stage: "indexeddb_store_failed",
+        scenario: deriveScenario(uploadMode, 1),
+        fileCount: 1,
+        totalBytes: f.size,
+        largestFileBytes: f.size,
+        mimeFamilies: summarizeMimes([f.type]),
+        error: e,
+      });
+      // Still return a usable session-only payload — preview via object URL.
+      try {
+        const previewUrl = URL.createObjectURL(f);
+        return { ...p, fileUrl: previewUrl, mimeType: p.mimeType ?? f.type ?? null, blobKey, fileBytes: f.size };
+      } catch {
+        return { ...p, blobKey, fileBytes: f.size, mimeType: p.mimeType ?? f.type ?? null };
+      }
     }
   };
 
@@ -301,6 +336,9 @@ const ScannerWizard = ({
       fileInputRef.current.accept = accept;
       // Multiple selection for multi-page or multi-record modes.
       fileInputRef.current.multiple = uploadMode !== "single";
+      // Reset value so selecting the same file twice still triggers onChange
+      // (Android WebView quirk that otherwise looks like the wizard "crashes").
+      try { fileInputRef.current.value = ""; } catch { /* noop */ }
       fileInputRef.current.click();
     }
   };
