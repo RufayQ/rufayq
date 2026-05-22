@@ -49,18 +49,44 @@ const read = (): ScannedRecord[] => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Rehydrate any heavy file payloads kept in the in-memory cache for this session.
+    return parsed.map((r: ScannedRecord) => {
+      if (!r?.fileUrl && r?.id) {
+        const cached = getCachedRecordBlob(r.id);
+        if (cached) return { ...r, fileUrl: cached };
+      }
+      return r;
+    });
   } catch {
     return [];
   }
 };
 
 const write = (items: ScannedRecord[]) => {
+  // Move heavy data URLs into the in-memory cache so localStorage stays small.
+  const slim = items.map((r) => {
+    if (r?.id && isHeavyDataUrl(r.fileUrl)) {
+      cacheRecordBlob(r.id, r.fileUrl as string);
+      const { fileUrl: _fileUrl, ...rest } = r;
+      return rest as ScannedRecord;
+    }
+    return r;
+  });
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(slim));
     window.dispatchEvent(new CustomEvent(UPDATE_EVENT));
   } catch (e) {
-    console.warn("[scannedRecords] persist failed", e);
+    // Last-ditch: retry once after dropping every fileUrl so the metadata
+    // at least persists instead of the whole batch disappearing.
+    try {
+      const minimal = slim.map(({ fileUrl: _f, ...rest }) => rest as ScannedRecord);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(minimal));
+      window.dispatchEvent(new CustomEvent(UPDATE_EVENT));
+      console.warn("[scannedRecords] persisted without fileUrl after quota error", e);
+    } catch (e2) {
+      console.warn("[scannedRecords] persist failed", e2);
+    }
   }
 };
 
