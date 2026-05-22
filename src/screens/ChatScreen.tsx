@@ -514,11 +514,13 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         title={humanThread.title ?? "Conversation"}
         subtitle={subtitle}
         kind={humanThread.kind === "provider" ? "provider" : "direct"}
-        onBack={() => { setHumanThread(null); setView("inbox"); }}
+        initialPendingAttachment={humanPendingAttachment}
+        onBack={() => { setHumanThread(null); setHumanPendingAttachment(null); setView("inbox"); }}
         onOpenProfile={() => { setProfileBackTo("human"); setView("profile"); }}
         onMinimize={() => {
           pinChatHead(humanThread.id);
           setHumanThread(null);
+          setHumanPendingAttachment(null);
           setView("inbox");
         }}
       />
