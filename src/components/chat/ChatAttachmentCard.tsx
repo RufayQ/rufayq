@@ -197,6 +197,16 @@ const ChatAttachmentCard = ({ payload, mine }: Props) => {
           </div>
         </div>
       )}
+
+      <UnifiedAttachmentPreview
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        url={payload.url ?? null}
+        fileName={payload.fileName}
+        title={payload.label}
+        mimeType={payload.mimeType ?? null}
+        actions={{ canOpen: false, canDownload: !!payload.url }}
+      />
     </>
   );
 };
