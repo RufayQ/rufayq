@@ -33,7 +33,7 @@ import HelicopterTimelineRail from "@/components/journey/HelicopterTimelineRail"
 import MilestoneSheet, { type SheetItem } from "@/components/journey/MilestoneSheet";
 import OtherJourneysList from "@/components/journey/OtherJourneysList";
 import EmptyJourneyCard from "@/components/journey/EmptyJourneyCard";
-import { useJourneyOverview } from "@/hooks/useJourneyOverview";
+import { buildJourneyOverview } from "@/hooks/useJourneyOverview";
 import EditStepSheet from "@/components/EditStepSheet";
 import FlightTicketCard, { InlineFlightRow } from "@/components/FlightTicketCard";
 import { PlaneTakeoff, PlaneLanding, Hotel, Stethoscope, ChevronRight, X as XIcon } from "lucide-react";
@@ -143,17 +143,18 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const isGuest = useGuestMode();
   const showAuthSkeleton = !isGuest && !authReady;
   const { categories: guestCats } = useGuestCategories();
-  const { items: appointmentRows, save: saveAppointment } = useAppointments();
+  const { items: appointmentRows, save: saveAppointment, isLoading: appointmentsLoading } = useAppointments();
   const persistedAppointments = useMemo(() => sortAppointmentRowsByStart(appointmentRows).map((row) => appointmentRowToAppointment(row)), [appointmentRows]);
   const visibleAppointments = isGuest && guestCats.appointments ? appointments : persistedAppointments;
   const nextAppointment = visibleAppointments.find((apt) => apt.status === "upcoming") ?? null;
   const [expanded, setExpanded] = useState<number | null>(null);
-  const { journeys: dbTrips, save: persistTrip, archive: archiveTrip } = useJourneys(isGuest ? [defaultTrip] : []);
+  const { journeys: dbTrips, isLoading: journeysLoading, error: journeysError, save: persistTrip, archive: archiveTrip } = useJourneys(isGuest ? [defaultTrip] : []);
   const [trips, setTrips] = useState<TripData[]>(isGuest ? [defaultTrip] : []);
   // Sync hook results into local trips list (kept as state so existing call-sites stay simple).
   useEffect(() => {
+    if (!isGuest && journeysLoading && dbTrips.length === 0) return;
     setTrips(dbTrips);
-  }, [dbTrips]);
+  }, [dbTrips, isGuest, journeysLoading]);
   const [showAddTrip, setShowAddTrip] = useState(false);
 
   // Intent handling lives in a single effect below.
@@ -162,7 +163,13 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   const [archiveTarget, setArchiveTarget] = useState<TripData | null>(null);
   const [activeSubTab, setActiveSubTab] = useState("overview");
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
-  const overview = useJourneyOverview({ isGuest });
+  const overview = useMemo(() => buildJourneyOverview({
+    journeys: trips,
+    appointmentRows,
+    isGuest,
+    isLoading: !isGuest && (journeysLoading || appointmentsLoading),
+    error: journeysError,
+  }), [trips, appointmentRows, isGuest, journeysLoading, appointmentsLoading, journeysError]);
   const selectedMilestone = overview.milestones.find((m) => m.id === selectedMilestoneId) ?? null;
   const milestoneSheetRef = useRef<HTMLDivElement>(null);
   const userSelectedRef = useRef(false);
