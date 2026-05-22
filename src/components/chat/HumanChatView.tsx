@@ -10,6 +10,8 @@ import MessageTicks from "./MessageTicks";
 import EmojiPicker from "./EmojiPicker";
 import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
 import ChatPickerErrorBoundary from "@/components/chat/ChatPickerErrorBoundary";
+import ChatAttachmentCard from "@/components/chat/ChatAttachmentCard";
+import { encodeChatAttachment, parseChatBody } from "@/lib/chat/chatAttachmentBody";
 
 
 interface Props {
@@ -71,24 +73,38 @@ export default function HumanChatView({
   };
 
   const renderBodyWithLinks = (body: string, mine: boolean) => {
-    const parts = body.split(/(https?:\/\/[^\s]+)/g);
-    return parts.map((part, i) => {
-      if (/^https?:\/\//.test(part)) {
+    const segments = parseChatBody(body);
+    return segments.map((seg, i) => {
+      if (seg.type === "attachment") {
         return (
-          <a
-            key={i}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="underline font-medium"
-            style={{ color: mine ? "var(--gold)" : "var(--teal-deep)", wordBreak: "break-all" }}
-          >
-            {part}
-          </a>
+          <div key={`att-${i}`} className="my-1.5">
+            <ChatAttachmentCard payload={seg.payload} mine={mine} />
+          </div>
         );
       }
-      return <span key={i}>{part}</span>;
+      const parts = seg.value.split(/(https?:\/\/[^\s]+)/g);
+      return (
+        <span key={`txt-${i}`}>
+          {parts.map((part, j) => {
+            if (/^https?:\/\//.test(part)) {
+              return (
+                <a
+                  key={j}
+                  href={part}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="underline font-medium"
+                  style={{ color: mine ? "var(--gold)" : "var(--teal-deep)", wordBreak: "break-all" }}
+                >
+                  {part}
+                </a>
+              );
+            }
+            return <span key={j}>{part}</span>;
+          })}
+        </span>
+      );
     });
   };
 
@@ -110,12 +126,16 @@ export default function HumanChatView({
     try {
       let body = text;
       if (pendingAttachment) {
-        const lines = [
-          `📎 ${pendingAttachment.label} — ${pendingAttachment.file_name}`,
-          `(${pendingAttachment.sourceLabelEn} · ${pendingAttachment.sourceLabelAr})`,
-        ];
-        if (pendingAttachment.signedUrl) lines.push(pendingAttachment.signedUrl);
-        body = text ? `${lines.join("\n")}\n\n${text}` : lines.join("\n");
+        const marker = encodeChatAttachment({
+          kind: pendingAttachment.kind,
+          label: pendingAttachment.label,
+          fileName: pendingAttachment.file_name,
+          sourceLabelEn: pendingAttachment.sourceLabelEn,
+          sourceLabelAr: pendingAttachment.sourceLabelAr,
+          url: pendingAttachment.signedUrl,
+          mimeType: pendingAttachment.mime_type ?? null,
+        });
+        body = text ? `${marker}\n${text}` : marker;
       }
       await send(body, { replyToId: replyTo?.id ?? null });
       setInput("");

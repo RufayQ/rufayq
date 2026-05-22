@@ -174,6 +174,7 @@ export const estimateStorageQuota = async (): Promise<{
   return null;
 };
 
-/** Generate a stable blob key for a record id + slot (e.g. "file", "pdf"). */
-export const makeBlobKey = (recordId: string, slot: string = "file"): string =>
-  `${recordId}:${slot}`;
+// Re-export the shared normalizer so legacy importers keep working but every
+// composition routes through one helper (see blobKeyUtil for the rationale).
+export { makeBlobKey, slotKey, normalizeBlobBase, BLOB_SLOTS } from "@/lib/records/blobKeyUtil";
+export type { BlobSlot } from "@/lib/records/blobKeyUtil";

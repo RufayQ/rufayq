@@ -12,6 +12,7 @@ import {
   isHeavyDataUrl,
 } from "@/lib/records/recordBlobCache";
 import { deleteRecordBlob, resolveRecordBlobUrl } from "@/lib/records/recordBlobDb";
+import { normalizeBlobBase, slotKey, type BlobSlot } from "@/lib/records/blobKeyUtil";
 
 const STORAGE_KEY = "rufayq_travel_scanned_records_v1";
 const UPDATE_EVENT = "rufayq:travel-scanned-records-updated";
@@ -42,12 +43,8 @@ export interface TravelScannedRecord {
 /** Base blob key for a record — strips any trailing :file/:pdf/:pages slot
  *  that callers (e.g. ScannerWizard.finalizePayload) may have pre-suffixed,
  *  so the per-slot keys we generate here line up with what was stored. */
-const baseBlobKey = (r: TravelScannedRecord): string => {
-  const raw = r.blobKey || r.id;
-  return raw.replace(/:(file|pdf|pages)$/, "");
-};
-const blobKeyFor = (r: TravelScannedRecord, slot: "file" | "pdf" | "pages") =>
-  `${baseBlobKey(r)}:${slot}`;
+const blobKeyFor = (r: TravelScannedRecord, slot: BlobSlot) =>
+  slotKey(r.blobKey, slot, r.id);
 
 const slimFor = (r: TravelScannedRecord): TravelScannedRecord => {
   let next = r;
@@ -207,13 +204,12 @@ export const updateTravelScannedRecord = (
 export const removeTravelScannedRecord = (id: string) => {
   const all = read();
   const target = all.find((r) => r.id === id);
-  const base = (target?.blobKey || id).replace(/:(file|pdf|pages)$/, "");
-  dropCachedRecordBlob(`${base}:file`);
-  dropCachedRecordBlob(`${base}:pdf`);
-  dropCachedRecordBlob(`${base}:pages`);
-  void deleteRecordBlob(`${base}:file`);
-  void deleteRecordBlob(`${base}:pdf`);
-  void deleteRecordBlob(`${base}:pages`);
+  const base = normalizeBlobBase(target?.blobKey, id);
+  for (const slot of ["file", "pdf", "pages"] as const) {
+    const k = `${base}:${slot}`;
+    dropCachedRecordBlob(k);
+    void deleteRecordBlob(k);
+  }
   write(all.filter((r) => r.id !== id));
 };
 
