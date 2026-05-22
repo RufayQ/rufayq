@@ -193,15 +193,17 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     (async () => {
       try {
         if (!authReady) return;
-        const all = await listAllUserRecords({
+        const all = await listAllRecordsForPicker({
           userId: userId ?? null,
           deviceId: getDeviceId(),
-          fileBackedOnly: true,
         });
         if (cancelled) return;
         const nextRows: UnifiedRecord[] = [];
         for (const record of all) {
-          if (!record?.sendableToChat) continue;
+          // Records-screen parity: list every row regardless of byte
+          // availability. The row itself gates its pick action on
+          // `attachable` so users can SEE everything they have, even if
+          // some rows can't be attached yet.
           try {
             if (!filterRecord || filterRecord(record)) nextRows.push(record);
           } catch (filterError) {
