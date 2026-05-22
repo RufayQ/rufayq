@@ -625,16 +625,20 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
                 const isMedical = r.origin === "medical-scan";
                 const isImage = !!r.mimeType && r.mimeType.startsWith("image/");
                 const Icon = isImage ? ImageIcon : FileText;
+                const notAttachable = r.attachable === false;
                 return (
                   <button
                     key={r.id}
                     onClick={() => handlePick(r)}
-                    disabled={picking === r.id}
+                    disabled={picking === r.id || notAttachable}
+                    aria-disabled={notAttachable || undefined}
+                    title={notAttachable ? "No file attached · لا يوجد ملف" : undefined}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left card-press"
                     style={{
                       background: "var(--white)",
                       border: "1px solid var(--gray-light)",
-                      opacity: picking === r.id ? 0.6 : 1,
+                      opacity: picking === r.id ? 0.6 : notAttachable ? 0.55 : 1,
+                      cursor: notAttachable ? "not-allowed" : undefined,
                     }}
                   >
                     <div
@@ -651,7 +655,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
                         {r.label}
                       </p>
                       <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
-                        {r.fileName}
+                        {notAttachable ? "No file attached · لا يوجد ملف" : r.fileName}
                       </p>
                     </div>
                     <div className="shrink-0 flex flex-col items-end gap-1">
