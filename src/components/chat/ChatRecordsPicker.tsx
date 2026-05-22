@@ -21,7 +21,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { FileText, Image as ImageIcon, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { getDeviceId } from "@/hooks/useDeviceId";
-import { useAuthUserId } from "@/hooks/useAuthUserId";
+import { useAuthSession } from "@/hooks/useAuthUserId";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
 import { logAttachErrorTelemetry, shortCause } from "@/lib/records/attachErrorTelemetry";
 import {
@@ -56,7 +56,7 @@ type SourceFilter = "all" | "travel" | "medical";
 type AttachedSummary = { documentName: string; sourceType: string; targetLabel: string; targetLabelAr?: string };
 
 const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker", filterRecord, attachTargetLabel, attachTargetLabelAr }: Props) => {
-  const userId = useAuthUserId();
+  const { userId, isReady: authReady } = useAuthSession();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<UnifiedRecord[]>([]);
   const [query, setQuery] = useState("");
@@ -176,11 +176,13 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     if (!open) return;
     let cancelled = false;
     let retryTimer: number | null = null;
+    let scheduledRetry = false;
     setLoading(true);
     setLoadError(null);
     setLastErrorStage(null);
     (async () => {
       try {
+        if (!authReady) return;
         const all = await listAllUserRecords({
           userId: userId ?? null,
           deviceId: getDeviceId(),
@@ -216,6 +218,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
         // device-header timing) without yanking the menu away from the user.
         if (retryCountRef.current < 1) {
           retryCountRef.current += 1;
+          scheduledRetry = true;
           retryTimer = window.setTimeout(() => {
             if (!cancelled) setRetryNonce((n) => n + 1);
           }, 600);
@@ -225,14 +228,14 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
         setLoadError(e instanceof Error ? e : new Error(String(e ?? "unknown error")));
         setLastErrorStage("listAllUserRecords");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && authReady && !scheduledRetry) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
       if (retryTimer !== null) clearTimeout(retryTimer);
     };
-  }, [filterRecord, open, route, userId, retryNonce]);
+  }, [authReady, filterRecord, open, route, userId, retryNonce]);
 
   const handleManualRetry = useCallback(() => {
     retryCountRef.current = 0;
@@ -267,7 +270,9 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
         if (sourceFilter === "travel" && !(r.origin === "transport" || r.origin === "travel-scan")) return false;
         if (sourceFilter === "medical" && r.origin !== "medical-scan") return false;
         if (!q) return true;
-        return r.label.toLowerCase().includes(q) || r.fileName.toLowerCase().includes(q);
+        const label = String(r.label ?? "").toLowerCase();
+        const fileName = String(r.fileName ?? "").toLowerCase();
+        return label.includes(q) || fileName.includes(q);
       });
     } catch (e) {
       void logAttachErrorTelemetry({

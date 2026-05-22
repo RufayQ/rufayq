@@ -83,6 +83,7 @@ const MilestoneSheet = ({
     userId: userId ?? null,
     segmentRef: resolvedSegmentRef,
     ticketId: resolvedTicketId,
+    enabled: !!resolvedSegmentRef || !!resolvedTicketId,
   });
   const [expanded, setExpanded] = useState(defaultExpanded);
 

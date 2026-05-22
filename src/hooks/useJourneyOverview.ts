@@ -3,6 +3,7 @@ import { useJourneys } from "@/hooks/useJourneys";
 import { useAppointments } from "@/hooks/useAppointments";
 import { medications as demoMedications, appointments as demoAppointments, type Medication, type Appointment } from "@/constants/data";
 import type { TripData } from "@/components/AddTripSheet";
+import type { AppointmentRow } from "@/lib/api/appointmentApi";
 import { appointmentRowToAppointment, sortAppointmentRowsByStart } from "@/lib/appointmentRows";
 import { computeProgress, formatDate, parseDate } from "@/lib/journeyOverview";
 
@@ -81,6 +82,8 @@ export interface DashboardAlert {
 }
 
 export interface JourneyOverview {
+  isLoading: boolean;
+  error: Error | null;
   activeTrip: TripData | null;
   otherTrips: TripData[];
   journeyCount: number;
@@ -98,6 +101,14 @@ export interface JourneyOverview {
   allAppointments: Appointment[];
   milestones: JourneyMilestone[];
   alerts: DashboardAlert[];
+}
+
+export interface BuildJourneyOverviewInput {
+  journeys: TripData[];
+  appointmentRows: AppointmentRow[];
+  isGuest: boolean;
+  isLoading?: boolean;
+  error?: Error | null;
 }
 
 function normalizeMed(m: Medication, idx: number): DashboardMedication {
@@ -168,12 +179,7 @@ function buildMilestones(trip: TripData | null, appts: Appointment[]): JourneyMi
   return items;
 }
 
-export function useJourneyOverview(opts: { isGuest?: boolean } = {}): JourneyOverview {
-  const isGuest = !!opts.isGuest;
-  const { journeys } = useJourneys(isGuest ? [guestTrip] : []);
-  const { items: appointmentRows } = useAppointments();
-
-  return useMemo(() => {
+export function buildJourneyOverview({ journeys, appointmentRows, isGuest, isLoading = false, error = null }: BuildJourneyOverviewInput): JourneyOverview {
     const activeTrip =
       journeys.find((j) => j.status === "active") ??
       journeys.find((j) => j.status === "upcoming") ??
@@ -230,6 +236,8 @@ export function useJourneyOverview(opts: { isGuest?: boolean } = {}): JourneyOve
     }
 
     return {
+      isLoading,
+      error,
       activeTrip,
       otherTrips,
       journeyCount: journeys.length,
@@ -247,5 +255,18 @@ export function useJourneyOverview(opts: { isGuest?: boolean } = {}): JourneyOve
       milestones,
       alerts,
     };
-  }, [journeys, appointmentRows, isGuest]);
+}
+
+export function useJourneyOverview(opts: { isGuest?: boolean } = {}): JourneyOverview {
+  const isGuest = !!opts.isGuest;
+  const { journeys, isLoading: journeysLoading, error } = useJourneys(isGuest ? [guestTrip] : []);
+  const { items: appointmentRows, isLoading: appointmentsLoading } = useAppointments();
+
+  return useMemo(() => buildJourneyOverview({
+    journeys,
+    appointmentRows,
+    isGuest,
+    isLoading: !isGuest && (journeysLoading || appointmentsLoading),
+    error,
+  }), [journeys, appointmentRows, isGuest, journeysLoading, appointmentsLoading, error]);
 }

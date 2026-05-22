@@ -37,7 +37,10 @@ vi.mock("@/lib/records/recordSources", () => ({
   listAllUserRecords: (...args: any[]) => listAllUserRecords(...args),
   resolveRecordSignedUrl: (...args: any[]) => resolveRecordSignedUrl(...args),
 }));
-vi.mock("@/hooks/useAuthUserId", () => ({ useAuthUserId: () => null }));
+vi.mock("@/hooks/useAuthUserId", () => ({
+  useAuthUserId: () => null,
+  useAuthSession: () => ({ userId: null, isReady: true }),
+}));
 vi.mock("@/hooks/useDeviceId", () => ({ getDeviceId: () => "device-test" }));
 vi.mock("@/lib/records/attachErrorTelemetry", () => ({
   logAttachErrorTelemetry: (...args: any[]) => logAttachErrorTelemetry(...args),
