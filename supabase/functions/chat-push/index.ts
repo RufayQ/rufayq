@@ -74,8 +74,14 @@ Deno.serve(async (req) => {
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
-      const { data } = await sb.rpc("verify_cron_secret", { _provided: cronSecret });
-      vaultMatch = data === true;
+      let check = await sb.rpc("verify_cron_secret", { _provided: cronSecret });
+      if (check.data !== true) {
+        // First run after env was provisioned — mirror env value into the
+        // Vault so the chat_message_dispatch_push trigger can use it.
+        await sb.rpc("sync_cron_secret_to_vault", { _value: cronSecret });
+        check = await sb.rpc("verify_cron_secret", { _provided: cronSecret });
+      }
+      vaultMatch = check.data === true;
     }
     return new Response(JSON.stringify({
       ok: !!cronSecret && vaultMatch,
@@ -83,6 +89,7 @@ Deno.serve(async (req) => {
       vault_match: vaultMatch,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
+
 
   // Internal trigger endpoint: require shared CRON_SECRET (also passed by the
   // pg_net trigger) OR the service-role bearer token for ad-hoc admin retries.
