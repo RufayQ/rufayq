@@ -27,7 +27,7 @@ import { logAttachErrorTelemetry, shortCause } from "@/lib/records/attachErrorTe
 import {
   invalidateUserRecordsCache,
   listAllRecordsForPicker,
-  resolveRecordSignedUrl,
+  resolvePortableSignedUrl,
   type UnifiedRecord,
 } from "@/lib/records/recordSources";
 import { subscribeToScannedRecords } from "@/lib/scannedRecordsStore";
@@ -364,7 +364,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     };
     let signedUrl: string | undefined;
     try {
-      signedUrl = (await resolveRecordSignedUrl(row, deviceId)) ?? undefined;
+      signedUrl = (await resolvePortableSignedUrl(row, { userId: userId ?? null, deviceId })) ?? undefined;
     } catch (e: any) {
       void logAttachErrorTelemetry({ stage: "resolveRecordSignedUrl", route, deviceId, rowId: row.id, error: e });
       toast.error("Couldn't fetch file link · تعذّر جلب الرابط", {
