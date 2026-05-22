@@ -310,12 +310,17 @@ const ScannerWizard = ({
     if (files.length === 0) return;
 
     if (uploadMode === "multi-record" && files.length > 0) {
-      // Route to the batch rename / save screen.
+      // Route to the batch rename / save screen. If no category has been
+      // pre-selected yet, detour through Step 3 so every saved record has
+      // a real category — without this the records fall on the floor and
+      // the user sees the wizard "crash" after pressing Save All.
       setBatchFiles(files.map((f) => ({ file: f, name: f.name.replace(/\.\w+$/, "") })));
-      setStep(99); // sentinel for batch screen
-      // reset single-file state
+      setBatchSaving(false);
+      setBatchProgress(null);
+      setBatchError(null);
       setRealFile(null);
       setCapturedFile(null);
+      setStep(selectedCategory ? 99 : 3);
       return;
     }
 
