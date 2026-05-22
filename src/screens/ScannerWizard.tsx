@@ -477,7 +477,7 @@ const ScannerWizard = ({
             selectedSub={selectedSub}
             onSelect={(id) => { setSelectedCategory(id); setSelectedSub(null); }}
             onSelectSub={setSelectedSub}
-            onContinue={() => setStep(4)}
+            onContinue={() => setStep(batchFiles.length > 0 ? 99 : 4)}
           />
         )}
         {step === 4 && skipAiForFlight && (
