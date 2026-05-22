@@ -13,6 +13,7 @@ import { OverlayLayer } from "@/shared/ui/overlay";
 import { X, ChevronLeft, ChevronRight, Maximize2, Save, Plus, Trash2, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import UniversalDocumentPreview, { isPdf } from "@/components/records/UniversalDocumentPreview";
+import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
 import NationalityCombobox from "@/components/NationalityCombobox";
 import {
   type TravelScannedRecord,
