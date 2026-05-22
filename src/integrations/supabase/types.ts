@@ -8208,6 +8208,11 @@ export type Database = {
         }
       }
       security_findings_upsert: { Args: { _findings: Json }; Returns: number }
+      security_findings_upsert_scoped: {
+        Args: { _findings: Json; _scanner_name: string }
+        Returns: number
+      }
+      security_rescan_collect: { Args: never; Returns: Json }
       set_chat_discovery: {
         Args: { _by_email: boolean; _by_phone: boolean }
         Returns: undefined
