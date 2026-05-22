@@ -56,6 +56,12 @@ const AdminDashboard = () => {
         >
           <BookOpen size={12} /> API Swagger reference
         </Link>
+        <Link
+          to="/admin/security"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-700 bg-slate-900/50 text-xs text-slate-300 hover:text-amber-300 hover:border-amber-500/50 transition"
+        >
+          <Shield size={12} /> Security findings
+        </Link>
       </div>
 
       {/* Top-line summary */}
