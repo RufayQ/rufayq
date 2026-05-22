@@ -25,6 +25,7 @@ import { useAuthSession } from "@/hooks/useAuthUserId";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
 import { logAttachErrorTelemetry, shortCause } from "@/lib/records/attachErrorTelemetry";
 import {
+  invalidateUserRecordsCache,
   listAllUserRecords,
   resolveRecordSignedUrl,
   type UnifiedRecord,
