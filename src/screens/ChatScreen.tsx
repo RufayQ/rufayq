@@ -489,11 +489,19 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   // Inbox view — main entry for the Chat tab.
   if (view === "inbox") {
     return (
-      <ChatInbox
-        onOpenThread={handleOpenThread}
-        onOpenProfile={handleOpenProfileFromInbox}
-        onNewAi={() => { setPersona(null); setMessages([]); setView("ai"); }}
-      />
+      <>
+        <ChatInbox
+          onOpenThread={handleOpenThread}
+          onOpenProfile={handleOpenProfileFromInbox}
+          onNewAi={() => { setPersona(null); setMessages([]); setView("ai"); }}
+        />
+        <ChatDestinationPicker
+          open={!!destinationPicker}
+          attachment={destinationPicker}
+          onClose={() => setDestinationPicker(null)}
+          onPick={handleDestinationPick}
+        />
+      </>
     );
   }
 
