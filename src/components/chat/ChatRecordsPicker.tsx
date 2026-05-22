@@ -33,7 +33,6 @@ import {
 import { subscribeToScannedRecords } from "@/lib/scannedRecordsStore";
 import { subscribeToTravelScannedRecords } from "@/lib/travelScannedRecordsStore";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthUserId } from "@/hooks/useAuthUserId";
 
 export interface PickedRecord {
   kind: "travel" | "medical";
