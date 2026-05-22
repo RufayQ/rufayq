@@ -8067,6 +8067,24 @@ export type Database = {
         }
         Returns: string
       }
+      log_scanner_qc_event: {
+        Args: {
+          _build_version?: string
+          _device_hash?: string
+          _error_message?: string
+          _error_name?: string
+          _file_count?: number
+          _largest_file_bytes?: number
+          _mime_families?: string[]
+          _platform?: string
+          _quota_estimate_bytes?: number
+          _scenario: string
+          _stage: string
+          _storage_mode?: string
+          _total_bytes?: number
+        }
+        Returns: undefined
+      }
       provider_has_consent: {
         Args: {
           _device_id: string

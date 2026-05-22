@@ -2,11 +2,8 @@
  * Local store for travel-side scanned documents (visas, passports, residency
  * permits, insurance cards, hotel bookings…) created via the Scanner wizard.
  *
- * Mirrors scannedRecordsStore in shape, but is consumed by the Travel
- * Records list instead of the Medical Records screen. We keep it local-only
- * for now (the DB-backed `transport_attachments` table requires a real file
- * upload + ownership scope, which isn't always available at save time —
- * especially for guest sessions or for non-flight scanner flows).
+ * File previews live in IndexedDB (`recordBlobDb`) keyed by `${id}:file`,
+ * `${id}:pdf`, and `${id}:pages`. localStorage only ever holds metadata.
  */
 import {
   cacheRecordBlob,
@@ -14,6 +11,7 @@ import {
   getCachedRecordBlob,
   isHeavyDataUrl,
 } from "@/lib/records/recordBlobCache";
+import { deleteRecordBlob, resolveRecordBlobUrl } from "@/lib/records/recordBlobDb";
 
 const STORAGE_KEY = "rufayq_travel_scanned_records_v1";
 const UPDATE_EVENT = "rufayq:travel-scanned-records-updated";
@@ -26,37 +24,44 @@ export const isTravelCategory = (cat: string | null | undefined): boolean =>
 export interface TravelScannedRecord {
   id: string;
   createdAt: string;
-  category: string;          // scanner category (e.g. "legal")
-  subcategory: string | null; // e.g. "Visa"
-  title: string;             // user-facing label
-  fileName: string;          // original captured file name
+  category: string;
+  subcategory: string | null;
+  title: string;
+  fileName: string;
   pageCount: number;
   keyFields?: { label: string; value: string }[];
-  /** Captured page images (data URLs) used for in-app preview / fullscreen. */
   pageImages?: string[];
-  /** Optional source PDF URL (signed/blob/data) used when pageImages is empty. */
   pdfUrl?: string;
-  /** Optional original file URL (blob/signed/data) used for PDF/Office/image fallback preview. */
   fileUrl?: string;
-  /** MIME type of the original uploaded document. */
   mimeType?: string | null;
+  /** IndexedDB blob key prefix (`${id}` by default). Slots: `:file`, `:pdf`, `:pages`. */
+  blobKey?: string;
+  fileBytes?: number;
 }
+
+const blobKeyFor = (r: TravelScannedRecord, slot: "file" | "pdf" | "pages") =>
+  `${r.blobKey || r.id}:${slot}`;
 
 const slimFor = (r: TravelScannedRecord): TravelScannedRecord => {
   let next = r;
   if (r?.id && isHeavyDataUrl(r.fileUrl)) {
-    cacheRecordBlob(`${r.id}:file`, r.fileUrl as string);
+    cacheRecordBlob(blobKeyFor(r, "file"), r.fileUrl as string);
+    const { fileUrl: _u, ...rest } = next;
+    next = rest as TravelScannedRecord;
+  } else if (r?.fileUrl?.startsWith("blob:")) {
     const { fileUrl: _u, ...rest } = next;
     next = rest as TravelScannedRecord;
   }
   if (r?.id && isHeavyDataUrl(r.pdfUrl)) {
-    cacheRecordBlob(`${r.id}:pdf`, r.pdfUrl as string);
+    cacheRecordBlob(blobKeyFor(r, "pdf"), r.pdfUrl as string);
+    const { pdfUrl: _p, ...rest } = next;
+    next = rest as TravelScannedRecord;
+  } else if (r?.pdfUrl?.startsWith("blob:")) {
     const { pdfUrl: _p, ...rest } = next;
     next = rest as TravelScannedRecord;
   }
-  // pageImages arrays of data URLs are far too large for localStorage.
   if (r?.id && Array.isArray(r.pageImages) && r.pageImages.some((p) => isHeavyDataUrl(p))) {
-    cacheRecordBlob(`${r.id}:pages`, JSON.stringify(r.pageImages));
+    cacheRecordBlob(blobKeyFor(r, "pages"), JSON.stringify(r.pageImages));
     const { pageImages: _pi, ...rest } = next;
     next = rest as TravelScannedRecord;
   }
@@ -67,15 +72,15 @@ const rehydrate = (r: TravelScannedRecord): TravelScannedRecord => {
   if (!r?.id) return r;
   let next = r;
   if (!next.fileUrl) {
-    const cached = getCachedRecordBlob(`${next.id}:file`);
+    const cached = getCachedRecordBlob(blobKeyFor(next, "file"));
     if (cached) next = { ...next, fileUrl: cached };
   }
   if (!next.pdfUrl) {
-    const cached = getCachedRecordBlob(`${next.id}:pdf`);
+    const cached = getCachedRecordBlob(blobKeyFor(next, "pdf"));
     if (cached) next = { ...next, pdfUrl: cached };
   }
   if (!next.pageImages) {
-    const cached = getCachedRecordBlob(`${next.id}:pages`);
+    const cached = getCachedRecordBlob(blobKeyFor(next, "pages"));
     if (cached) {
       try { next = { ...next, pageImages: JSON.parse(cached) }; } catch { /* noop */ }
     }
@@ -83,15 +88,38 @@ const rehydrate = (r: TravelScannedRecord): TravelScannedRecord => {
   return next;
 };
 
+let hydrationStarted = false;
+
 const read = (): TravelScannedRecord[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.map(rehydrate);
+    const items = parsed.map(rehydrate);
+    if (!hydrationStarted) {
+      hydrationStarted = true;
+      void hydrateMissingPreviews(items);
+    }
+    return items;
   } catch {
     return [];
+  }
+};
+
+const hydrateMissingPreviews = async (items: TravelScannedRecord[]) => {
+  let dirty = false;
+  for (const r of items) {
+    if (!r?.id) continue;
+    if (!r.fileUrl && !getCachedRecordBlob(blobKeyFor(r, "file"))) {
+      try { if (await resolveRecordBlobUrl(blobKeyFor(r, "file"))) dirty = true; } catch { /* noop */ }
+    }
+    if (!r.pdfUrl && !getCachedRecordBlob(blobKeyFor(r, "pdf"))) {
+      try { if (await resolveRecordBlobUrl(blobKeyFor(r, "pdf"))) dirty = true; } catch { /* noop */ }
+    }
+  }
+  if (dirty) {
+    try { window.dispatchEvent(new CustomEvent(UPDATE_EVENT)); } catch { /* noop */ }
   }
 };
 
@@ -101,7 +129,6 @@ const write = (items: TravelScannedRecord[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(slim));
     window.dispatchEvent(new CustomEvent(UPDATE_EVENT));
   } catch (e) {
-    // Quota fallback: drop every remaining heavy field so metadata persists.
     try {
       const minimal = slim.map(({ fileUrl: _f, pdfUrl: _p, pageImages: _pi, ...rest }) => rest as TravelScannedRecord);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(minimal));
@@ -126,6 +153,8 @@ export const addTravelScannedRecord = (input: {
   pdfUrl?: string;
   fileUrl?: string;
   mimeType?: string | null;
+  blobKey?: string;
+  fileBytes?: number;
 }): TravelScannedRecord => {
   const id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
     ? crypto.randomUUID()
@@ -148,12 +177,13 @@ export const addTravelScannedRecord = (input: {
     pdfUrl: input.pdfUrl,
     fileUrl: input.fileUrl,
     mimeType: input.mimeType ?? null,
+    blobKey: input.blobKey || id,
+    fileBytes: input.fileBytes,
   };
   write([rec, ...read()]);
   return rec;
 };
 
-/** Patch an existing travel scanned record (title / keyFields / etc.). */
 export const updateTravelScannedRecord = (
   id: string,
   patch: Partial<Pick<TravelScannedRecord, "title" | "subcategory" | "keyFields" | "fileName" | "fileUrl" | "mimeType" | "pdfUrl">>,
@@ -168,10 +198,16 @@ export const updateTravelScannedRecord = (
 };
 
 export const removeTravelScannedRecord = (id: string) => {
-  dropCachedRecordBlob(`${id}:file`);
-  dropCachedRecordBlob(`${id}:pdf`);
-  dropCachedRecordBlob(`${id}:pages`);
-  write(read().filter((r) => r.id !== id));
+  const all = read();
+  const target = all.find((r) => r.id === id);
+  const base = target?.blobKey || id;
+  dropCachedRecordBlob(`${base}:file`);
+  dropCachedRecordBlob(`${base}:pdf`);
+  dropCachedRecordBlob(`${base}:pages`);
+  void deleteRecordBlob(`${base}:file`);
+  void deleteRecordBlob(`${base}:pdf`);
+  void deleteRecordBlob(`${base}:pages`);
+  write(all.filter((r) => r.id !== id));
 };
 
 export const subscribeToTravelScannedRecords = (handler: () => void): (() => void) => {
