@@ -1,47 +1,63 @@
+# Migrate ChatRecordsPicker to Records data sources
+
+## Problem
+
+The chat "Attach from My Records" sheet shows fewer records than the Records screen because it reads through `listAllUserRecords()` (a unified merger) which:
+
+- Filters out scans that lack `fileUrl` / `pdfUrl` / `pageImages` (`sendableToChat: false`).
+- Hides lounge cards (`fileBackedOnly: true`).
+- Caches results for 4s and re-hydrates `fileUrl` from IndexedDB asynchronously, so freshly-added records can be invisible on first open.
+
+The Records screen instead reads the three underlying sources directly and re-renders on their native update events, so it is always in sync.
+
 ## Goal
 
-Close the two `realtime.messages` topic-policy gaps flagged by the scanner:
+The chat picker must show **exactly** what the Records screen shows, sourced from the same readers, and stay in sync the same way. ChatRecordsPicker UI is preserved (search, Travel/Medical filters, FREE chip, attached-summary card, error/retry, keyboard-arming pattern) — only the data layer is replaced.
 
-1. `lounge_memberships_realtime_no_topic_policy` — anyone subscribing to the global `lounge-memberships` channel receives row-change payloads (card_last4, membership_number, program) for other users.
-2. `realtime_chat_tables_no_topic_policy` — anyone subscribing to `chat-thread-<id>`, `chat-receipts-<id>`, `chat-inbox-shared`, or `global-chat-awareness` can receive change events for `chat_threads`, `chat_messages`, `chat_participants`.
+## Approach
 
-Today only `pn:<device_id>` and `pf:<device_id>` topics are allowed by `realtime.messages` RLS. We will (a) move all lounge/chat channels to device- or participant-scoped topic names and (b) extend the topic SELECT policy to match those new scopes.
+1. **New reader** in `src/lib/records/recordSources.ts`:
+   `listAllRecordsForPicker({ userId, deviceId })` — merges the same three sources the Records screen uses, with no `sendableToChat` or `fileBackedOnly` filtering:
+   - `transport_attachments` rows (same query TravelRecordsList runs).
+   - `listTravelScannedRecords()` from the local store.
+   - `listScannedRecords()` from the local store.
+   Returns `UnifiedRecord[]` with:
+   - `linkableToMilestone` / `previewable` / `sendableToChat` still set per row (used downstream).
+   - A new `attachable: boolean` flag = "this row has bytes we can resolve into a signed URL/data URL right now". Rows without bytes are still listed but the row tile is disabled with a small hint ("No file attached · لا يوجد ملف"), matching how Records itself displays them.
+   - Lounge cards are excluded (they are never "documents" — the existing picker never showed them and the Records screen separates them in their own surface).
 
-## Plan
+2. **Rewire ChatRecordsPicker** (`src/components/chat/ChatRecordsPicker.tsx`):
+   - Replace the `listAllUserRecords(..., fileBackedOnly: true)` call with `listAllRecordsForPicker(...)`.
+   - Remove the `record.sendableToChat` filter; instead use `attachable` to enable/disable the row's pick action.
+   - Subscribe to the same update channels the Records screen subscribes to:
+     - `subscribeToScannedRecords` (medical local store).
+     - `subscribeToTravelScannedRecords` (travel local store).
+     - Supabase realtime on `transport_attachments` (same channel name pattern as TravelRecordsList).
+     Any event → invalidate cache + reload.
+   - On every open: bust the snapshot cache once (already added previously) so freshly-added rows are never hidden.
+   - Keep the existing keyboard-arming, error/retry, attached-summary, telemetry, and FREE-chip behaviour untouched.
 
-### 1. Rename frontend channel topics to include device / thread scoping
+3. **Preview / handoff path** (`resolveRecordSignedUrl` already supports all three origins). Picks of rows without bytes call `onPick` with `signedUrl = undefined`; the chat upload sheet already handles that (it just sends a label + filename without the URL line) so no change is needed there.
 
-Update channel names so the topic itself encodes who is allowed to subscribe. No business-logic changes — same `postgres_changes` handlers.
-
-- `src/lib/loungeMemberships.ts` → `lm:<device_id>`
-- `src/hooks/useChatInbox.ts` → `ci:<device_id>`
-- `src/hooks/useGlobalChat.ts` → `ga:<device_id>`
-- `src/hooks/useChatThread.ts` → `ct:<thread_id>:<device_id>`
-- `src/hooks/useThreadReadReceipts.ts` → `cr:<thread_id>:<device_id>`
-
-Each hook already has access to the device id (via the same helper used elsewhere, e.g. `getDeviceId()` / the existing device-id context). The thread-scoped topics still include `device_id` so the topic policy can verify the caller is a participant of that thread using their device id.
-
-### 2. New SQL migration: extend `realtime.messages` SELECT policy
-
-Add a helper and broaden the existing topic allowlist. Single migration:
-
-- Create `public.realtime_caller_in_thread(_thread uuid, _device text) returns boolean` as `SECURITY DEFINER`, that returns true when a `chat_participants` row exists with `thread_id = _thread` AND (`device_id = _device` OR caller is an org member of that participant's `organization_id`). Reuse the same logic as `chat_caller_participates`.
-- Drop and recreate `"Device-scoped realtime topic read"` on `realtime.messages` to also allow:
-  - `lm:<device_id>`, `ci:<device_id>`, `ga:<device_id>` (device-owned topics)
-  - `ct:<thread_id>:<device_id>` / `cr:<thread_id>:<device_id>` when `realtime_caller_in_thread(thread_id, device_id)` returns true.
-- Mirror the same conditions in the INSERT (`write`) policy so future broadcast publishes are equally scoped.
-
-The header `x-device-id` is already injected by the Supabase JS client setup for realtime auth, matching the pattern used by the existing `pn:` / `pf:` policies.
-
-### 3. No business-logic changes
-
-Underlying table RLS on `lounge_memberships`, `chat_messages`, `chat_participants`, `chat_threads` already filters rows. This change only restricts who can subscribe to the topic in the first place, eliminating the cross-user payload leak.
-
-### 4. Mark findings fixed
-
-After the migration is approved and clients are updated, mark `lounge_memberships_realtime_no_topic_policy` and `realtime_chat_tables_no_topic_policy` as fixed via `security--manage_security_finding` with an explanation referencing the new topic-scoped policy.
+4. **Records screen parity check**: After migration, opening Records and Chat → Attach should show the same row count, same ordering (newest first), same labels, same Travel/Medical tags. Items hidden today (e.g. medical scans whose `fileUrl` hasn't been rehydrated yet) will now appear immediately, going attachable once IndexedDB warms.
 
 ## Files touched
 
-- New: `supabase/migrations/<ts>_realtime_topic_scoping.sql`
-- Edited: `src/lib/loungeMemberships.ts`, `src/hooks/useChatInbox.ts`, `src/hooks/useGlobalChat.ts`, `src/hooks/useChatThread.ts`, `src/hooks/useThreadReadReceipts.ts`
+- `src/lib/records/recordSources.ts` — add `listAllRecordsForPicker` + `attachable` flag on `UnifiedRecord`.
+- `src/components/chat/ChatRecordsPicker.tsx` — swap reader, add subscriptions, gate the row's attach button on `attachable`.
+- `src/components/records/UnifiedRecordsPicker.tsx` — no change (alias still re-exports the same component).
+- No DB / RLS / edge-function changes.
+
+## Out of scope
+
+- Lounge cards in the chat picker (they have no file; would need a separate UX).
+- Changing the chat upload sheet itself.
+- Records screen rendering (already canonical).
+
+## Verification
+
+- Open Records → note row count and titles.
+- Open Chat → "+" → Attach from My Records → row count and titles must match exactly (minus lounge cards).
+- Add a new medical scan → without closing the picker, the new row appears within ~1s (via store event).
+- Pick a row that has no bytes → row is disabled with a clear hint; tapping it does nothing.
+- Pick a row that has bytes → upload sheet opens pre-filled, signed URL resolves, send works.

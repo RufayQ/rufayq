@@ -26,10 +26,13 @@ import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
 import { logAttachErrorTelemetry, shortCause } from "@/lib/records/attachErrorTelemetry";
 import {
   invalidateUserRecordsCache,
-  listAllUserRecords,
+  listAllRecordsForPicker,
   resolveRecordSignedUrl,
   type UnifiedRecord,
 } from "@/lib/records/recordSources";
+import { subscribeToScannedRecords } from "@/lib/scannedRecordsStore";
+import { subscribeToTravelScannedRecords } from "@/lib/travelScannedRecordsStore";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface PickedRecord {
   kind: "travel" | "medical";
@@ -189,15 +192,17 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     (async () => {
       try {
         if (!authReady) return;
-        const all = await listAllUserRecords({
+        const all = await listAllRecordsForPicker({
           userId: userId ?? null,
           deviceId: getDeviceId(),
-          fileBackedOnly: true,
         });
         if (cancelled) return;
         const nextRows: UnifiedRecord[] = [];
         for (const record of all) {
-          if (!record?.sendableToChat) continue;
+          // Records-screen parity: list every row regardless of byte
+          // availability. The row itself gates its pick action on
+          // `attachable` so users can SEE everything they have, even if
+          // some rows can't be attached yet.
           try {
             if (!filterRecord || filterRecord(record)) nextRows.push(record);
           } catch (filterError) {
@@ -243,23 +248,32 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     };
   }, [authReady, filterRecord, open, route, userId, retryNonce]);
 
-  // Reload when the local scan stores update (e.g. IndexedDB hydration
-  // restores a fileUrl for a scan that initially had no bytes and was
-  // therefore excluded). Without this, records the user just added appear
-  // "missing" until they close and reopen the picker.
+  // Live parity with the Records screen: subscribe to the SAME three update
+  // channels the Records list listens to so freshly-added rows appear here
+  // immediately and async IndexedDB hydration flips an unattachable row to
+  // attachable without requiring a close-and-reopen.
   useEffect(() => {
     if (!open) return;
     const refresh = () => {
       invalidateUserRecordsCache();
       setRetryNonce((n) => n + 1);
     };
-    window.addEventListener("rufayq:scanned-records-updated", refresh);
-    window.addEventListener("rufayq:travel-scanned-records-updated", refresh);
+    const offMedical = subscribeToScannedRecords(refresh);
+    const offTravel = subscribeToTravelScannedRecords(refresh);
+    const channel = supabase
+      .channel(`chat-records-picker-${userId ?? "guest"}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "transport_attachments" },
+        refresh,
+      )
+      .subscribe();
     return () => {
-      window.removeEventListener("rufayq:scanned-records-updated", refresh);
-      window.removeEventListener("rufayq:travel-scanned-records-updated", refresh);
+      offMedical();
+      offTravel();
+      void supabase.removeChannel(channel);
     };
-  }, [open]);
+  }, [open, userId]);
 
   const handleManualRetry = useCallback(() => {
     retryCountRef.current = 0;
@@ -319,6 +333,15 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
   }, [query, sourceFilter, open]);
 
   const handlePick = async (row: UnifiedRecord) => {
+    // Records-parity contract: rows without bytes are visible but not
+    // pickable. Guard here too so a row that flips attachable=false mid-
+    // render still can't be sent without bytes.
+    if (row.attachable === false) {
+      toast("No file attached · لا يوجد ملف", {
+        description: "This record has no file to send. Open it in Records to add one.",
+      });
+      return;
+    }
     setPicking(row.id);
     setIsAttaching(true);
     const deviceId = getDeviceId();
@@ -602,16 +625,20 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
                 const isMedical = r.origin === "medical-scan";
                 const isImage = !!r.mimeType && r.mimeType.startsWith("image/");
                 const Icon = isImage ? ImageIcon : FileText;
+                const notAttachable = r.attachable === false;
                 return (
                   <button
                     key={r.id}
                     onClick={() => handlePick(r)}
-                    disabled={picking === r.id}
+                    disabled={picking === r.id || notAttachable}
+                    aria-disabled={notAttachable || undefined}
+                    title={notAttachable ? "No file attached · لا يوجد ملف" : undefined}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left card-press"
                     style={{
                       background: "var(--white)",
                       border: "1px solid var(--gray-light)",
-                      opacity: picking === r.id ? 0.6 : 1,
+                      opacity: picking === r.id ? 0.6 : notAttachable ? 0.55 : 1,
+                      cursor: notAttachable ? "not-allowed" : undefined,
                     }}
                   >
                     <div
@@ -628,7 +655,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
                         {r.label}
                       </p>
                       <p className="text-[11px] truncate" style={{ color: "var(--gray)" }}>
-                        {r.fileName}
+                        {notAttachable ? "No file attached · لا يوجد ملف" : r.fileName}
                       </p>
                     </div>
                     <div className="shrink-0 flex flex-col items-end gap-1">

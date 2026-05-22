@@ -56,6 +56,14 @@ export interface UnifiedRecord {
   linkableToMilestone: boolean;
   sendableToChat: boolean;
   previewable: boolean;
+  /**
+   * Can this row produce signed-URL / data-URL bytes RIGHT NOW?
+   * Picker UIs that want to mirror the Records screen (show every row,
+   * even ones whose bytes aren't ready yet) gate their attach action on
+   * this flag. Defaults to the same value as `sendableToChat` for legacy
+   * call sites that don't compute it explicitly.
+   */
+  attachable?: boolean;
   /** Storage path inside TRANSPORT_BUCKET when the file already lives there. */
   filePath?: string;
   /** Raw local-store payload kept for import / preview fall-backs. */
@@ -379,3 +387,142 @@ export const listAllRecordsForUser = listAllUserRecords;
  * UnifiedRecord regardless of origin.
  */
 export const resolveRecordUrl = resolveRecordSignedUrl;
+
+/**
+ * Picker-flavoured reader: returns the EXACT same set of rows the Records
+ * screen renders (transport attachments + travel scans + medical scans),
+ * without filtering rows that lack byte-backed previews. Lounge cards are
+ * excluded because they are not documents.
+ *
+ * Each row carries an `attachable` flag the picker uses to disable the
+ * pick action for rows whose bytes aren't ready (e.g. medical scan whose
+ * `fileUrl` hasn't been rehydrated from IndexedDB yet). The list itself
+ * never hides those rows — parity with the Records screen is the contract.
+ *
+ * Bypasses the `listAllUserRecords` snapshot cache so the picker always
+ * reads source-of-truth on open.
+ */
+export const listAllRecordsForPicker = async (
+  opts: { userId?: string | null; deviceId: string },
+): Promise<UnifiedRecord[]> => {
+  const { userId, deviceId } = opts;
+
+  // 1) transport_attachments — same query TravelRecordsList runs.
+  let q = supabase
+    .from("transport_attachments")
+    .select("id, label, file_name, file_path, mime_type, created_at, user_id, key_fields")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(300);
+  if (userId) q = q.or(`user_id.eq.${userId},device_id.eq.${deviceId}`);
+  else q = q.eq("device_id", deviceId);
+
+  const transportRows: UnifiedRecord[] = [];
+  try {
+    const { data, error } = await withDeviceHeader(q, deviceId);
+    if (error) console.warn("[recordSources/picker] transport load failed", error.message);
+    for (const r of ((data ?? []) as unknown as Array<{
+      id: string; label: string; file_name: string; file_path: string;
+      mime_type: string | null; created_at: string;
+      key_fields: { label: string; value: string }[] | null;
+    }>)) {
+      transportRows.push({
+        id: `transport:${r.id}`,
+        origin: "transport",
+        domain: "travel",
+        label: r.label || "Document",
+        fileName: r.file_name,
+        mimeType: r.mime_type,
+        dateLabel: formatDate(r.created_at),
+        createdAt: r.created_at,
+        sourceLabelEn: "Travel",
+        sourceLabelAr: "سفر",
+        linkableToMilestone: true,
+        sendableToChat: true,
+        previewable: true,
+        attachable: true,
+        filePath: r.file_path,
+        transport: { keyFields: r.key_fields },
+      });
+    }
+  } catch (e) {
+    console.warn("[recordSources/picker] transport threw", e);
+  }
+
+  // 2) Travel scans — surface every row, mark attachable only when bytes exist.
+  let travelScans: UnifiedRecord[] = [];
+  try {
+    travelScans = listTravelScannedRecords().map((s) => {
+      const hasBytes = hasScanBytes(s);
+      return {
+        id: `travel-scan:${s.id}`,
+        origin: "travel-scan" as const,
+        domain: "travel" as const,
+        label: s.title || s.subcategory || "Travel document",
+        fileName: s.fileName || `${s.title || "document"}.pdf`,
+        mimeType: s.mimeType ?? null,
+        dateLabel: formatDate(s.createdAt),
+        createdAt: s.createdAt,
+        sourceLabelEn: "Travel",
+        sourceLabelAr: "سفر",
+        linkableToMilestone: hasBytes,
+        sendableToChat: hasBytes,
+        previewable: true,
+        attachable: hasBytes,
+        travelScan: s,
+      };
+    });
+  } catch (e) {
+    console.warn("[recordSources/picker] travel scans threw", e);
+  }
+
+  // 3) Medical scans — same contract: list everything, gate attachability.
+  let medicalScans: UnifiedRecord[] = [];
+  try {
+    medicalScans = listScannedRecords().map((s) => {
+      const hasBytes = !!s.fileUrl;
+      return {
+        id: `medical-scan:${s.id}`,
+        origin: "medical-scan" as const,
+        domain: "medical" as const,
+        label: s.titleEn || s.category || "Medical record",
+        fileName: s.fileName || s.source || `${s.titleEn || "record"}.pdf`,
+        mimeType: s.mimeType ?? null,
+        dateLabel: s.date || formatDate(s.createdAt),
+        createdAt: s.createdAt,
+        sourceLabelEn: "Medical",
+        sourceLabelAr: "طبي",
+        linkableToMilestone: hasBytes,
+        sendableToChat: hasBytes,
+        previewable: true,
+        attachable: hasBytes,
+        medicalScan: s,
+      };
+    });
+  } catch (e) {
+    console.warn("[recordSources/picker] medical scans threw", e);
+  }
+
+  const merged = [...transportRows, ...travelScans, ...medicalScans];
+
+  // Dedupe by (origin, filePath || id) — same contract as listAllUserRecords.
+  const seen = new Set<string>();
+  const deduped: UnifiedRecord[] = [];
+  for (const r of merged) {
+    const key = `${r.origin}:${r.filePath ?? r.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(r);
+  }
+
+  const ORIGIN_ORDER: Record<RecordOrigin, number> = { transport: 0, "travel-scan": 1, "medical-scan": 2, lounge: 3 };
+  deduped.sort((a, b) => {
+    const ta = Date.parse(a.createdAt) || 0;
+    const tb = Date.parse(b.createdAt) || 0;
+    if (tb !== ta) return tb - ta;
+    return ORIGIN_ORDER[a.origin] - ORIGIN_ORDER[b.origin];
+  });
+
+  return deduped;
+};
+
