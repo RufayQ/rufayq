@@ -214,8 +214,19 @@ const ChatAttachmentCard = ({ payload, mine }: Props) => {
         fileName={payload.fileName}
         title={payload.label}
         mimeType={payload.mimeType ?? null}
-        actions={{ canOpen: false, canDownload: !!payload.url }}
+        actions={{ canOpen: !!payload.url, canDownload: !!payload.url, canShare: !!payload.url }}
+        onShare={async () => {
+          try {
+            if (navigator.share) {
+              await navigator.share({ title: payload.label, text: payload.label, url: payload.url });
+            } else if (payload.url) {
+              await navigator.clipboard.writeText(payload.url);
+              toast.success("Link copied · تم نسخ الرابط");
+            }
+          } catch { /* user cancelled */ }
+        }}
       />
+
     </>
   );
 };
