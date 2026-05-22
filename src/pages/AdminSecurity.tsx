@@ -39,18 +39,25 @@ export default function AdminSecurity() {
   const [filterStatus, setFilterStatus] = useState<"all" | Finding["status"]>("all");
   const [filterSev, setFilterSev] = useState<"all" | Finding["severity"]>("all");
   const [cronHealth, setCronHealth] = useState<"checking" | "ok" | "fail">("checking");
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const inFlightRef = useRef(false);
 
-  const load = async () => {
-    setLoading(true);
+  const load = useCallback(async (opts: { silent?: boolean } = {}) => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    if (!opts.silent) setLoading(true);
     const { data, error } = await supabase
       .from("security_findings")
       .select("id, scanner_name, internal_id, title, severity, status, description, first_seen_at, last_seen_at, resolved_at, resolution_note")
       .order("severity", { ascending: false })
       .order("last_seen_at", { ascending: false });
     if (error) setErr(error.message);
-    else setRows((data ?? []) as Finding[]);
+    else { setRows((data ?? []) as Finding[]); setErr(null); }
+    setLastRefresh(new Date());
     setLoading(false);
-  };
+    inFlightRef.current = false;
+  }, []);
 
   const checkCron = async () => {
     setCronHealth("checking");
