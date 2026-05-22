@@ -417,6 +417,70 @@ const Index = () => {
     setAppView("main");
   }, []);
 
+  /**
+   * Multi-record (batch) save: persist every payload in one pass, emit a
+   * single toast, navigate once. Previously the wizard called `onSave` N
+   * times in a synchronous loop which caused N toasts + N navigations and
+   * appeared to the user as the wizard crashing after pressing "Save all".
+   */
+  const handleScannerSaveBatch = useCallback((category: string | null, payloads: any[]) => {
+    setShowScanner(false);
+    if (!payloads || payloads.length === 0) return;
+    const isTravelDoc = category === "legal";
+    const medical = isMedicalCategory(category);
+    let stored = 0;
+    payloads.forEach((payload) => {
+      try {
+        const keyFields = (payload?.manualFields || []).filter((f: any) => f?.value?.trim().length > 0);
+        const sub = payload?.subcategory?.trim();
+        const identifier = payload?.passenger?.name?.trim() || payload?.fileName?.replace(/\.\w+$/, "");
+        const titleFromFields = sub && identifier ? `${sub} · ${identifier}` : (identifier || sub);
+        if (isTravelDoc && category) {
+          addTravelScannedRecord({
+            category,
+            subcategory: payload?.subcategory ?? null,
+            title: titleFromFields,
+            fileName: payload?.fileName,
+            pageCount: payload?.pageImages?.length || 1,
+            keyFields: keyFields.length ? keyFields : undefined,
+            pageImages: payload?.pageImages,
+            fileUrl: payload?.fileUrl,
+            pdfUrl: payload?.mimeType === "application/pdf" ? payload?.fileUrl : undefined,
+            mimeType: payload?.mimeType ?? null,
+          });
+          stored += 1;
+        } else if (medical && category) {
+          addScannedRecord({
+            category,
+            titleEn: titleFromFields,
+            source: payload?.passenger?.name ? `Scanned by ${payload.passenger.name}` : "RufayQ Scanner",
+            pageCount: payload?.pageImages?.length || 1,
+            keyFields: keyFields.length ? keyFields : undefined,
+            fileUrl: payload?.fileUrl,
+            mimeType: payload?.mimeType ?? null,
+            fileName: payload?.fileName,
+          });
+          stored += 1;
+        }
+      } catch (e) {
+        console.warn("[scanner] batch entry failed; continuing", e);
+      }
+    });
+
+    const msg = toastMessages[category || "other"] || toastMessages.other;
+    toast.success(`${stored} ${stored === 1 ? "record" : "records"} saved`, {
+      description: msg.en,
+      duration: 4000,
+    });
+    setBadges(prev => ({ ...prev, records: true }));
+
+    const segment: "travel" | "medical" = isTravelDoc ? "travel" : "medical";
+    try { sessionStorage.setItem("rufayq_records_segment", segment); } catch { /* noop */ }
+    window.dispatchEvent(new CustomEvent("rufayq:records-segment", { detail: segment }));
+    setActiveTab("records");
+    setAppView("main");
+  }, []);
+
   const handleNavigate = (tab: string, context?: string) => {
     if (tab === "logout") {
       handleLogout();
