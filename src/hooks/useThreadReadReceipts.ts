@@ -31,7 +31,7 @@ export function useThreadReadReceipts(threadId: string | null) {
   useEffect(() => {
     if (!threadId) return;
     const ch = supabase
-      .channel(`chat-receipts-${threadId}`)
+      .channel(`cr:${threadId}:${getDeviceId()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "chat_participants", filter: `thread_id=eq.${threadId}` },

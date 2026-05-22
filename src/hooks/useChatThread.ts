@@ -74,7 +74,7 @@ export function useChatThread(threadId: string | null) {
   useEffect(() => {
     if (!threadId) return;
     const ch = supabase
-      .channel(`chat-thread-${threadId}`)
+      .channel(`ct:${threadId}:${getDeviceId()}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },

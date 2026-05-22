@@ -70,11 +70,12 @@ const rowToMembership = (r: DbRow): LoungeMembership => ({
 
 const ensureRealtime = () => {
   if (realtimeChannel) return;
+  const deviceId = getDeviceId();
   realtimeChannel = supabase
-    .channel("lounge-memberships")
+    .channel(`lm:${deviceId}`)
     .on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "lounge_memberships" },
+      { event: "*", schema: "public", table: "lounge_memberships", filter: `device_id=eq.${deviceId}` },
       () => { void fetchLoungeMemberships(); },
     )
     .subscribe();

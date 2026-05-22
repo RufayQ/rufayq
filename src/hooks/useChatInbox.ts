@@ -60,8 +60,9 @@ function handleMessageChange(payload: { eventType?: string; new?: { thread_id?: 
 
 function ensureSharedChannel() {
   if (sharedChannel) return;
+  const deviceId = getDeviceId();
   sharedChannel = supabase
-    .channel("chat-inbox-shared")
+    .channel(`ci:${deviceId}`)
     .on("postgres_changes", { event: "*", schema: "public", table: "chat_threads" }, scheduleReloadAll)
     .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, handleMessageChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "chat_participants" }, scheduleReloadAll)
