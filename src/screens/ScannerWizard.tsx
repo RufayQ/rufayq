@@ -464,14 +464,49 @@ const ScannerWizard = ({
               setBatchSaving(true);
               setBatchError(null);
               setBatchProgress({ done: 0, total: batchFiles.length });
+              const total = batchFiles.length;
+              const totalBytes = batchFiles.reduce((a, b) => a + b.file.size, 0);
+              const largest = batchFiles.reduce((m, b) => Math.max(m, b.file.size), 0);
+              logScannerEvent({
+                stage: "save_started",
+                scenario: "multi-record",
+                fileCount: total,
+                totalBytes,
+                largestFileBytes: largest,
+                mimeFamilies: summarizeMimes(batchFiles.map((b) => b.file.type)),
+              });
               try {
-                // Finalize each file → base64 payload sequentially so we never
-                // explode memory on slow Android WebViews. One payload per file,
-                // each carrying the user-renamed title, real fileName, and mime.
+                // Persist each file to IndexedDB (durable) and emit one payload
+                // per record. NO base64 inlining → no QuotaExceeded crashes.
                 const payloads: ScannerSavePayload[] = [];
+                let dominantStorage: "indexeddb" | "memory" | "metadata-only" = "indexeddb";
                 for (let i = 0; i < batchFiles.length; i += 1) {
                   const entry = batchFiles[i];
-                  const draft: ScannerSavePayload = {
+                  const recId = (typeof crypto !== "undefined" && "randomUUID" in crypto)
+                    ? crypto.randomUUID()
+                    : `rec-${Date.now()}-${i}`;
+                  const blobKey = makeBlobKey(recId, "file");
+                  let previewUrl: string | undefined;
+                  try { previewUrl = URL.createObjectURL(entry.file); } catch { /* noop */ }
+                  let stored;
+                  try {
+                    stored = await putRecordBlob(blobKey, entry.file);
+                  } catch (storeErr) {
+                    logScannerEvent({
+                      stage: "indexeddb_store_failed",
+                      scenario: "multi-record",
+                      fileCount: 1,
+                      totalBytes: entry.file.size,
+                      largestFileBytes: entry.file.size,
+                      mimeFamilies: summarizeMimes([entry.file.type]),
+                      error: storeErr,
+                    });
+                    stored = { key: blobKey, size: entry.file.size, mimeType: entry.file.type || null, storageMode: "memory" as const };
+                  }
+                  if (stored.storageMode !== "indexeddb" && dominantStorage === "indexeddb") {
+                    dominantStorage = stored.storageMode;
+                  }
+                  payloads.push({
                     source: "manual",
                     pendingSegmentRef,
                     pageImages: [],
@@ -479,24 +514,40 @@ const ScannerWizard = ({
                     fileName: entry.file.name,
                     editedFile: entry.file,
                     mimeType: entry.file.type || null,
-                    fileUrl: URL.createObjectURL(entry.file),
+                    fileUrl: previewUrl,
                     subcategory: selectedSub,
                     manualFields: [{ label: "Name", value: entry.name }],
-                  };
-                  const finalized = (await finalizePayload(draft)) ?? draft;
-                  payloads.push(finalized);
-                  setBatchProgress({ done: i + 1, total: batchFiles.length });
+                    blobKey,
+                    fileBytes: entry.file.size,
+                  });
+                  setBatchProgress({ done: i + 1, total });
                 }
                 if (onSaveBatch) {
                   await onSaveBatch(selectedCategory, payloads);
                 } else {
-                  // Fallback for older parents: emit one onSave per payload,
-                  // then close once at the end (no per-iteration onClose).
                   for (const p of payloads) onSave?.(selectedCategory, p);
                 }
+                logScannerEvent({
+                  stage: "save_completed",
+                  scenario: "multi-record",
+                  storageMode: dominantStorage,
+                  fileCount: total,
+                  totalBytes,
+                  largestFileBytes: largest,
+                  mimeFamilies: summarizeMimes(batchFiles.map((b) => b.file.type)),
+                });
                 onClose();
               } catch (err) {
                 console.error("[ScannerWizard] multi-record save failed", err);
+                logScannerEvent({
+                  stage: "save_failed",
+                  scenario: "multi-record",
+                  fileCount: total,
+                  totalBytes,
+                  largestFileBytes: largest,
+                  mimeFamilies: summarizeMimes(batchFiles.map((b) => b.file.type)),
+                  error: err,
+                });
                 setBatchError(err instanceof Error ? err.message : "Save failed. Please retry.");
                 setBatchSaving(false);
               }
