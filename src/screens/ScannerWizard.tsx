@@ -213,6 +213,7 @@ const ScannerWizard = ({
   initialFile,
   attachmentMode,
   onSave,
+  onSaveBatch,
 }: ScannerWizardProps) => {
   const authUserId = useAuthUserId();
   // When the AI extraction path is disabled (currently the case for flights),
