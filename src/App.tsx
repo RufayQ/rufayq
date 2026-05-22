@@ -26,6 +26,7 @@ const ProviderDashboard = lazy(() => import("./pages/ProviderDashboard.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin.tsx"));
 const AdminApiDocs = lazy(() => import("./pages/AdminApiDocs.tsx"));
+const AdminSecurity = lazy(() => import("./pages/AdminSecurity.tsx"));
 const AdminSwagger = lazy(() => import("./pages/AdminSwagger.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const QuickSignup = lazy(() => import("./pages/QuickSignup.tsx"));
@@ -113,6 +114,7 @@ const App = () => (
             <Route path="/admin" element={<Shelled><Admin /></Shelled>} />
             <Route path="/admin/login" element={<Shelled><AdminLogin /></Shelled>} />
             <Route path="/admin/api-docs" element={<Shelled><AdminApiDocs /></Shelled>} />
+            <Route path="/admin/security" element={<Shelled><AdminSecurity /></Shelled>} />
             <Route path="/admin/swagger" element={<Shelled><AdminSwagger /></Shelled>} />
             <Route path="/auth" element={<Shelled><Auth /></Shelled>} />
             <Route path="/ar/auth" element={<Shelled><Auth /></Shelled>} />

@@ -49,6 +49,13 @@ jobs:
       - name: Validate OpenAPI spec
         run: node scripts/validate-openapi.mjs
 
+      - name: RLS coverage check
+        run: node scripts/ci/check-rls.mjs
+
+      - name: Edge-function auth check
+        run: node scripts/ci/check-edge-auth.mjs
+
+
       - name: Test
         run: bun run test
 

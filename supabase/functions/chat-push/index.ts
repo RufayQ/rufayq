@@ -61,6 +61,36 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Health probe: confirms env CRON_SECRET is set AND matches the value stored
+  // in the Vault (used by the chat_message_dispatch_push trigger via pg_net).
+  // Body { health: true } — never echoes the secret itself.
+  let earlyBody: { health?: boolean; message_id?: string } | null = null;
+  try { earlyBody = await req.clone().json(); } catch { /* ignore */ }
+  if (earlyBody?.health === true) {
+    const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+    let vaultMatch = false;
+    if (cronSecret) {
+      const sb = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      let check = await sb.rpc("verify_cron_secret", { _provided: cronSecret });
+      if (check.data !== true) {
+        // First run after env was provisioned — mirror env value into the
+        // Vault so the chat_message_dispatch_push trigger can use it.
+        await sb.rpc("sync_cron_secret_to_vault", { _value: cronSecret });
+        check = await sb.rpc("verify_cron_secret", { _provided: cronSecret });
+      }
+      vaultMatch = check.data === true;
+    }
+    return new Response(JSON.stringify({
+      ok: !!cronSecret && vaultMatch,
+      env_set: !!cronSecret,
+      vault_match: vaultMatch,
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+
   // Internal trigger endpoint: require shared CRON_SECRET (also passed by the
   // pg_net trigger) OR the service-role bearer token for ad-hoc admin retries.
   const cronSecret = Deno.env.get("CRON_SECRET");
@@ -74,6 +104,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
