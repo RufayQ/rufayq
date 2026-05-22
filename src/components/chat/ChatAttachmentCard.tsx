@@ -29,6 +29,7 @@ const isImage = (mime: string | null | undefined, fileName: string): boolean => 
 const ChatAttachmentCard = ({ payload, mine }: Props) => {
   const [showActions, setShowActions] = useState(false);
   const [showSavePicker, setShowSavePicker] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const image = isImage(payload.mimeType, payload.fileName);
 
   const openInline = () => {
@@ -37,10 +38,9 @@ const ChatAttachmentCard = ({ payload, mine }: Props) => {
       toast.error("No preview available · لا توجد معاينة");
       return;
     }
-    // Open inside the WebView via a same-origin redirect target — the user
-    // can use the system back gesture to return. This keeps the in-app
-    // experience for both Capacitor (Android) and PWA contexts.
-    window.open(payload.url, "_blank", "noopener,noreferrer");
+    // Use the canonical in-app viewer (same overlay as the Records expanded
+    // view) so PDFs/images never bounce out to the system browser.
+    setShowPreview(true);
   };
 
   const saveAs = (kind: "travel" | "medical") => {
