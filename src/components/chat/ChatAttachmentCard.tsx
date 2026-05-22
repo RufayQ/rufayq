@@ -99,17 +99,26 @@ const ChatAttachmentCard = ({ payload, mine }: Props) => {
             {image ? <ImageIcon size={18} /> : <FileText size={18} />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12.5px] font-bold leading-snug" style={{ color: surfaceText }} dir="auto">
+            <p
+              className="text-[12.5px] font-bold leading-snug line-clamp-2"
+              style={{ color: surfaceText, overflowWrap: "anywhere", wordBreak: "break-word" }}
+              dir="auto"
+              title={payload.label}
+            >
               {payload.label}
             </p>
-            <p className="text-[11px] truncate mt-0.5" style={{ color: subdued }}>
+            <p
+              className="text-[11px] truncate mt-0.5"
+              style={{ color: subdued }}
+              title={payload.fileName}
+            >
               {payload.fileName}
             </p>
-            <p className="text-[9.5px] font-mono tracking-wide mt-1" style={{ color: subdued }}>
+            <p className="text-[9.5px] font-mono tracking-wide mt-1 truncate" style={{ color: subdued }}>
               {payload.sourceLabelEn} · {payload.sourceLabelAr}
             </p>
           </div>
-          <Paperclip size={13} style={{ color: accent, marginTop: 2 }} />
+          <Paperclip size={13} style={{ color: accent, marginTop: 2 }} className="shrink-0" />
         </div>
       </button>
 
