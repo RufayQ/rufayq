@@ -396,20 +396,60 @@ const ScannerWizard = ({
         {step === 99 && (
           <Step2BatchRecords
             batch={batchFiles}
+            saving={batchSaving}
+            progress={batchProgress}
+            error={batchError}
+            category={selectedCategory}
+            subcategory={selectedSub}
             onChange={setBatchFiles}
-            onCancel={() => { setBatchFiles([]); setStep(1); }}
-            onSaveAll={() => {
-              // Save each record one-by-one through onSave; closes the wizard
-              // when finished. No AI extraction is run in this lightweight path.
-              batchFiles.forEach((entry) => {
-                onSave?.(selectedCategory, {
-                  source: "manual",
-                  pendingSegmentRef,
-                  pageImages: [],
-                  passenger: { name: entry.name },
-                });
-              });
-              onClose();
+            onCancel={() => {
+              if (batchSaving) return;
+              setBatchFiles([]);
+              setBatchError(null);
+              setBatchProgress(null);
+              setStep(1);
+            }}
+            onSaveAll={async () => {
+              if (batchSaving || batchFiles.length === 0) return;
+              setBatchSaving(true);
+              setBatchError(null);
+              setBatchProgress({ done: 0, total: batchFiles.length });
+              try {
+                // Finalize each file → base64 payload sequentially so we never
+                // explode memory on slow Android WebViews. One payload per file,
+                // each carrying the user-renamed title, real fileName, and mime.
+                const payloads: ScannerSavePayload[] = [];
+                for (let i = 0; i < batchFiles.length; i += 1) {
+                  const entry = batchFiles[i];
+                  const draft: ScannerSavePayload = {
+                    source: "manual",
+                    pendingSegmentRef,
+                    pageImages: [],
+                    passenger: { name: entry.name },
+                    fileName: entry.file.name,
+                    editedFile: entry.file,
+                    mimeType: entry.file.type || null,
+                    fileUrl: URL.createObjectURL(entry.file),
+                    subcategory: selectedSub,
+                    manualFields: [{ label: "Name", value: entry.name }],
+                  };
+                  const finalized = (await finalizePayload(draft)) ?? draft;
+                  payloads.push(finalized);
+                  setBatchProgress({ done: i + 1, total: batchFiles.length });
+                }
+                if (onSaveBatch) {
+                  await onSaveBatch(selectedCategory, payloads);
+                } else {
+                  // Fallback for older parents: emit one onSave per payload,
+                  // then close once at the end (no per-iteration onClose).
+                  for (const p of payloads) onSave?.(selectedCategory, p);
+                }
+                onClose();
+              } catch (err) {
+                console.error("[ScannerWizard] multi-record save failed", err);
+                setBatchError(err instanceof Error ? err.message : "Save failed. Please retry.");
+                setBatchSaving(false);
+              }
             }}
           />
         )}
