@@ -8,6 +8,7 @@
  * impossible by stripping any trailing slot suffix at the boundary.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import "fake-indexeddb/auto";
 
 vi.mock("sonner", () => ({
   toast: Object.assign((..._a: any[]) => {}, { success: vi.fn(), error: vi.fn() }),
