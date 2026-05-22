@@ -886,8 +886,33 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     { icon: <LogOut size={14} />, label: "Log Out", labelAr: "تسجيل الخروج", onClick: () => onNavigate?.("logout") },
   ];
 
+  // ── Safety guard ───────────────────────────────────────────────────────
+  // Never let a missing overview, transient backend failure, or empty data
+  // bubble up and either crash the tab (TabErrorBoundary fallback) or fall
+  // through to Home. Render a calm in-place state so the user stays on the
+  // Journey tab and can retry.
+  if (!overview || (overview.error && trips.length === 0 && !showJourneySkeleton)) {
+    const msg = overview?.error?.message ?? "We couldn't load your journey right now.";
+    return (
+      <div className="flex flex-col items-center justify-center px-6 text-center" style={{ height: 0, flex: 1, background: "var(--off-white)" }} role="alert">
+        <div className="mb-2 font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>02 — JOURNEY MAP</div>
+        <p className="font-display text-lg" style={{ color: "var(--navy)" }}>Your journey is taking a moment</p>
+        <p className="font-arabic text-sm mt-1" dir="rtl" style={{ color: "var(--gray)" }}>تعذّر تحميل رحلتك حالياً</p>
+        <p className="mt-3 text-[12px]" style={{ color: "var(--gray)" }}>{msg}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 rounded-full px-5 py-2 text-[12px] font-bold btn-press"
+          style={{ background: "var(--teal-deep)", color: "white" }}
+        >
+          Try again · <span className="font-arabic">إعادة المحاولة</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col" style={{ height: 0, flex: 1, overflow: "hidden" }}>
+
       {/* Header */}
       <div className="relative px-5 pt-6 pb-4 overflow-hidden shrink-0" style={{ background: "var(--navy)" }}>
         <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full pointer-events-none" style={{ border: "1px solid rgba(197,150,90,0.12)" }} />

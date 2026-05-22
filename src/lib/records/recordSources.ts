@@ -81,7 +81,30 @@ interface ListOpts {
   fileBackedOnly?: boolean;
 }
 
-export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[]> => {
+/**
+ * Single-flight cache. Concurrent callers (Records menu, Journey picker,
+ * Chat picker, header badge) share the same in-flight promise and the same
+ * resolved snapshot for `CACHE_TTL_MS`. This guarantees the Records menu
+ * never sees a partially-loaded array (counts vs attachments mismatch) and
+ * survives transient backend hiccups by serving the last-known snapshot.
+ */
+const CACHE_TTL_MS = 4000;
+type CacheKey = string;
+interface CacheEntry { data: UnifiedRecord[]; ts: number }
+const resultCache = new Map<CacheKey, CacheEntry>();
+const inflight = new Map<CacheKey, Promise<UnifiedRecord[]>>();
+
+const cacheKeyOf = (opts: ListOpts): CacheKey =>
+  `${opts.userId ?? "guest"}|${opts.deviceId}|${opts.fileBackedOnly ? 1 : 0}`;
+
+/** Drop cached snapshots so the next read goes to source. Call after writes
+ *  (new scan, attachment upload, lounge mutation, record delete). */
+export const invalidateUserRecordsCache = (): void => {
+  resultCache.clear();
+  inflight.clear();
+};
+
+const loadAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[]> => {
   const { userId, deviceId, fileBackedOnly } = opts;
 
   // 1) transport_attachments — OR(user_id, device_id) AND deleted_at IS NULL
@@ -125,66 +148,79 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
     console.warn("[recordSources] transport_attachments threw", e);
   }
 
-  // 2) Travel scans (localStorage)
-  const travelScans: UnifiedRecord[] = listTravelScannedRecords().map((s) => ({
-    id: `travel-scan:${s.id}`,
-    origin: "travel-scan",
-    domain: "travel",
-    label: s.title || s.subcategory || "Travel document",
-    fileName: s.fileName || `${s.title || "document"}.pdf`,
-    mimeType: s.mimeType ?? null,
-    dateLabel: formatDate(s.createdAt),
-    createdAt: s.createdAt,
-    sourceLabelEn: "Travel",
-    sourceLabelAr: "سفر",
-    linkableToMilestone: hasScanBytes(s),
-    sendableToChat: hasScanBytes(s),
-    previewable: true,
-    travelScan: s,
-  }));
+  // 2) Travel scans (localStorage) — wrapped so a corrupt store can never
+  // crash the Records menu.
+  let travelScans: UnifiedRecord[] = [];
+  try {
+    travelScans = listTravelScannedRecords().map((s) => ({
+      id: `travel-scan:${s.id}`,
+      origin: "travel-scan",
+      domain: "travel",
+      label: s.title || s.subcategory || "Travel document",
+      fileName: s.fileName || `${s.title || "document"}.pdf`,
+      mimeType: s.mimeType ?? null,
+      dateLabel: formatDate(s.createdAt),
+      createdAt: s.createdAt,
+      sourceLabelEn: "Travel",
+      sourceLabelAr: "سفر",
+      linkableToMilestone: hasScanBytes(s),
+      sendableToChat: hasScanBytes(s),
+      previewable: true,
+      travelScan: s,
+    }));
+  } catch (e) {
+    console.warn("[recordSources] travel scans threw", e);
+  }
 
   // 3) Medical scans (localStorage)
-  const medicalScans: UnifiedRecord[] = listScannedRecords().map((s) => ({
-    id: `medical-scan:${s.id}`,
-    origin: "medical-scan",
-    domain: "medical",
-    label: s.titleEn || s.category || "Medical record",
-    fileName: s.fileName || s.source || `${s.titleEn || "record"}.pdf`,
-    mimeType: s.mimeType ?? null,
-    dateLabel: s.date || formatDate(s.createdAt),
-    createdAt: s.createdAt,
-    sourceLabelEn: "Medical",
-    sourceLabelAr: "طبي",
-    linkableToMilestone: !!s.fileUrl,
-    sendableToChat: !!s.fileUrl,
-    previewable: true,
-    medicalScan: s,
-  }));
+  let medicalScans: UnifiedRecord[] = [];
+  try {
+    medicalScans = listScannedRecords().map((s) => ({
+      id: `medical-scan:${s.id}`,
+      origin: "medical-scan",
+      domain: "medical",
+      label: s.titleEn || s.category || "Medical record",
+      fileName: s.fileName || s.source || `${s.titleEn || "record"}.pdf`,
+      mimeType: s.mimeType ?? null,
+      dateLabel: s.date || formatDate(s.createdAt),
+      createdAt: s.createdAt,
+      sourceLabelEn: "Medical",
+      sourceLabelAr: "طبي",
+      linkableToMilestone: !!s.fileUrl,
+      sendableToChat: !!s.fileUrl,
+      previewable: true,
+      medicalScan: s,
+    }));
+  } catch (e) {
+    console.warn("[recordSources] medical scans threw", e);
+  }
 
-  // 4) Lounge cards — surface only when caller allows non-file rows. Pull the
-  // DB cache first so Home/Records count from the same freshly hydrated source,
-  // not from a stale in-memory lounge cache.
+  // 4) Lounge cards — surface only when caller allows non-file rows.
   let lounges: UnifiedRecord[] = [];
   if (!fileBackedOnly) {
     await fetchLoungeMemberships().catch((e) => {
       console.warn("[recordSources] lounge memberships refresh failed", e);
     });
-    lounges = listLoungeMemberships().map((l) => ({
-      id: `lounge:${l.id}`,
-      origin: "lounge",
-      domain: "travel",
-      label: l.program || "Lounge card",
-      fileName: l.membershipNumber || "—",
-      mimeType: null,
-      dateLabel: formatDate(l.createdAt ?? null),
-      createdAt: l.createdAt ?? new Date(0).toISOString(),
-      sourceLabelEn: "Lounge",
-      sourceLabelAr: "صالة",
-      linkableToMilestone: false,
-      sendableToChat: false,
-      previewable: true,
-      lounge: l,
-    }));
+    try {
+      lounges = listLoungeMemberships().map((l) => ({
+        id: `lounge:${l.id}`,
+        origin: "lounge",
+        domain: "travel",
+        label: l.program || "Lounge card",
+        fileName: l.membershipNumber || "—",
+        mimeType: null,
+        dateLabel: formatDate(l.createdAt ?? null),
+        createdAt: l.createdAt ?? new Date(0).toISOString(),
+        sourceLabelEn: "Lounge",
+        sourceLabelAr: "صالة",
+        linkableToMilestone: false,
+        sendableToChat: false,
+        previewable: true,
+        lounge: l,
+      }));
+    } catch (e) {
+      console.warn("[recordSources] lounge listing threw", e);
+    }
   }
 
   const merged = [...transportRows, ...travelScans, ...medicalScans, ...lounges];
@@ -210,6 +246,39 @@ export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[
 
   return deduped;
 };
+
+/**
+ * Public reader. Single-flight + short-TTL cache so multiple components
+ * mounting at once (Records menu counts, attachments grid, picker) share one
+ * network round-trip and ALWAYS render the same snapshot.
+ */
+export const listAllUserRecords = async (opts: ListOpts): Promise<UnifiedRecord[]> => {
+  const key = cacheKeyOf(opts);
+  const cached = resultCache.get(key);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data;
+
+  const existing = inflight.get(key);
+  if (existing) return existing;
+
+  const p = (async () => {
+    try {
+      const data = await loadAllUserRecords(opts);
+      resultCache.set(key, { data, ts: Date.now() });
+      return data;
+    } catch (e) {
+      console.error("[recordSources] listAllUserRecords failed", e);
+      // Serve last-known snapshot if we have one — keeps the menu rendering
+      // consistent counts/attachments even on transient backend errors.
+      if (cached) return cached.data;
+      return [];
+    } finally {
+      inflight.delete(key);
+    }
+  })();
+  inflight.set(key, p);
+  return p;
+};
+
 
 const hasScanBytes = (s: TravelScannedRecord): boolean =>
   !!(s.fileUrl || s.pdfUrl || (s.pageImages && s.pageImages.length));
