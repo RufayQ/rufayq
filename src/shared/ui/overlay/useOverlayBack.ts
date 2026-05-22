@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * Cross-module signal: the next `popstate` was produced by an overlay's
@@ -6,11 +6,6 @@ import { useEffect } from "react";
  * real user back-press. The global Android/web back guard reads this flag
  * via `consumeOverlayInternalPop()` and skips its own "back" handling so
  * users don't get bounced out of the current tab when an overlay closes.
- *
- * A module-scoped boolean is the simplest correct primitive here because:
- *   - `popstate` fires AFTER our cleanup runs, so an instance ref can't be
- *     read by the global handler at the right moment.
- *   - We only ever care about the very next event after our `history.back()`.
  */
 let pendingInternalPop = false;
 
@@ -28,9 +23,20 @@ export function consumeOverlayInternalPop(): boolean {
  * handler while the overlay is open. Pushes a sentinel history entry on open
  * so the first back press closes the overlay instead of leaving the screen.
  *
- * Part of the canonical overlay contract — do not reimplement per-section.
+ * IMPORTANT: This effect deliberately depends ONLY on `open` — never on
+ * `onClose`. Callers commonly pass inline arrow functions (`() => setX(false)`)
+ * whose identity changes on every render. If we depended on `onClose`, the
+ * effect would tear down and re-run on every re-render of the host, and the
+ * cleanup's `history.back()` would emit a popstate that the freshly-mounted
+ * listener immediately interpreted as a user back-press — silently closing
+ * the overlay (e.g. the scanner wizard closing as soon as the user picks a
+ * category). We capture the latest handler in a ref so the listener can call
+ * the current `onClose` without re-subscribing.
  */
 export function useOverlayBack(open: boolean, onClose: () => void) {
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -43,12 +49,19 @@ export function useOverlayBack(open: boolean, onClose: () => void) {
     }
 
     const onPop = (_e: PopStateEvent) => {
-      onClose();
+      // If this popstate was triggered by our own cleanup (history.back()),
+      // ignore it — it's not a real user back-press. The flag is set in the
+      // previous effect's cleanup and cleared here.
+      if (pendingInternalPop) {
+        pendingInternalPop = false;
+        return;
+      }
+      onCloseRef.current();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
       }
     };
 
@@ -59,8 +72,9 @@ export function useOverlayBack(open: boolean, onClose: () => void) {
       window.removeEventListener("popstate", onPop);
       window.removeEventListener("keydown", onKey);
       // If our sentinel is still on top, pop it so we don't leak history
-      // entries. Flag this pop as internal so the global Android back-guard
-      // doesn't treat it as a user back-press and bounce out of the tab.
+      // entries. Flag this pop as internal so neither our own listener (on a
+      // re-mount) nor the global Android back-guard treats it as a real
+      // back-press.
       try {
         if (window.history.state && (window.history.state as any).__overlay) {
           pendingInternalPop = true;
@@ -71,7 +85,7 @@ export function useOverlayBack(open: boolean, onClose: () => void) {
         /* noop */
       }
     };
-  }, [open, onClose]);
+  }, [open]);
 }
 
 /** Lock body scroll while the overlay is open. */
