@@ -25,6 +25,7 @@ import { useAuthSession } from "@/hooks/useAuthUserId";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
 import { logAttachErrorTelemetry, shortCause } from "@/lib/records/attachErrorTelemetry";
 import {
+  invalidateUserRecordsCache,
   listAllUserRecords,
   resolveRecordSignedUrl,
   type UnifiedRecord,
@@ -180,6 +181,11 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     setLoading(true);
     setLoadError(null);
     setLastErrorStage(null);
+    // Bust the 4s single-flight snapshot every open so the picker can never
+    // serve stale data after the user just added/scanned a record on
+    // another screen. Without this, items added within the cache TTL
+    // window appear "missing" until the user reopens.
+    invalidateUserRecordsCache();
     (async () => {
       try {
         if (!authReady) return;
@@ -236,6 +242,24 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
       if (retryTimer !== null) clearTimeout(retryTimer);
     };
   }, [authReady, filterRecord, open, route, userId, retryNonce]);
+
+  // Reload when the local scan stores update (e.g. IndexedDB hydration
+  // restores a fileUrl for a scan that initially had no bytes and was
+  // therefore excluded). Without this, records the user just added appear
+  // "missing" until they close and reopen the picker.
+  useEffect(() => {
+    if (!open) return;
+    const refresh = () => {
+      invalidateUserRecordsCache();
+      setRetryNonce((n) => n + 1);
+    };
+    window.addEventListener("rufayq:scanned-records-updated", refresh);
+    window.addEventListener("rufayq:travel-scanned-records-updated", refresh);
+    return () => {
+      window.removeEventListener("rufayq:scanned-records-updated", refresh);
+      window.removeEventListener("rufayq:travel-scanned-records-updated", refresh);
+    };
+  }, [open]);
 
   const handleManualRetry = useCallback(() => {
     retryCountRef.current = 0;
