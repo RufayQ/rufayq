@@ -84,6 +84,19 @@ export default function AdminSecurity() {
     })();
   }, [navigate]);
 
+  // Auto-refresh: poll every 30s while the tab is visible and autoRefresh is on.
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      void load({ silent: true });
+    };
+    const id = window.setInterval(tick, 30_000);
+    const onVis = () => { if (document.visibilityState === "visible") void load({ silent: true }); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { window.clearInterval(id); document.removeEventListener("visibilitychange", onVis); };
+  }, [autoRefresh, load]);
+
   const setStatus = async (id: string, status: Finding["status"]) => {
     const note = status === "ignored" ? window.prompt("Reason for ignoring this finding?") ?? "" : null;
     const { error } = await supabase.rpc("security_finding_set_status", {
@@ -104,6 +117,28 @@ export default function AdminSecurity() {
     (filterSev === "all" || r.severity === filterSev),
   );
 
+  const exportCsv = () => {
+    const cols = [
+      "severity", "status", "scanner_name", "internal_id", "title",
+      "description", "resolution_note", "first_seen_at", "last_seen_at", "resolved_at",
+    ] as const;
+    const esc = (v: unknown) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [cols.join(",")];
+    for (const r of visible) lines.push(cols.map((c) => esc((r as Record<string, unknown>)[c])).join(","));
+    const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `security-findings-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
@@ -112,8 +147,30 @@ export default function AdminSecurity() {
           <Shield size={18} className="text-amber-300" />
           <h1 className="text-base font-semibold">Security findings</h1>
           <span className="ml-auto" />
+          {lastRefresh && (
+            <span className="hidden sm:inline text-[10px] text-slate-500">
+              Updated {lastRefresh.toLocaleTimeString()}
+            </span>
+          )}
+          <label className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-slate-700 bg-slate-900/50 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              className="accent-amber-400"
+            />
+            Auto
+          </label>
           <button
-            onClick={() => { load(); checkCron(); }}
+            onClick={exportCsv}
+            disabled={visible.length === 0}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-700 bg-slate-900/50 text-xs hover:border-amber-500/50 disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Download visible findings as CSV"
+          >
+            <Download size={12} /> Export CSV
+          </button>
+          <button
+            onClick={() => { void load(); void checkCron(); }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-700 bg-slate-900/50 text-xs hover:border-amber-500/50"
           >
             <RefreshCw size={12} /> Refresh
