@@ -12,6 +12,7 @@ import {
   isHeavyDataUrl,
 } from "@/lib/records/recordBlobCache";
 import { deleteRecordBlob, resolveRecordBlobUrl } from "@/lib/records/recordBlobDb";
+import { normalizeBlobBase, slotKey, type BlobSlot } from "@/lib/records/blobKeyUtil";
 
 const STORAGE_KEY = "rufayq_travel_scanned_records_v1";
 const UPDATE_EVENT = "rufayq:travel-scanned-records-updated";
