@@ -126,12 +126,16 @@ export default function HumanChatView({
     try {
       let body = text;
       if (pendingAttachment) {
-        const lines = [
-          `📎 ${pendingAttachment.label} — ${pendingAttachment.file_name}`,
-          `(${pendingAttachment.sourceLabelEn} · ${pendingAttachment.sourceLabelAr})`,
-        ];
-        if (pendingAttachment.signedUrl) lines.push(pendingAttachment.signedUrl);
-        body = text ? `${lines.join("\n")}\n\n${text}` : lines.join("\n");
+        const marker = encodeChatAttachment({
+          kind: pendingAttachment.kind,
+          label: pendingAttachment.label,
+          fileName: pendingAttachment.file_name,
+          sourceLabelEn: pendingAttachment.sourceLabelEn,
+          sourceLabelAr: pendingAttachment.sourceLabelAr,
+          url: pendingAttachment.signedUrl,
+          mimeType: pendingAttachment.mime_type ?? null,
+        });
+        body = text ? `${marker}\n${text}` : marker;
       }
       await send(body, { replyToId: replyTo?.id ?? null });
       setInput("");
