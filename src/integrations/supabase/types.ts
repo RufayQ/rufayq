@@ -8217,6 +8217,7 @@ export type Database = {
       }
       start_direct_chat: { Args: { _other_device_id: string }; Returns: string }
       start_provider_chat: { Args: { _org_id: string }; Returns: string }
+      sync_cron_secret_to_vault: { Args: { _value: string }; Returns: boolean }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
       verify_cron_secret: { Args: { _provided: string }; Returns: boolean }
     }
