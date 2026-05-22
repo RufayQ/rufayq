@@ -27,7 +27,7 @@ import { logAttachErrorTelemetry, shortCause } from "@/lib/records/attachErrorTe
 import {
   invalidateUserRecordsCache,
   listAllRecordsForPicker,
-  resolveRecordSignedUrl,
+  resolvePortableSignedUrl,
   type UnifiedRecord,
 } from "@/lib/records/recordSources";
 import { subscribeToScannedRecords } from "@/lib/scannedRecordsStore";
