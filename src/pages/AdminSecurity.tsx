@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, ChevronLeft, RefreshCw, AlertTriangle, CheckCircle2, EyeOff, Activity } from "lucide-react";
+import { Shield, ChevronLeft, RefreshCw, AlertTriangle, CheckCircle2, EyeOff, Activity, Download } from "lucide-react";
 
 type Finding = {
   id: string;
