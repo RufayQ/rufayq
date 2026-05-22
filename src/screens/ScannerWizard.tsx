@@ -232,6 +232,11 @@ const ScannerWizard = ({
   const [realFile, setRealFile] = useState<File | null>(initialFile ?? null);
   // Multi-record batch: each entry will be saved as its own record on submit.
   const [batchFiles, setBatchFiles] = useState<{ file: File; name: string }[]>([]);
+  // True while a multi-record save is in flight — disables buttons and
+  // prevents the wizard from unmounting mid-loop.
+  const [batchSaving, setBatchSaving] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
+  const [batchError, setBatchError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(preselectedCategory || null);
   const [selectedSub, setSelectedSub] = useState<string | null>(preselectedSubcategory || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
