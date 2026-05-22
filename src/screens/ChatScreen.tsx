@@ -116,23 +116,34 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Consume a record handoff from Records → "Send to chat" so the upload
-  // sheet opens pre-filled with the picked record on every entry. The sheet
-  // only renders inside the AI view, so we also switch view + seed a
-  // sensible default persona (medical) if none is selected yet — otherwise
-  // the user lands on the inbox and "nothing happens".
+  // Consume a record handoff from Records → "Send to chat" and show the
+  // destination picker so the user can route it to an AI bot or a specific
+  // human conversation. The record is then pinned to that destination's
+  // composer awaiting an explicit send (no intermediate upload sheet).
   useEffect(() => {
     const pending = consumeChatAttachment();
     if (pending) {
-      const targetPersona: ChatPersona = persona ?? "medical";
-      if (!persona) { setPersona(targetPersona); setMessages(makeGreeting(targetPersona)); }
-      setSelectedRecord(pending);
-      setUploadedFile(null);
-      setShowUploadSheet(true);
-      setView("ai");
+      setDestinationPicker(pending);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleDestinationPick = (dest: ChatDestination) => {
+    const att = destinationPicker;
+    setDestinationPicker(null);
+    if (!att) return;
+    if (dest.kind === "ai") {
+      const p = dest.persona;
+      setPersona(p);
+      setMessages(makeGreeting(p));
+      setAiPendingAttachment(att);
+      setView("ai");
+    } else {
+      setHumanPendingAttachment(att);
+      setHumanThread(dest.thread);
+      setView("human");
+    }
+  };
 
   // Report which human thread (if any) is currently open so the parent can
   // suppress its floating chat-head bubble for that thread.
