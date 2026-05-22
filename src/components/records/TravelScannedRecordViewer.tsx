@@ -13,6 +13,7 @@ import { OverlayLayer } from "@/shared/ui/overlay";
 import { X, ChevronLeft, ChevronRight, Maximize2, Save, Plus, Trash2, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import UniversalDocumentPreview, { isPdf } from "@/components/records/UniversalDocumentPreview";
+import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
 import NationalityCombobox from "@/components/NationalityCombobox";
 import {
   type TravelScannedRecord,
@@ -324,29 +325,19 @@ const TravelScannedRecordViewer = ({ record, onClose, onUpdated }: Props) => {
         </div>
       </div>
 
-      {/* Fullscreen image overlay */}
-      {fullscreen && (currentImage || fallbackUrl) && (
-        <OverlayLayer open onClose={() => setFullscreen(false)} layer="scanner" ariaLabel="Fullscreen preview" backdropClassName="bg-black">
-          <div
-            className="absolute inset-0 flex items-center justify-center"
-            onClick={() => setFullscreen(false)}
-          >
-            {currentImage ? (
-              <img src={currentImage} alt={`${record.title} – fullscreen`} className="max-h-[100dvh] max-w-full" style={{ objectFit: "contain" }} />
-            ) : fallbackUrl ? (
-              <UniversalDocumentPreview url={fallbackUrl} fileName={record.fileName} title={record.title} mimeType={previewMime} page={page + 1} className="h-[100dvh] w-full max-w-[960px] bg-white" />
-            ) : null}
-            <button
-              onClick={() => setFullscreen(false)}
-              aria-label="Exit fullscreen"
-              className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full"
-              style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
-            >
-              <X size={20} />
-            </button>
-          </div>
-        </OverlayLayer>
-      )}
+      {/* Fullscreen preview — canonical UnifiedAttachmentPreview overlay so
+          back/escape, focus trap, and chrome match the chat attachment card. */}
+      <UnifiedAttachmentPreview
+        open={fullscreen && !!(currentImage || fallbackUrl)}
+        onClose={() => setFullscreen(false)}
+        url={currentImage || fallbackUrl || null}
+        fileName={record.fileName}
+        title={record.title}
+        mimeType={currentImage ? "image/*" : previewMime}
+        keyFields={record.keyFields?.map((f) => ({ label: f.label, value: f.value }))}
+        actions={{ canOpen: !!fallbackUrl, canDownload: !!fallbackUrl, canShare: true }}
+        onShare={handleShare}
+      />
     </div>
     </OverlayLayer>
   );
