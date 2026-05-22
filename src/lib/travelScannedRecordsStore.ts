@@ -42,23 +42,74 @@ export interface TravelScannedRecord {
   mimeType?: string | null;
 }
 
+const slimFor = (r: TravelScannedRecord): TravelScannedRecord => {
+  let next = r;
+  if (r?.id && isHeavyDataUrl(r.fileUrl)) {
+    cacheRecordBlob(`${r.id}:file`, r.fileUrl as string);
+    const { fileUrl: _u, ...rest } = next;
+    next = rest as TravelScannedRecord;
+  }
+  if (r?.id && isHeavyDataUrl(r.pdfUrl)) {
+    cacheRecordBlob(`${r.id}:pdf`, r.pdfUrl as string);
+    const { pdfUrl: _p, ...rest } = next;
+    next = rest as TravelScannedRecord;
+  }
+  // pageImages arrays of data URLs are far too large for localStorage.
+  if (r?.id && Array.isArray(r.pageImages) && r.pageImages.some((p) => isHeavyDataUrl(p))) {
+    cacheRecordBlob(`${r.id}:pages`, JSON.stringify(r.pageImages));
+    const { pageImages: _pi, ...rest } = next;
+    next = rest as TravelScannedRecord;
+  }
+  return next;
+};
+
+const rehydrate = (r: TravelScannedRecord): TravelScannedRecord => {
+  if (!r?.id) return r;
+  let next = r;
+  if (!next.fileUrl) {
+    const cached = getCachedRecordBlob(`${next.id}:file`);
+    if (cached) next = { ...next, fileUrl: cached };
+  }
+  if (!next.pdfUrl) {
+    const cached = getCachedRecordBlob(`${next.id}:pdf`);
+    if (cached) next = { ...next, pdfUrl: cached };
+  }
+  if (!next.pageImages) {
+    const cached = getCachedRecordBlob(`${next.id}:pages`);
+    if (cached) {
+      try { next = { ...next, pageImages: JSON.parse(cached) }; } catch { /* noop */ }
+    }
+  }
+  return next;
+};
+
 const read = (): TravelScannedRecord[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(rehydrate);
   } catch {
     return [];
   }
 };
 
 const write = (items: TravelScannedRecord[]) => {
+  const slim = items.map(slimFor);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(slim));
     window.dispatchEvent(new CustomEvent(UPDATE_EVENT));
   } catch (e) {
-    console.warn("[travelScannedRecords] persist failed", e);
+    // Quota fallback: drop every remaining heavy field so metadata persists.
+    try {
+      const minimal = slim.map(({ fileUrl: _f, pdfUrl: _p, pageImages: _pi, ...rest }) => rest as TravelScannedRecord);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(minimal));
+      window.dispatchEvent(new CustomEvent(UPDATE_EVENT));
+      console.warn("[travelScannedRecords] persisted without heavy fields after quota error", e);
+    } catch (e2) {
+      console.warn("[travelScannedRecords] persist failed", e2);
+    }
   }
 };
 
