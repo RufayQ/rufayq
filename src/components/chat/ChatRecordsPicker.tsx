@@ -248,23 +248,32 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     };
   }, [authReady, filterRecord, open, route, userId, retryNonce]);
 
-  // Reload when the local scan stores update (e.g. IndexedDB hydration
-  // restores a fileUrl for a scan that initially had no bytes and was
-  // therefore excluded). Without this, records the user just added appear
-  // "missing" until they close and reopen the picker.
+  // Live parity with the Records screen: subscribe to the SAME three update
+  // channels the Records list listens to so freshly-added rows appear here
+  // immediately and async IndexedDB hydration flips an unattachable row to
+  // attachable without requiring a close-and-reopen.
   useEffect(() => {
     if (!open) return;
     const refresh = () => {
       invalidateUserRecordsCache();
       setRetryNonce((n) => n + 1);
     };
-    window.addEventListener("rufayq:scanned-records-updated", refresh);
-    window.addEventListener("rufayq:travel-scanned-records-updated", refresh);
+    const offMedical = subscribeToScannedRecords(refresh);
+    const offTravel = subscribeToTravelScannedRecords(refresh);
+    const channel = supabase
+      .channel(`chat-records-picker-${userId ?? "guest"}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "transport_attachments" },
+        refresh,
+      )
+      .subscribe();
     return () => {
-      window.removeEventListener("rufayq:scanned-records-updated", refresh);
-      window.removeEventListener("rufayq:travel-scanned-records-updated", refresh);
+      offMedical();
+      offTravel();
+      void supabase.removeChannel(channel);
     };
-  }, [open]);
+  }, [open, userId]);
 
   const handleManualRetry = useCallback(() => {
     retryCountRef.current = 0;
