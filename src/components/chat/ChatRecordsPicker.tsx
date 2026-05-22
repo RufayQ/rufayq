@@ -181,6 +181,11 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
     setLoading(true);
     setLoadError(null);
     setLastErrorStage(null);
+    // Bust the 4s single-flight snapshot every open so the picker can never
+    // serve stale data after the user just added/scanned a record on
+    // another screen. Without this, items added within the cache TTL
+    // window appear "missing" until the user reopens.
+    invalidateUserRecordsCache();
     (async () => {
       try {
         if (!authReady) return;
