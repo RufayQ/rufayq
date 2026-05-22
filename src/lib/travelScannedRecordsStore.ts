@@ -8,6 +8,13 @@
  * upload + ownership scope, which isn't always available at save time —
  * especially for guest sessions or for non-flight scanner flows).
  */
+import {
+  cacheRecordBlob,
+  dropCachedRecordBlob,
+  getCachedRecordBlob,
+  isHeavyDataUrl,
+} from "@/lib/records/recordBlobCache";
+
 const STORAGE_KEY = "rufayq_travel_scanned_records_v1";
 const UPDATE_EVENT = "rufayq:travel-scanned-records-updated";
 
