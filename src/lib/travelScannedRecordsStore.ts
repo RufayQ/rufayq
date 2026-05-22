@@ -168,6 +168,9 @@ export const updateTravelScannedRecord = (
 };
 
 export const removeTravelScannedRecord = (id: string) => {
+  dropCachedRecordBlob(`${id}:file`);
+  dropCachedRecordBlob(`${id}:pdf`);
+  dropCachedRecordBlob(`${id}:pages`);
   write(read().filter((r) => r.id !== id));
 };
 
