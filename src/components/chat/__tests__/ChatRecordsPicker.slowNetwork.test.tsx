@@ -39,7 +39,10 @@ vi.mock("@/lib/records/recordSources", () => ({
   listAllUserRecords: (...a: any[]) => listAllUserRecords(...a),
   resolveRecordSignedUrl: (...a: any[]) => resolveRecordSignedUrl(...a),
 }));
-vi.mock("@/hooks/useAuthUserId", () => ({ useAuthUserId: () => null }));
+vi.mock("@/hooks/useAuthUserId", () => ({
+  useAuthUserId: () => null,
+  useAuthSession: () => ({ userId: null, isReady: true }),
+}));
 vi.mock("@/hooks/useDeviceId", () => ({ getDeviceId: () => "device-slow" }));
 vi.mock("@/lib/records/attachErrorTelemetry", () => ({
   logAttachErrorTelemetry: (...a: any[]) => logAttachErrorTelemetry(...a),
