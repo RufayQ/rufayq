@@ -208,7 +208,9 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const MIN_TYPING_MS = 1800;
 
   const sendMessage = async (text: string, personaOverride?: ChatPersona) => {
-    if (!text.trim()) return;
+    const trimmed = text.trim();
+    // Allow sending with just an attachment (no text) when one is pinned.
+    if (!trimmed && !aiPendingAttachment) return;
     const effectivePersona = personaOverride ?? persona;
 
     // ---- Guest mode: enforce 5/day locally before hitting the network ----
@@ -221,9 +223,21 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
       }
     }
 
+    // Merge the pinned attachment into the outgoing message, then clear it.
+    let bodyText = trimmed;
+    if (aiPendingAttachment) {
+      const lines = [
+        `📎 From my records: ${aiPendingAttachment.label} — ${aiPendingAttachment.file_name}`,
+        `(${aiPendingAttachment.sourceLabelEn} · ${aiPendingAttachment.sourceLabelAr})`,
+      ];
+      if (aiPendingAttachment.signedUrl) lines.push(aiPendingAttachment.signedUrl);
+      bodyText = trimmed ? `${lines.join("\n")}\n\n${trimmed}` : lines.join("\n");
+      setAiPendingAttachment(null);
+    }
+
     const userMsg: ChatMessage = {
       id: Date.now(),
-      text: text.trim(),
+      text: bodyText,
       sender: "user",
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
     };
