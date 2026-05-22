@@ -39,8 +39,15 @@ export interface TravelScannedRecord {
   fileBytes?: number;
 }
 
+/** Base blob key for a record — strips any trailing :file/:pdf/:pages slot
+ *  that callers (e.g. ScannerWizard.finalizePayload) may have pre-suffixed,
+ *  so the per-slot keys we generate here line up with what was stored. */
+const baseBlobKey = (r: TravelScannedRecord): string => {
+  const raw = r.blobKey || r.id;
+  return raw.replace(/:(file|pdf|pages)$/, "");
+};
 const blobKeyFor = (r: TravelScannedRecord, slot: "file" | "pdf" | "pages") =>
-  `${r.blobKey || r.id}:${slot}`;
+  `${baseBlobKey(r)}:${slot}`;
 
 const slimFor = (r: TravelScannedRecord): TravelScannedRecord => {
   let next = r;
