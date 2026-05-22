@@ -16,7 +16,7 @@ import { SignJWT, importPKCS8 } from "https://deno.land/x/jose@v5.6.3/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 type ServiceAccount = {
@@ -61,9 +61,23 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Internal trigger endpoint: require shared CRON_SECRET (also passed by the
+  // pg_net trigger) OR the service-role bearer token for ad-hoc admin retries.
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const provided = req.headers.get("x-cron-secret");
+  const authHeader = req.headers.get("authorization") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const bearerOk = authHeader === `Bearer ${serviceKey}`;
+  if (!(cronSecret && provided === cronSecret) && !bearerOk) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    serviceKey,
   );
 
   let body: { message_id?: string };
