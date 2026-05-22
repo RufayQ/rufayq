@@ -32,7 +32,7 @@ for (const name of readdirSync(FN_DIR)) {
   checked++;
   if (PUBLIC_ALLOWLIST.has(name)) continue;
 
-  const hasJwt = /getClaims\s*\(/.test(src);
+  const hasJwt = /getClaims\s*\(|auth\.getUser\s*\(/.test(src);
   const hasCron = /x-cron-secret/i.test(src);
   const hasSignature = /(verifyWebhookSignature|x-(?:hub|stripe)-signature)/i.test(src);
   const serviceRoleOnly = /SUPABASE_SERVICE_ROLE_KEY/.test(src) && /Bearer\s+\$\{serviceKey\}/.test(src);
@@ -41,6 +41,7 @@ for (const name of readdirSync(FN_DIR)) {
     issues.push(`Function "${name}" has no JWT, cron-secret, webhook signature, or service-role auth check.`);
   }
 }
+
 
 if (issues.length) {
   console.error("Edge-function auth check failed:\n" + issues.map((i) => "  - " + i).join("\n"));
