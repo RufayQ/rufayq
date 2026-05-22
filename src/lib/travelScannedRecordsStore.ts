@@ -204,13 +204,12 @@ export const updateTravelScannedRecord = (
 export const removeTravelScannedRecord = (id: string) => {
   const all = read();
   const target = all.find((r) => r.id === id);
-  const base = (target?.blobKey || id).replace(/:(file|pdf|pages)$/, "");
-  dropCachedRecordBlob(`${base}:file`);
-  dropCachedRecordBlob(`${base}:pdf`);
-  dropCachedRecordBlob(`${base}:pages`);
-  void deleteRecordBlob(`${base}:file`);
-  void deleteRecordBlob(`${base}:pdf`);
-  void deleteRecordBlob(`${base}:pages`);
+  const base = normalizeBlobBase(target?.blobKey, id);
+  for (const slot of ["file", "pdf", "pages"] as const) {
+    const k = `${base}:${slot}`;
+    dropCachedRecordBlob(k);
+    void deleteRecordBlob(k);
+  }
   write(all.filter((r) => r.id !== id));
 };
 
