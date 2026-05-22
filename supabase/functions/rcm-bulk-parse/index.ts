@@ -76,6 +76,35 @@ serve(async (req) => {
 
     if (!job.source_url) return json({ error: "Job has no source_url" }, 400);
 
+    // ── SSRF guard: only allow this project's Supabase storage URLs ──────
+    // Org members can write source_url, so we must reject arbitrary hosts,
+    // private IPs, and cloud metadata endpoints before fetching.
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(job.source_url);
+    } catch {
+      const msg = "Invalid source_url";
+      await admin.from("rcm_bulk_jobs").update({ status: "failed", error_message: msg }).eq("id", jobId);
+      return json({ error: msg }, 400);
+    }
+    const storageHost = new URL(supabaseUrl).host;
+    const host = parsedUrl.hostname.toLowerCase();
+    const isHttps = parsedUrl.protocol === "https:";
+    const isPrivate =
+      host === "localhost" ||
+      host === "0.0.0.0" ||
+      host === "::1" ||
+      /^127\./.test(host) ||
+      /^10\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^169\.254\./.test(host) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    if (!isHttps || isPrivate || parsedUrl.host !== storageHost || !parsedUrl.pathname.startsWith("/storage/v1/object/")) {
+      const msg = "source_url must point to this project's Supabase storage";
+      await admin.from("rcm_bulk_jobs").update({ status: "failed", error_message: msg }).eq("id", jobId);
+      return json({ error: msg }, 400);
+    }
+
     // ── Mark parsing ─────────────────────────────────────────────────────
     await admin.from("rcm_bulk_jobs")
       .update({ status: "parsing", error_message: null })
@@ -84,7 +113,7 @@ serve(async (req) => {
     // ── Fetch source content ─────────────────────────────────────────────
     let rawText = "";
     try {
-      const r = await fetch(job.source_url);
+      const r = await fetch(parsedUrl.toString());
       if (!r.ok) throw new Error(`Source fetch failed: ${r.status}`);
       rawText = await r.text();
     } catch (e: any) {
