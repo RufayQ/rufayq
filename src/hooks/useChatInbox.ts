@@ -110,31 +110,41 @@ export function useChatInbox() {
     if (ids.length === 0) {
       setThreads([]); setParticipants({}); setUnreadByThread({}); setLoading(false); return;
     }
-    const { data: tRows } = await supabase
-      .from("chat_threads")
-      .select("id, kind, title, ai_persona, organization_id, last_message_at, last_message_preview")
-      .in("id", ids)
-      .order("last_message_at", { ascending: false });
+
+    // Fan out: threads, all participants, and unread counts run in parallel
+    // — they each depend only on `ids` (and device/user id), not on each
+    // other. This collapses 3 sequential round-trips into one wall-clock
+    // batch so the inbox renders ~3x faster on cold loads.
+    const [
+      { data: tRows },
+      { data: allParts },
+      { data: unreadRows },
+    ] = await Promise.all([
+      supabase
+        .from("chat_threads")
+        .select("id, kind, title, ai_persona, organization_id, last_message_at, last_message_preview")
+        .in("id", ids)
+        .order("last_message_at", { ascending: false }),
+      supabase
+        .from("chat_participants")
+        .select("thread_id, device_id, organization_id, display_name, last_read_at, muted")
+        .in("thread_id", ids),
+      supabase.rpc("chat_unread_counts_for_device", {
+        _device_id: deviceId,
+        _user_id: userId,
+      }),
+    ]);
+
     setThreads((tRows ?? []) as ChatThreadRow[]);
 
-    const { data: allParts } = await supabase
-      .from("chat_participants")
-      .select("thread_id, device_id, organization_id, display_name, last_read_at, muted")
-      .in("thread_id", ids);
     const byThread: Record<string, ParticipantRow[]> = {};
     for (const p of (allParts ?? []) as ParticipantRow[]) {
       (byThread[p.thread_id] ||= []).push(p);
     }
     setParticipants(byThread);
 
-    // Single grouped RPC replaces the previous N+1 per-thread COUNT queries.
-    // Threads with zero unread don't appear in the result, so default to 0.
     const unread: Record<string, number> = {};
     for (const tid of ids) unread[tid] = 0;
-    const { data: unreadRows } = await supabase.rpc("chat_unread_counts_for_device", {
-      _device_id: deviceId,
-      _user_id: userId,
-    });
     for (const row of (unreadRows ?? []) as Array<{ thread_id: string; unread_count: number }>) {
       unread[row.thread_id] = Number(row.unread_count) || 0;
     }

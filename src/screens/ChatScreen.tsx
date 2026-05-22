@@ -110,14 +110,21 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   }, [messages, isTyping]);
 
   // Consume a record handoff from Records → "Send to chat" so the upload
-  // sheet opens pre-filled with the picked record on every entry.
+  // sheet opens pre-filled with the picked record on every entry. The sheet
+  // only renders inside the AI view, so we also switch view + seed a
+  // sensible default persona (medical) if none is selected yet — otherwise
+  // the user lands on the inbox and "nothing happens".
   useEffect(() => {
     const pending = consumeChatAttachment();
     if (pending) {
+      const targetPersona: ChatPersona = persona ?? "medical";
+      if (!persona) { setPersona(targetPersona); setMessages(makeGreeting(targetPersona)); }
       setSelectedRecord(pending);
       setUploadedFile(null);
       setShowUploadSheet(true);
+      setView("ai");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Report which human thread (if any) is currently open so the parent can
