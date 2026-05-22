@@ -5,6 +5,12 @@
  * screen immediately so users see what they just captured.
  */
 import type { DocRecord } from "@/constants/data";
+import {
+  cacheRecordBlob,
+  dropCachedRecordBlob,
+  getCachedRecordBlob,
+  isHeavyDataUrl,
+} from "@/lib/records/recordBlobCache";
 
 const STORAGE_KEY = "rufayq_scanned_records_v1";
 const UPDATE_EVENT = "rufayq:scanned-records-updated";
