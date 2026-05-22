@@ -389,6 +389,38 @@ export const listAllRecordsForUser = listAllUserRecords;
 export const resolveRecordUrl = resolveRecordSignedUrl;
 
 /**
+ * Portable signed URL resolver for chat/share handoff.
+ *
+ * Scan-origin records (`travel-scan` / `medical-scan`) live as `blob:` URLs
+ * in the sender's tab. Those URLs die on reload and are meaningless to a
+ * recipient. This helper FIRST uploads the scan bytes to the shared
+ * `transport-attachments` bucket (idempotent on the record id), THEN issues
+ * a signed URL against the persisted file so anyone with the link — sender,
+ * recipient, or a future session — can fetch it.
+ *
+ * For `transport`-origin rows (already in the bucket) it just delegates to
+ * `resolveRecordSignedUrl`.
+ */
+export const resolvePortableSignedUrl = async (
+  rec: UnifiedRecord,
+  opts: { userId?: string | null; deviceId: string },
+): Promise<string | null> => {
+  if (rec.filePath) return resolveRecordSignedUrl(rec, opts.deviceId);
+  if (rec.origin === "travel-scan" || rec.origin === "medical-scan") {
+    try {
+      const imported = await importScanToBucket(rec, opts);
+      const { data } = await storageWithDeviceHeader(TRANSPORT_BUCKET, opts.deviceId)
+        .createSignedUrl(imported.filePath, SIGNED_URL_TTL);
+      return data?.signedUrl ?? null;
+    } catch (e) {
+      console.warn("[resolvePortableSignedUrl] import failed, falling back to local URL", e);
+      return resolveRecordSignedUrl(rec, opts.deviceId);
+    }
+  }
+  return resolveRecordSignedUrl(rec, opts.deviceId);
+};
+
+/**
  * Picker-flavoured reader: returns the EXACT same set of rows the Records
  * screen renders (transport attachments + travel scans + medical scans),
  * without filtering rows that lack byte-backed previews. Lounge cards are
