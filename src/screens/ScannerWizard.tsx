@@ -347,6 +347,18 @@ const ScannerWizard = ({
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
+    const scenario: ScannerScenario = deriveScenario(uploadMode, files.length);
+    const totalBytes = files.reduce((a, f) => a + f.size, 0);
+    const largest = files.reduce((m, f) => Math.max(m, f.size), 0);
+    logScannerEvent({
+      stage: "file_selected",
+      scenario,
+      fileCount: files.length,
+      totalBytes,
+      largestFileBytes: largest,
+      mimeFamilies: summarizeMimes(files.map((f) => f.type)),
+    });
+
     if (uploadMode === "multi-record" && files.length > 0) {
       // Route to the batch rename / save screen. If no category has been
       // pre-selected yet, detour through Step 3 so every saved record has
