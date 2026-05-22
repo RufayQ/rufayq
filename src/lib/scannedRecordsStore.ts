@@ -139,6 +139,7 @@ export const addScannedRecord = (input: {
 };
 
 export const removeScannedRecord = (id: string) => {
+  dropCachedRecordBlob(id);
   write(read().filter((r) => r.id !== id));
 };
 
