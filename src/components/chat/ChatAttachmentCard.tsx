@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import type { ChatAttachmentPayload } from "@/lib/chat/chatAttachmentBody";
 import { addScannedRecord } from "@/lib/scannedRecordsStore";
 import { addTravelScannedRecord } from "@/lib/travelScannedRecordsStore";
+import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
 
 interface Props {
   payload: ChatAttachmentPayload;
