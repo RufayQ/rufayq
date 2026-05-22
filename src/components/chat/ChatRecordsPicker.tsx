@@ -528,7 +528,7 @@ const ChatRecordsPicker = ({ open, onClose, onPick, route = "chat-records-picker
 
 
         <div className="flex-1 overflow-y-auto px-5 pb-4">
-          {attachedSummary ? (
+          {attachedSummary && attachTargetLabel ? (
             <div className="py-4 px-3 rounded-xl" role="status" aria-live="polite" data-testid="records-picker-attached-summary" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
               <p className="text-[13px] font-semibold text-center" style={{ color: "var(--navy)" }}>
                 Document attached
