@@ -56,6 +56,14 @@ export interface UnifiedRecord {
   linkableToMilestone: boolean;
   sendableToChat: boolean;
   previewable: boolean;
+  /**
+   * Can this row produce signed-URL / data-URL bytes RIGHT NOW?
+   * Picker UIs that want to mirror the Records screen (show every row,
+   * even ones whose bytes aren't ready yet) gate their attach action on
+   * this flag. Defaults to the same value as `sendableToChat` for legacy
+   * call sites that don't compute it explicitly.
+   */
+  attachable?: boolean;
   /** Storage path inside TRANSPORT_BUCKET when the file already lives there. */
   filePath?: string;
   /** Raw local-store payload kept for import / preview fall-backs. */
