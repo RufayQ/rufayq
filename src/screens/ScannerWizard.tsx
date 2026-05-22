@@ -82,6 +82,10 @@ interface ScannerWizardProps {
   /** Called on save. For flights, payload contains the parsed legs so the
    * caller can inject them into the Journey timeline. */
   onSave?: (category: string | null, payload?: ScannerSavePayload) => void;
+  /** Called on multi-record Save All with fully-finalized payloads (one per
+   *  file). When omitted, multi-record falls back to repeated `onSave` calls
+   *  with a single end-of-loop close. */
+  onSaveBatch?: (category: string | null, payloads: ScannerSavePayload[]) => void | Promise<void>;
 }
 
 const categories = [
