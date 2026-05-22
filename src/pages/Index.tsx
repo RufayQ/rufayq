@@ -701,6 +701,7 @@ const Index = () => {
             onClose={() => setShowScanner(false)}
             preselectedCategory={scannerCategory}
             onSave={handleScannerSave}
+            onSaveBatch={handleScannerSaveBatch}
           />
         )}
 
