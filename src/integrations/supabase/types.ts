@@ -6677,6 +6677,57 @@ export type Database = {
         }
         Relationships: []
       }
+      security_findings: {
+        Row: {
+          created_at: string
+          description: string | null
+          first_seen_at: string
+          id: string
+          internal_id: string
+          last_seen_at: string
+          metadata: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          scanner_name: string
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          first_seen_at?: string
+          id?: string
+          internal_id: string
+          last_seen_at?: string
+          metadata?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          scanner_name: string
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          first_seen_at?: string
+          id?: string
+          internal_id?: string
+          last_seen_at?: string
+          metadata?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          scanner_name?: string
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_pages: {
         Row: {
           body_md: string
@@ -8129,10 +8180,37 @@ export type Database = {
           flagged: number
         }[]
       }
+      security_finding_set_status: {
+        Args: { _id: string; _note?: string; _status: string }
+        Returns: {
+          created_at: string
+          description: string | null
+          first_seen_at: string
+          id: string
+          internal_id: string
+          last_seen_at: string
+          metadata: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          scanner_name: string
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "security_findings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      security_findings_upsert: { Args: { _findings: Json }; Returns: number }
       set_chat_discovery: {
         Args: { _by_email: boolean; _by_phone: boolean }
         Returns: undefined
       }
+      set_cron_secret: { Args: { _value: string }; Returns: boolean }
       start_ai_chat: {
         Args: { _force_new?: boolean; _persona: string }
         Returns: string
@@ -8140,6 +8218,7 @@ export type Database = {
       start_direct_chat: { Args: { _other_device_id: string }; Returns: string }
       start_provider_chat: { Args: { _org_id: string }; Returns: string }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
+      verify_cron_secret: { Args: { _provided: string }; Returns: boolean }
     }
     Enums: {
       addon_id:
