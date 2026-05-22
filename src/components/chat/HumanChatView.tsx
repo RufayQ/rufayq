@@ -10,6 +10,8 @@ import MessageTicks from "./MessageTicks";
 import EmojiPicker from "./EmojiPicker";
 import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
 import ChatPickerErrorBoundary from "@/components/chat/ChatPickerErrorBoundary";
+import ChatAttachmentCard from "@/components/chat/ChatAttachmentCard";
+import { encodeChatAttachment, parseChatBody } from "@/lib/chat/chatAttachmentBody";
 
 
 interface Props {
