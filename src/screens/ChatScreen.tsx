@@ -875,7 +875,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
                 className="flex-1 font-arabic text-[14px] px-4 py-2.5 rounded-full outline-none transition-all"
                 style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
               />
-              {input.trim() ? (
+              {input.trim() || aiPendingAttachment ? (
                 <button
                   onClick={() => sendMessage(input)}
                   className="w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0 transition-all btn-press"
