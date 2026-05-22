@@ -23,6 +23,8 @@ interface Props {
   onOpenProfile?: () => void;
   /** Collapse to a floating chat-head bubble. */
   onMinimize?: () => void;
+  /** Optional record handed off from "Send to chat" — pre-pinned to composer awaiting user send. */
+  initialPendingAttachment?: PickedRecord | null;
 }
 
 /**
