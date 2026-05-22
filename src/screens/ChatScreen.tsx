@@ -97,6 +97,12 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const [uploadInstruction, setUploadInstruction] = useState("");
   const [showRecordsPicker, setShowRecordsPicker] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<PickedRecord | null>(null);
+  // Destination picker shown when a record is handed off from "Send to chat".
+  const [destinationPicker, setDestinationPicker] = useState<PickedRecord | null>(null);
+  // Attachment pinned to the AI composer awaiting user send (no upload sheet).
+  const [aiPendingAttachment, setAiPendingAttachment] = useState<PickedRecord | null>(null);
+  // Attachment to hand off to HumanChatView when opening a thread.
+  const [humanPendingAttachment, setHumanPendingAttachment] = useState<PickedRecord | null>(null);
   const { subscription } = useSubscription();
   /** Device uploads (Camera / Files) are a Companion+ perk. Sharing already-saved records is free. */
   const canUploadDeviceFiles = canUploadDeviceFilesFn(subscription?.plan);
