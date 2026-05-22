@@ -791,6 +791,32 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
           </div>
         )}
 
+        {aiPendingAttachment && (
+          <div className="px-3 pt-2">
+            <div
+              className="rounded-xl px-3 py-2 flex items-center gap-2"
+              style={{ background: "var(--off-white)", border: "1px solid var(--gold)" }}
+            >
+              <Paperclip size={14} style={{ color: "var(--teal-deep)" }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-bold truncate" style={{ color: "var(--navy)" }}>
+                  {aiPendingAttachment.label}
+                </p>
+                <p className="text-[10.5px] truncate" style={{ color: "var(--gray)" }}>
+                  {aiPendingAttachment.file_name} · {aiPendingAttachment.sourceLabelEn}
+                </p>
+              </div>
+              <button
+                onClick={() => setAiPendingAttachment(null)}
+                className="p-1 rounded-full btn-press shrink-0"
+                aria-label="Remove attachment"
+              >
+                <X size={14} style={{ color: "var(--gray)" }} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {!input.trim() && !isRecording && !recordedAudio && (
           <div className="flex gap-2 px-3 pt-2">
             {[
