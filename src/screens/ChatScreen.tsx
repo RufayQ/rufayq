@@ -7,6 +7,7 @@ import RufayQLogo from "@/components/RufayQLogo";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
 import ChatPickerErrorBoundary from "@/components/chat/ChatPickerErrorBoundary";
+import ChatDestinationPicker, { type ChatDestination } from "@/components/chat/ChatDestinationPicker";
 import { consumeChatAttachment } from "@/lib/records/chatAttachmentHandoff";
 import { useSubscription } from "@/hooks/useSubscription";
 import { canUploadDeviceFiles as canUploadDeviceFilesFn } from "@/features/chat/logic/attachmentGating";
@@ -96,6 +97,12 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const [uploadInstruction, setUploadInstruction] = useState("");
   const [showRecordsPicker, setShowRecordsPicker] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<PickedRecord | null>(null);
+  // Destination picker shown when a record is handed off from "Send to chat".
+  const [destinationPicker, setDestinationPicker] = useState<PickedRecord | null>(null);
+  // Attachment pinned to the AI composer awaiting user send (no upload sheet).
+  const [aiPendingAttachment, setAiPendingAttachment] = useState<PickedRecord | null>(null);
+  // Attachment to hand off to HumanChatView when opening a thread.
+  const [humanPendingAttachment, setHumanPendingAttachment] = useState<PickedRecord | null>(null);
   const { subscription } = useSubscription();
   /** Device uploads (Camera / Files) are a Companion+ perk. Sharing already-saved records is free. */
   const canUploadDeviceFiles = canUploadDeviceFilesFn(subscription?.plan);
@@ -109,23 +116,34 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Consume a record handoff from Records → "Send to chat" so the upload
-  // sheet opens pre-filled with the picked record on every entry. The sheet
-  // only renders inside the AI view, so we also switch view + seed a
-  // sensible default persona (medical) if none is selected yet — otherwise
-  // the user lands on the inbox and "nothing happens".
+  // Consume a record handoff from Records → "Send to chat" and show the
+  // destination picker so the user can route it to an AI bot or a specific
+  // human conversation. The record is then pinned to that destination's
+  // composer awaiting an explicit send (no intermediate upload sheet).
   useEffect(() => {
     const pending = consumeChatAttachment();
     if (pending) {
-      const targetPersona: ChatPersona = persona ?? "medical";
-      if (!persona) { setPersona(targetPersona); setMessages(makeGreeting(targetPersona)); }
-      setSelectedRecord(pending);
-      setUploadedFile(null);
-      setShowUploadSheet(true);
-      setView("ai");
+      setDestinationPicker(pending);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleDestinationPick = (dest: ChatDestination) => {
+    const att = destinationPicker;
+    setDestinationPicker(null);
+    if (!att) return;
+    if (dest.kind === "ai") {
+      const p = dest.persona;
+      setPersona(p);
+      setMessages(makeGreeting(p));
+      setAiPendingAttachment(att);
+      setView("ai");
+    } else {
+      setHumanPendingAttachment(att);
+      setHumanThread(dest.thread);
+      setView("human");
+    }
+  };
 
   // Report which human thread (if any) is currently open so the parent can
   // suppress its floating chat-head bubble for that thread.
@@ -190,7 +208,9 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   const MIN_TYPING_MS = 1800;
 
   const sendMessage = async (text: string, personaOverride?: ChatPersona) => {
-    if (!text.trim()) return;
+    const trimmed = text.trim();
+    // Allow sending with just an attachment (no text) when one is pinned.
+    if (!trimmed && !aiPendingAttachment) return;
     const effectivePersona = personaOverride ?? persona;
 
     // ---- Guest mode: enforce 5/day locally before hitting the network ----
@@ -203,9 +223,21 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
       }
     }
 
+    // Merge the pinned attachment into the outgoing message, then clear it.
+    let bodyText = trimmed;
+    if (aiPendingAttachment) {
+      const lines = [
+        `📎 From my records: ${aiPendingAttachment.label} — ${aiPendingAttachment.file_name}`,
+        `(${aiPendingAttachment.sourceLabelEn} · ${aiPendingAttachment.sourceLabelAr})`,
+      ];
+      if (aiPendingAttachment.signedUrl) lines.push(aiPendingAttachment.signedUrl);
+      bodyText = trimmed ? `${lines.join("\n")}\n\n${trimmed}` : lines.join("\n");
+      setAiPendingAttachment(null);
+    }
+
     const userMsg: ChatMessage = {
       id: Date.now(),
-      text: text.trim(),
+      text: bodyText,
       sender: "user",
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
     };
@@ -471,11 +503,19 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
   // Inbox view — main entry for the Chat tab.
   if (view === "inbox") {
     return (
-      <ChatInbox
-        onOpenThread={handleOpenThread}
-        onOpenProfile={handleOpenProfileFromInbox}
-        onNewAi={() => { setPersona(null); setMessages([]); setView("ai"); }}
-      />
+      <>
+        <ChatInbox
+          onOpenThread={handleOpenThread}
+          onOpenProfile={handleOpenProfileFromInbox}
+          onNewAi={() => { setPersona(null); setMessages([]); setView("ai"); }}
+        />
+        <ChatDestinationPicker
+          open={!!destinationPicker}
+          attachment={destinationPicker}
+          onClose={() => setDestinationPicker(null)}
+          onPick={handleDestinationPick}
+        />
+      </>
     );
   }
 
@@ -488,11 +528,13 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
         title={humanThread.title ?? "Conversation"}
         subtitle={subtitle}
         kind={humanThread.kind === "provider" ? "provider" : "direct"}
-        onBack={() => { setHumanThread(null); setView("inbox"); }}
+        initialPendingAttachment={humanPendingAttachment}
+        onBack={() => { setHumanThread(null); setHumanPendingAttachment(null); setView("inbox"); }}
         onOpenProfile={() => { setProfileBackTo("human"); setView("profile"); }}
         onMinimize={() => {
           pinChatHead(humanThread.id);
           setHumanThread(null);
+          setHumanPendingAttachment(null);
           setView("inbox");
         }}
       />
@@ -749,6 +791,32 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
           </div>
         )}
 
+        {aiPendingAttachment && (
+          <div className="px-3 pt-2">
+            <div
+              className="rounded-xl px-3 py-2 flex items-center gap-2"
+              style={{ background: "var(--off-white)", border: "1px solid var(--gold)" }}
+            >
+              <Paperclip size={14} style={{ color: "var(--teal-deep)" }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-bold truncate" style={{ color: "var(--navy)" }}>
+                  {aiPendingAttachment.label}
+                </p>
+                <p className="text-[10.5px] truncate" style={{ color: "var(--gray)" }}>
+                  {aiPendingAttachment.file_name} · {aiPendingAttachment.sourceLabelEn}
+                </p>
+              </div>
+              <button
+                onClick={() => setAiPendingAttachment(null)}
+                className="p-1 rounded-full btn-press shrink-0"
+                aria-label="Remove attachment"
+              >
+                <X size={14} style={{ color: "var(--gray)" }} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {!input.trim() && !isRecording && !recordedAudio && (
           <div className="flex gap-2 px-3 pt-2">
             {[
@@ -807,7 +875,7 @@ const ChatScreen = ({ onOpenScanner, initialContext, onClearContext, onUpgrade, 
                 className="flex-1 font-arabic text-[14px] px-4 py-2.5 rounded-full outline-none transition-all"
                 style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
               />
-              {input.trim() ? (
+              {input.trim() || aiPendingAttachment ? (
                 <button
                   onClick={() => sendMessage(input)}
                   className="w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0 transition-all btn-press"
