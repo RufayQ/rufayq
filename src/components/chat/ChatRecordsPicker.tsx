@@ -26,10 +26,14 @@ import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
 import { logAttachErrorTelemetry, shortCause } from "@/lib/records/attachErrorTelemetry";
 import {
   invalidateUserRecordsCache,
-  listAllUserRecords,
+  listAllRecordsForPicker,
   resolveRecordSignedUrl,
   type UnifiedRecord,
 } from "@/lib/records/recordSources";
+import { subscribeToScannedRecords } from "@/lib/scannedRecordsStore";
+import { subscribeToTravelScannedRecords } from "@/lib/travelScannedRecordsStore";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuthUserId } from "@/hooks/useAuthUserId";
 
 export interface PickedRecord {
   kind: "travel" | "medical";
