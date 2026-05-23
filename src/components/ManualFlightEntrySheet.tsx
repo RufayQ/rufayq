@@ -12,6 +12,7 @@ import type { FlightInfo } from "@/components/AddTripSheet";
 import { useTrial } from "@/hooks/useTrial";
 import { useSubscription } from "@/hooks/useSubscription";
 import UpgradePrompt from "@/components/UpgradePrompt";
+import { useUpgradeRoute } from "@/hooks/useUpgradeRoute";
 import AirportSelect from "@/components/AirportSelect";
 import { type Airport } from "@/data/airports";
 import {
