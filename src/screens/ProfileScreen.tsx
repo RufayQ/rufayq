@@ -118,7 +118,10 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
       <div className="flex flex-col h-full">
         <div className="relative px-5 pt-6 pb-6 text-center" style={{ background: "var(--navy)" }}>
           <button onClick={onBack} className="absolute left-4 top-3 btn-press"><ArrowLeft size={20} color="white" /></button>
-          <AvatarUploader />
+          <button onClick={() => setShowEditProfile(true)} className="absolute right-4 top-3 btn-press flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }} aria-label="Edit profile">
+            <Pencil size={12} /> <span className="text-[11px]">Edit</span>
+          </button>
+          <AvatarUploader key={editTick} />
           <p className="font-display text-xl text-white mt-2">Your Profile</p>
           <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>ملفك الشخصي</p>
         </div>
