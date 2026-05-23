@@ -76,9 +76,9 @@ export default function ConversationProfile({ threadId, title, kind, onBack }: P
       setDeleted(rows.filter((m) => m.deleted_at));
 
       // Parse shared media/docs/links from live (non-deleted) messages.
-      const media: SharedItem[] = [];
-      const docs: SharedItem[] = [];
-      const links: SharedItem[] = [];
+      const media: MediaItem[] = [];
+      const docs: DocItem[] = [];
+      const links: LinkItem[] = [];
       const urlRe = /https?:\/\/[^\s]+/g;
       for (const m of rows) {
         if (m.deleted_at) continue;
@@ -87,12 +87,12 @@ export default function ConversationProfile({ threadId, title, kind, onBack }: P
           if (s.type === "attachment") {
             const mt = (s.payload.mimeType ?? "").toLowerCase();
             const isImage = mt.startsWith("image/") || /\.(png|jpe?g|webp|gif|heic)$/i.test(s.payload.fileName);
-            const item: SharedItem = { type: isImage ? "media" : "doc", messageId: m.id, payload: s.payload, createdAt: m.created_at };
-            (isImage ? media : docs).push(item);
+            if (isImage) media.push({ messageId: m.id, payload: s.payload, createdAt: m.created_at });
+            else docs.push({ messageId: m.id, payload: s.payload, createdAt: m.created_at });
           } else {
             const matches = s.value.match(urlRe);
             if (matches) {
-              for (const u of matches) links.push({ type: "link", messageId: m.id, url: u, createdAt: m.created_at });
+              for (const u of matches) links.push({ messageId: m.id, url: u, createdAt: m.created_at });
             }
           }
         }
