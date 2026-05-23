@@ -1,7 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, ChevronLeft, RefreshCw, AlertTriangle, CheckCircle2, EyeOff, Activity, Download } from "lucide-react";
+import { toast } from "sonner";
+import { Shield, ChevronLeft, RefreshCw, AlertTriangle, CheckCircle2, EyeOff, Activity, Download, PlayCircle } from "lucide-react";
+
+type ScanRun = {
+  ran_at: string;
+  source: "manual" | "cron";
+  status: "ok" | "partial" | "failed";
+  total: number;
+  open: number;
+  fixed_now: number;
+  duration_ms: number | null;
+  error_summary: string | null;
+};
 
 type Finding = {
   id: string;
@@ -41,7 +53,19 @@ export default function AdminSecurity() {
   const [cronHealth, setCronHealth] = useState<"checking" | "ok" | "fail">("checking");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [lastRun, setLastRun] = useState<ScanRun | null>(null);
+  const [scanning, setScanning] = useState(false);
   const inFlightRef = useRef(false);
+
+  const loadLastRun = useCallback(async () => {
+    const { data } = await supabase
+      .from("security_scan_runs")
+      .select("ran_at, source, status, total, open, fixed_now, duration_ms, error_summary")
+      .order("ran_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) setLastRun(data as ScanRun);
+  }, []);
 
   const load = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (inFlightRef.current) return;
@@ -57,18 +81,41 @@ export default function AdminSecurity() {
     setLastRefresh(new Date());
     setLoading(false);
     inFlightRef.current = false;
-  }, []);
+    void loadLastRun();
+  }, [loadLastRun]);
 
   const checkCron = async () => {
     setCronHealth("checking");
     try {
-      const { data, error } = await supabase.functions.invoke("chat-push", {
+      const { data, error } = await supabase.functions.invoke("security-scan-run", {
         body: { health: true },
         headers: { "x-health-check": "1" },
       });
       if (!error && (data as { ok?: boolean })?.ok) setCronHealth("ok");
       else setCronHealth("fail");
     } catch { setCronHealth("fail"); }
+  };
+
+  const runScan = async () => {
+    if (scanning) return;
+    setScanning(true);
+    const t = toast.loading("Running security scan…");
+    try {
+      const { data, error } = await supabase.functions.invoke("security-scan-run", {
+        body: { source: "manual" },
+      });
+      if (error) throw error;
+      const r = data as { open?: number; fixed_now?: number; total?: number; status?: string; errors?: string[] };
+      const msg = `Scan ${r.status ?? "ok"} — ${r.open ?? 0} open, ${r.fixed_now ?? 0} newly fixed`;
+      if (r.status === "failed") toast.error(msg, { id: t });
+      else if (r.status === "partial") toast.warning(msg, { id: t, description: r.errors?.join(" | ") });
+      else toast.success(msg, { id: t });
+      await load({ silent: true });
+    } catch (e) {
+      toast.error("Scan failed", { id: t, description: (e as Error).message });
+    } finally {
+      setScanning(false);
+    }
   };
 
   useEffect(() => {
@@ -82,7 +129,7 @@ export default function AdminSecurity() {
       await load();
       await checkCron();
     })();
-  }, [navigate]);
+  }, [navigate, load]);
 
   // Auto-refresh: poll every 30s while the tab is visible and autoRefresh is on.
   useEffect(() => {
@@ -170,6 +217,14 @@ export default function AdminSecurity() {
             <Download size={12} /> Export CSV
           </button>
           <button
+            onClick={() => { void runScan(); }}
+            disabled={scanning}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 text-xs hover:bg-emerald-500/20 disabled:opacity-40"
+            title="Run security scan now"
+          >
+            <PlayCircle size={12} className={scanning ? "animate-pulse" : ""} /> {scanning ? "Scanning…" : "Run scan"}
+          </button>
+          <button
             onClick={() => { void load(); void checkCron(); }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-700 bg-slate-900/50 text-xs hover:border-amber-500/50"
           >
@@ -187,11 +242,38 @@ export default function AdminSecurity() {
           <Tile icon={EyeOff} label="Ignored" value={summary.ignored} tone="text-slate-400" />
           <Tile
             icon={Activity}
-            label="Push / cron health"
+            label="Scanner health"
             value={cronHealth === "ok" ? "OK" : cronHealth === "fail" ? "Fail" : "…"}
             tone={cronHealth === "ok" ? "text-emerald-300" : cronHealth === "fail" ? "text-rose-300" : "text-slate-400"}
           />
         </div>
+
+        {/* Last scan banner */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 flex flex-wrap items-center gap-3 text-xs">
+          <span className="text-slate-400">Last scan:</span>
+          {lastRun ? (
+            <>
+              <span className="text-slate-100 font-medium">{new Date(lastRun.ran_at).toLocaleString()}</span>
+              <span className={`px-1.5 py-0.5 rounded border text-[10px] uppercase ${
+                lastRun.status === "ok" ? "border-emerald-500/40 text-emerald-300"
+                : lastRun.status === "partial" ? "border-amber-500/40 text-amber-300"
+                : "border-rose-500/40 text-rose-300"
+              }`}>{lastRun.status}</span>
+              <span className="text-slate-500">via {lastRun.source}</span>
+              <span className="text-slate-500">· {lastRun.total} processed</span>
+              <span className="text-slate-500">· {lastRun.open} open</span>
+              <span className="text-slate-500">· {lastRun.fixed_now} newly fixed</span>
+              {lastRun.duration_ms != null && <span className="text-slate-500">· {lastRun.duration_ms}ms</span>}
+              {lastRun.error_summary && (
+                <span className="text-amber-300 italic" title={lastRun.error_summary}>· partial errors</span>
+              )}
+            </>
+          ) : (
+            <span className="text-slate-500">No scan recorded yet — click <strong className="text-emerald-300">Run scan</strong>.</span>
+          )}
+        </div>
+
+
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2 text-xs">
