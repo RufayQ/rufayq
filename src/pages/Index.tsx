@@ -17,7 +17,7 @@ import OnboardingScreen from "@/screens/OnboardingScreen";
 import LoginScreen from "@/screens/LoginScreen";
 import ScannerWizard from "@/screens/ScannerWizard";
 import { addScannedRecord, isMedicalCategory } from "@/lib/scannedRecordsStore";
-import { addTravelScannedRecord } from "@/lib/travelScannedRecordsStore";
+import { addTravelScannedRecord, isTravelCategory } from "@/lib/travelScannedRecordsStore";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import { EmrScreen } from "@/features/emr";
@@ -347,7 +347,7 @@ const Index = () => {
     // Travel-side scanned docs (visa/passport/residency, etc.) land in the
     // Travel Records tab — not Medical. We use a local store so guest sessions
     // and non-attachment scanner flows still surface the document immediately.
-    const isTravelDoc = category === "legal";
+    const isTravelDoc = isTravelCategory(category);
     if (isTravelDoc) {
       try {
         addTravelScannedRecord({
@@ -430,7 +430,7 @@ const Index = () => {
   const handleScannerSaveBatch = useCallback((category: string | null, payloads: any[]) => {
     setShowScanner(false);
     if (!payloads || payloads.length === 0) return;
-    const isTravelDoc = category === "legal";
+    const isTravelDoc = isTravelCategory(category);
     const medical = isMedicalCategory(category);
     let stored = 0;
     payloads.forEach((payload) => {
