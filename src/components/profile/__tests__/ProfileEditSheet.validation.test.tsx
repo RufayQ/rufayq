@@ -91,9 +91,10 @@ describe("ProfileEditSheet · name validation", () => {
     fireEvent.change(ar, { target: { value: "محمد الراشدي" } });
     fireEvent.blur(ar);
     await waitFor(() => {
-      expect(screen.queryByText(/English letters only/i)).toBeNull();
+      // No validation error messages — hint text is fine to remain
+      expect(screen.queryByText(/Full name is required/i)).toBeNull();
+      expect(screen.queryByText(/Arabic name is required/i)).toBeNull();
       expect(screen.queryByText(/Use Arabic letters only/i)).toBeNull();
-      expect(screen.queryByText(/required/i)).toBeNull();
     });
   });
 });
