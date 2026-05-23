@@ -496,36 +496,98 @@ export default function HumanChatView({
         </div>
       )}
 
+      {/* Editing pill */}
+      {editingId && (
+        <div
+          className="shrink-0 mx-2 mb-1 mt-1 rounded-xl px-3 py-2 flex items-start gap-2 animate-fade-in-up"
+          style={{ background: "var(--white)", borderLeft: "3px solid var(--gold)", border: "1px solid var(--gray-light)" }}
+        >
+          <Pencil size={14} style={{ color: "var(--gold)", marginTop: 2 }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold" style={{ color: "var(--gold)" }}>
+              Editing message · تعديل الرسالة
+            </p>
+            <p className="text-[10.5px] mt-0.5" style={{ color: "var(--gray)" }}>
+              Press Send to save · اضغط إرسال للحفظ
+            </p>
+          </div>
+          <button
+            onClick={() => { setEditingId(null); setInput(""); }}
+            className="p-1 rounded-full btn-press shrink-0"
+            aria-label="Cancel edit · إلغاء التعديل"
+          >
+            <X size={14} style={{ color: "var(--gray)" }} />
+          </button>
+        </div>
+      )}
+
+      {/* Scheduled queue chip */}
+      {scheduled.length > 0 && !editingId && (
+        <button
+          onClick={() => setShowScheduledList(true)}
+          className="shrink-0 mx-2 mb-1 mt-1 rounded-xl px-3 py-2 flex items-center gap-2 btn-press text-left"
+          style={{ background: "var(--white)", borderLeft: "3px solid var(--teal-deep)", border: "1px solid var(--gray-light)" }}
+        >
+          <CalendarClock size={14} style={{ color: "var(--teal-deep)" }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold" style={{ color: "var(--teal-deep)" }}>
+              {scheduled.length} scheduled · رسائل مجدولة
+            </p>
+            <p className="text-[10.5px] truncate" style={{ color: "var(--gray)" }}>
+              Next at {new Date(scheduled[0].scheduledFor).toLocaleString()}
+            </p>
+          </div>
+        </button>
+      )}
+
       {/* Composer */}
       <div className="shrink-0 px-2 py-2.5 flex items-end gap-1.5" style={{ background: "var(--white)", borderTop: "1px solid var(--gray-light)" }}>
         <EmojiPicker onSelect={(e) => setInput((cur) => cur + e)} />
-        <button
-          onClick={() => setShowAttachPicker(true)}
-          className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
-          style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
-          aria-label="Attach from records"
-          title="Attach from records · إرفاق من السجلات"
-        >
-          <Paperclip size={16} style={{ color: "var(--teal-deep)" }} />
-        </button>
+        {!editingId && (
+          <button
+            onClick={() => setShowAttachPicker(true)}
+            className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
+            style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+            aria-label="Attach from records"
+            title="Attach from records · إرفاق من السجلات"
+          >
+            <Paperclip size={16} style={{ color: "var(--teal-deep)" }} />
+          </button>
+        )}
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           rows={1}
-          placeholder={replyTo ? "Reply… · رد…" : "Type a message · اكتب رسالة"}
+          placeholder={editingId ? "Edit message… · تعديل…" : replyTo ? "Reply… · رد…" : "Type a message · اكتب رسالة"}
           dir="auto"
           className="flex-1 resize-none rounded-2xl px-3.5 py-2.5 text-[13px] outline-none"
           style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", maxHeight: 120 }}
         />
+        {!editingId && (
+          <button
+            onClick={() => setShowScheduler(true)}
+            disabled={!input.trim() && !pendingAttachment}
+            className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
+            style={{
+              background: "var(--off-white)",
+              border: "1px solid var(--gray-light)",
+              opacity: (input.trim() || pendingAttachment) ? 1 : 0.4,
+            }}
+            aria-label="Schedule message · جدولة الرسالة"
+            title="Schedule message · جدولة الرسالة"
+          >
+            <Clock size={16} style={{ color: "var(--teal-deep)" }} />
+          </button>
+        )}
         <button
           onClick={handleSend}
-          disabled={(!input.trim() && !pendingAttachment) || sending}
+          disabled={(!input.trim() && !pendingAttachment && !editingId) || sending}
           className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
-          style={{ background: "var(--teal-deep)", opacity: ((input.trim() || pendingAttachment) && !sending) ? 1 : 0.4 }}
-          aria-label="Send"
+          style={{ background: editingId ? "var(--gold)" : "var(--teal-deep)", opacity: ((input.trim() || pendingAttachment || editingId) && !sending) ? 1 : 0.4 }}
+          aria-label={editingId ? "Save edit · حفظ التعديل" : "Send"}
         >
-          <Send size={16} color="#fff" />
+          {editingId ? <Check size={16} color="#fff" /> : <Send size={16} color="#fff" />}
         </button>
       </div>
 
@@ -536,7 +598,155 @@ export default function HumanChatView({
           onPick={handleAttachRecord}
         />
       </ChatPickerErrorBoundary>
+
+      {showScheduler && (
+        <ScheduleSheet
+          onClose={() => setShowScheduler(false)}
+          onPick={handleSchedule}
+        />
+      )}
+
+      {showScheduledList && (
+        <ScheduledListSheet
+          items={scheduled}
+          onClose={() => setShowScheduledList(false)}
+          onCancel={(id) => { cancelScheduled(id); toast.success("Cancelled · تم الإلغاء"); }}
+        />
+      )}
     </div>
 
   );
+}
+
+/* ───────── Schedule sheet ───────── */
+
+function ScheduleSheet({ onClose, onPick }: { onClose: () => void; onPick: (iso: string) => void }) {
+  const [custom, setCustom] = useState<string>(() => {
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    d.setSeconds(0, 0);
+    // datetime-local format
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  });
+  const presets: { label: string; labelAr: string; ms: number }[] = [
+    { label: "In 1 hour", labelAr: "خلال ساعة", ms: 60 * 60 * 1000 },
+    { label: "Tonight 8 PM", labelAr: "الليلة ٨ مساءً", ms: tonightAt(20) },
+    { label: "Tomorrow 9 AM", labelAr: "غداً ٩ صباحاً", ms: tomorrowAt(9) },
+  ];
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.45)" }} onClick={onClose}>
+      <div
+        className="w-full max-w-[420px] rounded-t-3xl p-5 animate-slide-up"
+        style={{ background: "var(--white)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <CalendarClock size={18} style={{ color: "var(--teal-deep)" }} />
+          <p className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
+            Schedule message
+          </p>
+          <p className="font-arabic text-[12px] ml-auto" dir="rtl" style={{ color: "var(--gray)" }}>جدولة الرسالة</p>
+        </div>
+        <div className="space-y-2">
+          {presets.map((p) => (
+            <button
+              key={p.label}
+              onClick={() => onPick(new Date(Date.now() + p.ms).toISOString())}
+              className="w-full text-left rounded-2xl px-4 py-3 btn-press"
+              style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+            >
+              <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{p.label}</p>
+              <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>{p.labelAr}</p>
+            </button>
+          ))}
+        </div>
+        <div className="mt-4">
+          <p className="text-[11px] font-mono tracking-wider mb-1" style={{ color: "var(--gold)" }}>
+            CUSTOM · مخصص
+          </p>
+          <input
+            type="datetime-local"
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            className="w-full rounded-xl px-3 py-2 text-[13px] outline-none"
+            style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+          />
+          <button
+            onClick={() => {
+              const ts = new Date(custom).getTime();
+              if (!ts || ts < Date.now()) {
+                toast.error("Pick a future time · اختر وقتاً قادم");
+                return;
+              }
+              onPick(new Date(ts).toISOString());
+            }}
+            className="mt-2 w-full rounded-2xl py-3 text-[13px] font-bold btn-press"
+            style={{ background: "var(--teal-deep)", color: "#fff" }}
+          >
+            Schedule · جدولة
+          </button>
+        </div>
+        <button onClick={onClose} className="mt-3 w-full rounded-2xl py-2.5 text-[12px] btn-press" style={{ color: "var(--gray)" }}>
+          Cancel · إلغاء
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ScheduledListSheet({
+  items,
+  onClose,
+  onCancel,
+}: {
+  items: ScheduledMessage[];
+  onClose: () => void;
+  onCancel: (id: string) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.45)" }} onClick={onClose}>
+      <div className="w-full max-w-[420px] rounded-t-3xl p-5 max-h-[70vh] flex flex-col" style={{ background: "var(--white)" }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-3">
+          <CalendarClock size={18} style={{ color: "var(--teal-deep)" }} />
+          <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>Scheduled messages</p>
+          <p className="font-arabic text-[12px] ml-auto" dir="rtl" style={{ color: "var(--gray)" }}>الرسائل المجدولة</p>
+        </div>
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {items.length === 0 && <p className="text-center text-[12px] py-6" style={{ color: "var(--gray)" }}>None scheduled · لا شيء</p>}
+          {items.map((s) => (
+            <div key={s.id} className="rounded-2xl px-3 py-2.5 flex items-start gap-2" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-bold" style={{ color: "var(--teal-deep)" }}>
+                  {new Date(s.scheduledFor).toLocaleString()}
+                </p>
+                <p className="text-[12px] mt-0.5 line-clamp-3" dir="auto" style={{ color: "var(--ink)" }}>
+                  {s.body.replace(/\[\[RUFAYQ_ATTACH:[^\]]+\]\]/g, "📎 attachment")}
+                </p>
+              </div>
+              <button onClick={() => onCancel(s.id)} className="p-1.5 rounded-full btn-press" aria-label="Cancel · إلغاء">
+                <X size={14} style={{ color: "var(--gray)" }} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose} className="mt-3 w-full rounded-2xl py-2.5 text-[12px] btn-press" style={{ color: "var(--gray)" }}>
+          Close · إغلاق
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function tonightAt(hour: number): number {
+  const now = new Date();
+  const t = new Date(now);
+  t.setHours(hour, 0, 0, 0);
+  if (t.getTime() <= now.getTime()) t.setDate(t.getDate() + 1);
+  return t.getTime() - now.getTime();
+}
+function tomorrowAt(hour: number): number {
+  const now = new Date();
+  const t = new Date(now);
+  t.setDate(t.getDate() + 1);
+  t.setHours(hour, 0, 0, 0);
+  return t.getTime() - now.getTime();
 }
