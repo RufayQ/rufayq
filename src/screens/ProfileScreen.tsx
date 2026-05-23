@@ -121,6 +121,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         </div>
 
         <div className="flex-1 overflow-y-auto pb-6" style={{ background: "var(--off-white)" }}>
+          <ConnectionsCard />
           <div className="mx-4 mt-3 rounded-xl p-4" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
             <p className="text-[14px] font-semibold" style={{ color: "var(--navy)" }}>No demo identity data is shown for signed-in users.</p>
             <p className="text-[12px] mt-1" style={{ color: "var(--gray)" }}>Your personal details will appear here once connected to your account records.</p>
