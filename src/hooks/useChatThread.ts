@@ -24,6 +24,9 @@ export type ChatMessageRow = {
   reply_to?: ReplyPreview | null;
   /** Client-side delivery status. Server rows default to "sent". */
   status?: ChatMessageStatus;
+  edited_at?: string | null;
+  edit_history?: Array<{ body: string; at: string }>;
+  deleted_at?: string | null;
 };
 
 const SELECT_COLS =
