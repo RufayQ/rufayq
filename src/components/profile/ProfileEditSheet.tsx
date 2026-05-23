@@ -137,11 +137,12 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
   }, [deviceId]);
 
   const validateAll = () => {
+    const isSaudi = (nationality || "").toLowerCase().includes("saudi");
     const next: Record<string, string | null> = {
       phone: validatePhone(phone).error,
       email: validateEmail(email).error,
       dob: validateDob(dob).error,
-      saudiId: validateSaudiId(saudiId).error,
+      saudiId: isSaudi ? validateSaudiId(saudiId).error : null,
       iqama: validateIqama(iqama).error,
       passport: validatePassport(passport).error,
     };
