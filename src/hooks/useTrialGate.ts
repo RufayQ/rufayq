@@ -1,4 +1,5 @@
 import { useTrial } from "./useTrial";
+import { useUpgradeRoute } from "./useUpgradeRoute";
 import { toast } from "sonner";
 
 /**
@@ -8,13 +9,14 @@ import { toast } from "sonner";
  */
 export function useTrialGate() {
   const trial = useTrial();
+  const { goToPricing } = useUpgradeRoute();
   const locked = trial.hasTrial && !trial.isActive;
 
   const gate = (action: () => void | Promise<void>) => {
     if (locked) {
       toast.error("Trial expired · انتهت الفترة التجريبية", {
         description: "Subscribe to continue · اشترك للاستمرار",
-        action: { label: "Pricing", onClick: () => (window.location.hash = "#/pricing") },
+        action: { label: "Pricing", onClick: () => goToPricing() },
       });
       return false;
     }
