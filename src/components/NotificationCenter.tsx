@@ -6,6 +6,7 @@ import { usePatientNotifications } from "@/hooks/usePatientNotifications";
 import { useChatInbox } from "@/hooks/useChatInbox";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNotificationPrefs, type NotificationCategoryId } from "@/hooks/useNotificationPrefs";
+import { humanizeChatPreview } from "@/lib/chat/chatAttachmentBody";
 
 interface Props {
   color?: string;
@@ -461,7 +462,7 @@ const NotificationCenter = ({
                     )}
                   </div>
                   {thread.last_message_preview && (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{thread.last_message_preview}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{humanizeChatPreview(thread.last_message_preview)}</p>
                   )}
                   <p className="mt-1 text-[10px] text-muted-foreground">{new Date(thread.last_message_at).toLocaleString()}</p>
                 </div>

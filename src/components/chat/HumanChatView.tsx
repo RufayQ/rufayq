@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2, Paperclip } from "lucide-react";
+import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2, Paperclip, Pencil, Trash2, Clock, CalendarClock, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
@@ -12,6 +12,13 @@ import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatReco
 import ChatPickerErrorBoundary from "@/components/chat/ChatPickerErrorBoundary";
 import ChatAttachmentCard from "@/components/chat/ChatAttachmentCard";
 import { encodeChatAttachment, parseChatBody } from "@/lib/chat/chatAttachmentBody";
+import {
+  addScheduled,
+  cancelScheduled,
+  listScheduledForThread,
+  subscribeScheduled,
+  type ScheduledMessage,
+} from "@/lib/chat/scheduledMessages";
 
 
 interface Props {
@@ -48,18 +55,29 @@ export default function HumanChatView({
   onMinimize,
   initialPendingAttachment = null,
 }: Props) {
-  const { messages, send, retry, markRead } = useChatThread(threadId);
+  const { messages, send, retry, markRead, editMessage, deleteMessage } = useChatThread(threadId);
   const { othersLastReadAt } = useThreadReadReceipts(threadId);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessageRow | null>(null);
   const [actionFor, setActionFor] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [showAttachPicker, setShowAttachPicker] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<PickedRecord | null>(initialPendingAttachment);
+  const [showScheduler, setShowScheduler] = useState(false);
+  const [scheduled, setScheduled] = useState<ScheduledMessage[]>([]);
+  const [showScheduledList, setShowScheduledList] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const me = getDeviceId();
+
+  // Track scheduled messages for this thread
+  useEffect(() => {
+    const refresh = () => setScheduled(listScheduledForThread(threadId));
+    refresh();
+    return subscribeScheduled(refresh);
+  }, [threadId]);
 
   // Re-pin attachment if parent hands off a new one (e.g. opening a thread
   // from "Send to chat" after the view is already mounted).
@@ -118,25 +136,36 @@ export default function HumanChatView({
     return () => { setActiveThread(null); };
   }, [threadId]);
 
+  const buildBody = (text: string): string => {
+    if (pendingAttachment) {
+      const marker = encodeChatAttachment({
+        kind: pendingAttachment.kind,
+        label: pendingAttachment.label,
+        fileName: pendingAttachment.file_name,
+        sourceLabelEn: pendingAttachment.sourceLabelEn,
+        sourceLabelAr: pendingAttachment.sourceLabelAr,
+        url: pendingAttachment.signedUrl,
+        mimeType: pendingAttachment.mime_type ?? null,
+      });
+      return text ? `${marker}\n${text}` : marker;
+    }
+    return text;
+  };
+
   const handleSend = async () => {
     if (sending) return;
     const text = input.trim();
-    if (!text && !pendingAttachment) return;
+    if (!text && !pendingAttachment && !editingId) return;
     setSending(true);
     try {
-      let body = text;
-      if (pendingAttachment) {
-        const marker = encodeChatAttachment({
-          kind: pendingAttachment.kind,
-          label: pendingAttachment.label,
-          fileName: pendingAttachment.file_name,
-          sourceLabelEn: pendingAttachment.sourceLabelEn,
-          sourceLabelAr: pendingAttachment.sourceLabelAr,
-          url: pendingAttachment.signedUrl,
-          mimeType: pendingAttachment.mime_type ?? null,
-        });
-        body = text ? `${marker}\n${text}` : marker;
+      if (editingId) {
+        await editMessage(editingId, text);
+        toast.success("Edited · تم التعديل");
+        setEditingId(null);
+        setInput("");
+        return;
       }
+      const body = buildBody(text);
       await send(body, { replyToId: replyTo?.id ?? null });
       setInput("");
       setReplyTo(null);
@@ -148,7 +177,23 @@ export default function HumanChatView({
     }
   };
 
+  const handleSchedule = (whenIso: string) => {
+    const text = input.trim();
+    if (!text && !pendingAttachment) {
+      toast.error("Type a message to schedule · اكتب رسالة للجدولة");
+      return;
+    }
+    const body = buildBody(text);
+    addScheduled({ threadId, body, replyToId: replyTo?.id ?? null, scheduledFor: whenIso });
+    setInput("");
+    setReplyTo(null);
+    setPendingAttachment(null);
+    setShowScheduler(false);
+    toast.success(`Scheduled for ${new Date(whenIso).toLocaleString()} · مجدولة`);
+  };
+
   const startLongPress = (m: ChatMessageRow) => {
+    if (m.deleted_at) return;
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     longPressTimer.current = setTimeout(() => {
       setActionFor(m.id);
@@ -176,6 +221,24 @@ export default function HumanChatView({
       toast.error("Copy failed · فشل النسخ");
     }
     setActionFor(null);
+  };
+  const handleStartEdit = (m: ChatMessageRow) => {
+    // Strip attachment marker — only the text portion is editable.
+    const segs = parseChatBody(m.body);
+    const text = segs.filter((s) => s.type === "text").map((s) => (s as { value: string }).value).join("").trim();
+    setEditingId(m.id);
+    setInput(text);
+    setReplyTo(null);
+    setActionFor(null);
+  };
+  const handleDelete = async (m: ChatMessageRow) => {
+    setActionFor(null);
+    try {
+      await deleteMessage(m.id);
+      toast.success("Deleted · تم الحذف");
+    } catch {
+      toast.error("Couldn't delete · تعذّر الحذف");
+    }
   };
 
   const scrollToMessage = (id: string) => {
@@ -259,10 +322,12 @@ export default function HumanChatView({
           const seen = mine && !!othersLastReadAt && othersLastReadAt >= m.created_at && m.status !== "sending" && m.status !== "failed";
           const isAction = actionFor === m.id;
           const quoteMine = m.reply_to ? m.reply_to.sender_device_id === me : false;
+          const isDeleted = !!m.deleted_at;
+          const isEdited = !!m.edited_at && !isDeleted;
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"} animate-fade-in-up`}>
               <div className="max-w-[78%] relative">
-                {isAction && (
+                {isAction && !isDeleted && (
                   <div
                     className={`absolute -top-9 ${mine ? "right-0" : "left-0"} flex items-center gap-1 rounded-full px-1.5 py-1 z-10`}
                     style={{ background: "var(--navy)", boxShadow: "0 4px 14px rgba(0,0,0,0.25)" }}
@@ -281,6 +346,26 @@ export default function HumanChatView({
                     >
                       <Copy size={12} /> Copy
                     </button>
+                    {mine && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStartEdit(m); }}
+                          className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
+                          style={{ color: "#fff" }}
+                          aria-label="Edit · تعديل"
+                        >
+                          <Pencil size={12} /> Edit
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(m); }}
+                          className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
+                          style={{ color: "#ff8a8a" }}
+                          aria-label="Delete · حذف"
+                        >
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
                 <div
@@ -288,14 +373,16 @@ export default function HumanChatView({
                   className="px-3.5 py-2.5 text-[13px] leading-relaxed transition-all"
                   dir="auto"
                   style={{
-                    background: mine ? "var(--teal-deep)" : "var(--white)",
-                    color: mine ? "#fff" : "var(--ink)",
+                    background: isDeleted ? "var(--off-white)" : mine ? "var(--teal-deep)" : "var(--white)",
+                    color: isDeleted ? "var(--gray)" : mine ? "#fff" : "var(--ink)",
                     borderRadius: mine ? "14px 3px 14px 14px" : "3px 14px 14px 14px",
-                    boxShadow: mine ? "0 3px 12px rgba(0,77,91,0.20)" : "0 2px 8px rgba(0,0,0,0.05)",
+                    boxShadow: isDeleted ? "none" : mine ? "0 3px 12px rgba(0,77,91,0.20)" : "0 2px 8px rgba(0,0,0,0.05)",
+                    border: isDeleted ? "1px dashed var(--gray-light)" : undefined,
+                    fontStyle: isDeleted ? "italic" : undefined,
                     whiteSpace: "pre-wrap",
                     opacity: m.status === "sending" ? 0.85 : 1,
                   }}
-                  onContextMenu={(e) => { e.preventDefault(); setActionFor(m.id); }}
+                  onContextMenu={(e) => { if (!isDeleted) { e.preventDefault(); setActionFor(m.id); } }}
                   onTouchStart={() => startLongPress(m)}
                   onTouchEnd={cancelLongPress}
                   onTouchMove={cancelLongPress}
@@ -303,7 +390,7 @@ export default function HumanChatView({
                   onMouseUp={cancelLongPress}
                   onMouseLeave={cancelLongPress}
                 >
-                  {m.reply_to && (
+                  {m.reply_to && !isDeleted && (
                     <button
                       onClick={(e) => { e.stopPropagation(); m.reply_to && scrollToMessage(m.reply_to.id); }}
                       className="block w-full text-left rounded-lg px-2 py-1.5 mb-1.5"
@@ -326,10 +413,17 @@ export default function HumanChatView({
                       </p>
                     </button>
                   )}
-                  {renderBodyWithLinks(m.body, mine)}
+                  {isDeleted ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Trash2 size={11} /> Message deleted · رسالة محذوفة
+                    </span>
+                  ) : (
+                    renderBodyWithLinks(m.body, mine)
+                  )}
                   <span className="flex items-center gap-1 font-mono text-[9px] mt-1" style={{ opacity: 0.7, direction: "ltr", justifyContent: mine ? "flex-end" : "flex-start" }}>
+                    {isEdited && <span style={{ fontStyle: "italic" }}>edited ·</span>}
                     <span>{time}</span>
-                    {mine && <MessageTicks status={m.status} seen={seen} />}
+                    {mine && !isDeleted && <MessageTicks status={m.status} seen={seen} />}
                     {mine && m.status === "failed" && (
                       <button
                         onClick={() => retry(m.id)}
@@ -402,36 +496,98 @@ export default function HumanChatView({
         </div>
       )}
 
+      {/* Editing pill */}
+      {editingId && (
+        <div
+          className="shrink-0 mx-2 mb-1 mt-1 rounded-xl px-3 py-2 flex items-start gap-2 animate-fade-in-up"
+          style={{ background: "var(--white)", borderLeft: "3px solid var(--gold)", border: "1px solid var(--gray-light)" }}
+        >
+          <Pencil size={14} style={{ color: "var(--gold)", marginTop: 2 }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold" style={{ color: "var(--gold)" }}>
+              Editing message · تعديل الرسالة
+            </p>
+            <p className="text-[10.5px] mt-0.5" style={{ color: "var(--gray)" }}>
+              Press Send to save · اضغط إرسال للحفظ
+            </p>
+          </div>
+          <button
+            onClick={() => { setEditingId(null); setInput(""); }}
+            className="p-1 rounded-full btn-press shrink-0"
+            aria-label="Cancel edit · إلغاء التعديل"
+          >
+            <X size={14} style={{ color: "var(--gray)" }} />
+          </button>
+        </div>
+      )}
+
+      {/* Scheduled queue chip */}
+      {scheduled.length > 0 && !editingId && (
+        <button
+          onClick={() => setShowScheduledList(true)}
+          className="shrink-0 mx-2 mb-1 mt-1 rounded-xl px-3 py-2 flex items-center gap-2 btn-press text-left"
+          style={{ background: "var(--white)", borderLeft: "3px solid var(--teal-deep)", border: "1px solid var(--gray-light)" }}
+        >
+          <CalendarClock size={14} style={{ color: "var(--teal-deep)" }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold" style={{ color: "var(--teal-deep)" }}>
+              {scheduled.length} scheduled · رسائل مجدولة
+            </p>
+            <p className="text-[10.5px] truncate" style={{ color: "var(--gray)" }}>
+              Next at {new Date(scheduled[0].scheduledFor).toLocaleString()}
+            </p>
+          </div>
+        </button>
+      )}
+
       {/* Composer */}
       <div className="shrink-0 px-2 py-2.5 flex items-end gap-1.5" style={{ background: "var(--white)", borderTop: "1px solid var(--gray-light)" }}>
         <EmojiPicker onSelect={(e) => setInput((cur) => cur + e)} />
-        <button
-          onClick={() => setShowAttachPicker(true)}
-          className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
-          style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
-          aria-label="Attach from records"
-          title="Attach from records · إرفاق من السجلات"
-        >
-          <Paperclip size={16} style={{ color: "var(--teal-deep)" }} />
-        </button>
+        {!editingId && (
+          <button
+            onClick={() => setShowAttachPicker(true)}
+            className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
+            style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+            aria-label="Attach from records"
+            title="Attach from records · إرفاق من السجلات"
+          >
+            <Paperclip size={16} style={{ color: "var(--teal-deep)" }} />
+          </button>
+        )}
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           rows={1}
-          placeholder={replyTo ? "Reply… · رد…" : "Type a message · اكتب رسالة"}
+          placeholder={editingId ? "Edit message… · تعديل…" : replyTo ? "Reply… · رد…" : "Type a message · اكتب رسالة"}
           dir="auto"
           className="flex-1 resize-none rounded-2xl px-3.5 py-2.5 text-[13px] outline-none"
           style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", maxHeight: 120 }}
         />
+        {!editingId && (
+          <button
+            onClick={() => setShowScheduler(true)}
+            disabled={!input.trim() && !pendingAttachment}
+            className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
+            style={{
+              background: "var(--off-white)",
+              border: "1px solid var(--gray-light)",
+              opacity: (input.trim() || pendingAttachment) ? 1 : 0.4,
+            }}
+            aria-label="Schedule message · جدولة الرسالة"
+            title="Schedule message · جدولة الرسالة"
+          >
+            <Clock size={16} style={{ color: "var(--teal-deep)" }} />
+          </button>
+        )}
         <button
           onClick={handleSend}
-          disabled={(!input.trim() && !pendingAttachment) || sending}
+          disabled={(!input.trim() && !pendingAttachment && !editingId) || sending}
           className="w-10 h-10 rounded-full flex items-center justify-center btn-press shrink-0"
-          style={{ background: "var(--teal-deep)", opacity: ((input.trim() || pendingAttachment) && !sending) ? 1 : 0.4 }}
-          aria-label="Send"
+          style={{ background: editingId ? "var(--gold)" : "var(--teal-deep)", opacity: ((input.trim() || pendingAttachment || editingId) && !sending) ? 1 : 0.4 }}
+          aria-label={editingId ? "Save edit · حفظ التعديل" : "Send"}
         >
-          <Send size={16} color="#fff" />
+          {editingId ? <Check size={16} color="#fff" /> : <Send size={16} color="#fff" />}
         </button>
       </div>
 
@@ -442,7 +598,155 @@ export default function HumanChatView({
           onPick={handleAttachRecord}
         />
       </ChatPickerErrorBoundary>
+
+      {showScheduler && (
+        <ScheduleSheet
+          onClose={() => setShowScheduler(false)}
+          onPick={handleSchedule}
+        />
+      )}
+
+      {showScheduledList && (
+        <ScheduledListSheet
+          items={scheduled}
+          onClose={() => setShowScheduledList(false)}
+          onCancel={(id) => { cancelScheduled(id); toast.success("Cancelled · تم الإلغاء"); }}
+        />
+      )}
     </div>
 
   );
+}
+
+/* ───────── Schedule sheet ───────── */
+
+function ScheduleSheet({ onClose, onPick }: { onClose: () => void; onPick: (iso: string) => void }) {
+  const [custom, setCustom] = useState<string>(() => {
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    d.setSeconds(0, 0);
+    // datetime-local format
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  });
+  const presets: { label: string; labelAr: string; ms: number }[] = [
+    { label: "In 1 hour", labelAr: "خلال ساعة", ms: 60 * 60 * 1000 },
+    { label: "Tonight 8 PM", labelAr: "الليلة ٨ مساءً", ms: tonightAt(20) },
+    { label: "Tomorrow 9 AM", labelAr: "غداً ٩ صباحاً", ms: tomorrowAt(9) },
+  ];
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.45)" }} onClick={onClose}>
+      <div
+        className="w-full max-w-[420px] rounded-t-3xl p-5 animate-slide-up"
+        style={{ background: "var(--white)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <CalendarClock size={18} style={{ color: "var(--teal-deep)" }} />
+          <p className="text-[15px] font-bold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
+            Schedule message
+          </p>
+          <p className="font-arabic text-[12px] ml-auto" dir="rtl" style={{ color: "var(--gray)" }}>جدولة الرسالة</p>
+        </div>
+        <div className="space-y-2">
+          {presets.map((p) => (
+            <button
+              key={p.label}
+              onClick={() => onPick(new Date(Date.now() + p.ms).toISOString())}
+              className="w-full text-left rounded-2xl px-4 py-3 btn-press"
+              style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+            >
+              <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>{p.label}</p>
+              <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>{p.labelAr}</p>
+            </button>
+          ))}
+        </div>
+        <div className="mt-4">
+          <p className="text-[11px] font-mono tracking-wider mb-1" style={{ color: "var(--gold)" }}>
+            CUSTOM · مخصص
+          </p>
+          <input
+            type="datetime-local"
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            className="w-full rounded-xl px-3 py-2 text-[13px] outline-none"
+            style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}
+          />
+          <button
+            onClick={() => {
+              const ts = new Date(custom).getTime();
+              if (!ts || ts < Date.now()) {
+                toast.error("Pick a future time · اختر وقتاً قادم");
+                return;
+              }
+              onPick(new Date(ts).toISOString());
+            }}
+            className="mt-2 w-full rounded-2xl py-3 text-[13px] font-bold btn-press"
+            style={{ background: "var(--teal-deep)", color: "#fff" }}
+          >
+            Schedule · جدولة
+          </button>
+        </div>
+        <button onClick={onClose} className="mt-3 w-full rounded-2xl py-2.5 text-[12px] btn-press" style={{ color: "var(--gray)" }}>
+          Cancel · إلغاء
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ScheduledListSheet({
+  items,
+  onClose,
+  onCancel,
+}: {
+  items: ScheduledMessage[];
+  onClose: () => void;
+  onCancel: (id: string) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.45)" }} onClick={onClose}>
+      <div className="w-full max-w-[420px] rounded-t-3xl p-5 max-h-[70vh] flex flex-col" style={{ background: "var(--white)" }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-3">
+          <CalendarClock size={18} style={{ color: "var(--teal-deep)" }} />
+          <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>Scheduled messages</p>
+          <p className="font-arabic text-[12px] ml-auto" dir="rtl" style={{ color: "var(--gray)" }}>الرسائل المجدولة</p>
+        </div>
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {items.length === 0 && <p className="text-center text-[12px] py-6" style={{ color: "var(--gray)" }}>None scheduled · لا شيء</p>}
+          {items.map((s) => (
+            <div key={s.id} className="rounded-2xl px-3 py-2.5 flex items-start gap-2" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-bold" style={{ color: "var(--teal-deep)" }}>
+                  {new Date(s.scheduledFor).toLocaleString()}
+                </p>
+                <p className="text-[12px] mt-0.5 line-clamp-3" dir="auto" style={{ color: "var(--ink)" }}>
+                  {s.body.replace(/\[\[RUFAYQ_ATTACH:[^\]]+\]\]/g, "📎 attachment")}
+                </p>
+              </div>
+              <button onClick={() => onCancel(s.id)} className="p-1.5 rounded-full btn-press" aria-label="Cancel · إلغاء">
+                <X size={14} style={{ color: "var(--gray)" }} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose} className="mt-3 w-full rounded-2xl py-2.5 text-[12px] btn-press" style={{ color: "var(--gray)" }}>
+          Close · إغلاق
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function tonightAt(hour: number): number {
+  const now = new Date();
+  const t = new Date(now);
+  t.setHours(hour, 0, 0, 0);
+  if (t.getTime() <= now.getTime()) t.setDate(t.getDate() + 1);
+  return t.getTime() - now.getTime();
+}
+function tomorrowAt(hour: number): number {
+  const now = new Date();
+  const t = new Date(now);
+  t.setDate(t.getDate() + 1);
+  t.setHours(hour, 0, 0, 0);
+  return t.getTime() - now.getTime();
 }

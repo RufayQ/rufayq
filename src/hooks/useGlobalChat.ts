@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { onThreadReadOptimistic } from "@/lib/chat/activeThread";
+import { startScheduledTicker } from "@/lib/chat/scheduledMessages";
 
 /**
  * App-wide chat awareness:
@@ -56,6 +57,8 @@ export function useGlobalChat(activeThreadId?: string | null) {
   }, [enabled]);
 
   useEffect(() => { recompute(); }, [recompute]);
+  useEffect(() => { if (enabled) startScheduledTicker(); }, [enabled]);
+
 
   useEffect(() => {
     if (!enabled) return;

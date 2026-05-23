@@ -438,6 +438,8 @@ export type Database = {
           body: string
           created_at: string
           deleted_at: string | null
+          edit_history: Json
+          edited_at: string | null
           id: string
           metadata: Json
           reply_to_id: string | null
@@ -451,6 +453,8 @@ export type Database = {
           body: string
           created_at?: string
           deleted_at?: string | null
+          edit_history?: Json
+          edited_at?: string | null
           id?: string
           metadata?: Json
           reply_to_id?: string | null
@@ -464,6 +468,8 @@ export type Database = {
           body?: string
           created_at?: string
           deleted_at?: string | null
+          edit_history?: Json
+          edited_at?: string | null
           id?: string
           metadata?: Json
           reply_to_id?: string | null

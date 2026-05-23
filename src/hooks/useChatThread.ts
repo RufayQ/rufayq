@@ -24,10 +24,13 @@ export type ChatMessageRow = {
   reply_to?: ReplyPreview | null;
   /** Client-side delivery status. Server rows default to "sent". */
   status?: ChatMessageStatus;
+  edited_at?: string | null;
+  edit_history?: Array<{ body: string; at: string }>;
+  deleted_at?: string | null;
 };
 
 const SELECT_COLS =
-  "id, thread_id, sender_kind, sender_device_id, sender_org_id, body, metadata, created_at, reply_to_id";
+  "id, thread_id, sender_kind, sender_device_id, sender_org_id, body, metadata, created_at, reply_to_id, edited_at, edit_history, deleted_at";
 
 /** Loads messages for a single thread and subscribes to new ones in realtime. */
 export function useChatThread(threadId: string | null) {
@@ -60,7 +63,6 @@ export function useChatThread(threadId: string | null) {
       .from("chat_messages")
       .select(SELECT_COLS)
       .eq("thread_id", threadId)
-      .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(500);
     const rows = ((data ?? []) as ChatMessageRow[]).map((m) => ({ ...m, status: "sent" as const }));
@@ -97,6 +99,20 @@ export function useChatThread(threadId: string | null) {
             }
             return [...prev, hydrated];
           });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },
+        (payload) => {
+          const raw = payload.new as ChatMessageRow;
+          setMessages((prev) =>
+            prev.map((x) =>
+              x.id === raw.id
+                ? { ...x, body: raw.body, edited_at: raw.edited_at, edit_history: raw.edit_history, deleted_at: raw.deleted_at }
+                : x,
+            ),
+          );
         },
       )
       .subscribe();
@@ -191,5 +207,43 @@ export function useChatThread(threadId: string | null) {
       .eq("device_id", deviceId);
   }, [threadId]);
 
-  return { messages, loading, send, retry, markRead, reload: load };
+  const editMessage = useCallback(
+    async (id: string, newBody: string) => {
+      const trimmed = newBody.trim();
+      if (!trimmed) return;
+      const me = getDeviceId();
+      const current = messages.find((m) => m.id === id);
+      if (!current || current.sender_device_id !== me || current.deleted_at) return;
+      const history = Array.isArray(current.edit_history) ? current.edit_history : [];
+      const nextHistory = [...history, { body: current.body, at: new Date().toISOString() }];
+      // Optimistic
+      setMessages((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, body: trimmed, edited_at: new Date().toISOString(), edit_history: nextHistory } : x)),
+      );
+      const { error } = await supabase
+        .from("chat_messages")
+        .update({ body: trimmed, edited_at: new Date().toISOString(), edit_history: nextHistory })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    [messages],
+  );
+
+  const deleteMessage = useCallback(
+    async (id: string) => {
+      const me = getDeviceId();
+      const current = messages.find((m) => m.id === id);
+      if (!current || current.sender_device_id !== me) return;
+      const when = new Date().toISOString();
+      setMessages((prev) => prev.map((x) => (x.id === id ? { ...x, deleted_at: when } : x)));
+      const { error } = await supabase
+        .from("chat_messages")
+        .update({ deleted_at: when })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    [messages],
+  );
+
+  return { messages, loading, send, retry, markRead, reload: load, editMessage, deleteMessage };
 }
