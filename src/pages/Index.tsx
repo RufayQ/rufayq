@@ -430,7 +430,7 @@ const Index = () => {
   const handleScannerSaveBatch = useCallback((category: string | null, payloads: any[]) => {
     setShowScanner(false);
     if (!payloads || payloads.length === 0) return;
-    const isTravelDoc = category === "legal";
+    const isTravelDoc = isTravelCategory(category);
     const medical = isMedicalCategory(category);
     let stored = 0;
     payloads.forEach((payload) => {
