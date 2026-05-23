@@ -776,6 +776,7 @@ const Index = () => {
           <TourRunner tour={activeTour} onFinish={finishActive} allowSkip={allowSkip} />
         )}
       </div>
+      <BackDebugOverlay nextShellStep={nextShellStep} />
     </div>
   );
 };
