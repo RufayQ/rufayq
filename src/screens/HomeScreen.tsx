@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
 import { CreditCard, Wallet, LogOut, UserCircle2 } from "lucide-react";
-import { toast } from "sonner";
+
 
 import { usePatientName } from "@/hooks/usePatientName";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
