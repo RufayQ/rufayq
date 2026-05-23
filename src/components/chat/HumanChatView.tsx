@@ -55,18 +55,29 @@ export default function HumanChatView({
   onMinimize,
   initialPendingAttachment = null,
 }: Props) {
-  const { messages, send, retry, markRead } = useChatThread(threadId);
+  const { messages, send, retry, markRead, editMessage, deleteMessage } = useChatThread(threadId);
   const { othersLastReadAt } = useThreadReadReceipts(threadId);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessageRow | null>(null);
   const [actionFor, setActionFor] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [showAttachPicker, setShowAttachPicker] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<PickedRecord | null>(initialPendingAttachment);
+  const [showScheduler, setShowScheduler] = useState(false);
+  const [scheduled, setScheduled] = useState<ScheduledMessage[]>([]);
+  const [showScheduledList, setShowScheduledList] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const me = getDeviceId();
+
+  // Track scheduled messages for this thread
+  useEffect(() => {
+    const refresh = () => setScheduled(listScheduledForThread(threadId));
+    refresh();
+    return subscribeScheduled(refresh);
+  }, [threadId]);
 
   // Re-pin attachment if parent hands off a new one (e.g. opening a thread
   // from "Send to chat" after the view is already mounted).
