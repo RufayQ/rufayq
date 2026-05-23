@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ChevronRight, LogOut, Shield, AlertTriangle, Copy, Eye, EyeOff, Phone } from "lucide-react";
+import { ArrowLeft, ChevronRight, LogOut, Shield, AlertTriangle, Copy, Eye, EyeOff, Phone, Pencil } from "lucide-react";
 import LogoMark from "@/components/LogoMark";
 import { toast } from "sonner";
 import MedicalHistorySheet from "@/components/MedicalHistorySheet";
@@ -11,6 +11,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import ConnectedAccountsCard from "@/components/profile/ConnectedAccountsCard";
 import AvatarUploader from "@/components/profile/AvatarUploader";
 import ConnectionsCard from "@/components/profile/ConnectionsCard";
+import ProfileEditSheet from "@/components/profile/ProfileEditSheet";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -102,6 +103,8 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
   const [showEmergency, setShowEmergency] = useState(false);
   const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
   const { count: pendingClaims } = usePendingClaimsCount();
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editTick, setEditTick] = useState(0);
 
   useEffect(() => { setEmergencyContacts(loadEmergencyContacts()); }, []);
 
@@ -115,7 +118,10 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
       <div className="flex flex-col h-full">
         <div className="relative px-5 pt-6 pb-6 text-center" style={{ background: "var(--navy)" }}>
           <button onClick={onBack} className="absolute left-4 top-3 btn-press"><ArrowLeft size={20} color="white" /></button>
-          <AvatarUploader />
+          <button onClick={() => setShowEditProfile(true)} className="absolute right-4 top-3 btn-press flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }} aria-label="Edit profile">
+            <Pencil size={12} /> <span className="text-[11px]">Edit</span>
+          </button>
+          <AvatarUploader key={editTick} />
           <p className="font-display text-xl text-white mt-2">Your Profile</p>
           <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>ملفك الشخصي</p>
         </div>
@@ -184,6 +190,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         {showHistory && <MedicalHistorySheet onClose={() => setShowHistory(false)} />}
         {showConsents && <ConsentsSheet onClose={() => setShowConsents(false)} />}
         {showEmergency && <EmergencyContactsSheet onClose={() => setShowEmergency(false)} onChange={setEmergencyContacts} />}
+        {showEditProfile && <ProfileEditSheet onClose={() => setShowEditProfile(false)} onSaved={() => setEditTick((t) => t + 1)} />}
       </div>
     );
   }
