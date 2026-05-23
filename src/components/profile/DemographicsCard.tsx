@@ -1,9 +1,9 @@
 /**
  * DemographicsCard — focused demographics panel: DOB/age, gender,
- * nationality, language, marital status (if present), with one tap edit.
+ * nationality, city, marital status, occupation. Tap chevron to expand.
  */
 import { useEffect, useState } from "react";
-import { Calendar, User2, Globe, Languages, Pencil } from "lucide-react";
+import { Calendar, User2, Globe, MapPin, Heart, Briefcase, Pencil, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 
@@ -23,6 +23,13 @@ const ageOf = (iso: string | null) => {
   return a;
 };
 
+const MARITAL_LABELS: Record<string, string> = {
+  single: "Single · أعزب",
+  married: "Married · متزوج",
+  divorced: "Divorced · مطلّق",
+  widowed: "Widowed · أرمل",
+};
+
 const Cell = ({ icon, label, labelAr, value }: { icon: React.ReactNode; label: string; labelAr: string; value: string }) => (
   <div className="flex items-start gap-2.5 py-2">
     <span className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>{icon}</span>
@@ -38,19 +45,18 @@ const Cell = ({ icon, label, labelAr, value }: { icon: React.ReactNode; label: s
 
 const DemographicsCard = ({ onEdit, reloadKey }: Props) => {
   const [row, setRow] = useState<any>(null);
-  const [language, setLanguage] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const device_id = getDeviceId();
       const { data, error } = await supabase.from("profiles")
-        .select("date_of_birth, gender, nationality")
+        .select("date_of_birth, gender, nationality, city_of_residence, marital_status, occupation")
         .eq("device_id", device_id).maybeSingle();
       if (cancelled) return;
       if (error) console.warn("DemographicsCard load:", error.message);
       setRow(data || {});
-      setLanguage(typeof localStorage !== "undefined" ? localStorage.getItem("rufayq.language") : null);
     })();
     return () => { cancelled = true; };
   }, [reloadKey]);
@@ -58,25 +64,46 @@ const DemographicsCard = ({ onEdit, reloadKey }: Props) => {
   const gender = row?.gender === "male" ? "Male · ذكر" : row?.gender === "female" ? "Female · أنثى" : row?.gender || "";
   const age = ageOf(row?.date_of_birth || null);
   const dob = formatDate(row?.date_of_birth || null);
-  const langLabel = language === "ar" ? "العربية · Arabic" : language === "en" ? "English · الإنجليزية" : (language || "");
-  const residence = row?.nationality ? `KSA · ${row.nationality}` : "";
+  const marital = row?.marital_status ? (MARITAL_LABELS[row.marital_status] || row.marital_status) : "";
 
   return (
     <div className="mt-4 mx-4">
       <div className="flex items-center justify-between mb-1 px-1">
         <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>DEMOGRAPHICS · الخصائص</p>
-        <button onClick={() => onEdit("demo")} className="text-[10px] font-bold btn-press flex items-center gap-1" style={{ color: "var(--teal-deep)" }}>
-          <Pencil size={10} /> Edit
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => onEdit("demo")} className="text-[10px] font-bold btn-press flex items-center gap-1" style={{ color: "var(--teal-deep)" }}>
+            <Pencil size={10} /> Edit
+          </button>
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? "Collapse" : "Expand"}
+            className="w-6 h-6 rounded-full flex items-center justify-center btn-press"
+            style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}
+          >
+            <ChevronDown size={14} style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
+          </button>
+        </div>
       </div>
-      <div className="rounded-2xl px-3 py-2" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full text-left rounded-2xl px-3 py-2 btn-press"
+        style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}
+      >
         <div className="grid grid-cols-2 gap-x-2">
           <Cell icon={<Calendar size={13} />} label="DOB" labelAr="الميلاد" value={dob + (age != null ? ` · ${age}y` : "")} />
           <Cell icon={<User2 size={13} />} label="GENDER" labelAr="الجنس" value={gender} />
           <Cell icon={<Globe size={13} />} label="NATIONALITY" labelAr="الجنسية" value={row?.nationality || ""} />
-          <Cell icon={<Languages size={13} />} label="LANGUAGE" labelAr="اللغة" value={langLabel} />
+          <Cell icon={<MapPin size={13} />} label="CITY" labelAr="المدينة" value={row?.city_of_residence ? `${row.city_of_residence}${row?.nationality ? ` · ${row.nationality}` : ""}` : ""} />
+          {expanded && (
+            <>
+              <Cell icon={<Heart size={13} />} label="MARITAL" labelAr="الحالة الاجتماعية" value={marital} />
+              <Cell icon={<Briefcase size={13} />} label="OCCUPATION" labelAr="المهنة" value={row?.occupation || ""} />
+            </>
+          )}
         </div>
-      </div>
+      </button>
     </div>
   );
 };
