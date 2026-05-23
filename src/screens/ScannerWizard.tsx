@@ -1210,8 +1210,83 @@ export const Step2Review = ({
                   ))}
                 </>
               )}
+              {/* Annotation overlay — shows existing strokes and captures drawing. */}
+              {(annotating || hasAnnotations) && (
+                <svg
+                  className="absolute inset-0"
+                  viewBox="0 0 1 1"
+                  preserveAspectRatio="none"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    pointerEvents: annotating ? "auto" : "none",
+                    cursor: annotating ? (annTool === "text" ? "text" : "crosshair") : "default",
+                    touchAction: "none",
+                  }}
+                  onPointerDown={onAnnPointerDown}
+                  onPointerMove={onAnnPointerMove}
+                  onPointerUp={onAnnPointerUp}
+                  onPointerCancel={onAnnPointerUp}
+                  aria-label="Annotation overlay"
+                >
+                  {[...strokes, ...(drawing ? [drawing] : [])].map((st, i) => {
+                    if (st.kind === "path") {
+                      const d = st.points
+                        .map((p, j) => `${j === 0 ? "M" : "L"}${p[0]} ${p[1]}`)
+                        .join(" ");
+                      return (
+                        <path
+                          key={i}
+                          d={d}
+                          fill="none"
+                          stroke={st.color}
+                          strokeOpacity={st.opacity}
+                          strokeWidth={st.width}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke"
+                          style={{ strokeWidth: `${st.width * 100}%` }}
+                        />
+                      );
+                    }
+                    if (st.kind === "arrow") {
+                      const dx = st.to[0] - st.from[0];
+                      const dy = st.to[1] - st.from[1];
+                      const len = Math.hypot(dx, dy) || 1;
+                      const ux = dx / len, uy = dy / len;
+                      const head = st.width * 4;
+                      const ax = st.to[0] - head * (ux * Math.cos(0.5) - uy * Math.sin(0.5));
+                      const ay = st.to[1] - head * (uy * Math.cos(0.5) + ux * Math.sin(0.5));
+                      const bx = st.to[0] - head * (ux * Math.cos(-0.5) - uy * Math.sin(-0.5));
+                      const by = st.to[1] - head * (uy * Math.cos(-0.5) + ux * Math.sin(-0.5));
+                      return (
+                        <g key={i} stroke={st.color} fill={st.color} strokeWidth={st.width} strokeLinecap="round">
+                          <line x1={st.from[0]} y1={st.from[1]} x2={st.to[0]} y2={st.to[1]} />
+                          <polygon points={`${st.to[0]},${st.to[1]} ${ax},${ay} ${bx},${by}`} />
+                        </g>
+                      );
+                    }
+                    return (
+                      <text
+                        key={i}
+                        x={st.pos[0]}
+                        y={st.pos[1] + st.size}
+                        fontSize={st.size}
+                        fontWeight={700}
+                        fill={st.color}
+                        stroke="rgba(0,0,0,0.55)"
+                        strokeWidth={st.size * 0.06}
+                        paintOrder="stroke"
+                      >
+                        {st.text}
+                      </text>
+                    );
+                  })}
+                </svg>
+              )}
             </div>
           </div>
+
         ) : realFile ? (
           <div className="w-full">
             <FileUploadPreview file={realFile} lang="both" maxHeight={360} />
