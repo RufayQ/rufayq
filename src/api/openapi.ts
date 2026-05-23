@@ -262,6 +262,33 @@ export const openApiSpec = {
           data: { $ref: "#/components/schemas/FlightExtraction" },
         },
       },
+      ScannerBlobReference: {
+        type: "object",
+        description: "Durable scanner file handle persisted in IndexedDB-backed client storage. Only metadata + blob key are persisted in localStorage.",
+        required: ["blobKey", "fileName", "mimeType", "sizeBytes"],
+        properties: {
+          blobKey: { type: "string", description: "Opaque local blob key (IndexedDB object-store key)." },
+          fileName: { type: "string" },
+          mimeType: { type: "string", nullable: true },
+          sizeBytes: { type: "integer", minimum: 0 },
+        },
+      },
+      ScannerQcEvent: {
+        type: "object",
+        required: ["stage", "scenario", "fileCount", "totalBytes", "largestFileBytes", "storageMode"],
+        properties: {
+          stage: { type: "string", enum: ["file_selected", "indexeddb_store_started", "indexeddb_store_completed", "review_opened", "save_started", "save_completed", "save_failed", "quota_fallback_used"] },
+          scenario: { type: "string", enum: ["single", "multi-page", "multi-record"] },
+          fileCount: { type: "integer", minimum: 0 },
+          totalBytes: { type: "integer", minimum: 0 },
+          largestFileBytes: { type: "integer", minimum: 0 },
+          mimeFamilies: { type: "array", items: { type: "string" } },
+          storageMode: { type: "string", enum: ["indexeddb", "memory", "metadata-only"] },
+          quotaEstimateBytes: { type: "integer", nullable: true },
+          errorName: { type: "string", nullable: true },
+          errorMessage: { type: "string", nullable: true },
+        },
+      },
       ChatMessage: {
         type: "object",
         properties: {
@@ -763,6 +790,7 @@ export const openApiSpec = {
       post: {
         tags: ["Patient · Scanner"],
         summary: "5-step document scanner — image enhancement + AI extraction.",
+        description: "Supports single upload, multi-page upload, and multi-record upload flows. Persistence contract: store blob bytes in IndexedDB and persist only lightweight metadata + blobKey references." ,
         requestBody: {
           required: true,
           content: {

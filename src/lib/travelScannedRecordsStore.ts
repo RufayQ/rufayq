@@ -14,6 +14,7 @@ import {
   getCachedRecordBlob,
   isHeavyDataUrl,
 } from "@/lib/records/recordBlobCache";
+import { getScannerBlob } from "@/lib/records/scannerFileStore";
 
 const STORAGE_KEY = "rufayq_travel_scanned_records_v1";
 const UPDATE_EVENT = "rufayq:travel-scanned-records-updated";
@@ -40,6 +41,7 @@ export interface TravelScannedRecord {
   fileUrl?: string;
   /** MIME type of the original uploaded document. */
   mimeType?: string | null;
+  blobKey?: string;
 }
 
 const slimFor = (r: TravelScannedRecord): TravelScannedRecord => {
@@ -115,6 +117,23 @@ const write = (items: TravelScannedRecord[]) => {
 
 export const listTravelScannedRecords = (): TravelScannedRecord[] => read();
 
+export const rehydrateTravelScannedRecordUrls = async (): Promise<void> => {
+  const all = read();
+  let touched = false;
+  for (const r of all) {
+    if (!r.fileUrl && r.blobKey) {
+      try {
+        const blob = await getScannerBlob(r.blobKey);
+        if (blob) {
+          r.fileUrl = URL.createObjectURL(blob);
+          touched = true;
+        }
+      } catch { /* noop */ }
+    }
+  }
+  if (touched) write(all);
+};
+
 export const addTravelScannedRecord = (input: {
   category: string;
   subcategory?: string | null;
@@ -126,6 +145,7 @@ export const addTravelScannedRecord = (input: {
   pdfUrl?: string;
   fileUrl?: string;
   mimeType?: string | null;
+  blobKey?: string;
 }): TravelScannedRecord => {
   const id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
     ? crypto.randomUUID()
@@ -148,6 +168,7 @@ export const addTravelScannedRecord = (input: {
     pdfUrl: input.pdfUrl,
     fileUrl: input.fileUrl,
     mimeType: input.mimeType ?? null,
+    blobKey: input.blobKey,
   };
   write([rec, ...read()]);
   return rec;

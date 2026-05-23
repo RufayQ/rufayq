@@ -11,6 +11,7 @@ import {
   getCachedRecordBlob,
   isHeavyDataUrl,
 } from "@/lib/records/recordBlobCache";
+import { getScannerBlob } from "@/lib/records/scannerFileStore";
 
 const STORAGE_KEY = "rufayq_scanned_records_v1";
 const UPDATE_EVENT = "rufayq:scanned-records-updated";
@@ -40,6 +41,8 @@ export interface ScannedRecord extends DocRecord {
   fileUrl?: string;
   /** MIME type for PDF/Office/image preview fallback routing. */
   mimeType?: string | null;
+  /** IndexedDB blob key for durable scanner source retrieval. */
+  blobKey?: string;
   /** Original uploaded filename. */
   fileName?: string;
 }
@@ -92,6 +95,23 @@ const write = (items: ScannedRecord[]) => {
 
 export const listScannedRecords = (): ScannedRecord[] => read();
 
+export const rehydrateScannedRecordUrls = async (): Promise<void> => {
+  const all = read();
+  let touched = false;
+  for (const r of all) {
+    if (!r.fileUrl && r.blobKey) {
+      try {
+        const blob = await getScannerBlob(r.blobKey);
+        if (blob) {
+          r.fileUrl = URL.createObjectURL(blob);
+          touched = true;
+        }
+      } catch { /* noop */ }
+    }
+  }
+  if (touched) write(all);
+};
+
 export const addScannedRecord = (input: {
   category: string;
   titleEn?: string;
@@ -103,6 +123,7 @@ export const addScannedRecord = (input: {
   fileUrl?: string;
   mimeType?: string | null;
   fileName?: string;
+  blobKey?: string;
 }): ScannedRecord => {
   const id = (typeof crypto !== "undefined" && "randomUUID" in crypto)
     ? crypto.randomUUID()
@@ -132,6 +153,7 @@ export const addScannedRecord = (input: {
     fileUrl: input.fileUrl,
     mimeType: input.mimeType ?? null,
     fileName: input.fileName,
+    blobKey: input.blobKey,
   };
   const next = [rec, ...read()];
   write(next);

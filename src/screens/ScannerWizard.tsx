@@ -19,6 +19,8 @@ import Time24Input from "@/components/Time24Input";
 import { FLIGHT_AI_ENABLED } from "@/lib/flightAiFlag";
 import NationalityCombobox from "@/components/NationalityCombobox";
 import UniversalDocumentPreview from "@/components/records/UniversalDocumentPreview";
+import { logScannerQcStage } from "@/lib/qcScannerTelemetry";
+import { putScannerBlob, scannerStoreAvailable } from "@/lib/records/scannerFileStore";
 
 export type TravelerKind = "patient" | "companion" | "family";
 
@@ -65,8 +67,11 @@ export interface ScannerSavePayload {
   editedFile?: File | null;
   /** Browser object URL for the uploaded file so the Records viewer can preview it immediately. */
   fileUrl?: string;
+  /** IndexedDB blob key for durable scanner source retrieval. */
+  blobKey?: string;
   /** Original uploaded MIME type for PDF/Office/image fallback routing. */
   mimeType?: string | null;
+  fileSizeBytes?: number;
 }
 
 interface ScannerWizardProps {
@@ -265,35 +270,59 @@ const ScannerWizard = ({
       mimeType: p.mimeType ?? realFile?.type ?? capturedFile?.type ?? null,
     } : undefined;
 
-  /**
-   * Convert the captured File into a persistent base64 data URL so the
-   * preview survives reloads (blob: URLs die with the document). Falls back
-   * to the original payload when the file is missing or too large to inline.
-   * Cap: ~8 MB raw → ~11 MB base64 (well under typical 5–10 MB localStorage).
-   */
   const finalizePayload = async (p: ScannerSavePayload | undefined): Promise<ScannerSavePayload | undefined> => {
     if (!p) return p;
     const f = (p.editedFile as File | undefined) ?? realFile;
     if (!f) return p;
-    const MAX = 8 * 1024 * 1024;
-    if (f.size > MAX) return p; // keep blob URL for current session
     try {
-      const dataUrl: string = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(String(r.result));
-        r.onerror = () => rej(r.error);
-        r.readAsDataURL(f);
+      logScannerQcStage({
+        stage: "indexeddb_store_started",
+        scenario: uploadMode,
+        fileCount: 1,
+        totalBytes: f.size,
+        largestFileBytes: f.size,
+        mimeFamilies: [(f.type || "unknown").split("/")[0]],
+        storageMode: scannerStoreAvailable() ? "indexeddb" : "memory",
       });
-      return { ...p, fileUrl: dataUrl, mimeType: p.mimeType ?? f.type ?? null };
+      if (!scannerStoreAvailable()) return { ...p, mimeType: p.mimeType ?? f.type ?? null, fileSizeBytes: f.size };
+      const stored = await putScannerBlob(f, { fileName: p.fileName ?? f.name, mimeType: p.mimeType ?? f.type ?? null });
+      logScannerQcStage({
+        stage: "indexeddb_store_completed",
+        scenario: uploadMode,
+        fileCount: 1,
+        totalBytes: stored.size,
+        largestFileBytes: stored.size,
+        mimeFamilies: [(stored.mimeType || "unknown").split("/")[0]],
+        storageMode: "indexeddb",
+      });
+      return { ...p, blobKey: stored.key, mimeType: stored.mimeType, fileName: stored.fileName, fileSizeBytes: stored.size };
     } catch (e) {
-      console.warn("[ScannerWizard] finalize → dataURL failed", e);
-      return p;
+      console.warn("[ScannerWizard] finalize -> indexeddb failed", e);
+      logScannerQcStage({
+        stage: "quota_fallback_used",
+        scenario: uploadMode,
+        fileCount: 1,
+        totalBytes: f.size,
+        largestFileBytes: f.size,
+        mimeFamilies: [(f.type || "unknown").split("/")[0]],
+        storageMode: "memory",
+        errorName: e instanceof Error ? e.name : "StoreError",
+        errorMessage: e instanceof Error ? e.message : "indexeddb_store_failed",
+      });
+      return { ...p, mimeType: p.mimeType ?? f.type ?? null, fileSizeBytes: f.size };
     }
   };
 
   const runSave = async (payload: ScannerSavePayload | undefined) => {
-    const finalized = await finalizePayload(payload);
-    onSave?.(selectedCategory, finalized);
+    logScannerQcStage({ stage: "save_started", scenario: uploadMode, fileCount: 1, totalBytes: payload?.fileSizeBytes ?? realFile?.size ?? 0, largestFileBytes: payload?.fileSizeBytes ?? realFile?.size ?? 0, mimeFamilies: [((payload?.mimeType ?? realFile?.type) || "unknown").split("/")[0]], storageMode: payload?.blobKey ? "indexeddb" : "memory" });
+    try {
+      const finalized = await finalizePayload(payload);
+      onSave?.(selectedCategory, finalized);
+      logScannerQcStage({ stage: "save_completed", scenario: uploadMode, fileCount: 1, totalBytes: finalized?.fileSizeBytes ?? realFile?.size ?? 0, largestFileBytes: finalized?.fileSizeBytes ?? realFile?.size ?? 0, mimeFamilies: [((finalized?.mimeType ?? realFile?.type) || "unknown").split("/")[0]], storageMode: finalized?.blobKey ? "indexeddb" : "memory" });
+    } catch (error) {
+      logScannerQcStage({ stage: "save_failed", scenario: uploadMode, fileCount: 1, totalBytes: payload?.fileSizeBytes ?? realFile?.size ?? 0, largestFileBytes: payload?.fileSizeBytes ?? realFile?.size ?? 0, mimeFamilies: [((payload?.mimeType ?? realFile?.type) || "unknown").split("/")[0]], storageMode: payload?.blobKey ? "indexeddb" : "memory", errorName: error instanceof Error ? error.name : "SaveError", errorMessage: error instanceof Error ? error.message : "scanner_save_failed" });
+      throw error;
+    }
   };
 
   const handleFileCapture = (accept: string) => {
@@ -308,6 +337,8 @@ const ScannerWizard = ({
   const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    logScannerQcStage({ stage: "file_selected", scenario: uploadMode, fileCount: files.length, totalBytes: files.reduce((n, f) => n + f.size, 0), largestFileBytes: Math.max(...files.map((f) => f.size)), mimeFamilies: Array.from(new Set(files.map((f) => (f.type || "unknown").split("/")[0]))), storageMode: scannerStoreAvailable() ? "indexeddb" : "memory" });
 
     if (uploadMode === "multi-record" && files.length > 0) {
       // Route to the batch rename / save screen. If no category has been
@@ -336,6 +367,7 @@ const ScannerWizard = ({
     setRealFile(primary);
     setScannedPayload(null);
     setStep(2);
+    logScannerQcStage({ stage: "review_opened", scenario: uploadMode, fileCount: files.length, totalBytes: files.reduce((n, f) => n + f.size, 0), largestFileBytes: Math.max(...files.map((f) => f.size)), mimeFamilies: Array.from(new Set(files.map((f) => (f.type || "unknown").split("/")[0]))), storageMode: scannerStoreAvailable() ? "indexeddb" : "memory" });
   };
 
   return (
