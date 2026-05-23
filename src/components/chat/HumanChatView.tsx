@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2, Paperclip, Pencil, Trash2, Clock, CalendarClock, Check } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2, Paperclip, Pencil, Trash2, Clock, CalendarClock, Check, SmilePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { setActiveThread } from "@/lib/chat/activeThread";
 import { useResolvedContact } from "@/hooks/useResolvedContact";
+import { useMessageReactions } from "@/hooks/useMessageReactions";
+import { useBackHandler } from "@/hooks/useBackHandler";
 import MessageTicks from "./MessageTicks";
 import EmojiPicker from "./EmojiPicker";
 import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
@@ -19,6 +21,9 @@ import {
   subscribeScheduled,
   type ScheduledMessage,
 } from "@/lib/chat/scheduledMessages";
+
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
 
 
 interface Props {
