@@ -27,27 +27,28 @@ const Field = ({
   error?: string | null; hint?: string; maxLength?: number;
   inputMode?: "text" | "tel" | "email" | "numeric" | "decimal" | "search" | "url" | "none";
 }) => (
-  <div className="mb-3">
-    <div className="flex items-baseline justify-between mb-1 px-1">
-      <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>{label}</p>
-      <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{labelAr}</p>
+  <div className="mb-3.5">
+    <div className="flex items-baseline justify-between mb-1.5 px-0.5">
+      <p className="font-mono text-[9.5px] tracking-[0.18em] font-bold" style={{ color: "var(--gold)" }}>{label}</p>
+      <p className="font-arabic text-[10.5px]" dir="rtl" style={{ color: "var(--gray)" }}>{labelAr}</p>
     </div>
     <input
       value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} placeholder={placeholder}
       type={type} dir={dir} maxLength={maxLength} inputMode={inputMode}
-      className="w-full px-3 py-2.5 rounded-lg text-[13px] outline-none transition-shadow focus:ring-2"
+      className={`w-full px-3.5 py-3 rounded-xl text-[14px] outline-none transition-all focus:ring-2 focus:ring-offset-0 ${dir === "rtl" ? "font-arabic text-right" : ""}`}
       style={{
-        background: "var(--off-white)",
-        border: `1px solid ${error ? "#E5564A" : "var(--gray-light)"}`,
+        background: "#ffffff",
+        border: `1.5px solid ${error ? "#E5564A" : "var(--gray-light)"}`,
         color: "var(--navy)",
+        boxShadow: "0 1px 2px rgba(11,26,42,0.04)",
       }}
     />
     {error ? (
-      <p className="flex items-center gap-1 mt-1 px-1 text-[10px] font-semibold" style={{ color: "#E5564A" }}>
-        <AlertCircle size={10} /> {error}
+      <p className="flex items-center gap-1 mt-1.5 px-1 text-[10.5px] font-semibold" style={{ color: "#E5564A" }}>
+        <AlertCircle size={11} /> {error}
       </p>
     ) : hint ? (
-      <p className="mt-1 px-1 text-[10px]" style={{ color: "var(--gray)" }}>{hint}</p>
+      <p className="mt-1.5 px-1 text-[10.5px]" style={{ color: "var(--gray)" }}>{hint}</p>
     ) : null}
   </div>
 );
@@ -55,14 +56,14 @@ const Field = ({
 const Select = ({
   label, labelAr, value, onChange, options,
 }: { label: string; labelAr: string; value: string; onChange: (v: string) => void; options: { v: string; l: string }[] }) => (
-  <div className="mb-3">
-    <div className="flex items-baseline justify-between mb-1 px-1">
-      <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>{label}</p>
-      <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{labelAr}</p>
+  <div className="mb-3.5">
+    <div className="flex items-baseline justify-between mb-1.5 px-0.5">
+      <p className="font-mono text-[9.5px] tracking-[0.18em] font-bold" style={{ color: "var(--gold)" }}>{label}</p>
+      <p className="font-arabic text-[10.5px]" dir="rtl" style={{ color: "var(--gray)" }}>{labelAr}</p>
     </div>
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2.5 rounded-lg text-[13px] outline-none appearance-none"
-      style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}>
+      className="w-full px-3.5 py-3 rounded-xl text-[14px] outline-none appearance-none"
+      style={{ background: "#ffffff", border: "1.5px solid var(--gray-light)", color: "var(--navy)", boxShadow: "0 1px 2px rgba(11,26,42,0.04)" }}>
       <option value="">—</option>
       {options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
     </select>
