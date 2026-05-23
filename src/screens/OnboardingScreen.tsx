@@ -30,17 +30,23 @@ const slides = [
 
         <BrandHero size="full" />
 
-        <h1 className="font-display text-4xl text-white mt-7 text-center" style={{ fontWeight: 300 }}>
-          You're Never Alone Abroad
+        <p className="text-[10px] tracking-[0.22em] mt-6 text-center font-mono" style={{ color: "var(--gold-light)" }}>
+          AI COMPANION · MEDICAL, CULTURAL &amp; BEYOND
+        </p>
+        <h1 className="font-display text-4xl text-white mt-4 text-center leading-[1.1]" style={{ fontWeight: 300 }}>
+          Your AI Companion
+          <br />
+          for <span style={{ color: "var(--gold-light)", fontStyle: "italic" }}>Every Journey</span>
         </h1>
         <p className="font-arabic text-2xl mt-3 text-center" dir="rtl" style={{ color: "var(--gold-light)" }}>
-          لست وحدك في الغربة
+          رُفَيِّقك الذكي في كل رحلة
         </p>
-        <p className="text-sm text-center mt-5 leading-relaxed max-w-[300px]" style={{ color: "rgba(255,255,255,0.7)" }}>
-          A warm bilingual companion built for Saudi and Gulf patients seeking treatment far from home.
+        <div className="w-12 h-px mt-5" style={{ background: "var(--gold)" }} aria-hidden />
+        <p className="text-[13px] text-center mt-5 leading-relaxed max-w-[320px]" style={{ color: "rgba(255,255,255,0.78)" }}>
+          Healing abroad shouldn&rsquo;t mean going it alone. RufayQ speaks your language, guards your medical records, and takes care of your family — from your first appointment to the day you land back home.
         </p>
-        <p className="font-arabic text-xs text-center mt-2 leading-relaxed max-w-[300px]" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>
-          رفيق دافئ يرافقك بلغتك في رحلتك العلاجية خارج المملكة
+        <p className="font-arabic text-[12px] text-center mt-3 leading-relaxed max-w-[320px]" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>
+          لأن العلاج في الخارج لا يعني أن تكون وحدك. رُفَيِّق يتكلّم لغتك، يحفظ ملفّك الطبي، ويرافق عائلتك — من أول موعد حتى تعود للوطن.
         </p>
       </div>
     ),
