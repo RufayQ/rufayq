@@ -45,7 +45,7 @@ const DemographicsCard = ({ onEdit, reloadKey }: Props) => {
     (async () => {
       const device_id = getDeviceId();
       const { data } = await supabase.from("profiles")
-        .select("date_of_birth, gender, nationality, marital_status, preferred_language, country_of_residence, city")
+        .select("date_of_birth, gender, nationality, preferred_language")
         .eq("device_id", device_id).maybeSingle();
       if (cancelled) return;
       setRow(data || {});
