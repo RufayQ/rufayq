@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { OverlayLayer } from "@/shared/ui/overlay";
-import { X, RotateCw, Sun, Contrast, Crop, Palette } from "lucide-react";
+import { X, RotateCw, Sun, Contrast, Crop, Palette, PenLine, Highlighter, ArrowUpRight, Type, Undo2, Trash2 } from "lucide-react";
 
 import RufayQLogo from "@/components/RufayQLogo";
 import { FileUploadPreview } from "@/shared/ui";
