@@ -1,121 +1,140 @@
-## **Upgrade-Flow Unification Matrix (Tiers / Add-ons / API / UX)**
+## Goal
 
-### **Canonical assumptions (align these first)**
+Make `/admin/security` reflect the current security posture of the live backend, refreshed after every deploy (via a manual button) and at least once a day (via cron) — no reliance on the editor-side Lovable scanner.
 
-- **Tier codes (canonical)**: `STARTER`, `PRO`, `COMPANION`, `FAMILY`
-- **Billing cycles**: `monthly`, `quarterly`, `yearly`
-- **Receipt statuses** (`payment_receipts.status`): `pending`, `under_review`, `verified`, `rejected`, `expired`
-- **Subscription statuses** (`user_subscriptions.status`): `trial`, `pending_receipt`, `active`, `cancelled`, `expired`
+## Architecture
 
-Primary files in current repo:
+```text
+ ┌──────────────┐  daily cron (pg_cron + pg_net)
+ │ pg_cron job  │ ─────────────────────────────────────┐
+ └──────────────┘                                      ▼
+ ┌────────────────────────┐  POST  ┌────────────────────────────┐
+ │ /admin/security UI     │ ─────► │ edge fn: security-scan-run │
+ │  • "Run scan" button   │        │  1. supabase linter        │
+ │  • Last-scan pill      │        │  2. custom app checks      │
+ │  • Auto-refresh 30s    │        │  3. POST → findings-sync   │
+ └────────────────────────┘        └────────────────────────────┘
+                                              │
+                                              ▼
+                                ┌──────────────────────────────┐
+                                │ security_findings table      │
+                                │ (existing, RLS already set)  │
+                                └──────────────────────────────┘
+```
 
-- Contracts:  
-`src/api/contracts/subscriptions.ts`  
-`src/api/contracts/payments.ts`
-- API clients:  
-`src/api/clients/subscriptions.client.ts`  
-`src/api/clients/payments.client.ts`
-- Plan logic:  
-`src/features/subscriptions/logic/statusMachine.ts`  
-`src/features/subscriptions/logic/entitlements.ts`
-- API docs:  
-`src/api/openapi.ts`
+## Changes
 
----
+### 1. New edge function: `security-scan-run`
 
-## **A) Tier/Add-on capability matrix (source-of-truth target)**
+`supabase/functions/security-scan-run/index.ts`
 
+- Auth: require admin (Bearer JWT → `getClaims` → `has_role(uid,'admin')`). Cron calls it with the service-role key (bypasses the admin gate via a `x-cron-secret` header check).
+- Runs in parallel:
+  - **Supabase linter**: calls the Supabase Management API linter endpoint (`/v1/projects/{ref}/run-query` with the standard linter SQL bundle) OR the lighter built-in `db_health` query for: tables without RLS, RLS policies referencing `auth.users`, functions without `search_path`, extensions in `public`.
+  - **Custom app checks** (SQL via service-role client):
+    - Storage buckets that are `public = true` without an explicit policy
+    - `user_subscriptions`, `payment_receipts`, `profiles`, `medical_records`, `support_tickets` → confirm RLS enabled
+    - Auth config: leaked-password protection flag (read via `auth.config` table or admin API)
+    - Edge functions deployed with `verify_jwt = false` that touch sensitive tables (static allowlist check against a hardcoded set of known-public functions like webhooks)
+- Each check produces 0..n findings in the shape `{ scanner_name, internal_id, title, severity, description }`.
+- Function then calls the existing `security-findings-sync` RPC `security_findings_upsert` directly (same DB, no HTTP hop) so missing findings are auto-marked fixed.
+- Returns `{ ok, ran_at, total, open, fixed_now }`.
 
-| **Tier**  | **Allowed Add-ons**                 | **Core Entitlements (from** `entitlements.ts`**)** | **Upgrade Eligible To** |
-| --------- | ----------------------------------- | -------------------------------------------------- | ----------------------- |
-| STARTER   | `priority_support`                  | baseline medical records/scanner/chat core         | PRO, COMPANION, FAMILY  |
-| PRO       | `priority_support`, `family_addon`  | STARTER + enhanced care/journey capabilities       | COMPANION, FAMILY       |
-| COMPANION | `priority_support`, `family_addon`  | PRO + companion workflow unlocks                   | FAMILY                  |
-| FAMILY    | `priority_support` (if not bundled) | full family features                               | n/a                     |
+### 2. Dashboard updates (`src/pages/AdminSecurity.tsx`)
 
+- Add `"Run scan"` button in the header next to `Refresh`, calling `supabase.functions.invoke("security-scan-run")` then `load()`.
+- Add a "Last scan" pill (reads `MAX(last_seen_at)` from findings or a new `security_scan_runs` row — see step 3).
+- Show toast on completion: `"Scan complete — 2 open, 5 fixed since last run"`.
+- Rename the "Push / cron health" tile to "Scan cron" and have it ping the new function in health mode (`{ health: true }`).
 
-> Lovable instruction: move this to one canonical module (e.g. `planCatalog.ts`) and consume it everywhere (UI, API validation, admin review).
+### 3. Migration: `security_scan_runs` table + cron
 
----
+```sql
+create table public.security_scan_runs (
+  id uuid primary key default gen_random_uuid(),
+  ran_at timestamptz not null default now(),
+  source text not null check (source in ('manual','cron')),
+  total int not null default 0,
+  open int not null default 0,
+  fixed_now int not null default 0,
+  duration_ms int
+);
+alter table public.security_scan_runs enable row level security;
+create policy "Admins read scan runs" on public.security_scan_runs
+  for select using (has_role(auth.uid(), 'admin'));
+```
 
-## **B) End-to-end state matrix (patient + admin)**
+Schedule (via `supabase--insert` after function is deployed, since URL/anon key are project-specific):
 
+```sql
+select cron.schedule(
+  'security-scan-daily','0 3 * * *',
+  $$ select net.http_post(
+       url := 'https://<ref>.supabase.co/functions/v1/security-scan-run',
+       headers := '{"Content-Type":"application/json","apikey":"<anon>","x-cron-secret":"<secret>"}'::jsonb,
+       body := '{"source":"cron"}'::jsonb
+     ); $$
+);
+```
 
-| **Flow State ID**         | **DB Row(s)**                                                                                   | **API Method(s) (current structure)**                              | **UI Route/Screen**                       | **Primary Button Label**               | **Next State**                           |
-| ------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------- | -------------------------------------- | ---------------------------------------- |
-| `upgrade_entry`           | none                                                                                            | `subscriptionsClient.getCurrent(deviceId)`                         | Upgrade landing / plan cards              | **Upgrade Now**                        | `package_selected`                       |
-| `package_selected`        | local draft only                                                                                | none (client state)                                                | Plan/package selector                     | **Continue to Payment**                | `pending_receipt_created`                |
-| `pending_receipt_created` | `payment_receipts` insert with `status=pending`, `requested_plan`, `billing_cycle`, `amount`    | `paymentsClient.createPendingReceipt(...)`                         | Payment step (bank transfer instructions) | **I Have Transferred, Upload Receipt** | `receipt_uploaded`                       |
-| `receipt_uploaded`        | same receipt row updated: `status=under_review`, `receipt_file_path`, payer fields              | `paymentsClient.submitReceiptDetails(...)` (+ storage upload path) | Receipt upload confirmation/status page   | **Submit for Review**                  | `awaiting_admin_review`                  |
-| `awaiting_admin_review`   | `payment_receipts.status=under_review`                                                          | `paymentsClient.getMine(deviceId)` polling/realtime                | Upgrade status page                       | **View Request Status**                | `approved_activated` or `rejected_retry` |
-| `admin_queue_new`         | receipt rows `pending/under_review`                                                             | `paymentsClient.listAll()` (admin)                                 | Admin receipts table                      | **Start Review**                       | `admin_under_review`                     |
-| `admin_under_review`      | row update reviewer fields                                                                      | `paymentsClient.markUnderReview(id, adminId)`                      | Admin receipt detail                      | **Approve & Activate** / **Reject**    | `admin_approved` or `admin_rejected`     |
-| `admin_approved`          | receipt row `verified`; new `user_subscriptions` row `active`; previous active expired          | `paymentsClient.verifyAndActivate(receipt)`                        | Admin completion state                    | **Confirm Activation**                 | `approved_activated`                     |
-| `approved_activated`      | `user_subscriptions.status=active`, `plan=requested_plan`; receipt linked via `subscription_id` | `subscriptionsClient.getCurrent(deviceId)`                         | Patient subscription summary              | **Manage Plan**                        | steady state                             |
-| `admin_rejected`          | receipt row `rejected` + reason                                                                 | `paymentsClient.reject(id, reason)`                                | Admin receipt detail                      | **Reject Request**                     | `rejected_retry`                         |
-| `rejected_retry`          | rejected receipt exists                                                                         | `paymentsClient.createPendingReceipt(...)` again                   | Patient rejection/retry page              | **Retry Upgrade**                      | `package_selected`                       |
+### 4. Secret
 
+Add `SECURITY_SCAN_CRON_SECRET` via the secrets tool (required before deploying the function and scheduling cron).
 
----
+## Out of scope
 
-## **C) API mapping matrix (what each UI action must call)**
+- Replacing the editor-side Lovable scanner — the in-app scanner is complementary, not a substitute.
+- Real-time push on deploy (Lovable doesn't emit a deploy webhook to user code). The manual button covers the "right after deploy" case; daily cron covers drift.
+- Auto-fix of findings.
 
+## Verification
 
-| **UX Action**              | **API Client Method**                                       | **Table Mutations**                                          | **Required Payload**                                                 | **Failure UX**                               |
-| -------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------- | -------------------------------------------- |
-| Enter upgrade page         | `subscriptionsClient.getCurrent(deviceId)`                  | none                                                         | `deviceId`                                                           | show retry + cached plan fallback            |
-| Choose plan/cycle/add-ons  | none (local)                                                | none                                                         | canonical `plan_code`, cycle, add-ons                                | disable continue if invalid combo            |
-| Start payment              | `paymentsClient.createPendingReceipt(...)`                  | `payment_receipts` INSERT                                    | `device_id`, `requested_plan`, `billing_cycle`, `amount`, `currency` | toast + stay on step                         |
-| Upload receipt             | storage upload + `paymentsClient.submitReceiptDetails(...)` | `payment_receipts` UPDATE -> `under_review`                  | `id`, `receipt_file_path`, payer/reference data                      | keep draft, allow re-upload                  |
-| Refresh status             | `paymentsClient.getMine(deviceId)`                          | none                                                         | `deviceId`                                                           | status card with retry                       |
-| Admin open queue           | `paymentsClient.listAll()`                                  | none                                                         | none                                                                 | admin error banner                           |
-| Admin approve              | `paymentsClient.verifyAndActivate(receipt)`                 | expire old sub, insert active sub, update receipt `verified` | receipt row (validated)                                              | non-destructive error, no partial UI success |
-| Admin reject               | `paymentsClient.reject(id, reason)`                         | receipt UPDATE `rejected`                                    | `id`, reason                                                         | inline validation                            |
-| Post-approval user refresh | `subscriptionsClient.getCurrent(deviceId)`                  | none                                                         | `deviceId`                                                           | “activation pending sync” state              |
+1. Apply migration → confirm table + RLS.
+2. Deploy `security-scan-run` → call with admin JWT → table populates, dashboard shows them.
+3. Trigger cron manually with `select cron.schedule(...)` smoke call → row appears in `security_scan_runs`.
+4. Click "Run scan" in UI → toast appears, "Last scan" pill updates within 1s.
 
-
----
-
-## **D) UI route + CTA unification map**
-
-
-| **Route (target naming)**      | **Step**                   | **Must Read From**           | **Must Write To**                  | **CTA**                         |
-| ------------------------------ | -------------------------- | ---------------------------- | ---------------------------------- | ------------------------------- |
-| `/upgrade`                     | Tier cards                 | current sub + plan catalog   | selected plan draft                | **Upgrade Now**                 |
-| `/upgrade/package`             | Package details / add-ons  | plan catalog                 | draft (`plan`, `cycle`, `addons`)  | **Continue to Payment**         |
-| `/upgrade/payment`             | Bank transfer instructions | draft                        | pending receipt row                | **Create Upgrade Request**      |
-| `/upgrade/receipt-upload`      | Proof upload               | pending receipt id           | receipt file + under_review update | **Submit Receipt**              |
-| `/upgrade/status`              | Await admin decision       | receipt status + current sub | none                               | **Refresh Status**              |
-| `/upgrade/success`             | Activation confirmed       | current active subscription  | none                               | **Done / Manage Plan**          |
-| `/admin/payments/receipts`     | Admin queue                | all receipts                 | review status                      | **Start Review**                |
-| `/admin/payments/receipts/:id` | Admin decision             | receipt + request context    | approve/reject mutations           | **Approve & Activate / Reject** |
-
-
----
-
-## **E) Guard rules (to prevent “menu shows but not functional”)**
-
-
-| **Guard**             | **Condition**                        | **Behavior**                               |
-| --------------------- | ------------------------------------ | ------------------------------------------ |
-| Continue disabled     | no valid tier selected               | disable button + helper text               |
-| Continue disabled     | selected add-on not allowed for tier | show inline compatibility error            |
-| Payment step blocked  | no draft package                     | redirect to `/upgrade/package`             |
-| Upload step blocked   | no pending receipt id                | call createPendingReceipt or redirect back |
-| Status step blocked   | no submitted receipt                 | redirect to upload step                    |
-| Success step blocked  | no active upgraded subscription      | keep on status page                        |
-| Admin approve blocked | missing approval tier confirmation   | require explicit confirm                   |
-
-
----
-
-## **F) Lovable one-shot implementation prompt (paste this)**
-
-“Implement upgrade-flow unification using the matrix above.  
-Use a single canonical plan catalog for tiers/add-ons and refactor `subscriptions` + `payments` contracts/clients/UI to consume it.  
-Wire each CTA to the mapped API method and enforce guard rules so the user can always progress deterministically:  
-tier selection → pending receipt creation → receipt upload under review → admin approval/rejection → activation/retry.  
-Update `openapi.ts` with explicit upgrade orchestration schemas and align labels/statuses with runtime values.  
-Return changed files + diff + short validation results for each matrix state.”
-
+I'll need you to approve the plan, then I'll also prompt you to add the `SECURITY_SCAN_CRON_SECRET` secret before the cron schedule is wired.  
+n.B. `SECURITY_SCAN_CRON_SECRET is = UmedMi@123`  
   
+I approve the proposed `/admin/security` scanner plan, with the following mandatory adjustments:
+
+### **1) Cron auth hardening**
+
+- Do **not** use anon key in `net.http_post`.
+- Use **service-role key** (or a dedicated signed internal token) for cron-triggered calls.
+- Keep `x-cron-secret` if already implemented, but cron origin should still use privileged auth.
+- Rationale: anon + header secret is weaker and easier to misconfigure.
+
+### **2) Auth config check robustness**
+
+- Avoid hard dependency on direct `auth.config` table reads.
+- Prefer supported Admin API/config endpoint where available.
+- If unavailable, degrade gracefully by emitting a **warning finding** (e.g., `auth config check unavailable`) instead of failing the whole run.
+
+### **3)** `verify_jwt=false` **classification model**
+
+- Do not rely on static allowlist inference alone.
+- Keep allowlist, but classify findings as:
+  - **high**: `verify_jwt=false` on **non-allowlisted** functions
+  - **medium**: `verify_jwt=false` on **allowlisted** public webhook functions
+- Include explicit audit metadata in finding descriptions (function name, allowlist status, reason).
+
+### **4) Idempotency, timeout, and partial completion**
+
+- Scanner must be idempotent and bounded-time.
+- Add per-run timeout (target 10–20s).
+- Implement partial-result behavior: if one check fails, persist successful check results and mark run appropriately.
+- Extend `security_scan_runs` with:
+  - `status` in (`ok`, `partial`, `failed`)
+  - `error_summary` text nullable
+
+---
+
+## **Execution intent remains**
+
+- Manual **Run scan** button for post-deploy validation.
+- Daily cron for drift detection.
+- Findings synced into existing `security_findings` flow with proper fixed/open transitions.
+
+Proceed with implementation using this Approved Plan v2.
