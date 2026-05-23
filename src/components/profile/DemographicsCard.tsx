@@ -73,9 +73,7 @@ const DemographicsCard = ({ onEdit, reloadKey }: Props) => {
           <Cell icon={<Calendar size={13} />} label="DOB" labelAr="الميلاد" value={dob + (age != null ? ` · ${age}y` : "")} />
           <Cell icon={<User2 size={13} />} label="GENDER" labelAr="الجنس" value={gender} />
           <Cell icon={<Globe size={13} />} label="NATIONALITY" labelAr="الجنسية" value={row?.nationality || ""} />
-          <Cell icon={<Heart size={13} />} label="MARITAL" labelAr="الحالة" value={row?.marital_status || ""} />
           <Cell icon={<Languages size={13} />} label="LANGUAGE" labelAr="اللغة" value={langLabel} />
-          <Cell icon={<Globe size={13} />} label="RESIDENCE" labelAr="الإقامة" value={residence} />
         </div>
       </div>
     </div>
