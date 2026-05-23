@@ -67,7 +67,7 @@ export default function OverlayLayer({
     onCloseRef.current();
     return true;
   }, []);
-  useBackHandler(backHandler, open);
+  useBackHandler(backHandler, open, `overlay:${layer}${ariaLabel ? `:${ariaLabel}` : ""}`);
 
   // Capture the element that opened us, restore focus on close.
   useEffect(() => {
