@@ -570,6 +570,18 @@ const Index = () => {
     lastGoodRef.current = { appView, activeTab };
   }, [appView, activeTab]);
 
+  // Canonical upgrade entry — any surface calling useUpgradeRoute().goToPricing()
+  // lands here and we switch to the in-app Pricing view.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ ack?: () => void }>).detail;
+      detail?.ack?.();
+      setAppView("pricing");
+    };
+    window.addEventListener("rufayq:open-pricing", handler);
+    return () => window.removeEventListener("rufayq:open-pricing", handler);
+  }, []);
+
   const handleTabRenderError = useCallback((key: string, error: Error) => {
     console.error("[tab-fallback] render failed", { tabKey: key, name: error?.name, message: error?.message, stack: error?.stack });
     const firstStackLine = (error?.stack ?? "").split("\n").find((l) => l.trim().startsWith("at "))?.trim();
