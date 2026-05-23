@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
+import { Share2, RefreshCw, Bell, Settings, HelpCircle, UserCircle2 } from "@/components/HeaderMenu";
 import { CreditCard, Wallet, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
