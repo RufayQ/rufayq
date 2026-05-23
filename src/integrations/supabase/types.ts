@@ -6728,6 +6728,42 @@ export type Database = {
         }
         Relationships: []
       }
+      security_scan_runs: {
+        Row: {
+          duration_ms: number | null
+          error_summary: string | null
+          fixed_now: number
+          id: string
+          open: number
+          ran_at: string
+          source: string
+          status: string
+          total: number
+        }
+        Insert: {
+          duration_ms?: number | null
+          error_summary?: string | null
+          fixed_now?: number
+          id?: string
+          open?: number
+          ran_at?: string
+          source: string
+          status?: string
+          total?: number
+        }
+        Update: {
+          duration_ms?: number | null
+          error_summary?: string | null
+          fixed_now?: number
+          id?: string
+          open?: number
+          ran_at?: string
+          source?: string
+          status?: string
+          total?: number
+        }
+        Relationships: []
+      }
       site_pages: {
         Row: {
           body_md: string
