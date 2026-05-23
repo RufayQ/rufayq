@@ -16,7 +16,7 @@ import {
   validateIqama, validatePassport, validateEmail,
   validateArabicName, validateEnglishName,
 } from "@/lib/profile/validation";
-import { CITIES_BY_COUNTRY } from "@/data/cities";
+import CityCombobox from "./CityCombobox";
 
 interface Props { onClose: () => void; onSaved?: () => void; initialTab?: TabId }
 type TabId = "identity" | "contact" | "demo" | "ids";
@@ -289,10 +289,7 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
                 />
               </Section>
             )}
-            {tab === "demo" && (() => {
-              const cityOptions = CITIES_BY_COUNTRY[nationality] || [];
-              const cityListId = "city-suggestions-list";
-              return (
+            {tab === "demo" && (
               <Section icon={<Globe size={13} />} title="Demographics" titleAr="البيانات الديموغرافية">
                 <Field
                   label="DATE OF BIRTH" labelAr="تاريخ الميلاد"
@@ -315,34 +312,7 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
                     { v: "widowed", l: "Widowed · أرمل" },
                   ]}
                 />
-                <div className="mb-3.5">
-                  <div className="flex items-baseline justify-between mb-1.5 px-0.5">
-                    <p className="font-mono text-[9.5px] tracking-[0.18em] font-bold" style={{ color: "var(--gold)" }}>CITY OF RESIDENCE</p>
-                    <p className="font-arabic text-[10.5px]" dir="rtl" style={{ color: "var(--gray)" }}>مدينة الإقامة</p>
-                  </div>
-                  <input
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    list={cityOptions.length ? cityListId : undefined}
-                    placeholder={nationality ? `City in ${nationality}` : "Your city"}
-                    className="w-full px-3.5 py-3 rounded-xl text-[14px] outline-none transition-all"
-                    style={{
-                      background: "#ffffff",
-                      border: "1.5px solid rgba(11,26,42,0.18)",
-                      color: "var(--navy)",
-                      minHeight: 46,
-                      boxShadow: "0 1px 2px rgba(11,26,42,0.04)",
-                    }}
-                  />
-                  {cityOptions.length > 0 && (
-                    <datalist id={cityListId}>
-                      {cityOptions.map((c) => <option key={c} value={c} />)}
-                    </datalist>
-                  )}
-                  <p className="mt-1.5 px-1 text-[10.5px]" style={{ color: "var(--gray)" }}>
-                    {cityOptions.length ? "Pick from suggestions or type your own" : "Free text — based on your nationality"}
-                  </p>
-                </div>
+                <CityCombobox value={city} onChange={setCity} country={nationality} />
                 <Field
                   label="OCCUPATION" labelAr="المهنة"
                   value={occupation}
@@ -351,8 +321,8 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
                   maxLength={60}
                 />
               </Section>
-              );
-            })()}
+            )}
+
             {tab === "ids" && (() => {
               const isSaudi = (nationality || "").toLowerCase().includes("saudi");
               const isGcc = ["united arab emirates","kuwait","bahrain","qatar","oman"].some(c => (nationality||"").toLowerCase().includes(c));
