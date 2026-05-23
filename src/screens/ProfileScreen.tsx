@@ -103,6 +103,8 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
   const [showEmergency, setShowEmergency] = useState(false);
   const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
   const { count: pendingClaims } = usePendingClaimsCount();
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editTick, setEditTick] = useState(0);
 
   useEffect(() => { setEmergencyContacts(loadEmergencyContacts()); }, []);
 
