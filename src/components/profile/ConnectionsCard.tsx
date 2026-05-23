@@ -97,7 +97,7 @@ const ConnectionsCard = () => {
                     ? FAMILY_RELATION_META[c.familyRelation].en
                     : c.note || (c.email || c.phone || "");
                   return (
-                    <div key={c.id} className="flex items-center gap-3 px-4 py-3" style={{ borderTop: "1px solid var(--gray-light)" }}>
+                    <button key={c.id} onClick={() => setDetail(c)} className="w-full flex items-center gap-3 px-4 py-3 btn-press text-left" style={{ borderTop: "1px solid var(--gray-light)" }}>
                       <div className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold text-white" style={{ background: m.tone }}>
                         {(c.name?.[0] || "?").toUpperCase()}
                       </div>
@@ -105,10 +105,8 @@ const ConnectionsCard = () => {
                         <p className="text-[13px] font-semibold truncate" style={{ color: "var(--navy)" }}>{c.name}</p>
                         {sub && <p className="text-[10px] truncate" style={{ color: "var(--gray)" }}>{sub}</p>}
                       </div>
-                      <button onClick={() => { removeConnection(c.id); refresh(); }} className="p-2 btn-press" aria-label="Remove">
-                        <Trash2 size={14} style={{ color: "var(--gray)" }} />
-                      </button>
-                    </div>
+                      <ChevronRight size={14} style={{ color: "var(--gray)" }} />
+                    </button>
                   );
                 })}
               </div>
