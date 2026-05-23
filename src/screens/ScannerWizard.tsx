@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { OverlayLayer } from "@/shared/ui/overlay";
-import { X, RotateCw, Sun, Contrast, Crop, Palette } from "lucide-react";
+import { X, RotateCw, Sun, Contrast, Crop, Palette, PenLine, Highlighter, ArrowUpRight, Type, Undo2, Trash2 } from "lucide-react";
 
 import RufayQLogo from "@/components/RufayQLogo";
 import { FileUploadPreview } from "@/shared/ui";
@@ -884,6 +884,21 @@ export const Step2Review = ({
   const [applying, setApplying] = useState(false);
   const imgWrapRef = useRef<HTMLDivElement>(null);
 
+  // ─── Annotation state ──────────────────────────────────────────────────
+  type Pt = [number, number]; // fractional 0..1 in image-displayed box
+  type Stroke =
+    | { kind: "path"; color: string; width: number; opacity: number; points: Pt[] }
+    | { kind: "arrow"; color: string; width: number; from: Pt; to: Pt }
+    | { kind: "text"; color: string; size: number; pos: Pt; text: string };
+  type AnnTool = "pen" | "highlight" | "arrow" | "text";
+  const ANN_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#111827", "#ffffff"];
+  const [annTool, setAnnTool] = useState<AnnTool | null>(null);
+  const [annColor, setAnnColor] = useState<string>(ANN_COLORS[0]);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [drawing, setDrawing] = useState<Stroke | null>(null);
+  const annotating = annTool !== null;
+  const hasAnnotations = strokes.length > 0 || drawing !== null;
+
   useEffect(() => {
     if (!realFile || !realFile.type.startsWith("image/")) { setImageUrl(null); return; }
     const u = URL.createObjectURL(realFile);
@@ -894,7 +909,8 @@ export const Step2Review = ({
   const filterCss = `brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%)`;
   const isPureImage = !!realFile && realFile.type.startsWith("image/") && !!imageUrl;
   const cropActive = crop.top + crop.right + crop.bottom + crop.left > 0;
-  const hasEdits = rotation !== 0 || brightness !== 100 || contrast !== 100 || grayscale !== 0 || cropActive;
+  const hasGeometryEdits = rotation !== 0 || cropActive;
+  const hasEdits = hasGeometryEdits || brightness !== 100 || contrast !== 100 || grayscale !== 0 || hasAnnotations;
 
   // Drag a single crop handle. `edge` controls which side(s) the pointer moves.
   const startDrag = (
@@ -932,41 +948,158 @@ export const Step2Review = ({
     window.addEventListener("pointerup", up);
   };
 
+  // ─── Annotation pointer handlers (overlay over the image) ──────────────
+  const ptFromEvent = (e: React.PointerEvent): Pt => {
+    const wrap = imgWrapRef.current!;
+    const rect = wrap.getBoundingClientRect();
+    return [
+      Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+      Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+    ];
+  };
+
+  const onAnnPointerDown = (e: React.PointerEvent) => {
+    if (!annotating) return;
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const p = ptFromEvent(e);
+    if (annTool === "text") {
+      const text = window.prompt("Annotation text") ?? "";
+      if (text.trim()) {
+        setStrokes((s) => [...s, { kind: "text", color: annColor, size: 0.045, pos: p, text: text.trim() }]);
+      }
+      return;
+    }
+    if (annTool === "arrow") {
+      setDrawing({ kind: "arrow", color: annColor, width: 0.006, from: p, to: p });
+      return;
+    }
+    // pen / highlight
+    const isHi = annTool === "highlight";
+    setDrawing({
+      kind: "path",
+      color: isHi ? "#fde047" : annColor,
+      width: isHi ? 0.028 : 0.006,
+      opacity: isHi ? 0.4 : 1,
+      points: [p],
+    });
+  };
+  const onAnnPointerMove = (e: React.PointerEvent) => {
+    if (!drawing) return;
+    const p = ptFromEvent(e);
+    setDrawing((d) => {
+      if (!d) return d;
+      if (d.kind === "arrow") return { ...d, to: p };
+      if (d.kind === "path") return { ...d, points: [...d.points, p] };
+      return d;
+    });
+  };
+  const onAnnPointerUp = () => {
+    if (!drawing) return;
+    setStrokes((s) => [...s, drawing]);
+    setDrawing(null);
+  };
+
+  const undoAnnotation = () => setStrokes((s) => s.slice(0, -1));
+  const clearAnnotations = () => { setStrokes([]); setDrawing(null); };
+
+  // Draw a single stroke onto a 2D canvas. cw/ch are canvas pixel dims.
+  const paintStroke = (ctx: CanvasRenderingContext2D, st: Stroke, cw: number, ch: number) => {
+    ctx.save();
+    if (st.kind === "path") {
+      ctx.strokeStyle = st.color;
+      ctx.globalAlpha = st.opacity;
+      ctx.lineWidth = Math.max(1, st.width * Math.min(cw, ch));
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      st.points.forEach(([x, y], i) => {
+        const px = x * cw, py = y * ch;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+    } else if (st.kind === "arrow") {
+      const x1 = st.from[0] * cw, y1 = st.from[1] * ch;
+      const x2 = st.to[0] * cw, y2 = st.to[1] * ch;
+      const w = Math.max(2, st.width * Math.min(cw, ch));
+      ctx.strokeStyle = st.color; ctx.fillStyle = st.color;
+      ctx.lineWidth = w; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const ah = w * 4;
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - ah * Math.cos(angle - Math.PI / 6), y2 - ah * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(x2 - ah * Math.cos(angle + Math.PI / 6), y2 - ah * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+    } else if (st.kind === "text") {
+      const px = st.pos[0] * cw, py = st.pos[1] * ch;
+      const fs = Math.max(12, st.size * Math.min(cw, ch));
+      ctx.font = `bold ${fs}px sans-serif`;
+      ctx.textBaseline = "top";
+      ctx.fillStyle = st.color;
+      ctx.strokeStyle = "rgba(0,0,0,0.55)";
+      ctx.lineWidth = Math.max(2, fs * 0.08);
+      ctx.strokeText(st.text, px, py);
+      ctx.fillText(st.text, px, py);
+    }
+    ctx.restore();
+  };
+
+  // Build a new File from current image + edits (rotate/crop/filter/strokes).
+  // Returns null if there is no image to rasterize.
+  const buildEditedFile = async (): Promise<File | null> => {
+    if (!isPureImage) return null;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    await new Promise<void>((res, rej) => {
+      img.onload = () => res();
+      img.onerror = () => rej(new Error("img-load-failed"));
+      img.src = imageUrl!;
+    });
+    const sx = img.naturalWidth * (crop.left / 100);
+    const sy = img.naturalHeight * (crop.top / 100);
+    const sw = img.naturalWidth - sx - img.naturalWidth * (crop.right / 100);
+    const sh = img.naturalHeight - sy - img.naturalHeight * (crop.bottom / 100);
+    const rotated = rotation % 180 !== 0;
+    const cw = Math.max(1, Math.round(rotated ? sh : sw));
+    const ch = Math.max(1, Math.round(rotated ? sw : sh));
+    const canvas = document.createElement("canvas");
+    canvas.width = cw; canvas.height = ch;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no-canvas");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.filter = filterCss;
+    ctx.translate(cw / 2, ch / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.drawImage(img, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
+    // Reset transform + filter so annotation strokes paint in untransformed
+    // canvas-pixel space at full opacity.
+    ctx.setTransform?.(1, 0, 0, 1, 0, 0);
+    ctx.filter = "none";
+    // Annotations are in fractional coords of the visible image box; paint on
+    // top of the rasterized output so they survive every subsequent edit.
+    strokes.forEach((st) => paintStroke(ctx, st, cw, ch));
+    if (drawing) paintStroke(ctx, drawing, cw, ch);
+    // Annotations are in fractional coords of the visible image box; paint on
+    // top of the rasterized output so they survive every subsequent edit.
+    strokes.forEach((st) => paintStroke(ctx, st, cw, ch));
+    if (drawing) paintStroke(ctx, drawing, cw, ch);
+    const blob: Blob = await new Promise((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error("no-blob"))), "image/jpeg", 0.92),
+    );
+    return new File([blob], realFile!.name.replace(/\.\w+$/, "") + "-edited.jpg", { type: "image/jpeg" });
+  };
+
   // Rasterize the current edits into a new File using a canvas.
   const rasterizeAndConfirm = async () => {
     if (!isPureImage || !hasEdits || !onTransform) { onConfirm(); return; }
     setApplying(true);
     try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      await new Promise<void>((res, rej) => {
-        img.onload = () => res();
-        img.onerror = () => rej(new Error("img-load-failed"));
-        img.src = imageUrl!;
-      });
-      const sx = img.naturalWidth * (crop.left / 100);
-      const sy = img.naturalHeight * (crop.top / 100);
-      const sw = img.naturalWidth - sx - img.naturalWidth * (crop.right / 100);
-      const sh = img.naturalHeight - sy - img.naturalHeight * (crop.bottom / 100);
-      const rotated = rotation % 180 !== 0;
-      const cw = rotated ? sh : sw;
-      const ch = rotated ? sw : sh;
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(cw));
-      canvas.height = Math.max(1, Math.round(ch));
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("no-canvas");
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.filter = filterCss;
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((rotation * Math.PI) / 180);
-      ctx.drawImage(img, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
-      const blob: Blob = await new Promise((res, rej) =>
-        canvas.toBlob((b) => (b ? res(b) : rej(new Error("no-blob"))), "image/jpeg", 0.92)
-      );
-      const out = new File([blob], realFile!.name.replace(/\.\w+$/, "") + "-edited.jpg", { type: "image/jpeg" });
-      onTransform(out);
+      const out = await buildEditedFile();
+      if (out) onTransform(out);
       // small tick so parent state updates before we advance
       setTimeout(() => { setApplying(false); onConfirm(); }, 50);
     } catch (e) {
@@ -976,10 +1109,41 @@ export const Step2Review = ({
     }
   };
 
+  // Bake current rotate/crop/filter into the source file so subsequent
+  // annotations live in a clean coordinate space.
+  const bakeGeometryThen = async (after: () => void) => {
+    if (!hasGeometryEdits || !onTransform) { after(); return; }
+    setApplying(true);
+    try {
+      const out = await buildEditedFile();
+      if (out) onTransform(out);
+      setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0);
+      setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
+      setCropMode(false);
+      setStrokes([]); setDrawing(null);
+      setTimeout(() => { setApplying(false); after(); }, 60);
+    } catch (e) {
+      console.error("[scanner] bake-before-annotate failed", e);
+      setApplying(false);
+      after();
+    }
+  };
+
+  const enterAnnotate = (tool: AnnTool) => {
+    if (annTool === tool) { setAnnTool(null); return; }
+    if (hasGeometryEdits) {
+      bakeGeometryThen(() => { setCropMode(false); setAnnTool(tool); });
+    } else {
+      setCropMode(false);
+      setAnnTool(tool);
+    }
+  };
+
   const tools = [
     { icon: <Sun size={18} />, label: "Brightness", active: brightness !== 100, onClick: () => setBrightness((v) => (v >= 140 ? 80 : v + 20)) },
     { icon: <Contrast size={18} />, label: "Contrast", active: contrast !== 100, onClick: () => setContrast((v) => (v >= 140 ? 80 : v + 20)) },
     { icon: <Crop size={18} />, label: "Crop", active: cropMode || cropActive, onClick: () => {
+      if (annotating) setAnnTool(null);
       const turningOn = !cropMode;
       if (turningOn && !cropActive) {
         // Seed a visible inset before flipping the mode so handles render immediately.
@@ -989,14 +1153,16 @@ export const Step2Review = ({
     } },
     { icon: <RotateCw size={18} />, label: "Rotate", active: rotation !== 0, onClick: () => setRotation((v) => (v + 90) % 360) },
     { icon: <Palette size={18} />, label: grayscale > 0 ? "Color" : "Grayscale", active: grayscale > 0, onClick: () => setGrayscale((v) => (v > 0 ? 0 : 100)) },
+    { icon: <PenLine size={18} />, label: "Annotate", active: annotating || hasAnnotations, onClick: () => enterAnnotate(annTool ?? "pen") },
   ];
+
 
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--scanner-bg)" }}>
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
         {isPureImage ? (
           <div className="w-full rounded-xl overflow-hidden flex items-center justify-center relative" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", maxHeight: 420 }}>
-            <div ref={imgWrapRef} className="relative w-full" style={{ maxHeight: 420, touchAction: cropMode ? "none" : undefined }}>
+            <div ref={imgWrapRef} className="relative w-full" style={{ maxHeight: 420, touchAction: cropMode || annotating ? "none" : undefined }}>
               <img
                 src={imageUrl!}
                 alt={file.name}
@@ -1050,8 +1216,83 @@ export const Step2Review = ({
                   ))}
                 </>
               )}
+              {/* Annotation overlay — shows existing strokes and captures drawing. */}
+              {(annotating || hasAnnotations) && (
+                <svg
+                  className="absolute inset-0"
+                  viewBox="0 0 1 1"
+                  preserveAspectRatio="none"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    pointerEvents: annotating ? "auto" : "none",
+                    cursor: annotating ? (annTool === "text" ? "text" : "crosshair") : "default",
+                    touchAction: "none",
+                  }}
+                  onPointerDown={onAnnPointerDown}
+                  onPointerMove={onAnnPointerMove}
+                  onPointerUp={onAnnPointerUp}
+                  onPointerCancel={onAnnPointerUp}
+                  aria-label="Annotation overlay"
+                >
+                  {[...strokes, ...(drawing ? [drawing] : [])].map((st, i) => {
+                    if (st.kind === "path") {
+                      const d = st.points
+                        .map((p, j) => `${j === 0 ? "M" : "L"}${p[0]} ${p[1]}`)
+                        .join(" ");
+                      return (
+                        <path
+                          key={i}
+                          d={d}
+                          fill="none"
+                          stroke={st.color}
+                          strokeOpacity={st.opacity}
+                          strokeWidth={st.width}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke"
+                          style={{ strokeWidth: `${st.width * 100}%` }}
+                        />
+                      );
+                    }
+                    if (st.kind === "arrow") {
+                      const dx = st.to[0] - st.from[0];
+                      const dy = st.to[1] - st.from[1];
+                      const len = Math.hypot(dx, dy) || 1;
+                      const ux = dx / len, uy = dy / len;
+                      const head = st.width * 4;
+                      const ax = st.to[0] - head * (ux * Math.cos(0.5) - uy * Math.sin(0.5));
+                      const ay = st.to[1] - head * (uy * Math.cos(0.5) + ux * Math.sin(0.5));
+                      const bx = st.to[0] - head * (ux * Math.cos(-0.5) - uy * Math.sin(-0.5));
+                      const by = st.to[1] - head * (uy * Math.cos(-0.5) + ux * Math.sin(-0.5));
+                      return (
+                        <g key={i} stroke={st.color} fill={st.color} strokeWidth={st.width} strokeLinecap="round">
+                          <line x1={st.from[0]} y1={st.from[1]} x2={st.to[0]} y2={st.to[1]} />
+                          <polygon points={`${st.to[0]},${st.to[1]} ${ax},${ay} ${bx},${by}`} />
+                        </g>
+                      );
+                    }
+                    return (
+                      <text
+                        key={i}
+                        x={st.pos[0]}
+                        y={st.pos[1] + st.size}
+                        fontSize={st.size}
+                        fontWeight={700}
+                        fill={st.color}
+                        stroke="rgba(0,0,0,0.55)"
+                        strokeWidth={st.size * 0.06}
+                        paintOrder="stroke"
+                      >
+                        {st.text}
+                      </text>
+                    );
+                  })}
+                </svg>
+              )}
             </div>
           </div>
+
         ) : realFile ? (
           <div className="w-full">
             <FileUploadPreview file={realFile} lang="both" maxHeight={360} />
@@ -1091,13 +1332,81 @@ export const Step2Review = ({
               </button>
             ))}
           </div>
+          {annotating && (
+            <div className="flex items-center justify-center gap-1.5 px-4 pb-1.5 flex-wrap">
+              {([
+                { k: "pen", icon: <PenLine size={14} />, label: "Pen" },
+                { k: "highlight", icon: <Highlighter size={14} />, label: "Highlighter" },
+                { k: "arrow", icon: <ArrowUpRight size={14} />, label: "Arrow" },
+                { k: "text", icon: <Type size={14} />, label: "Text" },
+              ] as const).map((t) => {
+                const active = annTool === t.k;
+                return (
+                  <button
+                    key={t.k}
+                    onClick={() => setAnnTool(t.k)}
+                    title={t.label}
+                    aria-pressed={active}
+                    className="w-9 h-9 rounded-lg flex items-center justify-center btn-press"
+                    style={{
+                      background: active ? "var(--gold)" : "rgba(255,255,255,0.06)",
+                      color: active ? "#fff" : "rgba(255,255,255,0.75)",
+                    }}
+                  >
+                    {t.icon}
+                  </button>
+                );
+              })}
+              <div className="w-px h-6 mx-1" style={{ background: "rgba(255,255,255,0.15)" }} />
+              {ANN_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setAnnColor(c)}
+                  aria-label={`Color ${c}`}
+                  aria-pressed={annColor === c}
+                  className="w-6 h-6 rounded-full btn-press"
+                  style={{
+                    background: c,
+                    border: annColor === c ? "2px solid var(--gold)" : "1px solid rgba(255,255,255,0.25)",
+                    boxShadow: annColor === c ? "0 0 0 2px rgba(0,0,0,0.4)" : undefined,
+                  }}
+                />
+              ))}
+              <div className="w-px h-6 mx-1" style={{ background: "rgba(255,255,255,0.15)" }} />
+              <button
+                onClick={undoAnnotation}
+                disabled={strokes.length === 0}
+                title="Undo"
+                className="w-9 h-9 rounded-lg flex items-center justify-center btn-press"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", opacity: strokes.length === 0 ? 0.4 : 1 }}
+              >
+                <Undo2 size={14} />
+              </button>
+              <button
+                onClick={clearAnnotations}
+                disabled={!hasAnnotations}
+                title="Clear annotations"
+                className="w-9 h-9 rounded-lg flex items-center justify-center btn-press"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", opacity: hasAnnotations ? 1 : 0.4 }}
+              >
+                <Trash2 size={14} />
+              </button>
+              <button
+                onClick={() => setAnnTool(null)}
+                className="text-[10px] font-bold btn-press ml-1"
+                style={{ color: "var(--gold)" }}
+              >
+                Done
+              </button>
+            </div>
+          )}
           {hasEdits && (
             <div className="flex items-center justify-center gap-3 px-4 pb-2">
               <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.55)" }}>
                 Edits will be baked in when you continue
               </p>
               <button
-                onClick={() => { setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0); setCrop({ top: 0, right: 0, bottom: 0, left: 0 }); setCropMode(false); }}
+                onClick={() => { setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0); setCrop({ top: 0, right: 0, bottom: 0, left: 0 }); setCropMode(false); setStrokes([]); setDrawing(null); setAnnTool(null); }}
                 className="text-[10px] font-bold btn-press"
                 style={{ color: "var(--gold)" }}
               >
