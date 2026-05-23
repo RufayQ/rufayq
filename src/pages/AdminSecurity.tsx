@@ -217,6 +217,14 @@ export default function AdminSecurity() {
             <Download size={12} /> Export CSV
           </button>
           <button
+            onClick={() => { void runScan(); }}
+            disabled={scanning}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 text-xs hover:bg-emerald-500/20 disabled:opacity-40"
+            title="Run security scan now"
+          >
+            <PlayCircle size={12} className={scanning ? "animate-pulse" : ""} /> {scanning ? "Scanning…" : "Run scan"}
+          </button>
+          <button
             onClick={() => { void load(); void checkCron(); }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-700 bg-slate-900/50 text-xs hover:border-amber-500/50"
           >
