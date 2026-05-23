@@ -53,7 +53,19 @@ export default function AdminSecurity() {
   const [cronHealth, setCronHealth] = useState<"checking" | "ok" | "fail">("checking");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [lastRun, setLastRun] = useState<ScanRun | null>(null);
+  const [scanning, setScanning] = useState(false);
   const inFlightRef = useRef(false);
+
+  const loadLastRun = useCallback(async () => {
+    const { data } = await supabase
+      .from("security_scan_runs")
+      .select("ran_at, source, status, total, open, fixed_now, duration_ms, error_summary")
+      .order("ran_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) setLastRun(data as ScanRun);
+  }, []);
 
   const load = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (inFlightRef.current) return;
@@ -69,18 +81,41 @@ export default function AdminSecurity() {
     setLastRefresh(new Date());
     setLoading(false);
     inFlightRef.current = false;
-  }, []);
+    void loadLastRun();
+  }, [loadLastRun]);
 
   const checkCron = async () => {
     setCronHealth("checking");
     try {
-      const { data, error } = await supabase.functions.invoke("chat-push", {
+      const { data, error } = await supabase.functions.invoke("security-scan-run", {
         body: { health: true },
         headers: { "x-health-check": "1" },
       });
       if (!error && (data as { ok?: boolean })?.ok) setCronHealth("ok");
       else setCronHealth("fail");
     } catch { setCronHealth("fail"); }
+  };
+
+  const runScan = async () => {
+    if (scanning) return;
+    setScanning(true);
+    const t = toast.loading("Running security scan…");
+    try {
+      const { data, error } = await supabase.functions.invoke("security-scan-run", {
+        body: { source: "manual" },
+      });
+      if (error) throw error;
+      const r = data as { open?: number; fixed_now?: number; total?: number; status?: string; errors?: string[] };
+      const msg = `Scan ${r.status ?? "ok"} — ${r.open ?? 0} open, ${r.fixed_now ?? 0} newly fixed`;
+      if (r.status === "failed") toast.error(msg, { id: t });
+      else if (r.status === "partial") toast.warning(msg, { id: t, description: r.errors?.join(" | ") });
+      else toast.success(msg, { id: t });
+      await load({ silent: true });
+    } catch (e) {
+      toast.error("Scan failed", { id: t, description: (e as Error).message });
+    } finally {
+      setScanning(false);
+    }
   };
 
   useEffect(() => {
@@ -94,7 +129,7 @@ export default function AdminSecurity() {
       await load();
       await checkCron();
     })();
-  }, [navigate]);
+  }, [navigate, load]);
 
   // Auto-refresh: poll every 30s while the tab is visible and autoRefresh is on.
   useEffect(() => {
