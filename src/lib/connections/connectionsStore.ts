@@ -101,6 +101,31 @@ export const removeConnection = (id: string) => {
   saveAll(loadConnections().filter((c) => c.id !== id));
 };
 
+export const updateConnection = (id: string, patch: Partial<Omit<Connection, "id" | "addedAt" | "handle">>): Connection | null => {
+  const list = loadConnections();
+  const idx = list.findIndex((c) => c.id === id);
+  if (idx < 0) return null;
+  const next: Connection = { ...list[idx], ...patch };
+  // If category changed, clear stale sub-classification fields.
+  if (patch.category && patch.category !== list[idx].category) {
+    if (next.category !== "provider") next.providerKind = undefined;
+    if (next.category !== "family") next.familyRelation = undefined;
+  }
+  const updated = [...list];
+  updated[idx] = next;
+  saveAll(updated);
+  return next;
+};
+
+export const getConnection = (id: string): Connection | null =>
+  loadConnections().find((c) => c.id === id) ?? null;
+
+/** Re-build a QR payload from a saved connection so it can be re-shared. */
+export const connectionToQrPayload = (c: Connection): QrPayload => ({
+  v: 1, app: "rufayq", handle: c.handle, name: c.name, nameAr: c.nameAr,
+  phone: c.phone, email: c.email, iat: Date.now(),
+});
+
 export const encodeQrPayload = (p: QrPayload): string => {
   // Prefix lets us recognize our codes when scanning third-party QRs.
   return `rufayq://connect?d=${encodeURIComponent(btoa(JSON.stringify(p)))}`;
