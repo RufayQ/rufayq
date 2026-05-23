@@ -136,25 +136,36 @@ export default function HumanChatView({
     return () => { setActiveThread(null); };
   }, [threadId]);
 
+  const buildBody = (text: string): string => {
+    if (pendingAttachment) {
+      const marker = encodeChatAttachment({
+        kind: pendingAttachment.kind,
+        label: pendingAttachment.label,
+        fileName: pendingAttachment.file_name,
+        sourceLabelEn: pendingAttachment.sourceLabelEn,
+        sourceLabelAr: pendingAttachment.sourceLabelAr,
+        url: pendingAttachment.signedUrl,
+        mimeType: pendingAttachment.mime_type ?? null,
+      });
+      return text ? `${marker}\n${text}` : marker;
+    }
+    return text;
+  };
+
   const handleSend = async () => {
     if (sending) return;
     const text = input.trim();
-    if (!text && !pendingAttachment) return;
+    if (!text && !pendingAttachment && !editingId) return;
     setSending(true);
     try {
-      let body = text;
-      if (pendingAttachment) {
-        const marker = encodeChatAttachment({
-          kind: pendingAttachment.kind,
-          label: pendingAttachment.label,
-          fileName: pendingAttachment.file_name,
-          sourceLabelEn: pendingAttachment.sourceLabelEn,
-          sourceLabelAr: pendingAttachment.sourceLabelAr,
-          url: pendingAttachment.signedUrl,
-          mimeType: pendingAttachment.mime_type ?? null,
-        });
-        body = text ? `${marker}\n${text}` : marker;
+      if (editingId) {
+        await editMessage(editingId, text);
+        toast.success("Edited · تم التعديل");
+        setEditingId(null);
+        setInput("");
+        return;
       }
+      const body = buildBody(text);
       await send(body, { replyToId: replyTo?.id ?? null });
       setInput("");
       setReplyTo(null);
@@ -166,7 +177,23 @@ export default function HumanChatView({
     }
   };
 
+  const handleSchedule = (whenIso: string) => {
+    const text = input.trim();
+    if (!text && !pendingAttachment) {
+      toast.error("Type a message to schedule · اكتب رسالة للجدولة");
+      return;
+    }
+    const body = buildBody(text);
+    addScheduled({ threadId, body, replyToId: replyTo?.id ?? null, scheduledFor: whenIso });
+    setInput("");
+    setReplyTo(null);
+    setPendingAttachment(null);
+    setShowScheduler(false);
+    toast.success(`Scheduled for ${new Date(whenIso).toLocaleString()} · مجدولة`);
+  };
+
   const startLongPress = (m: ChatMessageRow) => {
+    if (m.deleted_at) return;
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     longPressTimer.current = setTimeout(() => {
       setActionFor(m.id);
@@ -194,6 +221,24 @@ export default function HumanChatView({
       toast.error("Copy failed · فشل النسخ");
     }
     setActionFor(null);
+  };
+  const handleStartEdit = (m: ChatMessageRow) => {
+    // Strip attachment marker — only the text portion is editable.
+    const segs = parseChatBody(m.body);
+    const text = segs.filter((s) => s.type === "text").map((s) => (s as { value: string }).value).join("").trim();
+    setEditingId(m.id);
+    setInput(text);
+    setReplyTo(null);
+    setActionFor(null);
+  };
+  const handleDelete = async (m: ChatMessageRow) => {
+    setActionFor(null);
+    try {
+      await deleteMessage(m.id);
+      toast.success("Deleted · تم الحذف");
+    } catch {
+      toast.error("Couldn't delete · تعذّر الحذف");
+    }
   };
 
   const scrollToMessage = (id: string) => {
