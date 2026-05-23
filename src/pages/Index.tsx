@@ -653,9 +653,8 @@ const Index = () => {
     // (e.g. an open chat thread returns to the inbox instead of jumping to
     // Home). Only when no in-section back is left do we fall through to the
     // tab→home reset.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { consumeBack } = require("@/hooks/useBackHandler") as typeof import("@/hooks/useBackHandler");
     if (consumeBack()) return true;
+
     if (appView !== "main" && appView !== "onboarding" && appView !== "login" && appView !== "role") {
       setAppView("main");
       return true;
