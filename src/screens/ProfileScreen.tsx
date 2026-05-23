@@ -14,6 +14,9 @@ import ConnectionsCard from "@/components/profile/ConnectionsCard";
 import ProfileEditSheet from "@/components/profile/ProfileEditSheet";
 import PersonalDetailsCard from "@/components/profile/PersonalDetailsCard";
 import QrShareSheet from "@/components/profile/QrShareSheet";
+import MedicalSummaryCard from "@/components/profile/MedicalSummaryCard";
+import DemographicsCard from "@/components/profile/DemographicsCard";
+import MedicalDisclaimer from "@/components/profile/MedicalDisclaimer";
 
 interface ProfileScreenProps {
   onBack: () => void;
