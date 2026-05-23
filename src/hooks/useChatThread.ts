@@ -207,5 +207,43 @@ export function useChatThread(threadId: string | null) {
       .eq("device_id", deviceId);
   }, [threadId]);
 
-  return { messages, loading, send, retry, markRead, reload: load };
+  const editMessage = useCallback(
+    async (id: string, newBody: string) => {
+      const trimmed = newBody.trim();
+      if (!trimmed) return;
+      const me = getDeviceId();
+      const current = messages.find((m) => m.id === id);
+      if (!current || current.sender_device_id !== me || current.deleted_at) return;
+      const history = Array.isArray(current.edit_history) ? current.edit_history : [];
+      const nextHistory = [...history, { body: current.body, at: new Date().toISOString() }];
+      // Optimistic
+      setMessages((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, body: trimmed, edited_at: new Date().toISOString(), edit_history: nextHistory } : x)),
+      );
+      const { error } = await supabase
+        .from("chat_messages")
+        .update({ body: trimmed, edited_at: new Date().toISOString(), edit_history: nextHistory })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    [messages],
+  );
+
+  const deleteMessage = useCallback(
+    async (id: string) => {
+      const me = getDeviceId();
+      const current = messages.find((m) => m.id === id);
+      if (!current || current.sender_device_id !== me) return;
+      const when = new Date().toISOString();
+      setMessages((prev) => prev.map((x) => (x.id === id ? { ...x, deleted_at: when } : x)));
+      const { error } = await supabase
+        .from("chat_messages")
+        .update({ deleted_at: when })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    [messages],
+  );
+
+  return { messages, loading, send, retry, markRead, reload: load, editMessage, deleteMessage };
 }
