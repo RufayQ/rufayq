@@ -477,10 +477,36 @@ export default function HumanChatView({
                     )}
                   </span>
                 </div>
+                {/* Reaction chips — grouped by emoji; tap your own to remove */}
+                {(() => {
+                  const rs = reactionsByMessage.get(m.id);
+                  if (!rs || rs.length === 0) return null;
+                  return (
+                    <div className={`flex flex-wrap gap-1 mt-1 ${mine ? "justify-end" : "justify-start"}`}>
+                      {rs.map((r) => (
+                        <button
+                          key={r.emoji}
+                          onClick={(e) => { e.stopPropagation(); void toggleReaction(m.id, r.emoji); }}
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] btn-press"
+                          style={{
+                            background: r.mine ? "rgba(197,150,90,0.18)" : "var(--white)",
+                            border: `1px solid ${r.mine ? "var(--gold)" : "var(--gray-light)"}`,
+                            color: "var(--ink)",
+                          }}
+                          aria-label={`${r.emoji} ${r.count}${r.mine ? " (you reacted)" : ""}`}
+                        >
+                          <span>{r.emoji}</span>
+                          {r.count > 1 && <span className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{r.count}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );
         })}
+
         <div ref={bottomRef} />
       </div>
 
