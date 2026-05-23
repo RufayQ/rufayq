@@ -3,21 +3,29 @@
  * Sections: Identity (avatar + name EN/AR), Contact (phone/email),
  * Demographics (DOB, gender, nationality), IDs (Saudi ID, Iqama, Passport).
  * Writes to public.profiles via upsert keyed on device_id.
+ * Includes inline validation + formatting for phone, DOB, and IDs.
  */
 import { useEffect, useMemo, useState } from "react";
-import { X, Check, Loader2, User, Phone as PhoneIcon, Globe, IdCard } from "lucide-react";
+import { X, Check, Loader2, User, Phone as PhoneIcon, Globe, IdCard, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import AvatarUploader from "@/components/profile/AvatarUploader";
+import {
+  formatPhone, validatePhone, validateDob, validateSaudiId,
+  validateIqama, validatePassport, validateEmail,
+} from "@/lib/profile/validation";
 
-interface Props { onClose: () => void; onSaved?: () => void; }
+interface Props { onClose: () => void; onSaved?: () => void; initialTab?: TabId }
+type TabId = "identity" | "contact" | "demo" | "ids";
 
 const Field = ({
-  label, labelAr, value, onChange, placeholder, type = "text", dir,
+  label, labelAr, value, onChange, onBlur, placeholder, type = "text", dir, error, hint, maxLength, inputMode,
 }: {
   label: string; labelAr: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string; dir?: "ltr" | "rtl";
+  onBlur?: () => void; placeholder?: string; type?: string; dir?: "ltr" | "rtl";
+  error?: string | null; hint?: string; maxLength?: number;
+  inputMode?: "text" | "tel" | "email" | "numeric" | "decimal" | "search" | "url" | "none";
 }) => (
   <div className="mb-3">
     <div className="flex items-baseline justify-between mb-1 px-1">
@@ -25,10 +33,22 @@ const Field = ({
       <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{labelAr}</p>
     </div>
     <input
-      value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} type={type} dir={dir}
+      value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} placeholder={placeholder}
+      type={type} dir={dir} maxLength={maxLength} inputMode={inputMode}
       className="w-full px-3 py-2.5 rounded-lg text-[13px] outline-none transition-shadow focus:ring-2"
-      style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)", color: "var(--navy)" }}
+      style={{
+        background: "var(--off-white)",
+        border: `1px solid ${error ? "#E5564A" : "var(--gray-light)"}`,
+        color: "var(--navy)",
+      }}
     />
+    {error ? (
+      <p className="flex items-center gap-1 mt-1 px-1 text-[10px] font-semibold" style={{ color: "#E5564A" }}>
+        <AlertCircle size={10} /> {error}
+      </p>
+    ) : hint ? (
+      <p className="mt-1 px-1 text-[10px]" style={{ color: "var(--gray)" }}>{hint}</p>
+    ) : null}
   </div>
 );
 
@@ -66,11 +86,11 @@ const Section = ({ icon, title, titleAr, children }: { icon: React.ReactNode; ti
 
 const NATIONALITIES = ["Saudi Arabia", "United Arab Emirates", "Kuwait", "Bahrain", "Qatar", "Oman", "Egypt", "Jordan", "Other"];
 
-const ProfileEditSheet = ({ onClose, onSaved }: Props) => {
+const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
   const deviceId = useMemo(() => getDeviceId(), []);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<"identity" | "contact" | "demo" | "ids">("identity");
+  const [tab, setTab] = useState<TabId>(initialTab || "identity");
   const [nameEn, setNameEn] = useState("");
   const [nameAr, setNameAr] = useState("");
   const [phone, setPhone] = useState("");
@@ -81,6 +101,12 @@ const ProfileEditSheet = ({ onClose, onSaved }: Props) => {
   const [saudiId, setSaudiId] = useState("");
   const [iqama, setIqama] = useState("");
   const [passport, setPassport] = useState("");
+  const [errors, setErrors] = useState<Record<string, string | null>>({});
+
+  const setErr = (k: string, v: string | null) => setErrors((p) => ({ ...p, [k]: v }));
+
+  // Today as ISO for date input max
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,7 +121,7 @@ const ProfileEditSheet = ({ onClose, onSaved }: Props) => {
       const meta = (session?.user?.user_metadata || {}) as Record<string, string>;
       setNameEn(data?.full_name_en || meta.full_name || meta.name || "");
       setNameAr(data?.full_name_ar || meta.full_name_ar || "");
-      setPhone(data?.phone || session?.user?.phone || "");
+      setPhone(formatPhone(data?.phone || session?.user?.phone || ""));
       setEmail(data?.email || session?.user?.email || "");
       setDob(data?.date_of_birth || "");
       setGender(data?.gender || "");
@@ -108,7 +134,28 @@ const ProfileEditSheet = ({ onClose, onSaved }: Props) => {
     return () => { cancelled = true; };
   }, [deviceId]);
 
+  const validateAll = () => {
+    const next: Record<string, string | null> = {
+      phone: validatePhone(phone).error,
+      email: validateEmail(email).error,
+      dob: validateDob(dob).error,
+      saudiId: validateSaudiId(saudiId).error,
+      iqama: validateIqama(iqama).error,
+      passport: validatePassport(passport).error,
+    };
+    setErrors(next);
+    return Object.values(next).every((e) => !e);
+  };
+
   const save = async () => {
+    if (!validateAll()) {
+      toast.error("Please fix the highlighted fields · صحّح الحقول");
+      // Jump to first invalid tab
+      if (errors.phone || errors.email) setTab("contact");
+      else if (errors.dob) setTab("demo");
+      else if (errors.saudiId || errors.iqama || errors.passport) setTab("ids");
+      return;
+    }
     setSaving(true);
     try {
       const { error } = await supabase.from("profiles").upsert({
@@ -116,7 +163,7 @@ const ProfileEditSheet = ({ onClose, onSaved }: Props) => {
         full_name_en: nameEn.trim() || null,
         full_name_ar: nameAr.trim() || null,
         phone: phone.trim() || null,
-        email: email.trim() || null,
+        email: email.trim().toLowerCase() || null,
         date_of_birth: dob || null,
         gender: gender || null,
         nationality: nationality || null,
@@ -134,11 +181,11 @@ const ProfileEditSheet = ({ onClose, onSaved }: Props) => {
     } finally { setSaving(false); }
   };
 
-  const tabs: { id: typeof tab; label: string; icon: React.ReactNode }[] = [
-    { id: "identity", label: "Identity", icon: <User size={13} /> },
-    { id: "contact", label: "Contact", icon: <PhoneIcon size={13} /> },
-    { id: "demo", label: "Demographics", icon: <Globe size={13} /> },
-    { id: "ids", label: "IDs", icon: <IdCard size={13} /> },
+  const tabs: { id: TabId; label: string; icon: React.ReactNode; hasError: boolean }[] = [
+    { id: "identity", label: "Identity", icon: <User size={13} />, hasError: false },
+    { id: "contact", label: "Contact", icon: <PhoneIcon size={13} />, hasError: !!(errors.phone || errors.email) },
+    { id: "demo", label: "Demographics", icon: <Globe size={13} />, hasError: !!errors.dob },
+    { id: "ids", label: "IDs", icon: <IdCard size={13} />, hasError: !!(errors.saudiId || errors.iqama || errors.passport) },
   ];
 
   return (
@@ -161,9 +208,12 @@ const ProfileEditSheet = ({ onClose, onSaved }: Props) => {
         {/* Tabs */}
         <div className="flex gap-1 mb-3 p-1 rounded-xl" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
           {tabs.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-semibold btn-press transition-all"
+            <button key={t.id} onClick={() => setTab(t.id)} className="relative flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-semibold btn-press transition-all"
               style={{ background: tab === t.id ? "var(--teal-deep)" : "transparent", color: tab === t.id ? "#fff" : "var(--gray)" }}>
               {t.icon}<span>{t.label}</span>
+              {t.hasError && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ background: "#E5564A" }} />
+              )}
             </button>
           ))}
         </div>
@@ -174,19 +224,39 @@ const ProfileEditSheet = ({ onClose, onSaved }: Props) => {
           <>
             {tab === "identity" && (
               <Section icon={<User size={13} />} title="Your name" titleAr="اسمك">
-                <Field label="FULL NAME (EN)" labelAr="الاسم بالإنجليزية" value={nameEn} onChange={setNameEn} placeholder="Your full name" />
-                <Field label="FULL NAME (AR)" labelAr="الاسم بالعربية" value={nameAr} onChange={setNameAr} placeholder="اسمك الكامل" dir="rtl" />
+                <Field label="FULL NAME (EN)" labelAr="الاسم بالإنجليزية" value={nameEn} onChange={setNameEn} placeholder="Your full name" maxLength={80} />
+                <Field label="FULL NAME (AR)" labelAr="الاسم بالعربية" value={nameAr} onChange={setNameAr} placeholder="اسمك الكامل" dir="rtl" maxLength={80} />
               </Section>
             )}
             {tab === "contact" && (
               <Section icon={<PhoneIcon size={13} />} title="Contact details" titleAr="بيانات التواصل">
-                <Field label="PHONE" labelAr="رقم الجوال" value={phone} onChange={setPhone} placeholder="+966 5X XXX XXXX" type="tel" />
-                <Field label="EMAIL" labelAr="البريد الإلكتروني" value={email} onChange={setEmail} placeholder="you@example.com" type="email" />
+                <Field
+                  label="PHONE" labelAr="رقم الجوال"
+                  value={phone}
+                  onChange={(v) => { setPhone(formatPhone(v)); if (errors.phone) setErr("phone", null); }}
+                  onBlur={() => setErr("phone", validatePhone(phone).error)}
+                  placeholder="+966 5X XXX XXXX" type="tel" inputMode="tel"
+                  error={errors.phone} hint="Saudi format auto-applied"
+                />
+                <Field
+                  label="EMAIL" labelAr="البريد الإلكتروني"
+                  value={email}
+                  onChange={(v) => { setEmail(v); if (errors.email) setErr("email", null); }}
+                  onBlur={() => setErr("email", validateEmail(email).error)}
+                  placeholder="you@example.com" type="email" inputMode="email"
+                  error={errors.email}
+                />
               </Section>
             )}
             {tab === "demo" && (
               <Section icon={<Globe size={13} />} title="Demographics" titleAr="البيانات الديموغرافية">
-                <Field label="DATE OF BIRTH" labelAr="تاريخ الميلاد" value={dob} onChange={setDob} type="date" />
+                <Field
+                  label="DATE OF BIRTH" labelAr="تاريخ الميلاد"
+                  value={dob}
+                  onChange={(v) => { setDob(v); setErr("dob", validateDob(v).error); }}
+                  type="date" maxLength={10} error={errors.dob}
+                  hint="Must be a past date"
+                />
                 <Select label="GENDER" labelAr="الجنس" value={gender} onChange={setGender}
                   options={[{ v: "male", l: "Male · ذكر" }, { v: "female", l: "Female · أنثى" }, { v: "other", l: "Prefer not to say" }]} />
                 <Select label="NATIONALITY" labelAr="الجنسية" value={nationality} onChange={setNationality}
@@ -195,9 +265,45 @@ const ProfileEditSheet = ({ onClose, onSaved }: Props) => {
             )}
             {tab === "ids" && (
               <Section icon={<IdCard size={13} />} title="Identity documents" titleAr="وثائق الهوية">
-                <Field label="SAUDI NATIONAL ID" labelAr="رقم الهوية الوطنية" value={saudiId} onChange={setSaudiId} placeholder="10 digits" />
-                <Field label="IQAMA NUMBER" labelAr="رقم الإقامة" value={iqama} onChange={setIqama} placeholder="Optional" />
-                <Field label="PASSPORT NUMBER" labelAr="رقم جواز السفر" value={passport} onChange={setPassport} placeholder="e.g. K482916" />
+                <Field
+                  label="SAUDI NATIONAL ID" labelAr="رقم الهوية الوطنية"
+                  value={saudiId}
+                  onChange={(v) => {
+                    const cleaned = v.replace(/\D+/g, "").slice(0, 10);
+                    setSaudiId(cleaned);
+                    if (errors.saudiId) setErr("saudiId", null);
+                  }}
+                  onBlur={() => setErr("saudiId", validateSaudiId(saudiId).error)}
+                  placeholder="10 digits starting with 1 or 2"
+                  inputMode="numeric" maxLength={10}
+                  error={errors.saudiId} hint="Citizens: 1•••, residents: 2•••"
+                />
+                <Field
+                  label="IQAMA NUMBER" labelAr="رقم الإقامة"
+                  value={iqama}
+                  onChange={(v) => {
+                    const cleaned = v.replace(/\D+/g, "").slice(0, 10);
+                    setIqama(cleaned);
+                    if (errors.iqama) setErr("iqama", null);
+                  }}
+                  onBlur={() => setErr("iqama", validateIqama(iqama).error)}
+                  placeholder="10 digits (optional)"
+                  inputMode="numeric" maxLength={10}
+                  error={errors.iqama}
+                />
+                <Field
+                  label="PASSPORT NUMBER" labelAr="رقم جواز السفر"
+                  value={passport}
+                  onChange={(v) => {
+                    const cleaned = v.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 9);
+                    setPassport(cleaned);
+                    if (errors.passport) setErr("passport", null);
+                  }}
+                  onBlur={() => setErr("passport", validatePassport(passport).error)}
+                  placeholder="e.g. K4829167"
+                  maxLength={9}
+                  error={errors.passport} hint="6–9 letters/digits"
+                />
               </Section>
             )}
 

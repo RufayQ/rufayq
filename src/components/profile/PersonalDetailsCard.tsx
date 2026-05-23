@@ -1,15 +1,16 @@
 /**
  * PersonalDetailsCard — shows the signed-in user's gathered profile info
  * (name EN/AR, phone, email, DOB, gender, nationality, IDs) with a
- * completion meter and a single tap-to-edit affordance.
+ * completion meter, a missing-fields checklist, prominent RufayQ ID
+ * with copy + share, and a single tap-to-edit affordance.
  */
 import { useEffect, useState } from "react";
-import { Pencil, Mail, Phone, Calendar, User2, Globe, IdCard, Copy } from "lucide-react";
+import { Pencil, Mail, Phone, User2, Globe, IdCard, Copy, Share2, Check, Circle, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 
-interface Props { onEdit: () => void; reloadKey?: number }
+interface Props { onEdit: (tab?: string) => void; reloadKey?: number; onShareId?: () => void }
 
 interface ProfileRow {
   full_name_en: string | null;
@@ -53,7 +54,7 @@ const Row = ({ icon, label, labelAr, value, onCopy, mono }: { icon: React.ReactN
   </div>
 );
 
-const PersonalDetailsCard = ({ onEdit, reloadKey }: Props) => {
+const PersonalDetailsCard = ({ onEdit, reloadKey, onShareId }: Props) => {
   const [data, setData] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -93,13 +94,31 @@ const PersonalDetailsCard = ({ onEdit, reloadKey }: Props) => {
     toast.success(`${label} copied · تم النسخ`);
   };
 
-  const fields = data ? [
-    data.full_name_en, data.full_name_ar, data.phone, data.email,
-    data.date_of_birth, data.gender, data.nationality,
-    data.saudi_id || data.iqama_number, data.passport_number,
+  const shareId = async () => {
+    if (!data?.rufayq_id) return;
+    const text = `My RufayQ ID: ${data.rufayq_id}`;
+    if (onShareId) { onShareId(); return; }
+    if (navigator.share) {
+      try { await navigator.share({ title: "RufayQ ID", text }); return; } catch { /* cancelled */ }
+    }
+    copy(data.rufayq_id, "RufayQ ID");
+  };
+
+  // Checklist of profile fields (ordered by importance)
+  const checklist = data ? [
+    { key: "name", label: "Full name", labelAr: "الاسم الكامل", done: !!data.full_name_en, tab: "identity" },
+    { key: "nameAr", label: "Arabic name", labelAr: "الاسم بالعربية", done: !!data.full_name_ar, tab: "identity" },
+    { key: "phone", label: "Phone number", labelAr: "رقم الجوال", done: !!data.phone, tab: "contact" },
+    { key: "email", label: "Email address", labelAr: "البريد الإلكتروني", done: !!data.email, tab: "contact" },
+    { key: "dob", label: "Date of birth", labelAr: "تاريخ الميلاد", done: !!data.date_of_birth, tab: "demo" },
+    { key: "gender", label: "Gender", labelAr: "الجنس", done: !!data.gender, tab: "demo" },
+    { key: "nationality", label: "Nationality", labelAr: "الجنسية", done: !!data.nationality, tab: "demo" },
+    { key: "ids", label: "National ID or Iqama", labelAr: "الهوية أو الإقامة", done: !!(data.saudi_id || data.iqama_number), tab: "ids" },
+    { key: "passport", label: "Passport number", labelAr: "جواز السفر", done: !!data.passport_number, tab: "ids" },
   ] : [];
-  const filled = fields.filter(Boolean).length;
-  const pct = fields.length ? Math.round((filled / fields.length) * 100) : 0;
+  const filled = checklist.filter((c) => c.done).length;
+  const pct = checklist.length ? Math.round((filled / checklist.length) * 100) : 0;
+  const missing = checklist.filter((c) => !c.done);
 
   if (loading) {
     return (
@@ -111,35 +130,86 @@ const PersonalDetailsCard = ({ onEdit, reloadKey }: Props) => {
 
   return (
     <div className="mx-4 mt-3 rounded-2xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-      {/* Header with completion */}
+      {/* Header */}
       <div className="px-4 pt-4 pb-3 flex items-center justify-between" style={{ borderBottom: "1px solid var(--gray-light)" }}>
         <div>
           <p className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>PERSONAL DETAILS</p>
           <p className="font-arabic text-[10px] mt-0.5" dir="rtl" style={{ color: "var(--gray)" }}>بياناتك الشخصية</p>
         </div>
-        <button onClick={onEdit} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full btn-press text-[11px] font-semibold" style={{ background: "var(--teal-deep)", color: "#fff" }}>
+        <button onClick={() => onEdit()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full btn-press text-[11px] font-semibold" style={{ background: "var(--teal-deep)", color: "#fff" }}>
           <Pencil size={11} /> Edit
         </button>
       </div>
 
+      {/* Prominent RufayQ ID hero */}
+      {data?.rufayq_id && (
+        <div className="px-4 pt-3">
+          <div className="rounded-xl p-3 relative overflow-hidden" style={{ background: "linear-gradient(135deg, var(--teal-deep) 0%, var(--navy) 100%)" }}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <QrCode size={11} style={{ color: "var(--gold)" }} />
+                  <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>RUFAYQ ID</p>
+                </div>
+                <p className="font-mono text-[18px] font-bold truncate mt-0.5" style={{ color: "#fff", letterSpacing: "0.05em" }}>{data.rufayq_id}</p>
+                <p className="text-[9px] mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>Share to connect · شارك للتواصل</p>
+              </div>
+              <div className="flex gap-1.5 flex-shrink-0">
+                <button onClick={() => copy(data.rufayq_id!, "RufayQ ID")} className="w-9 h-9 rounded-full flex items-center justify-center btn-press" style={{ background: "rgba(255,255,255,0.12)" }} aria-label="Copy ID">
+                  <Copy size={14} style={{ color: "#fff" }} />
+                </button>
+                <button onClick={shareId} className="w-9 h-9 rounded-full flex items-center justify-center btn-press" style={{ background: "var(--gold)" }} aria-label="Share ID">
+                  <Share2 size={14} style={{ color: "var(--navy)" }} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Completion meter */}
       <div className="px-4 pt-3 pb-2">
         <div className="flex items-center justify-between mb-1.5">
-          <p className="text-[10px] font-semibold" style={{ color: "var(--gray)" }}>Profile completeness</p>
-          <p className="text-[11px] font-bold" style={{ color: pct >= 80 ? "#3DAA6E" : "var(--gold)" }}>{pct}%</p>
+          <p className="text-[10px] font-semibold" style={{ color: "var(--gray)" }}>Profile completeness · اكتمال الملف</p>
+          <p className="text-[11px] font-bold" style={{ color: pct >= 80 ? "#3DAA6E" : "var(--gold)" }}>{filled}/{checklist.length} · {pct}%</p>
         </div>
         <div className="w-full h-1.5 rounded-full" style={{ background: "var(--gray-light)" }}>
           <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 80 ? "#3DAA6E" : "var(--gold)" }} />
         </div>
-        {data?.rufayq_id && (
-          <div className="mt-2 flex items-center justify-between rounded-lg px-2.5 py-1.5" style={{ background: "var(--off-white)" }}>
-            <span className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>RUFAYQ ID</span>
-            <button onClick={() => copy(data.rufayq_id!, "RufayQ ID")} className="flex items-center gap-1 font-mono text-[11px] font-bold btn-press" style={{ color: "var(--teal-deep)" }}>
-              {data.rufayq_id} <Copy size={10} />
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* Missing-fields checklist */}
+      {missing.length > 0 && (
+        <div className="mx-4 mb-2 rounded-xl p-2.5" style={{ background: "var(--off-white)", border: "1px dashed var(--gray-light)" }}>
+          <p className="text-[10px] font-semibold mb-1.5 px-1" style={{ color: "var(--navy)" }}>
+            Next steps · الخطوات التالية
+          </p>
+          <div className="space-y-1">
+            {missing.slice(0, 4).map((m) => (
+              <button key={m.key} onClick={() => onEdit(m.tab)}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg btn-press text-left transition-colors hover:bg-white">
+                <Circle size={12} style={{ color: "var(--gold)" }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-semibold truncate" style={{ color: "var(--navy)" }}>{m.label}</p>
+                  <p className="font-arabic text-[10px] truncate" dir="rtl" style={{ color: "var(--gray)" }}>{m.labelAr}</p>
+                </div>
+                <span className="text-[10px] font-bold" style={{ color: "var(--teal-deep)" }}>Add →</span>
+              </button>
+            ))}
+            {missing.length > 4 && (
+              <p className="text-[10px] text-center pt-1" style={{ color: "var(--gray)" }}>
+                +{missing.length - 4} more · المزيد
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+      {missing.length === 0 && (
+        <div className="mx-4 mb-2 rounded-xl p-2.5 flex items-center gap-2" style={{ background: "rgba(61,170,110,0.08)", border: "1px solid rgba(61,170,110,0.2)" }}>
+          <Check size={14} style={{ color: "#3DAA6E" }} />
+          <p className="text-[11px] font-semibold" style={{ color: "#3DAA6E" }}>Profile complete · الملف مكتمل</p>
+        </div>
+      )}
 
       {/* Sections */}
       <div className="px-3 pb-2">

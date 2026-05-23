@@ -13,6 +13,7 @@ import AvatarUploader from "@/components/profile/AvatarUploader";
 import ConnectionsCard from "@/components/profile/ConnectionsCard";
 import ProfileEditSheet from "@/components/profile/ProfileEditSheet";
 import PersonalDetailsCard from "@/components/profile/PersonalDetailsCard";
+import QrShareSheet from "@/components/profile/QrShareSheet";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -105,7 +106,15 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
   const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
   const { count: pendingClaims } = usePendingClaimsCount();
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editInitialTab, setEditInitialTab] = useState<"identity" | "contact" | "demo" | "ids" | undefined>(undefined);
   const [editTick, setEditTick] = useState(0);
+  const [showShareQr, setShowShareQr] = useState(false);
+
+  const openEdit = (tab?: string) => {
+    const valid = ["identity", "contact", "demo", "ids"] as const;
+    setEditInitialTab((valid as readonly string[]).includes(tab || "") ? (tab as typeof valid[number]) : undefined);
+    setShowEditProfile(true);
+  };
 
   useEffect(() => { setEmergencyContacts(loadEmergencyContacts()); }, []);
 
@@ -128,7 +137,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         </div>
 
         <div className="flex-1 overflow-y-auto pb-6" style={{ background: "var(--off-white)" }}>
-          <PersonalDetailsCard key={editTick} onEdit={() => setShowEditProfile(true)} reloadKey={editTick} />
+          <PersonalDetailsCard key={editTick} onEdit={openEdit} reloadKey={editTick} onShareId={() => setShowShareQr(true)} />
           <ConnectionsCard />
 
           <div className="mt-4 mx-4">
@@ -187,7 +196,8 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         {showHistory && <MedicalHistorySheet onClose={() => setShowHistory(false)} />}
         {showConsents && <ConsentsSheet onClose={() => setShowConsents(false)} />}
         {showEmergency && <EmergencyContactsSheet onClose={() => setShowEmergency(false)} onChange={setEmergencyContacts} />}
-        {showEditProfile && <ProfileEditSheet onClose={() => setShowEditProfile(false)} onSaved={() => setEditTick((t) => t + 1)} />}
+        {showEditProfile && <ProfileEditSheet onClose={() => setShowEditProfile(false)} onSaved={() => setEditTick((t) => t + 1)} initialTab={editInitialTab} />}
+        {showShareQr && <QrShareSheet onClose={() => setShowShareQr(false)} />}
       </div>
     );
   }
