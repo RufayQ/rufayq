@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2, Paperclip, Pencil, Trash2, Clock, CalendarClock, Check, SmilePlus } from "lucide-react";
+import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2, Paperclip, Pencil, Trash2, Clock, CalendarClock, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
 import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
