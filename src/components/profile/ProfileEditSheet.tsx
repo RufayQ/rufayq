@@ -165,10 +165,19 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
     }
     setSaving(true);
     try {
+      // Normalize Arabic name: trim, collapse internal whitespace, strip
+      // zero-width chars so a saved value is never visually blank.
+      const normalizeAr = (s: string) =>
+        s.replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, "")
+         .replace(/\s+/g, " ")
+         .trim();
+      const normalizeEn = (s: string) => s.replace(/\s+/g, " ").trim();
+      const nameArClean = normalizeAr(nameAr);
+      const nameEnClean = normalizeEn(nameEn);
       const { error } = await supabase.from("profiles").upsert({
         device_id: deviceId,
-        full_name_en: nameEn.trim() || null,
-        full_name_ar: nameAr.trim() || null,
+        full_name_en: nameEnClean || null,
+        full_name_ar: nameArClean || null,
         phone: phone.trim() || null,
         email: email.trim().toLowerCase() || null,
         date_of_birth: dob || null,
