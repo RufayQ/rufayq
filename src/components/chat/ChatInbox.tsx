@@ -253,7 +253,7 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
             <div className="flex-1 min-w-0" dir="ltr">
               <p className="text-[14px] font-bold truncate" dir="auto" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>{labelFor(t)}</p>
               <p className="text-[11px] truncate" style={{ color: unread > 0 ? "var(--navy)" : "var(--gray)", fontWeight: unread > 0 ? 600 : 400 }} dir="auto">
-                {t.last_message_preview ?? "New conversation"}
+                {humanizeChatPreview(t.last_message_preview) || "New conversation"}
               </p>
             </div>
             <div className="text-right shrink-0 flex flex-col items-end gap-1" dir="ltr">
