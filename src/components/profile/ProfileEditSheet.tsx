@@ -38,8 +38,9 @@ const Field = ({
       className={`w-full px-3.5 py-3 rounded-xl text-[14px] outline-none transition-all focus:ring-2 focus:ring-offset-0 ${dir === "rtl" ? "font-arabic text-right" : ""}`}
       style={{
         background: "#ffffff",
-        border: `1.5px solid ${error ? "#E5564A" : "var(--gray-light)"}`,
+        border: `1.5px solid ${error ? "#E5564A" : "rgba(11,26,42,0.18)"}`,
         color: "var(--navy)",
+        minHeight: 46,
         boxShadow: "0 1px 2px rgba(11,26,42,0.04)",
       }}
     />
