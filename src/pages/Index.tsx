@@ -38,7 +38,8 @@ import ChatHeadBubble from "@/components/chat/ChatHeadBubble";
 import PushPermissionPrompt from "@/components/PushPermissionPrompt";
 import TabErrorBoundary from "@/components/TabErrorBoundary";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
-import { consumeBack } from "@/hooks/useBackHandler";
+import { consumeBack, logBackBranch } from "@/hooks/useBackHandler";
+import BackDebugOverlay from "@/components/dev/BackDebugOverlay";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 
 
@@ -647,8 +648,8 @@ const Index = () => {
    * hook will warn the user and require a second press to exit.
    */
   const handleHardwareBack = useCallback((): boolean => {
-    if (showScanner) { setShowScanner(false); return true; }
-    if (pendingChatThreadId) { setPendingChatThreadId(null); return true; }
+    if (showScanner) { logBackBranch("shell:closeScanner"); setShowScanner(false); return true; }
+    if (pendingChatThreadId) { logBackBranch("shell:clearPendingChatThread"); setPendingChatThreadId(null); return true; }
     // Let any currently-mounted sub-screen pop its own internal stack first
     // (e.g. an open chat thread returns to the inbox instead of jumping to
     // Home). Only when no in-section back is left do we fall through to the
@@ -656,15 +657,29 @@ const Index = () => {
     if (consumeBack()) return true;
 
     if (appView !== "main" && appView !== "onboarding" && appView !== "login" && appView !== "role") {
+      logBackBranch(`shell:subview(${appView})→main`);
       setAppView("main");
       return true;
     }
     if (appView === "main" && activeTab !== "home") {
+      logBackBranch(`shell:tab(${activeTab})→home`);
       setActiveTab("home");
       return true;
     }
+    logBackBranch("shell:rootExitPrompt");
     return false;
   }, [showScanner, pendingChatThreadId, appView, activeTab]);
+
+  // Computed "what would the shell do next" string for the dev overlay.
+  const nextShellStep = showScanner
+    ? "shell:closeScanner"
+    : pendingChatThreadId
+    ? "shell:clearPendingChatThread"
+    : appView !== "main" && appView !== "onboarding" && appView !== "login" && appView !== "role"
+    ? `shell:subview(${appView})→main`
+    : appView === "main" && activeTab !== "home"
+    ? `shell:tab(${activeTab})→home`
+    : "shell:rootExitPrompt";
 
 
   useAndroidBackButton({
@@ -761,6 +776,7 @@ const Index = () => {
           <TourRunner tour={activeTour} onFinish={finishActive} allowSkip={allowSkip} />
         )}
       </div>
+      <BackDebugOverlay nextShellStep={nextShellStep} />
     </div>
   );
 };
