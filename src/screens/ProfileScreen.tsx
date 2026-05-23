@@ -10,6 +10,7 @@ import { usePendingClaimsCount } from "@/hooks/usePendingClaimsCount";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import ConnectedAccountsCard from "@/components/profile/ConnectedAccountsCard";
 import AvatarUploader from "@/components/profile/AvatarUploader";
+import ConnectionsCard from "@/components/profile/ConnectionsCard";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -120,6 +121,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         </div>
 
         <div className="flex-1 overflow-y-auto pb-6" style={{ background: "var(--off-white)" }}>
+          <ConnectionsCard />
           <div className="mx-4 mt-3 rounded-xl p-4" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
             <p className="text-[14px] font-semibold" style={{ color: "var(--navy)" }}>No demo identity data is shown for signed-in users.</p>
             <p className="text-[12px] mt-1" style={{ color: "var(--gray)" }}>Your personal details will appear here once connected to your account records.</p>
@@ -204,6 +206,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
       </div>
 
       <div className="flex-1 overflow-y-auto pb-6" style={{ background: "var(--off-white)" }}>
+        <ConnectionsCard />
         {/* Trip Summary */}
         <div className="mx-4 mt-3 rounded-xl p-4" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
           <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>CURRENT TRIP</p>

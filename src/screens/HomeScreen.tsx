@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Copy, Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
-import { CreditCard, Wallet, LogOut } from "lucide-react";
-import { toast } from "sonner";
+import { Share2, RefreshCw, Bell, Settings, HelpCircle } from "@/components/HeaderMenu";
+import { CreditCard, Wallet, LogOut, UserCircle2 } from "lucide-react";
+
 
 import { usePatientName } from "@/hooks/usePatientName";
 import { useJourneyOverview } from "@/hooks/useJourneyOverview";
@@ -9,7 +9,7 @@ import { useJourneys } from "@/hooks/useJourneys";
 // useMedicalRecords removed — record count now comes from useUnifiedRecordCount.
 import { useUnifiedRecordCount } from "@/hooks/useUnifiedRecordCount";
 import { useAuthSession } from "@/hooks/useAuthUserId";
-import { useLanguage } from "@/contexts/LanguageContext";
+// useLanguage no longer needed here — menu copy was removed.
 
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
 import TodayCard from "@/components/home/TodayCard";
@@ -28,7 +28,7 @@ interface HomeScreenProps {
 
 const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps) => {
   const { patientName, patientNameAr } = usePatientName();
-  const { showEn, showAr } = useLanguage();
+  // showEn/showAr no longer needed here.
   const overview = useJourneyOverview({ isGuest });
   const { journeys } = useJourneys(isGuest ? [] : []);
   // (medical records list is no longer needed here — count comes from useUnifiedRecordCount)
@@ -72,14 +72,8 @@ const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps)
     { icon: <RefreshCw size={14} />, label: "Refresh", labelAr: "تحديث", onClick: () => { window.location.reload(); } },
     { icon: <Bell size={14} />, label: "Notifications", labelAr: "الإشعارات",
       onClick: () => setNotificationOpen(true) },
-    { icon: <Copy size={14} />, label: "Copy Summary", labelAr: "نسخ الملخص",
-      onClick: () => {
-        const summary = `Active Trip: ${activeTrip?.destination ?? "—"}`;
-        navigator.clipboard.writeText(`RufayQ – Trip Summary\n${summary}`);
-        const enMsg = "Copied";
-        const arMsg = "تم النسخ";
-        toast(showEn && showAr ? `${enMsg} · ${arMsg}` : showAr ? arMsg : enMsg);
-      } },
+    { icon: <UserCircle2 size={14} />, label: "Profile", labelAr: "الملف الشخصي",
+      onClick: () => onProfile() },
     { icon: <Share2 size={14} />, label: "Share App", labelAr: "مشاركة التطبيق",
       onClick: () => {
         const url = window.location.origin;
