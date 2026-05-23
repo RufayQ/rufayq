@@ -9,7 +9,7 @@ import { useJourneys } from "@/hooks/useJourneys";
 // useMedicalRecords removed — record count now comes from useUnifiedRecordCount.
 import { useUnifiedRecordCount } from "@/hooks/useUnifiedRecordCount";
 import { useAuthSession } from "@/hooks/useAuthUserId";
-import { useLanguage } from "@/contexts/LanguageContext";
+// useLanguage no longer needed here — menu copy was removed.
 
 import HomeHeader, { type HomeHeaderMenuItem } from "@/components/home/HomeHeader";
 import TodayCard from "@/components/home/TodayCard";
