@@ -110,15 +110,23 @@ export const hasAttachment = (body: string): boolean => {
  */
 export const humanizeChatPreview = (body: string | null | undefined): string => {
   if (!body) return "";
-  const segs = parseChatBody(body);
+  // Strip any *truncated* attachment marker first — preview rows in the DB
+  // are capped (~140 chars) which can lop off the closing `]]`, in which case
+  // parseChatBody's strict regex leaves the raw base64 visible. We collapse
+  // every well-formed AND every truncated marker to a single bilingual chip.
+  const stripped = body.replace(/\[\[RUFAYQ_ATTACH:[^\]]*\]?\]?/g, "[[ATTACH]]");
+  const segs = parseChatBody(stripped);
   const parts = segs
     .map((s) => {
       if (s.type === "attachment") {
         const lbl = s.payload.label || s.payload.fileName || "attachment";
         return `📎 ${lbl} · مرفق مشترك`;
       }
-      return s.value.trim();
+      // Catch the truncated-marker placeholder we inserted above.
+      const v = s.value.replace(/\[\[ATTACH\]\]/g, "📎 Shared attachment · مرفق مشترك").trim();
+      return v;
     })
     .filter(Boolean);
   return parts.join(" · ");
 };
+
