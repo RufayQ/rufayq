@@ -63,7 +63,6 @@ export function useChatThread(threadId: string | null) {
       .from("chat_messages")
       .select(SELECT_COLS)
       .eq("thread_id", threadId)
-      .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(500);
     const rows = ((data ?? []) as ChatMessageRow[]).map((m) => ({ ...m, status: "sent" as const }));
