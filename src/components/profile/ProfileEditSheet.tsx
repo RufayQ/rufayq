@@ -175,9 +175,10 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
       toast.success("Profile updated · تم التحديث");
       onSaved?.();
       onClose();
-    } catch (e) {
-      console.error(e);
-      toast.error("Save failed · فشل الحفظ");
+    } catch (e: any) {
+      console.error("Profile save error:", e);
+      const msg = e?.message || e?.error_description || "Unknown error";
+      toast.error(`Save failed · ${msg}`);
     } finally { setSaving(false); }
   };
 
