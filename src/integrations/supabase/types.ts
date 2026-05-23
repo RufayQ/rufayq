@@ -2860,6 +2860,7 @@ export type Database = {
         Row: {
           auth_providers: string[]
           avatar_url: string | null
+          city_of_residence: string | null
           contact_verification_status: string
           contact_verified: boolean
           created_at: string
@@ -2879,7 +2880,9 @@ export type Database = {
           google_sub: string | null
           id: string
           iqama_number: string | null
+          marital_status: string | null
           nationality: string | null
+          occupation: string | null
           organization_id: string | null
           passport_number: string | null
           phone: string | null
@@ -2893,6 +2896,7 @@ export type Database = {
         Insert: {
           auth_providers?: string[]
           avatar_url?: string | null
+          city_of_residence?: string | null
           contact_verification_status?: string
           contact_verified?: boolean
           created_at?: string
@@ -2912,7 +2916,9 @@ export type Database = {
           google_sub?: string | null
           id?: string
           iqama_number?: string | null
+          marital_status?: string | null
           nationality?: string | null
+          occupation?: string | null
           organization_id?: string | null
           passport_number?: string | null
           phone?: string | null
@@ -2926,6 +2932,7 @@ export type Database = {
         Update: {
           auth_providers?: string[]
           avatar_url?: string | null
+          city_of_residence?: string | null
           contact_verification_status?: string
           contact_verified?: boolean
           created_at?: string
@@ -2945,7 +2952,9 @@ export type Database = {
           google_sub?: string | null
           id?: string
           iqama_number?: string | null
+          marital_status?: string | null
           nationality?: string | null
+          occupation?: string | null
           organization_id?: string | null
           passport_number?: string | null
           phone?: string | null

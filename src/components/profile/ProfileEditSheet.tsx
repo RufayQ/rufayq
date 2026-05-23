@@ -16,6 +16,7 @@ import {
   validateIqama, validatePassport, validateEmail,
   validateArabicName, validateEnglishName,
 } from "@/lib/profile/validation";
+import { CITIES_BY_COUNTRY } from "@/data/cities";
 
 interface Props { onClose: () => void; onSaved?: () => void; initialTab?: TabId }
 type TabId = "identity" | "contact" | "demo" | "ids";
@@ -104,6 +105,9 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
   const [saudiId, setSaudiId] = useState("");
   const [iqama, setIqama] = useState("");
   const [passport, setPassport] = useState("");
+  const [maritalStatus, setMaritalStatus] = useState("");
+  const [city, setCity] = useState("");
+  const [occupation, setOccupation] = useState("");
   const [errors, setErrors] = useState<Record<string, string | null>>({});
 
   const setErr = (k: string, v: string | null) => setErrors((p) => ({ ...p, [k]: v }));
@@ -117,7 +121,7 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
       const { data: { session } } = await supabase.auth.getSession();
       const { data } = await supabase
         .from("profiles")
-        .select("full_name_en, full_name_ar, phone, email, date_of_birth, gender, nationality, saudi_id, iqama_number, passport_number")
+        .select("full_name_en, full_name_ar, phone, email, date_of_birth, gender, nationality, saudi_id, iqama_number, passport_number, marital_status, city_of_residence, occupation")
         .eq("device_id", deviceId)
         .maybeSingle();
       if (cancelled) return;
@@ -132,6 +136,9 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
       setSaudiId(data?.saudi_id || "");
       setIqama(data?.iqama_number || "");
       setPassport(data?.passport_number || "");
+      setMaritalStatus((data as any)?.marital_status || "");
+      setCity((data as any)?.city_of_residence || "");
+      setOccupation((data as any)?.occupation || "");
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -186,7 +193,10 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
         saudi_id: saudiId.trim() || null,
         iqama_number: iqama.trim() || null,
         passport_number: passport.trim() || null,
-      }, { onConflict: "device_id" });
+        marital_status: maritalStatus || null,
+        city_of_residence: city.trim() || null,
+        occupation: occupation.trim() || null,
+      } as any, { onConflict: "device_id" });
       if (error) throw error;
       toast.success("Profile updated · تم التحديث");
       onSaved?.();
@@ -279,7 +289,10 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
                 />
               </Section>
             )}
-            {tab === "demo" && (
+            {tab === "demo" && (() => {
+              const cityOptions = CITIES_BY_COUNTRY[nationality] || [];
+              const cityListId = "city-suggestions-list";
+              return (
               <Section icon={<Globe size={13} />} title="Demographics" titleAr="البيانات الديموغرافية">
                 <Field
                   label="DATE OF BIRTH" labelAr="تاريخ الميلاد"
@@ -290,10 +303,56 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
                 />
                 <Select label="GENDER" labelAr="الجنس" value={gender} onChange={setGender}
                   options={[{ v: "male", l: "Male · ذكر" }, { v: "female", l: "Female · أنثى" }, { v: "other", l: "Prefer not to say" }]} />
-                <Select label="NATIONALITY" labelAr="الجنسية" value={nationality} onChange={setNationality}
+                <Select label="NATIONALITY" labelAr="الجنسية" value={nationality} onChange={(v) => { setNationality(v); setCity(""); }}
                   options={NATIONALITIES.map((n) => ({ v: n, l: n }))} />
+                <Select
+                  label="MARITAL STATUS" labelAr="الحالة الاجتماعية"
+                  value={maritalStatus} onChange={setMaritalStatus}
+                  options={[
+                    { v: "single", l: "Single · أعزب" },
+                    { v: "married", l: "Married · متزوج" },
+                    { v: "divorced", l: "Divorced · مطلّق" },
+                    { v: "widowed", l: "Widowed · أرمل" },
+                  ]}
+                />
+                <div className="mb-3.5">
+                  <div className="flex items-baseline justify-between mb-1.5 px-0.5">
+                    <p className="font-mono text-[9.5px] tracking-[0.18em] font-bold" style={{ color: "var(--gold)" }}>CITY OF RESIDENCE</p>
+                    <p className="font-arabic text-[10.5px]" dir="rtl" style={{ color: "var(--gray)" }}>مدينة الإقامة</p>
+                  </div>
+                  <input
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    list={cityOptions.length ? cityListId : undefined}
+                    placeholder={nationality ? `City in ${nationality}` : "Your city"}
+                    className="w-full px-3.5 py-3 rounded-xl text-[14px] outline-none transition-all"
+                    style={{
+                      background: "#ffffff",
+                      border: "1.5px solid rgba(11,26,42,0.18)",
+                      color: "var(--navy)",
+                      minHeight: 46,
+                      boxShadow: "0 1px 2px rgba(11,26,42,0.04)",
+                    }}
+                  />
+                  {cityOptions.length > 0 && (
+                    <datalist id={cityListId}>
+                      {cityOptions.map((c) => <option key={c} value={c} />)}
+                    </datalist>
+                  )}
+                  <p className="mt-1.5 px-1 text-[10.5px]" style={{ color: "var(--gray)" }}>
+                    {cityOptions.length ? "Pick from suggestions or type your own" : "Free text — based on your nationality"}
+                  </p>
+                </div>
+                <Field
+                  label="OCCUPATION" labelAr="المهنة"
+                  value={occupation}
+                  onChange={setOccupation}
+                  placeholder="e.g. Teacher, Engineer · معلم، مهندس"
+                  maxLength={60}
+                />
               </Section>
-            )}
+              );
+            })()}
             {tab === "ids" && (() => {
               const isSaudi = (nationality || "").toLowerCase().includes("saudi");
               const isGcc = ["united arab emirates","kuwait","bahrain","qatar","oman"].some(c => (nationality||"").toLowerCase().includes(c));
