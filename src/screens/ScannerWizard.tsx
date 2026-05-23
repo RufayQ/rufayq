@@ -1156,7 +1156,7 @@ export const Step2Review = ({
       <div className="flex-1 flex items-center justify-center px-6 py-6 relative">
         {isPureImage ? (
           <div className="w-full rounded-xl overflow-hidden flex items-center justify-center relative" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", maxHeight: 420 }}>
-            <div ref={imgWrapRef} className="relative w-full" style={{ maxHeight: 420, touchAction: cropMode ? "none" : undefined }}>
+            <div ref={imgWrapRef} className="relative w-full" style={{ maxHeight: 420, touchAction: cropMode || annotating ? "none" : undefined }}>
               <img
                 src={imageUrl!}
                 alt={file.name}
