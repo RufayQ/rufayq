@@ -102,3 +102,23 @@ export const hasAttachment = (body: string): boolean => {
   MARKER_RE.lastIndex = 0;
   return MARKER_RE.test(body);
 };
+
+/**
+ * Humanize a stored message body for inbox-style previews. Replaces the raw
+ * `[[RUFAYQ_ATTACH:...]]` blob with a bilingual "shared attachment" label so
+ * conversation rows never show base64 noise.
+ */
+export const humanizeChatPreview = (body: string | null | undefined): string => {
+  if (!body) return "";
+  const segs = parseChatBody(body);
+  const parts = segs
+    .map((s) => {
+      if (s.type === "attachment") {
+        const lbl = s.payload.label || s.payload.fileName || "attachment";
+        return `📎 ${lbl} · مرفق مشترك`;
+      }
+      return s.value.trim();
+    })
+    .filter(Boolean);
+  return parts.join(" · ");
+};
