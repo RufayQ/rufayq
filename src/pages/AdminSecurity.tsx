@@ -271,6 +271,9 @@ export default function AdminSecurity() {
           ) : (
             <span className="text-slate-500">No scan recorded yet — click <strong className="text-emerald-300">Run scan</strong>.</span>
           )}
+        </div>
+
+
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2 text-xs">
