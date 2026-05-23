@@ -206,6 +206,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
       </div>
 
       <div className="flex-1 overflow-y-auto pb-6" style={{ background: "var(--off-white)" }}>
+        <ConnectionsCard />
         {/* Trip Summary */}
         <div className="mx-4 mt-3 rounded-xl p-4" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
           <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>CURRENT TRIP</p>
