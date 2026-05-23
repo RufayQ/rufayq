@@ -1,6 +1,7 @@
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useBodyScrollLock, useOverlayBack } from "./useOverlayBack";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
 export type OverlayLayerType = "picker" | "sheet" | "preview" | "scanner";
 
@@ -55,6 +56,18 @@ export default function OverlayLayer({
 
   useBodyScrollLock(open);
   useOverlayBack(open, onClose);
+
+  // Also register in the global LIFO back-handler stack so the native Android
+  // hardware back button (which doesn't emit `popstate`) pops THIS overlay
+  // first instead of falling through to the parent screen's handler. On web
+  // this is a harmless second close — onClose is idempotent in practice.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  const backHandler = useCallback(() => {
+    onCloseRef.current();
+    return true;
+  }, []);
+  useBackHandler(backHandler, open);
 
   // Capture the element that opened us, restore focus on close.
   useEffect(() => {
