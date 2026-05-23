@@ -136,7 +136,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         </div>
 
         <div className="flex-1 overflow-y-auto pb-6" style={{ background: "var(--off-white)" }}>
-          <PersonalDetailsCard key={editTick} onEdit={() => setShowEditProfile(true)} reloadKey={editTick} />
+          <PersonalDetailsCard key={editTick} onEdit={openEdit} reloadKey={editTick} onShareId={() => setShowShareQr(true)} />
           <ConnectionsCard />
 
           <div className="mt-4 mx-4">
