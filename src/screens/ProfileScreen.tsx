@@ -126,14 +126,24 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
   if (!isGuest) {
     return (
       <div className="flex flex-col h-full">
-        <div className="relative px-5 pt-6 pb-6 text-center" style={{ background: "var(--navy)" }}>
-          <button onClick={onBack} className="absolute left-4 top-3 btn-press"><ArrowLeft size={20} color="white" /></button>
-          <button onClick={() => setShowEditProfile(true)} className="absolute right-4 top-3 btn-press flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }} aria-label="Edit profile">
+        <div className="relative px-5 pt-6 pb-7 text-center overflow-hidden" style={{ background: "linear-gradient(180deg, var(--navy) 0%, #0B1A2A 100%)" }}>
+          {/* Subtle gold rays */}
+          <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{
+            background: "radial-gradient(circle at 50% -20%, var(--gold) 0%, transparent 60%)"
+          }} />
+          <button onClick={onBack} className="absolute left-4 top-3 btn-press z-10"><ArrowLeft size={20} color="white" /></button>
+          <button onClick={() => setShowEditProfile(true)} className="absolute right-4 top-3 btn-press flex items-center gap-1 px-2.5 py-1 rounded-full z-10" style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }} aria-label="Edit profile">
             <Pencil size={12} /> <span className="text-[11px]">Edit</span>
           </button>
-          <AvatarUploader key={editTick} />
-          <p className="font-display text-xl text-white mt-2">Your Profile</p>
-          <p className="font-arabic text-sm" dir="rtl" style={{ color: "rgba(255,255,255,0.5)" }}>ملفك الشخصي</p>
+          <div className="relative inline-block">
+            <AvatarUploader key={editTick} />
+          </div>
+          <p className="font-display text-[22px] text-white mt-3 leading-tight">Your Profile</p>
+          <p className="font-arabic text-[13px] mt-0.5" dir="rtl" style={{ color: "rgba(255,255,255,0.55)" }}>ملفك الشخصي</p>
+          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: "rgba(197,150,90,0.12)", border: "1px solid rgba(197,150,90,0.35)" }}>
+            <Shield size={10} style={{ color: "var(--gold)" }} />
+            <span className="font-mono text-[10px] tracking-widest" style={{ color: "var(--gold)" }}>VERIFIED · RUFAYQ MEMBER</span>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto pb-6" style={{ background: "var(--off-white)" }}>
