@@ -13,6 +13,7 @@ import AvatarUploader from "@/components/profile/AvatarUploader";
 import ConnectionsCard from "@/components/profile/ConnectionsCard";
 import ProfileEditSheet from "@/components/profile/ProfileEditSheet";
 import PersonalDetailsCard from "@/components/profile/PersonalDetailsCard";
+import QrShareSheet from "@/components/profile/QrShareSheet";
 
 interface ProfileScreenProps {
   onBack: () => void;
