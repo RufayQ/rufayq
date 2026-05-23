@@ -3,13 +3,14 @@
  * scan entry-point, and the list of saved connections grouped by category.
  */
 import { useEffect, useState } from "react";
-import { QrCode, ScanLine, Trash2, UserPlus } from "lucide-react";
+import { QrCode, ScanLine, ChevronRight, UserPlus } from "lucide-react";
 import QrShareSheet from "@/components/profile/QrShareSheet";
 import QrScanSheet from "@/components/profile/QrScanSheet";
 import AddConnectionSheet from "@/components/profile/AddConnectionSheet";
+import ConnectionDetailSheet from "@/components/profile/ConnectionDetailSheet";
 import {
   CATEGORY_META, FAMILY_RELATION_META, PROVIDER_KIND_META,
-  loadConnections, removeConnection,
+  loadConnections,
   type Connection, type QrPayload,
 } from "@/lib/connections/connectionsStore";
 
@@ -18,6 +19,7 @@ const ConnectionsCard = () => {
   const [share, setShare] = useState(false);
   const [scan, setScan] = useState(false);
   const [pending, setPending] = useState<QrPayload | null>(null);
+  const [detail, setDetail] = useState<Connection | null>(null);
 
   const refresh = () => setItems(loadConnections());
   useEffect(() => {
