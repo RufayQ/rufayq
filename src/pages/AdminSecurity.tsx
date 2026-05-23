@@ -1,7 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, ChevronLeft, RefreshCw, AlertTriangle, CheckCircle2, EyeOff, Activity, Download } from "lucide-react";
+import { toast } from "sonner";
+import { Shield, ChevronLeft, RefreshCw, AlertTriangle, CheckCircle2, EyeOff, Activity, Download, PlayCircle } from "lucide-react";
+
+type ScanRun = {
+  ran_at: string;
+  source: "manual" | "cron";
+  status: "ok" | "partial" | "failed";
+  total: number;
+  open: number;
+  fixed_now: number;
+  duration_ms: number | null;
+  error_summary: string | null;
+};
 
 type Finding = {
   id: string;
