@@ -190,6 +190,7 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         {showHistory && <MedicalHistorySheet onClose={() => setShowHistory(false)} />}
         {showConsents && <ConsentsSheet onClose={() => setShowConsents(false)} />}
         {showEmergency && <EmergencyContactsSheet onClose={() => setShowEmergency(false)} onChange={setEmergencyContacts} />}
+        {showEditProfile && <ProfileEditSheet onClose={() => setShowEditProfile(false)} onSaved={() => setEditTick((t) => t + 1)} />}
       </div>
     );
   }
