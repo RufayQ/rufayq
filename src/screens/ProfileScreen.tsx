@@ -11,6 +11,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import ConnectedAccountsCard from "@/components/profile/ConnectedAccountsCard";
 import AvatarUploader from "@/components/profile/AvatarUploader";
 import ConnectionsCard from "@/components/profile/ConnectionsCard";
+import ProfileEditSheet from "@/components/profile/ProfileEditSheet";
 
 interface ProfileScreenProps {
   onBack: () => void;
