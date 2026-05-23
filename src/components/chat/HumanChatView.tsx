@@ -367,46 +367,47 @@ export default function HumanChatView({
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"} animate-fade-in-up`}>
               <div className="max-w-[78%] relative">
                 {isAction && !isDeleted && (
-                  <div
-                    className={`absolute -top-9 ${mine ? "right-0" : "left-0"} flex items-center gap-1 rounded-full px-1.5 py-1 z-10`}
-                    style={{ background: "var(--navy)", boxShadow: "0 4px 14px rgba(0,0,0,0.25)" }}
-                  >
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleReply(m); }}
-                      className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
-                      style={{ color: "#fff" }}
+                  <div className={`absolute -top-[88px] ${mine ? "right-0" : "left-0"} z-10 flex flex-col items-stretch gap-1.5`}>
+                    {/* Quick emoji reaction bar — single tap, no separate emoji message */}
+                    <div
+                      className="flex items-center gap-0.5 rounded-full px-2 py-1.5"
+                      style={{ background: "var(--white)", boxShadow: "0 6px 18px rgba(0,0,0,0.18)", border: "1px solid var(--gray-light)" }}
                     >
-                      <Reply size={12} /> Reply
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleCopy(m); }}
-                      className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
-                      style={{ color: "#fff" }}
+                      {QUICK_REACTIONS.map((emo) => (
+                        <button
+                          key={emo}
+                          onClick={(e) => { e.stopPropagation(); void toggleReaction(m.id, emo); setActionFor(null); }}
+                          className="px-1.5 py-0.5 text-[18px] leading-none rounded-full hover:scale-125 transition-transform"
+                          aria-label={`React ${emo}`}
+                        >
+                          {emo}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Action chips */}
+                    <div className={`flex items-center gap-1 rounded-full px-1.5 py-1 ${mine ? "self-end" : "self-start"}`}
+                      style={{ background: "var(--navy)", boxShadow: "0 4px 14px rgba(0,0,0,0.25)" }}
                     >
-                      <Copy size={12} /> Copy
-                    </button>
-                    {mine && (
-                      <>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleStartEdit(m); }}
-                          className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
-                          style={{ color: "#fff" }}
-                          aria-label="Edit · تعديل"
-                        >
-                          <Pencil size={12} /> Edit
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(m); }}
-                          className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
-                          style={{ color: "#ff8a8a" }}
-                          aria-label="Delete · حذف"
-                        >
-                          <Trash2 size={12} /> Delete
-                        </button>
-                      </>
-                    )}
+                      <button onClick={(e) => { e.stopPropagation(); handleReply(m); }} className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press" style={{ color: "#fff" }}>
+                        <Reply size={12} /> Reply
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleCopy(m); }} className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press" style={{ color: "#fff" }}>
+                        <Copy size={12} /> Copy
+                      </button>
+                      {mine && (
+                        <>
+                          <button onClick={(e) => { e.stopPropagation(); handleStartEdit(m); }} className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press" style={{ color: "#fff" }} aria-label="Edit · تعديل">
+                            <Pencil size={12} /> Edit
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete(m); }} className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press" style={{ color: "#ff8a8a" }} aria-label="Delete · حذف">
+                            <Trash2 size={12} /> Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
+
                 <div
                   ref={(el) => { messageRefs.current[m.id] = el; }}
                   className="px-3.5 py-2.5 text-[13px] leading-relaxed transition-all"
