@@ -135,9 +135,6 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
             background: "radial-gradient(circle at 50% -20%, var(--gold) 0%, transparent 60%)"
           }} />
           <button onClick={onBack} className="absolute left-4 top-3 btn-press z-10"><ArrowLeft size={20} color="white" /></button>
-          <button onClick={() => setShowEditProfile(true)} className="absolute right-4 top-3 btn-press flex items-center gap-1 px-2.5 py-1 rounded-full z-10" style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }} aria-label="Edit profile">
-            <Pencil size={12} /> <span className="text-[11px]">Edit</span>
-          </button>
           <div className="relative inline-block">
             <AvatarUploader key={editTick} />
           </div>
