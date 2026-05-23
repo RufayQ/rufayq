@@ -47,7 +47,7 @@ export default function ChatInbox({ onOpenThread, onOpenProfile, onNewAi }: Prop
       if (tab === "care" && t.kind !== "provider") return false;
       if (tab === "people" && t.kind !== "direct") return false;
       if (q.trim()) {
-        const hay = `${t.title ?? ""} ${t.last_message_preview ?? ""}`.toLowerCase();
+        const hay = `${t.title ?? ""} ${humanizeChatPreview(t.last_message_preview)}`.toLowerCase();
         return hay.includes(q.trim().toLowerCase());
       }
       return true;
