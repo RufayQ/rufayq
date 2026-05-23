@@ -34,7 +34,7 @@ type LinkItem = { messageId: string; url: string; createdAt: string };
 
 export default function ConversationProfile({ threadId, title, kind, onBack }: Props) {
   const [data, setData] = useState<ProfileData | null>(null);
-  const [shared, setShared] = useState<{ media: SharedItem[]; docs: SharedItem[]; links: SharedItem[] }>({ media: [], docs: [], links: [] });
+  const [shared, setShared] = useState<{ media: MediaItem[]; docs: DocItem[]; links: LinkItem[] }>({ media: [], docs: [], links: [] });
   const [deleted, setDeleted] = useState<MessageLite[]>([]);
   const [openSheet, setOpenSheet] = useState<null | "media" | "docs" | "links" | "deleted" | "search">(null);
   const [searchQ, setSearchQ] = useState("");
