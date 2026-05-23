@@ -71,14 +71,23 @@ const rowToMembership = (r: DbRow): LoungeMembership => ({
 const ensureRealtime = () => {
   if (realtimeChannel) return;
   const deviceId = getDeviceId();
-  realtimeChannel = supabase
-    .channel(`lm:${deviceId}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "lounge_memberships", filter: `device_id=eq.${deviceId}` },
-      () => { void fetchLoungeMemberships(); },
-    )
-    .subscribe();
+  // Subscribe under a user-scoped topic when signed in so authenticated rows
+  // (linked via user_id) receive realtime updates; fall back to a device
+  // topic for guests.
+  void supabase.auth.getUser().then(({ data }) => {
+    if (realtimeChannel) return;
+    const uid = data?.user?.id ?? null;
+    const topic = uid ? `lmu:${uid}` : `lm:${deviceId}`;
+    const filter = uid ? `user_id=eq.${uid}` : `device_id=eq.${deviceId}`;
+    realtimeChannel = supabase
+      .channel(topic)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "lounge_memberships", filter },
+        () => { void fetchLoungeMemberships(); },
+      )
+      .subscribe();
+  });
 };
 
 /** Returns whatever is in memory right now (cache-first paint). */
