@@ -17,6 +17,7 @@ import {
   validateArabicName, validateEnglishName,
 } from "@/lib/profile/validation";
 import { CITIES_BY_COUNTRY } from "@/data/cities";
+import CityCombobox from "./CityCombobox";
 
 interface Props { onClose: () => void; onSaved?: () => void; initialTab?: TabId }
 type TabId = "identity" | "contact" | "demo" | "ids";
