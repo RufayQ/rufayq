@@ -3,7 +3,7 @@
  * nationality, language, marital status (if present), with one tap edit.
  */
 import { useEffect, useState } from "react";
-import { Calendar, User2, Globe, Languages, Heart, Pencil } from "lucide-react";
+import { Calendar, User2, Globe, Languages, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 
