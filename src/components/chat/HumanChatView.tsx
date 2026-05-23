@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, Send, Stethoscope, User, RotateCw, X, Reply, Copy, Minimize2, Paperclip, Pencil, Trash2, Clock, CalendarClock, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useChatThread, type ChatMessageRow } from "@/hooks/useChatThread";
@@ -6,6 +6,8 @@ import { useThreadReadReceipts } from "@/hooks/useThreadReadReceipts";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import { setActiveThread } from "@/lib/chat/activeThread";
 import { useResolvedContact } from "@/hooks/useResolvedContact";
+import { useMessageReactions } from "@/hooks/useMessageReactions";
+import { useBackHandler } from "@/hooks/useBackHandler";
 import MessageTicks from "./MessageTicks";
 import EmojiPicker from "./EmojiPicker";
 import ChatRecordsPicker, { type PickedRecord } from "@/components/chat/ChatRecordsPicker";
@@ -19,6 +21,9 @@ import {
   subscribeScheduled,
   type ScheduledMessage,
 } from "@/lib/chat/scheduledMessages";
+
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
 
 
 interface Props {
@@ -72,12 +77,46 @@ export default function HumanChatView({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const me = getDeviceId();
 
+  // Emoji reactions on individual messages
+  const messageIds = useMemo(() => messages.map((m) => m.id).filter((id) => !id.startsWith("temp-")), [messages]);
+  const { reactions, toggle: toggleReaction, me: meUserId } = useMessageReactions(threadId, messageIds);
+  const reactionsByMessage = useMemo(() => {
+    const map = new Map<string, { emoji: string; count: number; mine: boolean }[]>();
+    for (const r of reactions) {
+      const arr = map.get(r.message_id) ?? [];
+      const existing = arr.find((x) => x.emoji === r.emoji);
+      if (existing) {
+        existing.count += 1;
+        if (r.user_id === meUserId) existing.mine = true;
+      } else {
+        arr.push({ emoji: r.emoji, count: 1, mine: r.user_id === meUserId });
+      }
+      map.set(r.message_id, arr);
+    }
+    return map;
+  }, [reactions, meUserId]);
+
+  // Smart hardware-back: if the action bar is open, close it; otherwise pop
+  // back to the inbox (the parent ChatScreen state) instead of jumping to Home.
+  const backHandler = useCallback((): boolean => {
+    if (actionFor) { setActionFor(null); return true; }
+    if (showAttachPicker) { setShowAttachPicker(false); return true; }
+    if (showScheduler) { setShowScheduler(false); return true; }
+    if (showScheduledList) { setShowScheduledList(false); return true; }
+    if (replyTo) { setReplyTo(null); return true; }
+    if (editingId) { setEditingId(null); setInput(""); return true; }
+    onBack();
+    return true;
+  }, [actionFor, showAttachPicker, showScheduler, showScheduledList, replyTo, editingId, onBack]);
+  useBackHandler(backHandler, true);
+
   // Track scheduled messages for this thread
   useEffect(() => {
     const refresh = () => setScheduled(listScheduledForThread(threadId));
     refresh();
     return subscribeScheduled(refresh);
   }, [threadId]);
+
 
   // Re-pin attachment if parent hands off a new one (e.g. opening a thread
   // from "Send to chat" after the view is already mounted).
@@ -328,46 +367,47 @@ export default function HumanChatView({
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"} animate-fade-in-up`}>
               <div className="max-w-[78%] relative">
                 {isAction && !isDeleted && (
-                  <div
-                    className={`absolute -top-9 ${mine ? "right-0" : "left-0"} flex items-center gap-1 rounded-full px-1.5 py-1 z-10`}
-                    style={{ background: "var(--navy)", boxShadow: "0 4px 14px rgba(0,0,0,0.25)" }}
-                  >
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleReply(m); }}
-                      className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
-                      style={{ color: "#fff" }}
+                  <div className={`absolute -top-[88px] ${mine ? "right-0" : "left-0"} z-10 flex flex-col items-stretch gap-1.5`}>
+                    {/* Quick emoji reaction bar — single tap, no separate emoji message */}
+                    <div
+                      className="flex items-center gap-0.5 rounded-full px-2 py-1.5"
+                      style={{ background: "var(--white)", boxShadow: "0 6px 18px rgba(0,0,0,0.18)", border: "1px solid var(--gray-light)" }}
                     >
-                      <Reply size={12} /> Reply
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleCopy(m); }}
-                      className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
-                      style={{ color: "#fff" }}
+                      {QUICK_REACTIONS.map((emo) => (
+                        <button
+                          key={emo}
+                          onClick={(e) => { e.stopPropagation(); void toggleReaction(m.id, emo); setActionFor(null); }}
+                          className="px-1.5 py-0.5 text-[18px] leading-none rounded-full hover:scale-125 transition-transform"
+                          aria-label={`React ${emo}`}
+                        >
+                          {emo}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Action chips */}
+                    <div className={`flex items-center gap-1 rounded-full px-1.5 py-1 ${mine ? "self-end" : "self-start"}`}
+                      style={{ background: "var(--navy)", boxShadow: "0 4px 14px rgba(0,0,0,0.25)" }}
                     >
-                      <Copy size={12} /> Copy
-                    </button>
-                    {mine && (
-                      <>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleStartEdit(m); }}
-                          className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
-                          style={{ color: "#fff" }}
-                          aria-label="Edit · تعديل"
-                        >
-                          <Pencil size={12} /> Edit
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(m); }}
-                          className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
-                          style={{ color: "#ff8a8a" }}
-                          aria-label="Delete · حذف"
-                        >
-                          <Trash2 size={12} /> Delete
-                        </button>
-                      </>
-                    )}
+                      <button onClick={(e) => { e.stopPropagation(); handleReply(m); }} className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press" style={{ color: "#fff" }}>
+                        <Reply size={12} /> Reply
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleCopy(m); }} className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press" style={{ color: "#fff" }}>
+                        <Copy size={12} /> Copy
+                      </button>
+                      {mine && (
+                        <>
+                          <button onClick={(e) => { e.stopPropagation(); handleStartEdit(m); }} className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press" style={{ color: "#fff" }} aria-label="Edit · تعديل">
+                            <Pencil size={12} /> Edit
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete(m); }} className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press" style={{ color: "#ff8a8a" }} aria-label="Delete · حذف">
+                            <Trash2 size={12} /> Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
+
                 <div
                   ref={(el) => { messageRefs.current[m.id] = el; }}
                   className="px-3.5 py-2.5 text-[13px] leading-relaxed transition-all"
@@ -437,10 +477,36 @@ export default function HumanChatView({
                     )}
                   </span>
                 </div>
+                {/* Reaction chips — grouped by emoji; tap your own to remove */}
+                {(() => {
+                  const rs = reactionsByMessage.get(m.id);
+                  if (!rs || rs.length === 0) return null;
+                  return (
+                    <div className={`flex flex-wrap gap-1 mt-1 ${mine ? "justify-end" : "justify-start"}`}>
+                      {rs.map((r) => (
+                        <button
+                          key={r.emoji}
+                          onClick={(e) => { e.stopPropagation(); void toggleReaction(m.id, r.emoji); }}
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] btn-press"
+                          style={{
+                            background: r.mine ? "rgba(197,150,90,0.18)" : "var(--white)",
+                            border: `1px solid ${r.mine ? "var(--gold)" : "var(--gray-light)"}`,
+                            color: "var(--ink)",
+                          }}
+                          aria-label={`${r.emoji} ${r.count}${r.mine ? " (you reacted)" : ""}`}
+                        >
+                          <span>{r.emoji}</span>
+                          {r.count > 1 && <span className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>{r.count}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );
         })}
+
         <div ref={bottomRef} />
       </div>
 

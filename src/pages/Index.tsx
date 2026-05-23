@@ -38,6 +38,7 @@ import ChatHeadBubble from "@/components/chat/ChatHeadBubble";
 import PushPermissionPrompt from "@/components/PushPermissionPrompt";
 import TabErrorBoundary from "@/components/TabErrorBoundary";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
+import { consumeBack } from "@/hooks/useBackHandler";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 
 
@@ -648,6 +649,12 @@ const Index = () => {
   const handleHardwareBack = useCallback((): boolean => {
     if (showScanner) { setShowScanner(false); return true; }
     if (pendingChatThreadId) { setPendingChatThreadId(null); return true; }
+    // Let any currently-mounted sub-screen pop its own internal stack first
+    // (e.g. an open chat thread returns to the inbox instead of jumping to
+    // Home). Only when no in-section back is left do we fall through to the
+    // tab→home reset.
+    if (consumeBack()) return true;
+
     if (appView !== "main" && appView !== "onboarding" && appView !== "login" && appView !== "role") {
       setAppView("main");
       return true;
@@ -658,6 +665,7 @@ const Index = () => {
     }
     return false;
   }, [showScanner, pendingChatThreadId, appView, activeTab]);
+
 
   useAndroidBackButton({
     onBack: handleHardwareBack,
