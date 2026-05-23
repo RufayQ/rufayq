@@ -1326,13 +1326,81 @@ export const Step2Review = ({
               </button>
             ))}
           </div>
+          {annotating && (
+            <div className="flex items-center justify-center gap-1.5 px-4 pb-1.5 flex-wrap">
+              {([
+                { k: "pen", icon: <PenLine size={14} />, label: "Pen" },
+                { k: "highlight", icon: <Highlighter size={14} />, label: "Highlighter" },
+                { k: "arrow", icon: <ArrowUpRight size={14} />, label: "Arrow" },
+                { k: "text", icon: <Type size={14} />, label: "Text" },
+              ] as const).map((t) => {
+                const active = annTool === t.k;
+                return (
+                  <button
+                    key={t.k}
+                    onClick={() => setAnnTool(t.k)}
+                    title={t.label}
+                    aria-pressed={active}
+                    className="w-9 h-9 rounded-lg flex items-center justify-center btn-press"
+                    style={{
+                      background: active ? "var(--gold)" : "rgba(255,255,255,0.06)",
+                      color: active ? "#fff" : "rgba(255,255,255,0.75)",
+                    }}
+                  >
+                    {t.icon}
+                  </button>
+                );
+              })}
+              <div className="w-px h-6 mx-1" style={{ background: "rgba(255,255,255,0.15)" }} />
+              {ANN_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setAnnColor(c)}
+                  aria-label={`Color ${c}`}
+                  aria-pressed={annColor === c}
+                  className="w-6 h-6 rounded-full btn-press"
+                  style={{
+                    background: c,
+                    border: annColor === c ? "2px solid var(--gold)" : "1px solid rgba(255,255,255,0.25)",
+                    boxShadow: annColor === c ? "0 0 0 2px rgba(0,0,0,0.4)" : undefined,
+                  }}
+                />
+              ))}
+              <div className="w-px h-6 mx-1" style={{ background: "rgba(255,255,255,0.15)" }} />
+              <button
+                onClick={undoAnnotation}
+                disabled={strokes.length === 0}
+                title="Undo"
+                className="w-9 h-9 rounded-lg flex items-center justify-center btn-press"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", opacity: strokes.length === 0 ? 0.4 : 1 }}
+              >
+                <Undo2 size={14} />
+              </button>
+              <button
+                onClick={clearAnnotations}
+                disabled={!hasAnnotations}
+                title="Clear annotations"
+                className="w-9 h-9 rounded-lg flex items-center justify-center btn-press"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", opacity: hasAnnotations ? 1 : 0.4 }}
+              >
+                <Trash2 size={14} />
+              </button>
+              <button
+                onClick={() => setAnnTool(null)}
+                className="text-[10px] font-bold btn-press ml-1"
+                style={{ color: "var(--gold)" }}
+              >
+                Done
+              </button>
+            </div>
+          )}
           {hasEdits && (
             <div className="flex items-center justify-center gap-3 px-4 pb-2">
               <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.55)" }}>
                 Edits will be baked in when you continue
               </p>
               <button
-                onClick={() => { setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0); setCrop({ top: 0, right: 0, bottom: 0, left: 0 }); setCropMode(false); }}
+                onClick={() => { setRotation(0); setBrightness(100); setContrast(100); setGrayscale(0); setCrop({ top: 0, right: 0, bottom: 0, left: 0 }); setCropMode(false); setStrokes([]); setDrawing(null); setAnnTool(null); }}
                 className="text-[10px] font-bold btn-press"
                 style={{ color: "var(--gold)" }}
               >
