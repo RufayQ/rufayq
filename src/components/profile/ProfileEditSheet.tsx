@@ -14,6 +14,7 @@ import AvatarUploader from "@/components/profile/AvatarUploader";
 import {
   formatPhone, validatePhone, validateDob, validateSaudiId,
   validateIqama, validatePassport, validateEmail,
+  validateArabicName, validateEnglishName,
 } from "@/lib/profile/validation";
 
 interface Props { onClose: () => void; onSaved?: () => void; initialTab?: TabId }
@@ -139,6 +140,8 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
   const validateAll = () => {
     const isSaudi = (nationality || "").toLowerCase().includes("saudi");
     const next: Record<string, string | null> = {
+      nameEn: validateEnglishName(nameEn, true).error,
+      nameAr: validateArabicName(nameAr, true).error,
       phone: validatePhone(phone).error,
       email: validateEmail(email).error,
       dob: validateDob(dob).error,
@@ -154,7 +157,8 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
     if (!validateAll()) {
       toast.error("Please fix the highlighted fields · صحّح الحقول");
       // Jump to first invalid tab
-      if (errors.phone || errors.email) setTab("contact");
+      if (errors.nameEn || errors.nameAr) setTab("identity");
+      else if (errors.phone || errors.email) setTab("contact");
       else if (errors.dob) setTab("demo");
       else if (errors.saudiId || errors.iqama || errors.passport) setTab("ids");
       return;
@@ -186,7 +190,7 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
   };
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode; hasError: boolean }[] = [
-    { id: "identity", label: "Identity", icon: <User size={13} />, hasError: false },
+    { id: "identity", label: "Identity", icon: <User size={13} />, hasError: !!(errors.nameEn || errors.nameAr) },
     { id: "contact", label: "Contact", icon: <PhoneIcon size={13} />, hasError: !!(errors.phone || errors.email) },
     { id: "demo", label: "Demographics", icon: <Globe size={13} />, hasError: !!errors.dob },
     { id: "ids", label: "IDs", icon: <IdCard size={13} />, hasError: !!(errors.saudiId || errors.iqama || errors.passport) },
@@ -228,8 +232,22 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
           <>
             {tab === "identity" && (
               <Section icon={<User size={13} />} title="Your name" titleAr="اسمك">
-                <Field label="FULL NAME (EN)" labelAr="الاسم بالإنجليزية" value={nameEn} onChange={setNameEn} placeholder="Your full name" maxLength={80} />
-                <Field label="FULL NAME (AR)" labelAr="الاسم بالعربية" value={nameAr} onChange={setNameAr} placeholder="اسمك الكامل" dir="rtl" maxLength={80} />
+                <Field
+                  label="FULL NAME (EN)" labelAr="الاسم بالإنجليزية"
+                  value={nameEn}
+                  onChange={(v) => { setNameEn(v); if (errors.nameEn) setErr("nameEn", null); }}
+                  onBlur={() => setErr("nameEn", validateEnglishName(nameEn, true).error)}
+                  placeholder="Your full name" maxLength={80}
+                  error={errors.nameEn} hint="English letters only · required"
+                />
+                <Field
+                  label="FULL NAME (AR)" labelAr="الاسم بالعربية"
+                  value={nameAr}
+                  onChange={(v) => { setNameAr(v); if (errors.nameAr) setErr("nameAr", null); }}
+                  onBlur={() => setErr("nameAr", validateArabicName(nameAr, true).error)}
+                  placeholder="اسمك الكامل" dir="rtl" maxLength={80}
+                  error={errors.nameAr} hint="أحرف عربية فقط · مطلوب"
+                />
               </Section>
             )}
             {tab === "contact" && (

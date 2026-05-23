@@ -246,7 +246,14 @@ const PersonalDetailsCard = ({ onEdit, reloadKey, onShareId }: Props) => {
       </div>
 
       <div className="px-3 pt-2 pb-3">
-        <Row icon={<IdCard size={14} />} label="SAUDI ID" labelAr="الهوية" value={data?.saudi_id ? mask(data.saudi_id) : ""} onCopy={data?.saudi_id ? () => copy(data.saudi_id!, "Saudi ID") : undefined} mono />
+        {(() => {
+          const isSaudi = (data?.nationality || "").toLowerCase().includes("saudi");
+          const idLabel = isSaudi ? "SAUDI ID" : "NATIONAL ID";
+          const idLabelAr = isSaudi ? "الهوية" : "الهوية الوطنية";
+          return (
+            <Row icon={<IdCard size={14} />} label={idLabel} labelAr={idLabelAr} value={data?.saudi_id ? mask(data.saudi_id) : ""} onCopy={data?.saudi_id ? () => copy(data.saudi_id!, idLabel) : undefined} mono />
+          );
+        })()}
         {data?.iqama_number && (
           <Row icon={<IdCard size={14} />} label="IQAMA" labelAr="الإقامة" value={mask(data.iqama_number)} onCopy={() => copy(data.iqama_number!, "Iqama")} mono />
         )}
