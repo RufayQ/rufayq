@@ -48,7 +48,12 @@ const QrScanSheet = ({ onClose, onDetected }: Props) => {
     };
     void start();
     return () => {
-      inst.stop().catch(() => {}).finally(() => inst.clear().catch(() => {}));
+      try {
+        const stopP = inst.stop();
+        Promise.resolve(stopP).catch(() => {}).finally(() => {
+          try { inst.clear(); } catch {}
+        });
+      } catch { /* not started */ }
     };
   }, [onDetected]);
 
