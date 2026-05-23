@@ -58,7 +58,7 @@ const DemographicsCard = ({ onEdit, reloadKey }: Props) => {
   const age = ageOf(row?.date_of_birth || null);
   const dob = formatDate(row?.date_of_birth || null);
   const langLabel = language === "ar" ? "العربية · Arabic" : language === "en" ? "English · الإنجليزية" : (language || "");
-  const residence = [row?.city, row?.country_of_residence].filter(Boolean).join(", ");
+  const residence = row?.nationality ? `KSA · ${row.nationality}` : "";
 
   return (
     <div className="mt-4 mx-4">
