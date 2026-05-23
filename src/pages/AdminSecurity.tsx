@@ -242,11 +242,35 @@ export default function AdminSecurity() {
           <Tile icon={EyeOff} label="Ignored" value={summary.ignored} tone="text-slate-400" />
           <Tile
             icon={Activity}
-            label="Push / cron health"
+            label="Scanner health"
             value={cronHealth === "ok" ? "OK" : cronHealth === "fail" ? "Fail" : "…"}
             tone={cronHealth === "ok" ? "text-emerald-300" : cronHealth === "fail" ? "text-rose-300" : "text-slate-400"}
           />
         </div>
+
+        {/* Last scan banner */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 flex flex-wrap items-center gap-3 text-xs">
+          <span className="text-slate-400">Last scan:</span>
+          {lastRun ? (
+            <>
+              <span className="text-slate-100 font-medium">{new Date(lastRun.ran_at).toLocaleString()}</span>
+              <span className={`px-1.5 py-0.5 rounded border text-[10px] uppercase ${
+                lastRun.status === "ok" ? "border-emerald-500/40 text-emerald-300"
+                : lastRun.status === "partial" ? "border-amber-500/40 text-amber-300"
+                : "border-rose-500/40 text-rose-300"
+              }`}>{lastRun.status}</span>
+              <span className="text-slate-500">via {lastRun.source}</span>
+              <span className="text-slate-500">· {lastRun.total} processed</span>
+              <span className="text-slate-500">· {lastRun.open} open</span>
+              <span className="text-slate-500">· {lastRun.fixed_now} newly fixed</span>
+              {lastRun.duration_ms != null && <span className="text-slate-500">· {lastRun.duration_ms}ms</span>}
+              {lastRun.error_summary && (
+                <span className="text-amber-300 italic" title={lastRun.error_summary}>· partial errors</span>
+              )}
+            </>
+          ) : (
+            <span className="text-slate-500">No scan recorded yet — click <strong className="text-emerald-300">Run scan</strong>.</span>
+          )}
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2 text-xs">
