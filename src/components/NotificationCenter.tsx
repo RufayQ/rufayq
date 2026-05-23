@@ -6,6 +6,7 @@ import { usePatientNotifications } from "@/hooks/usePatientNotifications";
 import { useChatInbox } from "@/hooks/useChatInbox";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNotificationPrefs, type NotificationCategoryId } from "@/hooks/useNotificationPrefs";
+import { humanizeChatPreview } from "@/lib/chat/chatAttachmentBody";
 
 interface Props {
   color?: string;
