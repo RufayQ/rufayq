@@ -57,6 +57,8 @@ export function useGlobalChat(activeThreadId?: string | null) {
   }, [enabled]);
 
   useEffect(() => { recompute(); }, [recompute]);
+  useEffect(() => { if (enabled) startScheduledTicker(); }, [enabled]);
+
 
   useEffect(() => {
     if (!enabled) return;
