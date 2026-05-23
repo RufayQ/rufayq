@@ -1071,12 +1071,18 @@ export const Step2Review = ({
     if (!ctx) throw new Error("no-canvas");
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, cw, ch);
-    ctx.save();
     ctx.filter = filterCss;
     ctx.translate(cw / 2, ch / 2);
     ctx.rotate((rotation * Math.PI) / 180);
     ctx.drawImage(img, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
-    ctx.restore();
+    // Reset transform + filter so annotation strokes paint in untransformed
+    // canvas-pixel space at full opacity.
+    ctx.setTransform?.(1, 0, 0, 1, 0, 0);
+    ctx.filter = "none";
+    // Annotations are in fractional coords of the visible image box; paint on
+    // top of the rasterized output so they survive every subsequent edit.
+    strokes.forEach((st) => paintStroke(ctx, st, cw, ch));
+    if (drawing) paintStroke(ctx, drawing, cw, ch);
     // Annotations are in fractional coords of the visible image box; paint on
     // top of the rasterized output so they survive every subsequent edit.
     strokes.forEach((st) => paintStroke(ctx, st, cw, ch));
