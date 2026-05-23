@@ -82,3 +82,24 @@ export const validateEmail = (v: string): FieldResult => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(t)) return { value: t, error: "Invalid email" };
   return { value: t, error: null };
 };
+
+/** Arabic name: Arabic letters, spaces, and common diacritics only. */
+export const validateArabicName = (v: string, required = true): FieldResult => {
+  const t = (v || "").trim();
+  if (!t) return { value: "", error: required ? "Arabic name is required · الاسم بالعربية مطلوب" : null };
+  const ok = /^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\s'’\-]+$/.test(t);
+  if (!ok) return { value: t, error: "Use Arabic letters only · أحرف عربية فقط" };
+  if (t.length < 2) return { value: t, error: "Name is too short · الاسم قصير جداً" };
+  return { value: t, error: null };
+};
+
+/** English name: Latin letters, spaces, hyphens, apostrophes, dots. */
+export const validateEnglishName = (v: string, required = true): FieldResult => {
+  const t = (v || "").trim();
+  if (!t) return { value: "", error: required ? "Full name is required · الاسم مطلوب" : null };
+  const ok = /^[A-Za-z][A-Za-z\s'’\-\.]+$/.test(t);
+  if (!ok) return { value: t, error: "Use English letters only" };
+  if (t.length < 2) return { value: t, error: "Name is too short" };
+  return { value: t, error: null };
+};
+
