@@ -110,36 +110,42 @@ const MedicalHistorySheet = ({ onClose }: Props) => {
     } as any, { onConflict: "device_id" });
 
     // Allergies: insert new rows + soft-delete removed + update edited existing rows.
-    const allergyOps: Promise<unknown>[] = [];
+    const allergyOps: Promise<{ error: unknown } | unknown>[] = [];
     if (removedAllergyIds.length) {
       allergyOps.push(
-        supabase.from("allergies")
-          .update({ deleted_at: new Date().toISOString() })
-          .in("id", removedAllergyIds),
+        Promise.resolve(
+          supabase.from("allergies")
+            .update({ deleted_at: new Date().toISOString() })
+            .in("id", removedAllergyIds),
+        ),
       );
     }
     for (const a of allergies) {
       if (!a.allergen.trim()) continue;
       if (a._new || !a.id) {
         allergyOps.push(
-          supabase.from("allergies").insert({
-            device_id,
-            user_id,
-            allergen: a.allergen.trim(),
-            severity: a.severity || null,
-            reaction: a.reaction.trim() || null,
-            notes: a.notes.trim() || null,
-            source: "manual",
-          }),
+          Promise.resolve(
+            supabase.from("allergies").insert({
+              device_id,
+              user_id,
+              allergen: a.allergen.trim(),
+              severity: a.severity || null,
+              reaction: a.reaction.trim() || null,
+              notes: a.notes.trim() || null,
+              source: "manual",
+            }),
+          ),
         );
       } else {
         allergyOps.push(
-          supabase.from("allergies").update({
-            allergen: a.allergen.trim(),
-            severity: a.severity || null,
-            reaction: a.reaction.trim() || null,
-            notes: a.notes.trim() || null,
-          }).eq("id", a.id),
+          Promise.resolve(
+            supabase.from("allergies").update({
+              allergen: a.allergen.trim(),
+              severity: a.severity || null,
+              reaction: a.reaction.trim() || null,
+              notes: a.notes.trim() || null,
+            }).eq("id", a.id),
+          ),
         );
       }
     }
