@@ -8249,6 +8249,16 @@ export type Database = {
         Returns: number
       }
       security_rescan_collect: { Args: never; Returns: Json }
+      security_scan_db: {
+        Args: never
+        Returns: {
+          description: string
+          internal_id: string
+          metadata: Json
+          severity: string
+          title: string
+        }[]
+      }
       set_chat_discovery: {
         Args: { _by_email: boolean; _by_phone: boolean }
         Returns: undefined
