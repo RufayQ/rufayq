@@ -232,8 +232,22 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
           <>
             {tab === "identity" && (
               <Section icon={<User size={13} />} title="Your name" titleAr="اسمك">
-                <Field label="FULL NAME (EN)" labelAr="الاسم بالإنجليزية" value={nameEn} onChange={setNameEn} placeholder="Your full name" maxLength={80} />
-                <Field label="FULL NAME (AR)" labelAr="الاسم بالعربية" value={nameAr} onChange={setNameAr} placeholder="اسمك الكامل" dir="rtl" maxLength={80} />
+                <Field
+                  label="FULL NAME (EN)" labelAr="الاسم بالإنجليزية"
+                  value={nameEn}
+                  onChange={(v) => { setNameEn(v); if (errors.nameEn) setErr("nameEn", null); }}
+                  onBlur={() => setErr("nameEn", validateEnglishName(nameEn, true).error)}
+                  placeholder="Your full name" maxLength={80}
+                  error={errors.nameEn} hint="English letters only · required"
+                />
+                <Field
+                  label="FULL NAME (AR)" labelAr="الاسم بالعربية"
+                  value={nameAr}
+                  onChange={(v) => { setNameAr(v); if (errors.nameAr) setErr("nameAr", null); }}
+                  onBlur={() => setErr("nameAr", validateArabicName(nameAr, true).error)}
+                  placeholder="اسمك الكامل" dir="rtl" maxLength={80}
+                  error={errors.nameAr} hint="أحرف عربية فقط · مطلوب"
+                />
               </Section>
             )}
             {tab === "contact" && (
