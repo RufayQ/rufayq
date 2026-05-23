@@ -14,6 +14,7 @@ import AvatarUploader from "@/components/profile/AvatarUploader";
 import {
   formatPhone, validatePhone, validateDob, validateSaudiId,
   validateIqama, validatePassport, validateEmail,
+  validateArabicName, validateEnglishName,
 } from "@/lib/profile/validation";
 
 interface Props { onClose: () => void; onSaved?: () => void; initialTab?: TabId }
