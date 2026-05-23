@@ -12,6 +12,7 @@ import ConnectedAccountsCard from "@/components/profile/ConnectedAccountsCard";
 import AvatarUploader from "@/components/profile/AvatarUploader";
 import ConnectionsCard from "@/components/profile/ConnectionsCard";
 import ProfileEditSheet from "@/components/profile/ProfileEditSheet";
+import PersonalDetailsCard from "@/components/profile/PersonalDetailsCard";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -127,12 +128,8 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
         </div>
 
         <div className="flex-1 overflow-y-auto pb-6" style={{ background: "var(--off-white)" }}>
+          <PersonalDetailsCard key={editTick} onEdit={() => setShowEditProfile(true)} reloadKey={editTick} />
           <ConnectionsCard />
-          <div className="mx-4 mt-3 rounded-xl p-4" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-            <p className="text-[14px] font-semibold" style={{ color: "var(--navy)" }}>No demo identity data is shown for signed-in users.</p>
-            <p className="text-[12px] mt-1" style={{ color: "var(--gray)" }}>Your personal details will appear here once connected to your account records.</p>
-            <p className="font-arabic text-[11px] mt-1" dir="rtl" style={{ color: "var(--gray)" }}>لن تظهر أي بيانات تجريبية للمستخدمين المسجلين، وستظهر بياناتك هنا عند ربطها بحسابك.</p>
-          </div>
 
           <div className="mt-4 mx-4">
             <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>MEDICAL</p>
