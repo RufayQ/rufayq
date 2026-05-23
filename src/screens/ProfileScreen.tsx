@@ -105,7 +105,15 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
   const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
   const { count: pendingClaims } = usePendingClaimsCount();
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editInitialTab, setEditInitialTab] = useState<"identity" | "contact" | "demo" | "ids" | undefined>(undefined);
   const [editTick, setEditTick] = useState(0);
+  const [showShareQr, setShowShareQr] = useState(false);
+
+  const openEdit = (tab?: string) => {
+    const valid = ["identity", "contact", "demo", "ids"] as const;
+    setEditInitialTab((valid as readonly string[]).includes(tab || "") ? (tab as typeof valid[number]) : undefined);
+    setShowEditProfile(true);
+  };
 
   useEffect(() => { setEmergencyContacts(loadEmergencyContacts()); }, []);
 
