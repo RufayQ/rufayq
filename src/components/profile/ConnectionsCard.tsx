@@ -129,6 +129,13 @@ const ConnectionsCard = () => {
           onSaved={() => { setPending(null); refresh(); }}
         />
       )}
+      {detail && (
+        <ConnectionDetailSheet
+          connection={detail}
+          onClose={() => setDetail(null)}
+          onChanged={refresh}
+        />
+      )}
     </div>
   );
 };
