@@ -28,10 +28,9 @@ type MessageLite = {
   sender_device_id: string | null;
 };
 
-type SharedItem =
-  | { type: "media"; messageId: string; payload: ChatAttachmentPayload; createdAt: string }
-  | { type: "doc"; messageId: string; payload: ChatAttachmentPayload; createdAt: string }
-  | { type: "link"; messageId: string; url: string; createdAt: string };
+type MediaItem = { messageId: string; payload: ChatAttachmentPayload; createdAt: string };
+type DocItem = { messageId: string; payload: ChatAttachmentPayload; createdAt: string };
+type LinkItem = { messageId: string; url: string; createdAt: string };
 
 export default function ConversationProfile({ threadId, title, kind, onBack }: Props) {
   const [data, setData] = useState<ProfileData | null>(null);
