@@ -38,8 +38,9 @@ const Field = ({
       className={`w-full px-3.5 py-3 rounded-xl text-[14px] outline-none transition-all focus:ring-2 focus:ring-offset-0 ${dir === "rtl" ? "font-arabic text-right" : ""}`}
       style={{
         background: "#ffffff",
-        border: `1.5px solid ${error ? "#E5564A" : "var(--gray-light)"}`,
+        border: `1.5px solid ${error ? "#E5564A" : "rgba(11,26,42,0.18)"}`,
         color: "var(--navy)",
+        minHeight: 46,
         boxShadow: "0 1px 2px rgba(11,26,42,0.04)",
       }}
     />
@@ -136,11 +137,12 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
   }, [deviceId]);
 
   const validateAll = () => {
+    const isSaudi = (nationality || "").toLowerCase().includes("saudi");
     const next: Record<string, string | null> = {
       phone: validatePhone(phone).error,
       email: validateEmail(email).error,
       dob: validateDob(dob).error,
-      saudiId: validateSaudiId(saudiId).error,
+      saudiId: isSaudi ? validateSaudiId(saudiId).error : null,
       iqama: validateIqama(iqama).error,
       passport: validatePassport(passport).error,
     };
@@ -265,34 +267,52 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
                   options={NATIONALITIES.map((n) => ({ v: n, l: n }))} />
               </Section>
             )}
-            {tab === "ids" && (
+            {tab === "ids" && (() => {
+              const isSaudi = (nationality || "").toLowerCase().includes("saudi");
+              const isGcc = ["united arab emirates","kuwait","bahrain","qatar","oman"].some(c => (nationality||"").toLowerCase().includes(c));
+              const idLabel = isSaudi ? "SAUDI NATIONAL ID" : "NATIONAL ID";
+              const idLabelAr = isSaudi ? "رقم الهوية الوطنية" : "رقم الهوية الوطنية / بطاقة الجنسية";
+              const idPlaceholder = isSaudi
+                ? "10 digits starting with 1 or 2"
+                : "Enter your national ID";
+              const idHint = isSaudi
+                ? "Citizens: 1•••, residents: 2•••"
+                : `For ${nationality || "your country"} — as printed on your ID card`;
+              return (
               <Section icon={<IdCard size={13} />} title="Identity documents" titleAr="وثائق الهوية">
                 <Field
-                  label="SAUDI NATIONAL ID" labelAr="رقم الهوية الوطنية"
+                  label={idLabel} labelAr={idLabelAr}
                   value={saudiId}
                   onChange={(v) => {
-                    const cleaned = v.replace(/\D+/g, "").slice(0, 10);
+                    const cleaned = isSaudi
+                      ? v.replace(/\D+/g, "").slice(0, 10)
+                      : v.replace(/[^A-Za-z0-9\-\s]/g, "").slice(0, 20);
                     setSaudiId(cleaned);
                     if (errors.saudiId) setErr("saudiId", null);
                   }}
-                  onBlur={() => setErr("saudiId", validateSaudiId(saudiId).error)}
-                  placeholder="10 digits starting with 1 or 2"
-                  inputMode="numeric" maxLength={10}
-                  error={errors.saudiId} hint="Citizens: 1•••, residents: 2•••"
+                  onBlur={() => isSaudi && setErr("saudiId", validateSaudiId(saudiId).error)}
+                  placeholder={idPlaceholder}
+                  inputMode={isSaudi ? "numeric" : "text"}
+                  maxLength={isSaudi ? 10 : 20}
+                  error={isSaudi ? errors.saudiId : null}
+                  hint={idHint}
                 />
-                <Field
-                  label="IQAMA NUMBER" labelAr="رقم الإقامة"
-                  value={iqama}
-                  onChange={(v) => {
-                    const cleaned = v.replace(/\D+/g, "").slice(0, 10);
-                    setIqama(cleaned);
-                    if (errors.iqama) setErr("iqama", null);
-                  }}
-                  onBlur={() => setErr("iqama", validateIqama(iqama).error)}
-                  placeholder="10 digits (optional)"
-                  inputMode="numeric" maxLength={10}
-                  error={errors.iqama}
-                />
+                {(isSaudi || isGcc) && (
+                  <Field
+                    label="IQAMA NUMBER" labelAr="رقم الإقامة"
+                    value={iqama}
+                    onChange={(v) => {
+                      const cleaned = v.replace(/\D+/g, "").slice(0, 10);
+                      setIqama(cleaned);
+                      if (errors.iqama) setErr("iqama", null);
+                    }}
+                    onBlur={() => setErr("iqama", validateIqama(iqama).error)}
+                    placeholder="10 digits (optional)"
+                    inputMode="numeric" maxLength={10}
+                    error={errors.iqama}
+                    hint="For residents of Saudi Arabia"
+                  />
+                )}
                 <Field
                   label="PASSPORT NUMBER" labelAr="رقم جواز السفر"
                   value={passport}
@@ -307,7 +327,8 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
                   error={errors.passport} hint="6–9 letters/digits"
                 />
               </Section>
-            )}
+              );
+            })()}
 
             <button onClick={save} disabled={saving} className="w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2 btn-press mt-2 shadow-lg" style={{ background: "var(--teal-deep)", opacity: saving ? 0.7 : 1 }}>
               {saving ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}
