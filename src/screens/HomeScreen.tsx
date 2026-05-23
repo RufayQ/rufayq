@@ -28,7 +28,7 @@ interface HomeScreenProps {
 
 const HomeScreen = ({ onNavigate, onProfile, isGuest = false }: HomeScreenProps) => {
   const { patientName, patientNameAr } = usePatientName();
-  const { showEn, showAr } = useLanguage();
+  // showEn/showAr no longer needed here.
   const overview = useJourneyOverview({ isGuest });
   const { journeys } = useJourneys(isGuest ? [] : []);
   // (medical records list is no longer needed here — count comes from useUnifiedRecordCount)
