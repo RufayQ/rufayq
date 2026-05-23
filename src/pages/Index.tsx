@@ -347,7 +347,7 @@ const Index = () => {
     // Travel-side scanned docs (visa/passport/residency, etc.) land in the
     // Travel Records tab — not Medical. We use a local store so guest sessions
     // and non-attachment scanner flows still surface the document immediately.
-    const isTravelDoc = category === "legal";
+    const isTravelDoc = isTravelCategory(category);
     if (isTravelDoc) {
       try {
         addTravelScannedRecord({
