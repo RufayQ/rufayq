@@ -101,6 +101,20 @@ export function useChatThread(threadId: string | null) {
           });
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },
+        (payload) => {
+          const raw = payload.new as ChatMessageRow;
+          setMessages((prev) =>
+            prev.map((x) =>
+              x.id === raw.id
+                ? { ...x, body: raw.body, edited_at: raw.edited_at, edit_history: raw.edit_history, deleted_at: raw.deleted_at }
+                : x,
+            ),
+          );
+        },
+      )
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [threadId, hydrateReplies]);
