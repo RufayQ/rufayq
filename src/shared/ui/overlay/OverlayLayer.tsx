@@ -1,6 +1,7 @@
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useBodyScrollLock, useOverlayBack } from "./useOverlayBack";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
 export type OverlayLayerType = "picker" | "sheet" | "preview" | "scanner";
 
