@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ChevronRight, LogOut, Shield, AlertTriangle, Copy, Eye, EyeOff, Phone } from "lucide-react";
+import { ArrowLeft, ChevronRight, LogOut, Shield, AlertTriangle, Copy, Eye, EyeOff, Phone, Pencil } from "lucide-react";
 import LogoMark from "@/components/LogoMark";
 import { toast } from "sonner";
 import MedicalHistorySheet from "@/components/MedicalHistorySheet";
