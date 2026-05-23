@@ -30,7 +30,7 @@
     <meta name="description" content="Bilingual EN/AR AI companion for patients traveling abroad — medical, cultural & beyond." />
     <meta name="author" content="RufayQ" />
     <meta name="keywords" content="medical tourism app, Saudi medical travel, Gulf medical companion, bilingual medical AI, treatment abroad, Arabic English medical translator, RufayQ, medical journey tracker" />
-    <meta name="theme-color" content="#0B2A3A" />
+    <meta name="theme-color" content="#06101A" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
     <meta name="googlebot" content="index, follow" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -66,11 +66,15 @@
       .lazy-section{content-visibility:auto;contain-intrinsic-size:1px 600px}
       /* SSG-style hero skeleton — paints from HTML alone, before React/CSS bundle loads.
          Removed automatically when React mounts (overwrites #root). Renders FCP+LCP at <1s. */
-      .ssg-hero{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#06101A}
-      .ssg-hero-inner{max-width:640px;text-align:center}
-      .ssg-badge{display:inline-block;padding:6px 12px;border-radius:999px;font-size:10px;letter-spacing:.1em;color:#C5965A;background:rgba(197,150,90,.08);border:1px solid rgba(197,150,90,.2);margin-bottom:24px;font-family:ui-monospace,monospace}
+      .ssg-hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#06101A;overflow:hidden;isolation:isolate}
+      .ssg-hero::before,.ssg-hero::after{content:"";position:absolute;border-radius:9999px;filter:blur(110px);pointer-events:none;z-index:-1}
+      .ssg-hero::before{top:-10%;left:15%;width:600px;height:600px;background:radial-gradient(circle,#0FB5C9 0%,transparent 70%);opacity:.30}
+      .ssg-hero::after{bottom:-10%;right:-5%;width:500px;height:500px;background:radial-gradient(circle,#C5965A 0%,transparent 70%);opacity:.25}
+      .ssg-hero-grid{position:absolute;inset:0;z-index:-1;opacity:.03;background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+      .ssg-hero-inner{position:relative;max-width:640px;text-align:center;z-index:1}
+      .ssg-badge{display:inline-flex;align-items:center;gap:10px;padding:6px 14px;border-radius:999px;font-size:10px;letter-spacing:.1em;color:#C5965A;background:rgba(197,150,90,.08);border:1px solid rgba(255,255,255,.08);margin-bottom:28px;font-family:ui-monospace,monospace}
       .ssg-h1{font-family:'Cormorant Garamond','DM Sans',Georgia,serif;font-weight:300;font-size:clamp(40px,8vw,72px);line-height:1.05;letter-spacing:-.02em;margin:0 0 20px;color:#E8ECF0}
-      .ssg-h1-accent{background:linear-gradient(120deg,#C5965A,#E6B575);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+      .ssg-h1-accent{background:linear-gradient(120deg,#C5965A 0%,#E6B575 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
       .ssg-p{font-size:16px;line-height:1.55;max-width:480px;margin:0 auto 28px;color:rgba(232,236,240,.6)}
       .ssg-cta{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:999px;background:#C5965A;color:#06101A;font-weight:600;font-size:14px;text-decoration:none;box-shadow:0 10px 40px rgba(197,150,90,.25)}
     </style>
@@ -220,7 +224,7 @@
   </head>
 
   <body>
-    <div id="root"><div class="ssg-hero"><div class="ssg-hero-inner"><span class="ssg-badge">AI COMPANION · MEDICAL, CULTURAL &amp; BEYOND</span><h1 class="ssg-h1">Your AI Companion for<br><span class="ssg-h1-accent">Every Journey</span></h1><p class="ssg-p">Healing abroad shouldn&rsquo;t mean going it alone. RufayQ speaks your language, guards your medical records, and takes care of your family &mdash; from your first appointment to the day you land back home.</p><a href="/auth" class="ssg-cta">Start free &rarr;</a></div></div></div>
+    <div id="root"><div class="ssg-hero"><div class="ssg-hero-grid" aria-hidden="true"></div><div class="ssg-hero-inner"><span class="ssg-badge">AI COMPANION · MEDICAL, CULTURAL &amp; BEYOND</span><h1 class="ssg-h1">Your AI Companion for<br><span class="ssg-h1-accent">Every Journey</span></h1><p class="ssg-p">Healing abroad shouldn&rsquo;t mean going it alone. RufayQ speaks your language, guards your medical records, and takes care of your family &mdash; from your first appointment to the day you land back home.</p><a href="/auth" class="ssg-cta">Start free &rarr;</a></div></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
