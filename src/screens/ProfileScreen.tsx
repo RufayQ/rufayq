@@ -141,13 +141,22 @@ const ProfileScreen = ({ onBack, onLogout }: ProfileScreenProps) => {
           <ConnectionsCard />
 
           <div className="mt-4 mx-4">
-            <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>MEDICAL</p>
-            <div className="rounded-xl overflow-hidden" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
-              <SettingRow label="Past Medical History" labelAr="التاريخ المرضي السابق" value="View / Edit" onClick={() => setShowHistory(true)} />
-              <SettingRow label="Surgical History" labelAr="التاريخ الجراحي" value="View / Edit" onClick={() => setShowHistory(true)} />
-              <SettingRow label="Family History" labelAr="التاريخ العائلي" value="View / Edit" onClick={() => setShowHistory(true)} />
-            </div>
+            <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>MEDICAL · طبي</p>
+            <button onClick={() => setShowHistory(true)} className="w-full rounded-xl overflow-hidden btn-press flex items-center justify-between px-4 py-3 text-left" style={{ background: "var(--white)", border: "1px solid var(--gray-light)" }}>
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--teal-light)", color: "var(--teal-deep)" }}>
+                  <Shield size={15} />
+                </span>
+                <div>
+                  <p className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>Medical history</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>التاريخ المرضي والجراحي والعائلي</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: "var(--gray)" }}>Past · Surgical · Family</p>
+                </div>
+              </div>
+              <ChevronRight size={14} style={{ color: "var(--gray)" }} />
+            </button>
           </div>
+
 
           <div className="mt-4 mx-4">
             <p className="font-mono text-[10px] tracking-widest mb-1 px-1" style={{ color: "var(--gold)" }}>PROVIDER ACCESS</p>
