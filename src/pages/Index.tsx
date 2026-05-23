@@ -38,7 +38,8 @@ import ChatHeadBubble from "@/components/chat/ChatHeadBubble";
 import PushPermissionPrompt from "@/components/PushPermissionPrompt";
 import TabErrorBoundary from "@/components/TabErrorBoundary";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
-import { consumeBack } from "@/hooks/useBackHandler";
+import { consumeBack, logBackBranch } from "@/hooks/useBackHandler";
+import BackDebugOverlay from "@/components/dev/BackDebugOverlay";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 
 
