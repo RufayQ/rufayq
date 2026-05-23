@@ -30,7 +30,7 @@ export type ChatMessageRow = {
 };
 
 const SELECT_COLS =
-  "id, thread_id, sender_kind, sender_device_id, sender_org_id, body, metadata, created_at, reply_to_id";
+  "id, thread_id, sender_kind, sender_device_id, sender_org_id, body, metadata, created_at, reply_to_id, edited_at, edit_history, deleted_at";
 
 /** Loads messages for a single thread and subscribes to new ones in realtime. */
 export function useChatThread(threadId: string | null) {
