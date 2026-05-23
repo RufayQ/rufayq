@@ -77,12 +77,46 @@ export default function HumanChatView({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const me = getDeviceId();
 
+  // Emoji reactions on individual messages
+  const messageIds = useMemo(() => messages.map((m) => m.id).filter((id) => !id.startsWith("temp-")), [messages]);
+  const { reactions, toggle: toggleReaction, me: meUserId } = useMessageReactions(threadId, messageIds);
+  const reactionsByMessage = useMemo(() => {
+    const map = new Map<string, { emoji: string; count: number; mine: boolean }[]>();
+    for (const r of reactions) {
+      const arr = map.get(r.message_id) ?? [];
+      const existing = arr.find((x) => x.emoji === r.emoji);
+      if (existing) {
+        existing.count += 1;
+        if (r.user_id === meUserId) existing.mine = true;
+      } else {
+        arr.push({ emoji: r.emoji, count: 1, mine: r.user_id === meUserId });
+      }
+      map.set(r.message_id, arr);
+    }
+    return map;
+  }, [reactions, meUserId]);
+
+  // Smart hardware-back: if the action bar is open, close it; otherwise pop
+  // back to the inbox (the parent ChatScreen state) instead of jumping to Home.
+  const backHandler = useCallback((): boolean => {
+    if (actionFor) { setActionFor(null); return true; }
+    if (showAttachPicker) { setShowAttachPicker(false); return true; }
+    if (showScheduler) { setShowScheduler(false); return true; }
+    if (showScheduledList) { setShowScheduledList(false); return true; }
+    if (replyTo) { setReplyTo(null); return true; }
+    if (editingId) { setEditingId(null); setInput(""); return true; }
+    onBack();
+    return true;
+  }, [actionFor, showAttachPicker, showScheduler, showScheduledList, replyTo, editingId, onBack]);
+  useBackHandler(backHandler, true);
+
   // Track scheduled messages for this thread
   useEffect(() => {
     const refresh = () => setScheduled(listScheduledForThread(threadId));
     refresh();
     return subscribeScheduled(refresh);
   }, [threadId]);
+
 
   // Re-pin attachment if parent hands off a new one (e.g. opening a thread
   // from "Send to chat" after the view is already mounted).
