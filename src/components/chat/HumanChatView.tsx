@@ -322,10 +322,12 @@ export default function HumanChatView({
           const seen = mine && !!othersLastReadAt && othersLastReadAt >= m.created_at && m.status !== "sending" && m.status !== "failed";
           const isAction = actionFor === m.id;
           const quoteMine = m.reply_to ? m.reply_to.sender_device_id === me : false;
+          const isDeleted = !!m.deleted_at;
+          const isEdited = !!m.edited_at && !isDeleted;
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"} animate-fade-in-up`}>
               <div className="max-w-[78%] relative">
-                {isAction && (
+                {isAction && !isDeleted && (
                   <div
                     className={`absolute -top-9 ${mine ? "right-0" : "left-0"} flex items-center gap-1 rounded-full px-1.5 py-1 z-10`}
                     style={{ background: "var(--navy)", boxShadow: "0 4px 14px rgba(0,0,0,0.25)" }}
@@ -344,6 +346,26 @@ export default function HumanChatView({
                     >
                       <Copy size={12} /> Copy
                     </button>
+                    {mine && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStartEdit(m); }}
+                          className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
+                          style={{ color: "#fff" }}
+                          aria-label="Edit · تعديل"
+                        >
+                          <Pencil size={12} /> Edit
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(m); }}
+                          className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] btn-press"
+                          style={{ color: "#ff8a8a" }}
+                          aria-label="Delete · حذف"
+                        >
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
                 <div
@@ -351,14 +373,16 @@ export default function HumanChatView({
                   className="px-3.5 py-2.5 text-[13px] leading-relaxed transition-all"
                   dir="auto"
                   style={{
-                    background: mine ? "var(--teal-deep)" : "var(--white)",
-                    color: mine ? "#fff" : "var(--ink)",
+                    background: isDeleted ? "var(--off-white)" : mine ? "var(--teal-deep)" : "var(--white)",
+                    color: isDeleted ? "var(--gray)" : mine ? "#fff" : "var(--ink)",
                     borderRadius: mine ? "14px 3px 14px 14px" : "3px 14px 14px 14px",
-                    boxShadow: mine ? "0 3px 12px rgba(0,77,91,0.20)" : "0 2px 8px rgba(0,0,0,0.05)",
+                    boxShadow: isDeleted ? "none" : mine ? "0 3px 12px rgba(0,77,91,0.20)" : "0 2px 8px rgba(0,0,0,0.05)",
+                    border: isDeleted ? "1px dashed var(--gray-light)" : undefined,
+                    fontStyle: isDeleted ? "italic" : undefined,
                     whiteSpace: "pre-wrap",
                     opacity: m.status === "sending" ? 0.85 : 1,
                   }}
-                  onContextMenu={(e) => { e.preventDefault(); setActionFor(m.id); }}
+                  onContextMenu={(e) => { if (!isDeleted) { e.preventDefault(); setActionFor(m.id); } }}
                   onTouchStart={() => startLongPress(m)}
                   onTouchEnd={cancelLongPress}
                   onTouchMove={cancelLongPress}
@@ -366,7 +390,7 @@ export default function HumanChatView({
                   onMouseUp={cancelLongPress}
                   onMouseLeave={cancelLongPress}
                 >
-                  {m.reply_to && (
+                  {m.reply_to && !isDeleted && (
                     <button
                       onClick={(e) => { e.stopPropagation(); m.reply_to && scrollToMessage(m.reply_to.id); }}
                       className="block w-full text-left rounded-lg px-2 py-1.5 mb-1.5"
@@ -389,10 +413,17 @@ export default function HumanChatView({
                       </p>
                     </button>
                   )}
-                  {renderBodyWithLinks(m.body, mine)}
+                  {isDeleted ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Trash2 size={11} /> Message deleted · رسالة محذوفة
+                    </span>
+                  ) : (
+                    renderBodyWithLinks(m.body, mine)
+                  )}
                   <span className="flex items-center gap-1 font-mono text-[9px] mt-1" style={{ opacity: 0.7, direction: "ltr", justifyContent: mine ? "flex-end" : "flex-start" }}>
+                    {isEdited && <span style={{ fontStyle: "italic" }}>edited ·</span>}
                     <span>{time}</span>
-                    {mine && <MessageTicks status={m.status} seen={seen} />}
+                    {mine && !isDeleted && <MessageTicks status={m.status} seen={seen} />}
                     {mine && m.status === "failed" && (
                       <button
                         onClick={() => retry(m.id)}
