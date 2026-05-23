@@ -140,6 +140,8 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
   const validateAll = () => {
     const isSaudi = (nationality || "").toLowerCase().includes("saudi");
     const next: Record<string, string | null> = {
+      nameEn: validateEnglishName(nameEn, true).error,
+      nameAr: validateArabicName(nameAr, true).error,
       phone: validatePhone(phone).error,
       email: validateEmail(email).error,
       dob: validateDob(dob).error,
@@ -155,7 +157,8 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
     if (!validateAll()) {
       toast.error("Please fix the highlighted fields · صحّح الحقول");
       // Jump to first invalid tab
-      if (errors.phone || errors.email) setTab("contact");
+      if (errors.nameEn || errors.nameAr) setTab("identity");
+      else if (errors.phone || errors.email) setTab("contact");
       else if (errors.dob) setTab("demo");
       else if (errors.saudiId || errors.iqama || errors.passport) setTab("ids");
       return;
