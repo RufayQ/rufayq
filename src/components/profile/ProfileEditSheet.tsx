@@ -190,7 +190,7 @@ const ProfileEditSheet = ({ onClose, onSaved, initialTab }: Props) => {
   };
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode; hasError: boolean }[] = [
-    { id: "identity", label: "Identity", icon: <User size={13} />, hasError: false },
+    { id: "identity", label: "Identity", icon: <User size={13} />, hasError: !!(errors.nameEn || errors.nameAr) },
     { id: "contact", label: "Contact", icon: <PhoneIcon size={13} />, hasError: !!(errors.phone || errors.email) },
     { id: "demo", label: "Demographics", icon: <Globe size={13} />, hasError: !!errors.dob },
     { id: "ids", label: "IDs", icon: <IdCard size={13} />, hasError: !!(errors.saudiId || errors.iqama || errors.passport) },
