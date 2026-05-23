@@ -252,6 +252,7 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], draftId = "curre
   const [traveler, setTraveler] = useState<TravelerKind>("patient");
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const { goToPricing } = useUpgradeRoute();
 
   // ── Draft autosave / recovery ─────────────────────────────────────────────
   // Holds a draft that hasn't been hydrated yet (so we can show a banner that
@@ -784,7 +785,7 @@ const ManualFlightEntrySheet = ({ initial, documentImages = [], draftId = "curre
         variant="subscriber"
         plan={trial.hasTrial ? "trial" : undefined}
         onClose={() => setShowUpgrade(false)}
-        onUpgrade={() => { setShowUpgrade(false); window.location.hash = "#/pricing"; }}
+        onUpgrade={() => { setShowUpgrade(false); goToPricing(); }}
       />
     </div>
   );
