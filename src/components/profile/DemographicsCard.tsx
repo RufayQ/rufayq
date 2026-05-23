@@ -44,12 +44,13 @@ const DemographicsCard = ({ onEdit, reloadKey }: Props) => {
     let cancelled = false;
     (async () => {
       const device_id = getDeviceId();
-      const { data } = await supabase.from("profiles")
-        .select("date_of_birth, gender, nationality, preferred_language")
+      const { data, error } = await supabase.from("profiles")
+        .select("date_of_birth, gender, nationality")
         .eq("device_id", device_id).maybeSingle();
       if (cancelled) return;
+      if (error) console.warn("DemographicsCard load:", error.message);
       setRow(data || {});
-      setLanguage((data as any)?.preferred_language || (typeof localStorage !== "undefined" ? localStorage.getItem("rufayq.language") : null));
+      setLanguage(typeof localStorage !== "undefined" ? localStorage.getItem("rufayq.language") : null);
     })();
     return () => { cancelled = true; };
   }, [reloadKey]);
