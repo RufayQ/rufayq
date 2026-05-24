@@ -106,11 +106,14 @@ serve(async (req) => {
     if (fileDataUrl) images.push(fileDataUrl);
 
     if (images.length === 0 && !text) return json({ error: "file(s) (data URL) or text required" }, 400);
+    if (images.length > 5) return json({ error: "Max 5 images per request" }, 400);
     for (const u of images) {
       if (!/^data:image\//.test(u)) {
         return json({ error: "files must be image data URLs (convert PDF pages to images client-side)" }, 400);
       }
     }
+    const totalBytes = images.reduce((n, u) => n + u.length, 0);
+    if (totalBytes > 10_000_000) return json({ error: "Image payload too large (max 10 MB)" }, 413);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "AI not configured" }, 500);
