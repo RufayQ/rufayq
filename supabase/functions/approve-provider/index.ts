@@ -79,9 +79,18 @@ Deno.serve(async (req) => {
     });
 
     if (cErr) {
-      // If user already exists, look them up and reset their password
-      const { data: list } = await admin.auth.admin.listUsers();
-      const existing = list?.users?.find((u) => u.email?.toLowerCase() === app.contact_email.toLowerCase());
+      // If user already exists, paginate through all auth users to locate them.
+      const perPage = 1000;
+      const needle = app.contact_email.toLowerCase();
+      let existing: { id: string; email?: string } | undefined;
+      for (let page = 1; page <= 50; page++) {
+        const { data: list, error: listErr } = await admin.auth.admin.listUsers({ page, perPage });
+        if (listErr) break;
+        const users = list?.users ?? [];
+        existing = users.find((u) => u.email?.toLowerCase() === needle);
+        if (existing) break;
+        if (users.length < perPage) break;
+      }
       if (existing) {
         providerUserId = existing.id;
         userExisted = true;

@@ -69,8 +69,17 @@ Deno.serve(async (req) => {
     } else {
       const isDup = cErr?.message?.toLowerCase().includes("already") || cErr?.message?.toLowerCase().includes("registered");
       if (!isDup) return j({ error: cErr?.message || "Failed to create auth user." }, 400);
-      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const match = list?.users.find((u) => u.email?.toLowerCase() === email);
+      // Paginate through all auth users (handles instances with >200 accounts).
+      const perPage = 1000;
+      let match: { id: string } | undefined;
+      for (let page = 1; page <= 50; page++) {
+        const { data: list, error: listErr } = await admin.auth.admin.listUsers({ page, perPage });
+        if (listErr) break;
+        const users = list?.users ?? [];
+        match = users.find((u) => u.email?.toLowerCase() === email);
+        if (match) break;
+        if (users.length < perPage) break;
+      }
       if (!match) return j({ error: "User exists but could not be located." }, 500);
       userId = match.id;
       alreadyExisted = true;
