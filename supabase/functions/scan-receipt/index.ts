@@ -61,6 +61,9 @@ serve(async (req) => {
     if (!imageDataUrl || !imageDataUrl.startsWith("data:image/")) {
       return json({ error: "image (data URL) required" }, 400);
     }
+    if (imageDataUrl.length > 10_000_000) {
+      return json({ error: "Image payload too large (max 10 MB)" }, 413);
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "AI not configured" }, 500);
