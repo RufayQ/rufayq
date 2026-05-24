@@ -162,11 +162,19 @@ Deno.serve(async (req) => {
     if (created?.user?.id) {
       userId = created.user.id;
     } else if (createErr) {
-      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const match = list?.users.find((u) =>
-        usingEmail ? u.email?.toLowerCase() === identity.toLowerCase() : u.phone === identity.replace(/^\+/, "")
-      );
-      if (match) userId = match.id;
+      // Paginate through all auth users to locate existing account (handles >200 users).
+      const perPage = 1000;
+      const needle = usingEmail ? identity.toLowerCase() : identity.replace(/^\+/, "");
+      for (let page = 1; page <= 50; page++) {
+        const { data: list, error: listErr } = await admin.auth.admin.listUsers({ page, perPage });
+        if (listErr) break;
+        const users = list?.users ?? [];
+        const match = users.find((u) =>
+          usingEmail ? u.email?.toLowerCase() === needle : u.phone === needle
+        );
+        if (match) { userId = match.id; break; }
+        if (users.length < perPage) break;
+      }
     }
 
     if (!userId) {
