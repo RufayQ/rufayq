@@ -68,21 +68,24 @@ Deno.serve(async (req) => {
   try { earlyBody = await req.clone().json(); } catch { /* ignore */ }
   if (earlyBody?.health === true) {
     const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
-    let vaultMatch = false;
-    if (cronSecret) {
-      const sb = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      );
-      let check = await sb.rpc("verify_cron_secret", { _provided: cronSecret });
-      if (check.data !== true) {
-        // First run after env was provisioned — mirror env value into the
-        // Vault so the chat_message_dispatch_push trigger can use it.
-        await sb.rpc("sync_cron_secret_to_vault", { _value: cronSecret });
-        check = await sb.rpc("verify_cron_secret", { _provided: cronSecret });
-      }
-      vaultMatch = check.data === true;
+    const providedHealth = req.headers.get("x-cron-secret") ?? "";
+    if (!cronSecret || providedHealth !== cronSecret) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+    let vaultMatch = false;
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    let check = await sb.rpc("verify_cron_secret", { _provided: cronSecret });
+    if (check.data !== true) {
+      await sb.rpc("sync_cron_secret_to_vault", { _value: cronSecret });
+      check = await sb.rpc("verify_cron_secret", { _provided: cronSecret });
+    }
+    vaultMatch = check.data === true;
     return new Response(JSON.stringify({
       ok: !!cronSecret && vaultMatch,
       env_set: !!cronSecret,
