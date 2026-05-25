@@ -1574,13 +1574,42 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
                     setSelectedSeg(seg);
                   }} />
                 </div>
-                {seg.type === "flight" && (
-                  <RelatedDocumentsCard
-                    segmentRef={seg.id}
-                    ticketId={seg.groupId}
-                    userId={userId}
-                  />
-                )}
+                {seg.type === "flight" && (() => {
+                  const parentTicket = tickets.find((t) => t.id === seg.groupId);
+                  const passenger = (parentTicket?.passengerName || "").trim() || "Passenger";
+                  const travelers: { name: string; nameAr?: string }[] = [
+                    { name: passenger, nameAr: "المسافر" },
+                    ...(seg.companions || []).map((c) => ({ name: c.name || c.relation || "Companion" })),
+                  ];
+                  const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "traveler";
+                  const seen = new Set<string>();
+                  return (
+                    <>
+                      {travelers.map((t, i) => {
+                        let key = slug(t.name);
+                        if (seen.has(key)) key = `${key}-${i}`;
+                        seen.add(key);
+                        return (
+                          <RelatedDocumentsCard
+                            key={`bp-${seg.id}-${key}`}
+                            segmentRef={`${seg.id}::bp::${key}`}
+                            ticketId={seg.groupId}
+                            userId={userId}
+                            title={`Boarding pass — ${t.name} · بطاقة الصعود`}
+                            preferredLabels={["Boarding Pass", "Other"]}
+                          />
+                        );
+                      })}
+                      <RelatedDocumentsCard
+                        segmentRef={seg.id}
+                        ticketId={seg.groupId}
+                        userId={userId}
+                        title="Other travel documents · مستندات سفر أخرى"
+                      />
+                    </>
+                  );
+                })()}
+
                 {group === "past" && (
                   <div className="mx-4 mb-3 -mt-2 flex justify-end">
                     <button
