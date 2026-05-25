@@ -482,13 +482,25 @@ const TicketDetailSheet = ({
                   )}
                 </div>
               )}
-              {hasBarcode && (
-                <div className="rounded-2xl p-4 text-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-                  <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gray)" }}>BOARDING PASS BARCODE</p>
-                  <BoardingBarcode code={barcodeCode} />
-                  <p className="text-[10px]" style={{ color: "var(--gray)" }}>Present this at the gate · <span className="font-arabic" dir="rtl">قدّم هذا عند البوابة</span></p>
+              {seg.type === "flight" && (
+                <div className="rounded-2xl p-4" style={{ background: "var(--gold-pale)", border: "1px solid rgba(197,150,90,0.4)" }}>
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle size={16} color="var(--gold)" className="shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[12px] font-bold mb-1" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
+                        RufayQ doesn't issue boarding passes
+                      </p>
+                      <p className="text-[11px] leading-relaxed" style={{ color: "var(--navy)" }}>
+                        24 hours before each flight, do online check-in with your airline and upload the real boarding pass below — one per traveler (you and any companions).
+                      </p>
+                      <p className="font-arabic text-[10px] mt-1.5 leading-relaxed" dir="rtl" style={{ color: "var(--navy)" }}>
+                        لا يُصدر رفيق بطاقات الصعود. قبل 24 ساعة من كل رحلة، أكمل تسجيل الوصول مع شركة الطيران وارفع بطاقة الصعود الفعلية أدناه — لكل مسافر (أنت ومرافقوك).
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
+
 
               {/* Route & Time */}
               <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--gray-light)" }}>
