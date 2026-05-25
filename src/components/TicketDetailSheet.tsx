@@ -141,10 +141,9 @@ const TicketDetailSheet = ({
 }: TicketDetailSheetProps) => {
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "overrides" | "alarms">("details");
   const [draftNotes, setDraftNotes] = useState(notes);
-  const [isExporting, setIsExporting] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
-  const captureRef = useRef<HTMLDivElement>(null);
+
 
   const buildShareText = useCallback(() => {
     const icon = seg.type === "flight" ? "✈️" : seg.type === "train" ? "🚄" : seg.type === "bus" ? "🚌" : seg.type === "taxi" ? "🚕" : seg.type === "rental" ? "🚗" : "🚑";
