@@ -88,7 +88,7 @@ export function getSystemReminders(seg: TransportSegment): SmartReminder[] {
   const base: SmartReminder[] = [];
   if (seg.type === "flight") {
     base.push(
-      { id: "sys-checkin", label: "Online check-in opens", labelAr: "فتح تسجيل الوصول الإلكتروني", minutesBefore: 1440, source: "system", enabled: true, icon: "✅" },
+      { id: "sys-checkin", label: "Check-in opens — do online check-in & upload your real boarding pass", labelAr: "يفتح تسجيل الوصول — أكمل التسجيل الإلكتروني وارفع بطاقة الصعود الفعلية", minutesBefore: 1440, source: "system", enabled: true, icon: "✅" },
       { id: "sys-pack", label: "Pack medical documents", labelAr: "جهّز المستندات الطبية", minutesBefore: 720, source: "system", enabled: true, icon: "📋" },
       { id: "sys-airport", label: "Head to airport", labelAr: "توجه إلى المطار", minutesBefore: 180, source: "system", enabled: true, icon: "🚗" },
       { id: "sys-boarding", label: "Boarding starts soon", labelAr: "الصعود يبدأ قريباً", minutesBefore: 45, source: "system", enabled: true, icon: "🛫" },
