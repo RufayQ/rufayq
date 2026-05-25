@@ -1,8 +1,11 @@
-import { useState, useCallback } from "react";
-import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Copy } from "lucide-react";
+import { useState, useCallback, useRef } from "react";
+import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Copy, Image as ImageIcon, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import type { TransportSegment } from "./TransportCard";
 import type { TransportTicket } from "@/lib/transportTickets";
+import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
+import html2canvas from "html2canvas";
+
 
 
 function fmtDate(dt: string) {
