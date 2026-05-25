@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback } from "react";
-import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Download, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Image, Copy } from "lucide-react";
+import { useState, useCallback } from "react";
+import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Copy } from "lucide-react";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
 import type { TransportSegment } from "./TransportCard";
 import type { TransportTicket } from "@/lib/transportTickets";
+
 
 function fmtDate(dt: string) {
   if (!dt) return "";
@@ -17,27 +17,8 @@ function fmtTime(dt: string) {
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-/* ─── Fake barcode SVG ─── */
-const BoardingBarcode = ({ code }: { code: string }) => {
-  const bars = Array.from({ length: 48 }, (_, i) => ({
-    w: [1, 2, 3, 1, 2][i % 5],
-    h: 48,
-    gap: [1, 1, 2, 1, 1][i % 5],
-  }));
-  let x = 0;
-  return (
-    <div className="flex flex-col items-center mt-4 mb-2">
-      <svg width={220} height={52} viewBox="0 0 220 52">
-        {bars.map((b, i) => {
-          const cx = x;
-          x += b.w + b.gap;
-          return <rect key={i} x={cx} y={2} width={b.w} height={b.h} fill="var(--navy)" rx={0.5} />;
-        })}
-      </svg>
-      <p className="font-mono text-[11px] tracking-[6px] mt-1" style={{ color: "var(--navy)" }}>{code}</p>
-    </div>
-  );
-};
+
+
 
 /* ─── Types ─── */
 export interface OverrideAnnotation {
@@ -107,7 +88,7 @@ export function getSystemReminders(seg: TransportSegment): SmartReminder[] {
   const base: SmartReminder[] = [];
   if (seg.type === "flight") {
     base.push(
-      { id: "sys-checkin", label: "Online check-in opens", labelAr: "فتح تسجيل الوصول الإلكتروني", minutesBefore: 1440, source: "system", enabled: true, icon: "✅" },
+      { id: "sys-checkin", label: "Check-in opens — do online check-in & upload your real boarding pass", labelAr: "يفتح تسجيل الوصول — أكمل التسجيل الإلكتروني وارفع بطاقة الصعود الفعلية", minutesBefore: 1440, source: "system", enabled: true, icon: "✅" },
       { id: "sys-pack", label: "Pack medical documents", labelAr: "جهّز المستندات الطبية", minutesBefore: 720, source: "system", enabled: true, icon: "📋" },
       { id: "sys-airport", label: "Head to airport", labelAr: "توجه إلى المطار", minutesBefore: 180, source: "system", enabled: true, icon: "🚗" },
       { id: "sys-boarding", label: "Boarding starts soon", labelAr: "الصعود يبدأ قريباً", minutesBefore: 45, source: "system", enabled: true, icon: "🛫" },
@@ -160,10 +141,9 @@ const TicketDetailSheet = ({
 }: TicketDetailSheetProps) => {
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "overrides" | "alarms">("details");
   const [draftNotes, setDraftNotes] = useState(notes);
-  const [isExporting, setIsExporting] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
-  const captureRef = useRef<HTMLDivElement>(null);
+
 
   const buildShareText = useCallback(() => {
     const icon = seg.type === "flight" ? "✈️" : seg.type === "train" ? "🚄" : seg.type === "bus" ? "🚌" : seg.type === "taxi" ? "🚕" : seg.type === "rental" ? "🚗" : "🚑";
@@ -212,36 +192,8 @@ const TicketDetailSheet = ({
   const [selectedField, setSelectedField] = useState("");
   const [overrideValue, setOverrideValue] = useState("");
 
-  const handleExport = useCallback(async () => {
-    if (!captureRef.current) return;
-    setIsExporting(true);
-    try {
-      const el = captureRef.current;
-      const canvas = await html2canvas(el, { backgroundColor: "#FFFFFF", scale: 2, useCORS: true, logging: false });
-      const dataUrl = canvas.toDataURL("image/png");
-      const fileName = `${seg.type}-${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}-${seg.bookingRef || "ticket"}.png`;
-      if (navigator.share && navigator.canShare) {
-        try {
-          const blob = await (await fetch(dataUrl)).blob();
-          const file = new File([blob], fileName, { type: "image/png" });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: `Boarding Pass — ${seg.fromCode || seg.fromCity} → ${seg.toCode || seg.toCity}` });
-            toast.success("Shared successfully ✓ · تمت المشاركة بنجاح");
-            setIsExporting(false);
-            return;
-          }
-        } catch { /* fall through */ }
-      }
-      const link = document.createElement("a");
-      link.download = fileName;
-      link.href = dataUrl;
-      link.click();
-      toast.success("Boarding pass saved ✓ · تم حفظ بطاقة الصعود");
-    } catch {
-      toast.error("Export failed · فشل التصدير");
-    }
-    setIsExporting(false);
-  }, [seg]);
+
+
 
   const typeLabels: Record<string, string> = {
     flight: "Flight Ticket", train: "Train Ticket", bus: "Bus Ticket",
@@ -250,8 +202,8 @@ const TicketDetailSheet = ({
   const typeIcons: Record<string, string> = {
     flight: "✈️", train: "🚄", bus: "🚌", taxi: "🚕", rental: "🚗", medical: "🚑",
   };
-  const hasBarcode = seg.type === "flight" || seg.type === "train";
-  const barcodeCode = seg.bookingRef || seg.flightNumber || seg.trainNumber || "—";
+
+
 
   const handleSaveNotes = () => {
     onSaveNotes(draftNotes);
@@ -406,18 +358,8 @@ const TicketDetailSheet = ({
                     <p className="text-[10px]" style={{ color: "var(--gray)" }}>Copy to clipboard · نسخ النص</p>
                   </div>
                 </button>
-                <div style={{ height: 1, background: "var(--gray-light)" }} />
-                <button
-                  onClick={() => { handleExport(); setShowShareMenu(false); }}
-                  disabled={isExporting}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
-                >
-                  <Image size={16} color="var(--gold)" />
-                  <div>
-                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Save as Image</p>
-                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Download boarding pass · حفظ كصورة</p>
-                  </div>
-                </button>
+
+
                 </div>
               </>
             )}
@@ -490,7 +432,7 @@ const TicketDetailSheet = ({
         <div className="px-5 pb-8">
           {/* ─── DETAILS TAB ─── */}
           {activeTab === "details" && (
-            <div className="space-y-4 pt-2" ref={captureRef}>
+            <div className="space-y-4 pt-2">
               {seg.extraction?.provider && (
                 <div className="rounded-2xl p-3" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
                   <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--navy)" }}>
@@ -540,13 +482,25 @@ const TicketDetailSheet = ({
                   )}
                 </div>
               )}
-              {hasBarcode && (
-                <div className="rounded-2xl p-4 text-center" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
-                  <p className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gray)" }}>BOARDING PASS BARCODE</p>
-                  <BoardingBarcode code={barcodeCode} />
-                  <p className="text-[10px]" style={{ color: "var(--gray)" }}>Present this at the gate · <span className="font-arabic" dir="rtl">قدّم هذا عند البوابة</span></p>
+              {seg.type === "flight" && (
+                <div className="rounded-2xl p-4" style={{ background: "var(--gold-pale)", border: "1px solid rgba(197,150,90,0.4)" }}>
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle size={16} color="var(--gold)" className="shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[12px] font-bold mb-1" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
+                        RufayQ doesn't issue boarding passes
+                      </p>
+                      <p className="text-[11px] leading-relaxed" style={{ color: "var(--navy)" }}>
+                        24 hours before each flight, do online check-in with your airline and upload the real boarding pass below — one per traveler (you and any companions).
+                      </p>
+                      <p className="font-arabic text-[10px] mt-1.5 leading-relaxed" dir="rtl" style={{ color: "var(--navy)" }}>
+                        لا يُصدر رفيق بطاقات الصعود. قبل 24 ساعة من كل رحلة، أكمل تسجيل الوصول مع شركة الطيران وارفع بطاقة الصعود الفعلية أدناه — لكل مسافر (أنت ومرافقوك).
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
+
 
               {/* Route & Time */}
               <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--gray-light)" }}>
@@ -737,20 +691,8 @@ const TicketDetailSheet = ({
                 </div>
               )}
 
-              {/* Export button */}
-              <button
-                onClick={handleExport}
-                disabled={isExporting}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white btn-press"
-                style={{ background: "var(--teal-deep)" }}
-              >
-                {isExporting ? (
-                  <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "white", borderTopColor: "transparent" }} />
-                ) : (
-                  <Download size={16} />
-                )}
-                {isExporting ? "Exporting..." : "Save Boarding Pass"} · <span className="font-arabic">{isExporting ? "جارٍ التصدير..." : "حفظ بطاقة الصعود"}</span>
-              </button>
+
+
             </div>
           )}
 
@@ -1094,7 +1036,7 @@ const DetailItem = ({ label, value, gold, highlight }: { label: string; value: s
 function getQuickNotes(type: string): string[] {
   const common = ["🧳 Extra luggage", "♿ Wheelchair needed", "🍽️ Special meal"];
   switch (type) {
-    case "flight": return ["🚪 Gate info: ", "💺 Window seat preferred", "🛄 Checked 2 bags", ...common, "🏥 Carry medical docs", "📱 Download boarding pass"];
+    case "flight": return ["🚪 Gate info: ", "💺 Window seat preferred", "🛄 Checked 2 bags", ...common, "🏥 Carry medical docs", "📤 Upload real boarding pass"];
     case "train": return ["🚉 Platform: ", "🎒 Light luggage only", "🔌 Power outlet seat", ...common];
     case "taxi": return ["📍 Pickup point: ", "📞 Driver contacted", "♿ Accessible vehicle", "🧳 Large luggage"];
     case "medical": return ["🏥 Hospital pickup", "♿ Wheelchair transport", "📋 Bring discharge papers", "💊 Medications in bag"];

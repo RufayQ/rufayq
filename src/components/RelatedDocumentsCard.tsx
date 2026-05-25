@@ -53,19 +53,23 @@ interface Props {
   title?: string;
   /** Compact spacing, used inside scanner wizard step 5. */
   compact?: boolean;
+  /** Override the quick-label chips. First entry becomes the default. */
+  preferredLabels?: string[];
 }
 
 const BUCKET = "transport-attachments";
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
-const COMMON_LABELS = ["VISA", "Passport", "Insurance", "Hotel", "Other"];
+const DEFAULT_LABELS = ["VISA", "Passport", "Insurance", "Hotel", "Other"];
 // Sub-category mapping per common label so the scanner picks the right schema.
 const LABEL_TO_SUBCATEGORY: Record<string, string> = {
+  "Boarding Pass": "Boarding Pass",
   VISA: "Visa",
   Passport: "Passport",
   Insurance: "Travel Insurance Card",
   Hotel: "Other",
   Other: "Other",
 };
+
 
 const isScannableFile = (file: File) => file.type.startsWith("image/") || isPdf(file.type, file.name);
 
@@ -95,13 +99,16 @@ const RelatedDocumentsCard = ({
   sourceDocumentId,
   title,
   compact,
+  preferredLabels,
 }: Props) => {
+  const labelChips = preferredLabels && preferredLabels.length ? preferredLabels : DEFAULT_LABELS;
   const targetLabel = title?.replace(/·.*$/, "").trim() || segmentRef.replace(/^milestone-/, "Milestone ").replace(/^flight-/, "Flight ");
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [picking, setPicking] = useState<File | null>(null);
-  const [labelDraft, setLabelDraft] = useState("VISA");
+  const [labelDraft, setLabelDraft] = useState(labelChips[0] || "Other");
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
   const [fromRecordsOpen, setFromRecordsOpen] = useState(false);
@@ -541,7 +548,7 @@ const RelatedDocumentsCard = ({
               </p>
             )}
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {COMMON_LABELS.map((l) => (
+              {labelChips.map((l) => (
                 <button
                   key={l}
                   onClick={() => setLabelDraft(l)}
