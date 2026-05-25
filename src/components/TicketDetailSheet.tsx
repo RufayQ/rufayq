@@ -358,18 +358,8 @@ const TicketDetailSheet = ({
                     <p className="text-[10px]" style={{ color: "var(--gray)" }}>Copy to clipboard · نسخ النص</p>
                   </div>
                 </button>
-                <div style={{ height: 1, background: "var(--gray-light)" }} />
-                <button
-                  onClick={() => { handleExport(); setShowShareMenu(false); }}
-                  disabled={isExporting}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
-                >
-                  <Image size={16} color="var(--gold)" />
-                  <div>
-                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>Save as Image</p>
-                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Download boarding pass · حفظ كصورة</p>
-                  </div>
-                </button>
+
+
                 </div>
               </>
             )}
