@@ -40,11 +40,13 @@ const RecordActionsSheet = ({
   onClose,
   onPreview,
   onRename,
+  onEditDetails,
   onShare,
   onSendToChat,
   onApplyToMilestone,
   onDelete,
 }: RecordActionsSheetProps) => {
+
   const [mode, setMode] = useState<"menu" | "rename" | "milestone" | "confirmDelete">("menu");
   const [draftName, setDraftName] = useState("");
   const [busy, setBusy] = useState(false);
