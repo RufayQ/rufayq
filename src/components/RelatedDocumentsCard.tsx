@@ -53,19 +53,23 @@ interface Props {
   title?: string;
   /** Compact spacing, used inside scanner wizard step 5. */
   compact?: boolean;
+  /** Override the quick-label chips. First entry becomes the default. */
+  preferredLabels?: string[];
 }
 
 const BUCKET = "transport-attachments";
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
-const COMMON_LABELS = ["VISA", "Passport", "Insurance", "Hotel", "Other"];
+const DEFAULT_LABELS = ["VISA", "Passport", "Insurance", "Hotel", "Other"];
 // Sub-category mapping per common label so the scanner picks the right schema.
 const LABEL_TO_SUBCATEGORY: Record<string, string> = {
+  "Boarding Pass": "Boarding Pass",
   VISA: "Visa",
   Passport: "Passport",
   Insurance: "Travel Insurance Card",
   Hotel: "Other",
   Other: "Other",
 };
+
 
 const isScannableFile = (file: File) => file.type.startsWith("image/") || isPdf(file.type, file.name);
 
