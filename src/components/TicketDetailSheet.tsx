@@ -1080,9 +1080,15 @@ const TicketDetailSheet = ({
           )}
         </div>
       </div>
-    </div>
+      </div>
+      {/* Hidden share-card target for html2canvas capture */}
+      <div style={{ position: "fixed", left: -99999, top: 0, pointerEvents: "none" }} aria-hidden="true">
+        <ShareCard ref={shareCardRef} seg={seg} />
+      </div>
+    </OverlayLayer>
   );
 };
+
 
 const DetailItem = ({ label, value, gold, highlight }: { label: string; value: string; gold?: boolean; highlight?: boolean }) => (
   <div>
