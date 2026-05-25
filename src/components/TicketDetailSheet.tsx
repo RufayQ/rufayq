@@ -432,7 +432,7 @@ const TicketDetailSheet = ({
         <div className="px-5 pb-8">
           {/* ─── DETAILS TAB ─── */}
           {activeTab === "details" && (
-            <div className="space-y-4 pt-2" ref={captureRef}>
+            <div className="space-y-4 pt-2">
               {seg.extraction?.provider && (
                 <div className="rounded-2xl p-3" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
                   <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--navy)" }}>
