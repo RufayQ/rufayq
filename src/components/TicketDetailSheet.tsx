@@ -146,6 +146,10 @@ const TicketDetailSheet = ({
   const [draftNotes, setDraftNotes] = useState(notes);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
+  const [includeShortLink, setIncludeShortLink] = useState(false);
+  const [isCapturingImage, setIsCapturingImage] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement | null>(null);
+
 
 
   const buildShareText = useCallback(() => {
