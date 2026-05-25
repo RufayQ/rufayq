@@ -11,9 +11,17 @@
  */
 import { useMemo, useState } from "react";
 import type { FlightJourney, JourneyLeg } from "@/lib/flightJourney";
-import { computeLayover, computeDestinationStay } from "@/lib/flightJourney";
+import { computeLayover, computeDestinationStay, formatDuration } from "@/lib/flightJourney";
 
 export type LegStatus = "done" | "active" | "pending";
+
+const legDurationMinutes = (leg: JourneyLeg): number | null => {
+  const a = Date.parse(leg.departureDateTime);
+  const b = Date.parse(leg.arrivalDateTime);
+  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return null;
+  return Math.round((b - a) / 60000);
+};
+
 
 const fmtDate = (iso: string) => {
   if (!iso) return "—";
