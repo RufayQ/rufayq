@@ -202,8 +202,8 @@ const TicketDetailSheet = ({
   const typeIcons: Record<string, string> = {
     flight: "✈️", train: "🚄", bus: "🚌", taxi: "🚕", rental: "🚗", medical: "🚑",
   };
-  const hasBarcode = seg.type === "flight" || seg.type === "train";
-  const barcodeCode = seg.bookingRef || seg.flightNumber || seg.trainNumber || "—";
+
+
 
   const handleSaveNotes = () => {
     onSaveNotes(draftNotes);
