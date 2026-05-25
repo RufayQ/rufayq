@@ -548,7 +548,7 @@ const RelatedDocumentsCard = ({
               </p>
             )}
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {COMMON_LABELS.map((l) => (
+              {labelChips.map((l) => (
                 <button
                   key={l}
                   onClick={() => setLabelDraft(l)}
