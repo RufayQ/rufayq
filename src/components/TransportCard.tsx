@@ -462,9 +462,10 @@ const TransportCard = ({ seg, onTap }: { seg: TransportSegment; onTap?: () => vo
                 )}
               </>
             )}
-            <span className="text-[10px] px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
+            <span className="text-[10px] px-2 py-1 rounded-full pointer-events-none" style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
               Tap for details →
             </span>
+
           </div>
         </ActionRow>
       </div>
