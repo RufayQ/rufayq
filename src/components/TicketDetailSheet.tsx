@@ -192,36 +192,8 @@ const TicketDetailSheet = ({
   const [selectedField, setSelectedField] = useState("");
   const [overrideValue, setOverrideValue] = useState("");
 
-  const handleExport = useCallback(async () => {
-    if (!captureRef.current) return;
-    setIsExporting(true);
-    try {
-      const el = captureRef.current;
-      const canvas = await html2canvas(el, { backgroundColor: "#FFFFFF", scale: 2, useCORS: true, logging: false });
-      const dataUrl = canvas.toDataURL("image/png");
-      const fileName = `${seg.type}-${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}-${seg.bookingRef || "ticket"}.png`;
-      if (navigator.share && navigator.canShare) {
-        try {
-          const blob = await (await fetch(dataUrl)).blob();
-          const file = new File([blob], fileName, { type: "image/png" });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: `Boarding Pass — ${seg.fromCode || seg.fromCity} → ${seg.toCode || seg.toCity}` });
-            toast.success("Shared successfully ✓ · تمت المشاركة بنجاح");
-            setIsExporting(false);
-            return;
-          }
-        } catch { /* fall through */ }
-      }
-      const link = document.createElement("a");
-      link.download = fileName;
-      link.href = dataUrl;
-      link.click();
-      toast.success("Boarding pass saved ✓ · تم حفظ بطاقة الصعود");
-    } catch {
-      toast.error("Export failed · فشل التصدير");
-    }
-    setIsExporting(false);
-  }, [seg]);
+
+
 
   const typeLabels: Record<string, string> = {
     flight: "Flight Ticket", train: "Train Ticket", bus: "Bus Ticket",
