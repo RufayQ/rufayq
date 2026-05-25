@@ -1,62 +1,87 @@
+## Scope
 
-## Goal
+Four related fixes around the Journey → Tickets card and the linked record actions sheet (the one you screenshotted).
 
-Stop pretending we can generate a real boarding pass. Instead, push the user to do online check-in 24h before the flight and upload the real boarding pass — one per traveler (passenger + companions) on each flight segment.
+---
 
-## What's there today
+## 1. Fix "Tap for details" on the flight card
 
-- `src/components/TicketDetailSheet.tsx` renders a **fake boarding pass**: a `BoardingBarcode` SVG block plus a prominent "Save Boarding Pass" export button (via `html2canvas`) and a "Save as Image / Download boarding pass" entry in the share menu. This is the "auto-generated boarding pass" the user is complaining about — it never matches the real one.
-- The flight `sys-*` Smart Reminders already include `sys-checkin` at 1440 min (24h) labelled "Online check-in opens", and `sys-boarding` at 45 min.
-- `RelatedDocumentsCard` already supports per-segment durable uploads via `transport_attachments` (RLS-protected, user_id + device_id + ticket_id + segment_ref, with thumbnails + scanner flow). Common labels today: VISA, Passport, Insurance, Hotel, Other. Subcategory schemas exist for those.
-- DB check: zero `transport_attachments` rows have label/subcategory containing "boarding". The "auto-generated boarding pass" only existed visually in the sheet — there's **nothing to delete in the database**.
-- Flight ticket model has `passengerName` plus companion info shown in `FlightTicketCard` ("Each companion shares the same gate, boarding pass…").
+**Symptom:** Tapping the teal flight card (or its "Tap for details →" pill) does nothing.
 
-## Changes
+**Likely cause:** `TicketDetailSheet` was edited in the previous turn (boarding-pass removal, disclaimer card added). The `setSelectedSeg` call in `JourneyScreen.tsx` still fires, but the sheet either throws on render (broken JSX after the `BoardingBarcode` removal) or its overlay is mounted under the `RelatedDocumentsCard` per-traveler stack and never visible. I'll reproduce in the browser, read the console, then:
+- Verify the `onTap` handler runs (add a one-shot toast guard if needed during diagnosis, removed before commit).
+- Re-check `TicketDetailSheet.tsx` for any dangling refs/state from the boarding-pass removal (`captureRef`, `isExporting`, unused imports) and fix render errors.
+- Ensure the sheet uses the shared `OverlayLayer` z-index so it sits above the new per-traveler boarding-pass cards.
 
-### 1. Remove the fake boarding pass (UI only)
+**E2E sweep on all milestone-related buttons** (Journey tab):
+- Flight/Train/Car/Hotel card body tap → detail sheet opens
+- "Tap for details →" pill (make it `pointer-events-none` since the whole card is the hit target — avoids double-fire)
+- Replicate (past tickets), Add Transport, Add Accommodation, Scan ticket
+- Per-traveler "Boarding pass — {name}" card upload/preview
+- "Other travel documents" card upload/preview
+- Home-screen milestone canvas → "Tap for details" routes to `journey?milestone:{id}` and the Journey screen scrolls/highlights the matching ticket
 
-`src/components/TicketDetailSheet.tsx`:
-- Delete the `BoardingBarcode` SVG component and the `hasBarcode` block that renders "BOARDING PASS BARCODE / Present this at the gate".
-- Remove the bottom "Save Boarding Pass" export button and `handleExport` (also the share-menu "Save as Image · Download boarding pass" entry that calls it). Drop unused `html2canvas` import and `captureRef`, `isExporting`.
-- Remove the quick-note suggestion "📱 Download boarding pass".
-- The share menu keeps WhatsApp / Email / Copy Text (textual share only).
+Each path verified with a browser interaction; failures fixed inline.
 
-### 2. Replace it with a clear 24h reminder + disclaimer
+---
 
-`src/components/TicketDetailSheet.tsx`, flight branch of `getSystemReminders`:
-- Relabel `sys-checkin` (1440 min) → **"Check-in opens — do online check-in & upload your real boarding pass"** / Arabic: **"يفتح تسجيل الوصول — أكمل التسجيل الإلكتروني وارفع بطاقة الصعود الفعلية"**, icon ✅. Keep `minutesBefore: 1440`.
-- Add a new always-visible **disclaimer card** at the top of the Details tab for flight tickets:
-  - EN: "RufayQ doesn't issue boarding passes. 24 hours before each flight, do online check-in with your airline and upload the real boarding pass below — one per traveler."
-  - AR: "لا يُصدر رفيق بطاقات الصعود. قبل 24 ساعة من كل رحلة، أكمل تسجيل الوصول مع شركة الطيران وارفع بطاقة الصعود الفعلية أدناه — لكل مسافر."
-  - Styled with the existing warning-card visual language (gold border, AlertTriangle icon).
+## 2. Capture per-leg flight duration
 
-### 3. Real boarding-pass upload slot per traveler
+Today `JourneyTimeline` shows Departs/Arrives and a layover pill, but the **flight duration itself** (1h 30m / 4h 15m in your itinerary screenshot) is not displayed.
 
-`src/components/RelatedDocumentsCard.tsx`:
-- Add `"Boarding Pass"` to `COMMON_LABELS` (first position) and map it in `LABEL_TO_SUBCATEGORY` → `"Boarding Pass"` so the scanner picks a simple schema (no Visa lock-in).
-- Default `labelDraft` to `"Boarding Pass"` when the parent segment is a flight (pass an optional `defaultLabel` / `preferredLabels` prop from `JourneyScreen`).
+Changes in `src/components/JourneyTimeline.tsx`:
+- Compute `durationMinutes = arrival − departure` per leg using the existing `formatDuration` helper from `@/lib/flightJourney`.
+- Render it inline on the collapsed row (next to flight number) and as a dedicated "Duration" detail row when expanded.
+- Show it on the flight `TransportCard` mid-section too (between origin/destination), styled like the existing layover pill but in gold-on-teal.
+- Add unit tests in `src/lib/__tests__/flightJourney.duration.test.ts` for the new `legDuration` helper if extracted.
 
-`src/screens/JourneyScreen.tsx`:
-- Where `RelatedDocumentsCard` is rendered for a flight (line ~1577), build a roster of travelers from the ticket: `passengerName` + companion names. Render one `RelatedDocumentsCard` per traveler with:
-  - `segmentRef = "${seg.id}::${travelerSlug}"`
-  - `title = "Boarding pass — {travelerName}"` / "بطاقة الصعود — {الاسم}"
-  - `preferredLabels = ["Boarding Pass", ...COMMON_LABELS]`
-- Keep the existing un-scoped card below (for VISA/Passport/etc.) but rename its title to "Other travel documents · مستندات سفر أخرى" so it's clearly separate from boarding passes.
+Edge case: when arrival < departure (overnight, timezone gap), still compute on absolute timestamps — `Date.parse` already handles the ISO zone suffix used by the extractor.
 
-### 4. Data cleanup for existing users
+---
 
-No migration required. The fake boarding pass was never persisted (no `transport_attachments` rows match `%boarding%`; nothing in storage). Removing the UI in step 1 fully "deletes" it for everyone on their next app load.
+## 3. Redesign the flight-ticket Share UI
 
-If any user did manually save the rendered image to their device, that file is on their phone's gallery and is out of scope — the in-app surface that produced it is gone.
+Replace the current plain-text WhatsApp/Email/Copy share with an **image-of-the-ticket** share that mirrors the in-app card (the teal DMM → SHJ card in your screenshot).
 
-### 5. Copy touch-up
+In `TicketDetailSheet.tsx` (Share menu):
+- New primary action: **"Share as image"** — renders a hidden 1080×1350 React node styled exactly like the in-app `TransportCard` (origin/destination, dates, PNR/seat, RufayQ wordmark footer), captured via `html2canvas` (already a dep), then `navigator.share({ files: [...] })` with text fallback to download.
+- Secondary action: **"Include short link to original document"** — a toggle (default OFF). When ON and the ticket has an attached PDF in `transport_attachments`, generate a 7-day signed URL and shorten via a new lightweight `shorten-link` edge function (stores the long URL keyed by a short code in a new `short_links` table; returns `https://rufayq.com/s/{code}`).
+- Existing WhatsApp / Email / Copy options stay, but consume the new image + optional short link.
+- Privacy: short-link generation is gated by the user toggle in the share sheet (one-time, per-share). No auto-generation.
 
-`JourneyScreen.tsx` line 1607 footer text stays ("Or scan a boarding pass / booking confirmation") — that flow scans an existing real document into the system, which is exactly what we now want.
+Backend (only if user approves option B short links): one migration for `public.short_links (code text pk, url text, user_id uuid, expires_at timestamptz)` with RLS (owner-only read/write, public read by code via security-definer RPC) and a `shorten-link` edge function.
+
+---
+
+## 4. Expand record "Edit" beyond just renaming
+
+Right now the actions sheet for a flight-ticket record (screenshot 4) only allows **Edit name**. You want full edit of the underlying milestone/ticket.
+
+Changes in `src/components/records/RecordActionsSheet.tsx` and callers:
+- Rename the row from "Edit name" → **"Edit details"** with sub-mode `editFull`.
+- When the underlying record is linked to a `transport_attachments` row → open the existing `TicketDetailSheet` in edit mode (airline, flight #, PNR, dep/arr times, passenger, companions, seat class). Save persists to `transport_tickets` (and re-derives the linked attachment label).
+- When linked to an appointment/medical record → open the existing appointment/record edit sheet.
+- When standalone (no linked entity) → keep today's rename input as a fallback.
+- New prop on `RecordActionsSheetProps`: `onEditDetails?: (target) => void` resolved by the caller (Records screen) to the right edit sheet based on `target.kind`.
+
+---
 
 ## Technical notes
 
-- No DB schema change, no migration, no edge function change.
-- Files edited: `src/components/TicketDetailSheet.tsx`, `src/components/RelatedDocumentsCard.tsx`, `src/screens/JourneyScreen.tsx`.
-- Subcategory `"Boarding Pass"` is a free-form string in `transport_attachments.subcategory`; no enum to update.
-- Per-traveler scoping via a composite `segment_ref` keeps existing RLS policies intact and survives ticket replace because each card still passes `ticketId` (read query is `(segment_ref OR ticket_id)` — see comment block above `RelatedDocumentsCard`).
-- Companion source: read from the flight `TransportTicket` already passed into `TicketDetailSheet`/cards; if a ticket has no companions, only one card renders (for the passenger).
+- All work stays in the existing mobile shell (390px scroll root rules).
+- Bilingual EN/AR labels for every new string.
+- No changes to `auth.users` or Supabase-reserved schemas; only one new public table (`short_links`) if option 3 short-link toggle is approved.
+- Verification: browser walk-through of every button enumerated in §1, plus one round-trip share-as-image on a real flight ticket.
+
+---
+
+## Files touched
+
+- `src/components/TicketDetailSheet.tsx` — fix render, add Share-as-image + short-link toggle, expose edit mode
+- `src/components/TransportCard.tsx` — flight duration pill, make "Tap for details" non-interactive child
+- `src/components/JourneyTimeline.tsx` — per-leg duration on row + detail
+- `src/screens/JourneyScreen.tsx` — wire `onEditDetails` on record actions, verify highlight/scroll
+- `src/components/records/RecordActionsSheet.tsx` — Edit details mode, prop, fallbacks
+- `src/screens/RecordsScreen.tsx` — resolve `onEditDetails` per record kind
+- `src/lib/flightJourney.ts` (+ test) — optional `legDuration` helper
+- `supabase/migrations/*` + `supabase/functions/shorten-link/` — only if short-link toggle approved
