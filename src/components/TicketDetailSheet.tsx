@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Copy } from "lucide-react";
+import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Copy } from "lucide-react";
 import { toast } from "sonner";
 import type { TransportSegment } from "./TransportCard";
 import type { TransportTicket } from "@/lib/transportTickets";
