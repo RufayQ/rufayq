@@ -144,14 +144,25 @@ const RecordActionsSheet = ({
         {mode === "menu" && (
           <div className="px-3 pb-2 space-y-1">
             <ActionRow icon={<Eye size={15} />} en="Preview" ar="معاينة" onClick={() => { onClose(); onPreview?.(); }} />
+            {onEditDetails && (
+              <ActionRow
+                icon={<Pencil size={15} />}
+                en="Edit details"
+                ar="تعديل التفاصيل"
+                disabled={!mutable}
+                hint={!mutable ? "Demo record — read only" : undefined}
+                onClick={() => { onClose(); onEditDetails(); }}
+              />
+            )}
             <ActionRow
               icon={<Pencil size={15} />}
-              en="Edit name"
-              ar="تعديل الاسم"
+              en={onEditDetails ? "Rename file" : "Edit name"}
+              ar={onEditDetails ? "إعادة تسمية الملف" : "تعديل الاسم"}
               disabled={!mutable || !onRename}
               hint={!mutable ? "Demo record — read only" : undefined}
               onClick={() => setMode("rename")}
             />
+
             <ActionRow icon={<Share2 size={15} />} en="Share" ar="مشاركة" onClick={async () => { try { await onShare?.(); } finally { onClose(); } }} />
             <ActionRow
               icon={<MessageSquare size={15} />}
