@@ -330,13 +330,20 @@ const TicketDetailSheet = ({
   ];
 
   return (
-    <div className="absolute inset-0 z-[70] flex flex-col justify-end" onClick={onClose}>
-      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.55)" }} />
+    <OverlayLayer
+      open={true}
+      onClose={onClose}
+      layer="sheet"
+      ariaLabel="Ticket details"
+      backdropClassName="bg-black/55"
+    >
+      <div className="absolute inset-0 flex flex-col justify-end pointer-events-none">
       <div
-        className="relative animate-slide-up rounded-t-3xl overflow-y-auto"
+        className="relative animate-slide-up rounded-t-3xl overflow-y-auto pointer-events-auto"
         style={{ background: "var(--white)", maxHeight: "92%" }}
         onClick={(e) => e.stopPropagation()}
       >
+
         {/* Handle */}
         <div className="flex justify-center pt-3">
           <div style={{ width: 36, height: 4, background: "#DEE4E9", borderRadius: 2 }} />
