@@ -99,13 +99,16 @@ const RelatedDocumentsCard = ({
   sourceDocumentId,
   title,
   compact,
+  preferredLabels,
 }: Props) => {
+  const labelChips = preferredLabels && preferredLabels.length ? preferredLabels : DEFAULT_LABELS;
   const targetLabel = title?.replace(/·.*$/, "").trim() || segmentRef.replace(/^milestone-/, "Milestone ").replace(/^flight-/, "Flight ");
   const [items, setItems] = useState<TransportAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [picking, setPicking] = useState<File | null>(null);
-  const [labelDraft, setLabelDraft] = useState("VISA");
+  const [labelDraft, setLabelDraft] = useState(labelChips[0] || "Other");
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
   const [fromRecordsOpen, setFromRecordsOpen] = useState(false);
