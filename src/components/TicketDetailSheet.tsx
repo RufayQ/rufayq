@@ -1,8 +1,11 @@
-import { useState, useCallback } from "react";
-import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Copy } from "lucide-react";
+import React, { useState, useCallback, useRef } from "react";
+import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Copy, Image as ImageIcon, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import type { TransportSegment } from "./TransportCard";
 import type { TransportTicket } from "@/lib/transportTickets";
+import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
+import html2canvas from "html2canvas";
+
 
 
 function fmtDate(dt: string) {
@@ -143,6 +146,10 @@ const TicketDetailSheet = ({
   const [draftNotes, setDraftNotes] = useState(notes);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
+  const [includeShortLink, setIncludeShortLink] = useState(false);
+  const [isCapturingImage, setIsCapturingImage] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement | null>(null);
+
 
 
   const buildShareText = useCallback(() => {
@@ -187,6 +194,54 @@ const TicketDetailSheet = ({
     setShowShareMenu(false);
     toast.success("Opening email… · جارٍ فتح البريد");
   }, [buildShareText, seg]);
+
+  const handleShareAsImage = useCallback(async () => {
+    if (!shareCardRef.current) return;
+    setIsCapturingImage(true);
+    try {
+      const canvas = await html2canvas(shareCardRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const blob: Blob | null = await new Promise((resolve) =>
+        canvas.toBlob((b) => resolve(b), "image/png", 0.95)
+      );
+      if (!blob) throw new Error("Could not generate image");
+      const route = `${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}`;
+      const filename = `RufayQ-${route}.png`;
+      const file = new File([blob], filename, { type: "image/png" });
+      const baseText = buildShareText();
+      const shareText = includeShortLink
+        ? `${baseText}\n\nℹ️ Short link to original document is not yet enabled. Ask RufayQ to set it up.`
+        : baseText;
+      const navAny = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
+      if (navAny.share && navAny.canShare?.({ files: [file] })) {
+        await navAny.share({ files: [file], text: shareText, title: "RufayQ Ticket" });
+        toast.success("Shared · تم المشاركة");
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Image downloaded · تم تنزيل الصورة", {
+          description: "Native share unavailable on this device",
+        });
+      }
+      setShowShareMenu(false);
+    } catch (e: any) {
+      toast.error("Could not share as image · تعذرت المشاركة", { description: e?.message });
+    } finally {
+      setIsCapturingImage(false);
+    }
+  }, [buildShareText, seg, includeShortLink]);
+
+
 
   // Override form state
   const [selectedField, setSelectedField] = useState("");
@@ -275,13 +330,20 @@ const TicketDetailSheet = ({
   ];
 
   return (
-    <div className="absolute inset-0 z-[70] flex flex-col justify-end" onClick={onClose}>
-      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.55)" }} />
+    <OverlayLayer
+      open={true}
+      onClose={onClose}
+      layer="sheet"
+      ariaLabel="Ticket details"
+      backdropClassName="bg-black/55"
+    >
+      <div className="absolute inset-0 flex flex-col justify-end pointer-events-none">
       <div
-        className="relative animate-slide-up rounded-t-3xl overflow-y-auto"
+        className="relative animate-slide-up rounded-t-3xl overflow-y-auto pointer-events-auto"
         style={{ background: "var(--white)", maxHeight: "92%" }}
         onClick={(e) => e.stopPropagation()}
       >
+
         {/* Handle */}
         <div className="flex justify-center pt-3">
           <div style={{ width: 36, height: 4, background: "#DEE4E9", borderRadius: 2 }} />
@@ -319,16 +381,48 @@ const TicketDetailSheet = ({
                   style={{ background: "white", border: "1px solid var(--gray-light)", minWidth: 200 }}
                 >
                 <button
+                  onClick={handleShareAsImage}
+                  disabled={isCapturingImage}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors disabled:opacity-60"
+                >
+                  <ImageIcon size={16} color="var(--gold)" />
+                  <div>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
+                      {isCapturingImage ? "Preparing image…" : "Share as image"}
+                    </p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the ticket as a picture · مشاركة كصورة</p>
+                  </div>
+                </button>
+                <div style={{ height: 1, background: "var(--gray-light)" }} />
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setIncludeShortLink((v) => !v); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <Link2 size={14} color={includeShortLink ? "var(--teal-deep)" : "var(--gray)"} />
+                  <div className="flex-1">
+                    <p className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>
+                      Include short link to original
+                    </p>
+                    <p className="text-[9px]" style={{ color: "var(--gray)" }}>
+                      رابط مختصر للمستند الأصلي (اختياري)
+                    </p>
+                  </div>
+                  {includeShortLink ? <ToggleRight size={20} color="var(--teal-deep)" /> : <ToggleLeft size={20} color="var(--gray)" />}
+                </button>
+                <div style={{ height: 1, background: "var(--gray-light)" }} />
+                <button
                   onClick={handleShareWhatsApp}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
                 >
                   <MessageCircle size={16} color="#25D366" />
                   <div>
-                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>WhatsApp</p>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>WhatsApp (text)</p>
                     <p className="text-[10px]" style={{ color: "var(--gray)" }}>Share flight details · مشاركة عبر واتساب</p>
                   </div>
                 </button>
                 <div style={{ height: 1, background: "var(--gray-light)" }} />
+
                 <button
                   onClick={handleShareEmail}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
@@ -1018,9 +1112,15 @@ const TicketDetailSheet = ({
           )}
         </div>
       </div>
-    </div>
+      </div>
+      {/* Hidden share-card target for html2canvas capture */}
+      <div style={{ position: "fixed", left: -99999, top: 0, pointerEvents: "none" }} aria-hidden="true">
+        <ShareCard ref={shareCardRef} seg={seg} />
+      </div>
+    </OverlayLayer>
   );
 };
+
 
 const DetailItem = ({ label, value, gold, highlight }: { label: string; value: string; gold?: boolean; highlight?: boolean }) => (
   <div>
@@ -1043,5 +1143,95 @@ function getQuickNotes(type: string): string[] {
     default: return common;
   }
 }
+
+
+/* ─── Share card (offscreen image target) ─── */
+const typeGradient: Record<string, string> = {
+  flight: "linear-gradient(135deg, #004D5B 0%, #00606F 50%, #006B7A 100%)",
+  train: "linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)",
+  bus: "linear-gradient(135deg, #5A1E1E 0%, #8B2E2E 100%)",
+  taxi: "linear-gradient(135deg, #FFB627 0%, #FFA000 100%)",
+  rental: "linear-gradient(135deg, #4A4A4A 0%, #6B6B6B 100%)",
+  medical: "linear-gradient(135deg, #6B1D1D 0%, #9B2A2A 100%)",
+};
+
+function legDurationLabel(dep: string, arr: string): string {
+  const a = Date.parse(dep);
+  const b = Date.parse(arr);
+  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return "";
+  const mins = Math.round((b - a) / 60000);
+  const d = Math.floor(mins / 1440);
+  const h = Math.floor((mins % 1440) / 60);
+  const m = mins % 60;
+  if (d > 0) return h ? `${d}d ${h}h` : `${d}d`;
+  if (h > 0) return m ? `${h}h ${m}m` : `${h}h`;
+  return `${m}m`;
+}
+
+const ShareCard = React.forwardRef<HTMLDivElement, { seg: TransportSegment }>(({ seg }, ref) => {
+  const grad = typeGradient[seg.type] ?? typeGradient.flight;
+  const carrier = seg.airline || seg.trainOperator || seg.busOperator || seg.taxiProvider || seg.rentalCompany || "";
+  const number = seg.flightNumber || seg.trainNumber || seg.busNumber || "";
+  const duration = legDurationLabel(seg.departureDateTime, seg.arrivalDateTime);
+  return (
+    <div
+      ref={ref}
+      style={{
+        width: 1080,
+        padding: 80,
+        background: grad,
+        color: "white",
+        fontFamily: "'DM Sans', system-ui, sans-serif",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 60 }}>
+        <span style={{ fontFamily: "'Courier Prime', monospace", fontSize: 28, letterSpacing: 4, opacity: 0.7 }}>
+          {seg.type.toUpperCase()} · {carrier} {number}
+        </span>
+        <span style={{ fontSize: 24, fontWeight: 700, color: "#C5965A" }}>RufayQ</span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 180, lineHeight: 1, margin: 0, fontWeight: 600 }}>
+            {seg.fromCode || seg.fromCity}
+          </p>
+          <p style={{ fontSize: 36, marginTop: 12, opacity: 0.9 }}>{seg.fromCity}</p>
+        </div>
+        <div style={{ textAlign: "center", flex: 1, paddingTop: 80 }}>
+          <p style={{ fontSize: 48, color: "#C5965A", letterSpacing: 6 }}>→</p>
+          {duration && (
+            <p style={{ fontSize: 28, color: "#C5965A", marginTop: 12, fontFamily: "'Courier Prime', monospace" }}>
+              {duration}
+            </p>
+          )}
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 180, lineHeight: 1, margin: 0, fontWeight: 600 }}>
+            {seg.toCode || seg.toCity}
+          </p>
+          <p style={{ fontSize: 36, marginTop: 12, opacity: 0.9 }}>{seg.toCity}</p>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 32, marginTop: 80, paddingTop: 40, borderTop: "2px dashed rgba(255,255,255,0.3)" }}>
+        <ShareField label="DEPARTURE" value={`${fmtDate(seg.departureDateTime)} · ${fmtTime(seg.departureDateTime)}`} />
+        <ShareField label="ARRIVAL" value={`${fmtDate(seg.arrivalDateTime)} · ${fmtTime(seg.arrivalDateTime)}`} />
+        <ShareField label="PNR" value={seg.bookingRef || "—"} />
+        <ShareField label="CLASS" value={seg.seatClass || "—"} />
+      </div>
+      <p style={{ marginTop: 60, fontSize: 22, opacity: 0.6, textAlign: "center" }}>
+        Shared via RufayQ — your AI companion for every journey
+      </p>
+    </div>
+  );
+});
+ShareCard.displayName = "ShareCard";
+
+const ShareField = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <p style={{ fontFamily: "'Courier Prime', monospace", fontSize: 20, letterSpacing: 3, opacity: 0.6, marginBottom: 8 }}>{label}</p>
+    <p style={{ fontSize: 32, fontWeight: 700 }}>{value}</p>
+  </div>
+);
+
 
 export default TicketDetailSheet;

@@ -140,8 +140,22 @@ const PerforatedLine = () => (
   </div>
 );
 
+const computeLegDuration = (dep: string, arr: string): string => {
+  const a = Date.parse(dep);
+  const b = Date.parse(arr);
+  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return "";
+  const mins = Math.round((b - a) / 60000);
+  const d = Math.floor(mins / 1440);
+  const h = Math.floor((mins % 1440) / 60);
+  const m = mins % 60;
+  if (d > 0) return h ? `${d}d ${h}h` : `${d}d`;
+  if (h > 0) return m ? `${h}h ${m}m` : `${h}h`;
+  return `${m}m`;
+};
+
 const RouteDisplay = ({ seg, icon }: { seg: TransportSegment; icon: string }) => {
   const useCode = seg.type === "flight" || seg.type === "train";
+  const duration = seg.duration || computeLegDuration(seg.departureDateTime, seg.arrivalDateTime);
   return (
     <div className="flex items-center px-5 pt-4 pb-2">
       <div className="flex-1">
@@ -159,7 +173,11 @@ const RouteDisplay = ({ seg, icon }: { seg: TransportSegment; icon: string }) =>
         </div>
         {seg.flightNumber && <p className="font-mono text-[11px] mt-1" style={{ color: "var(--gold)" }}>{seg.flightNumber}</p>}
         {seg.trainNumber && <p className="font-mono text-[11px] mt-1" style={{ color: "var(--gold)" }}>{seg.trainNumber}</p>}
-        {seg.duration && <p className="text-[9px]" style={{ color: "rgba(255,255,255,0.45)" }}>{seg.duration}</p>}
+        {duration && (
+          <span className="font-mono text-[10px] px-2 py-0.5 mt-1 rounded-full" style={{ background: "rgba(197,150,90,0.18)", color: "var(--gold)" }}>
+            ⏱ {duration}
+          </span>
+        )}
       </div>
       <div className="flex-1 text-right">
         <p className="font-display text-white font-bold leading-none" style={{ fontSize: useCode ? 42 : 20 }}>
@@ -171,6 +189,7 @@ const RouteDisplay = ({ seg, icon }: { seg: TransportSegment; icon: string }) =>
     </div>
   );
 };
+
 
 const DateRow = ({ seg }: { seg: TransportSegment }) => (
   <div className="flex items-center justify-between px-5 py-2">
@@ -443,9 +462,10 @@ const TransportCard = ({ seg, onTap }: { seg: TransportSegment; onTap?: () => vo
                 )}
               </>
             )}
-            <span className="text-[10px] px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
+            <span className="text-[10px] px-2 py-1 rounded-full pointer-events-none" style={{ background: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
               Tap for details →
             </span>
+
           </div>
         </ActionRow>
       </div>

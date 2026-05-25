@@ -11,9 +11,17 @@
  */
 import { useMemo, useState } from "react";
 import type { FlightJourney, JourneyLeg } from "@/lib/flightJourney";
-import { computeLayover, computeDestinationStay } from "@/lib/flightJourney";
+import { computeLayover, computeDestinationStay, formatDuration } from "@/lib/flightJourney";
 
 export type LegStatus = "done" | "active" | "pending";
+
+const legDurationMinutes = (leg: JourneyLeg): number | null => {
+  const a = Date.parse(leg.departureDateTime);
+  const b = Date.parse(leg.arrivalDateTime);
+  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return null;
+  return Math.round((b - a) / 60000);
+};
+
 
 const fmtDate = (iso: string) => {
   if (!iso) return "—";
@@ -155,9 +163,19 @@ const JourneyTimeline = ({ journey, now = Date.now(), compact, onLegClick }: Pro
                 <p className="text-[11px] mt-0.5" style={{ color: "var(--gray)" }}>
                   {leg.from.city} → {leg.to.city}
                 </p>
-                <p className="font-mono text-[10px] mt-0.5" style={{ color: "var(--gray)" }}>
-                  {fmtDate(leg.departureDateTime)} · {fmtTime(leg.departureDateTime) || "--:--"}
-                </p>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <p className="font-mono text-[10px]" style={{ color: "var(--gray)" }}>
+                    {fmtDate(leg.departureDateTime)} · {fmtTime(leg.departureDateTime) || "--:--"}
+                  </p>
+                  {(() => {
+                    const m = legDurationMinutes(leg);
+                    return m != null ? (
+                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--gold-pale)", color: "var(--navy)" }}>
+                        ⏱ {formatDuration(m)}
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
               </button>
 
               {isOpen && !compact && (
@@ -172,6 +190,11 @@ const JourneyTimeline = ({ journey, now = Date.now(), compact, onLegClick }: Pro
                   <DetailRow k="Seat" v={leg.seatNumber || "—"} />
                   <DetailRow k="Departs" v={`${fmtDate(leg.departureDateTime)} ${fmtTime(leg.departureDateTime)}`.trim()} />
                   <DetailRow k="Arrives" v={`${fmtDate(leg.arrivalDateTime)} ${fmtTime(leg.arrivalDateTime)}`.trim()} />
+                  {(() => {
+                    const m = legDurationMinutes(leg);
+                    return m != null ? <DetailRow k="Duration" v={formatDuration(m)} /> : null;
+                  })()}
+
                   {directionChange && (
                     <div className="col-span-2 mt-1 pt-2" style={{ borderTop: "1px dashed var(--gray-light)" }}>
                       <DetailRow
