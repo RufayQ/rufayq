@@ -1036,7 +1036,7 @@ const DetailItem = ({ label, value, gold, highlight }: { label: string; value: s
 function getQuickNotes(type: string): string[] {
   const common = ["🧳 Extra luggage", "♿ Wheelchair needed", "🍽️ Special meal"];
   switch (type) {
-    case "flight": return ["🚪 Gate info: ", "💺 Window seat preferred", "🛄 Checked 2 bags", ...common, "🏥 Carry medical docs", "📱 Download boarding pass"];
+    case "flight": return ["🚪 Gate info: ", "💺 Window seat preferred", "🛄 Checked 2 bags", ...common, "🏥 Carry medical docs", "📤 Upload real boarding pass"];
     case "train": return ["🚉 Platform: ", "🎒 Light luggage only", "🔌 Power outlet seat", ...common];
     case "taxi": return ["📍 Pickup point: ", "📞 Driver contacted", "♿ Accessible vehicle", "🧳 Large luggage"];
     case "medical": return ["🏥 Hospital pickup", "♿ Wheelchair transport", "📋 Bring discharge papers", "💊 Medications in bag"];
