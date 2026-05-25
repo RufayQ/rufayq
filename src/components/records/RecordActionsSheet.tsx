@@ -24,12 +24,15 @@ export interface RecordActionsSheetProps {
   onClose: () => void;
   onPreview?: () => void;
   onRename?: (newName: string) => Promise<void> | void;
+  /** Open the full edit experience for the underlying entity (ticket / appointment / record). */
+  onEditDetails?: () => void;
   onShare?: () => Promise<void> | void;
   /** Send this record into the AI chat as an attachment. Free on every tier. */
   onSendToChat?: () => Promise<void> | void;
   onApplyToMilestone?: (milestone: { id: string; refId: string; title: string; kind: string }) => Promise<void> | void;
   onDelete?: () => Promise<void> | void;
 }
+
 
 const RecordActionsSheet = ({
   open,
