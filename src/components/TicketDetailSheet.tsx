@@ -1112,4 +1112,92 @@ function getQuickNotes(type: string): string[] {
   }
 }
 
-export default TicketDetailSheet;
+
+/* ─── Share card (offscreen image target) ─── */
+const typeGradient: Record<string, string> = {
+  flight: "linear-gradient(135deg, #004D5B 0%, #00606F 50%, #006B7A 100%)",
+  train: "linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)",
+  bus: "linear-gradient(135deg, #5A1E1E 0%, #8B2E2E 100%)",
+  taxi: "linear-gradient(135deg, #FFB627 0%, #FFA000 100%)",
+  rental: "linear-gradient(135deg, #4A4A4A 0%, #6B6B6B 100%)",
+  medical: "linear-gradient(135deg, #6B1D1D 0%, #9B2A2A 100%)",
+};
+
+function legDurationLabel(dep: string, arr: string): string {
+  const a = Date.parse(dep);
+  const b = Date.parse(arr);
+  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return "";
+  const mins = Math.round((b - a) / 60000);
+  const d = Math.floor(mins / 1440);
+  const h = Math.floor((mins % 1440) / 60);
+  const m = mins % 60;
+  if (d > 0) return h ? `${d}d ${h}h` : `${d}d`;
+  if (h > 0) return m ? `${h}h ${m}m` : `${h}h`;
+  return `${m}m`;
+}
+
+const ShareCard = React.forwardRef<HTMLDivElement, { seg: TransportSegment }>(({ seg }, ref) => {
+  const grad = typeGradient[seg.type] ?? typeGradient.flight;
+  const carrier = seg.airline || seg.trainOperator || seg.busOperator || seg.taxiProvider || seg.rentalCompany || "";
+  const number = seg.flightNumber || seg.trainNumber || seg.busNumber || "";
+  const duration = legDurationLabel(seg.departureDateTime, seg.arrivalDateTime);
+  return (
+    <div
+      ref={ref}
+      style={{
+        width: 1080,
+        padding: 80,
+        background: grad,
+        color: "white",
+        fontFamily: "'DM Sans', system-ui, sans-serif",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 60 }}>
+        <span style={{ fontFamily: "'Courier Prime', monospace", fontSize: 28, letterSpacing: 4, opacity: 0.7 }}>
+          {seg.type.toUpperCase()} · {carrier} {number}
+        </span>
+        <span style={{ fontSize: 24, fontWeight: 700, color: "#C5965A" }}>RufayQ</span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 180, lineHeight: 1, margin: 0, fontWeight: 600 }}>
+            {seg.fromCode || seg.fromCity}
+          </p>
+          <p style={{ fontSize: 36, marginTop: 12, opacity: 0.9 }}>{seg.fromCity}</p>
+        </div>
+        <div style={{ textAlign: "center", flex: 1, paddingTop: 80 }}>
+          <p style={{ fontSize: 48, color: "#C5965A", letterSpacing: 6 }}>→</p>
+          {duration && (
+            <p style={{ fontSize: 28, color: "#C5965A", marginTop: 12, fontFamily: "'Courier Prime', monospace" }}>
+              {duration}
+            </p>
+          )}
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 180, lineHeight: 1, margin: 0, fontWeight: 600 }}>
+            {seg.toCode || seg.toCity}
+          </p>
+          <p style={{ fontSize: 36, marginTop: 12, opacity: 0.9 }}>{seg.toCity}</p>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 32, marginTop: 80, paddingTop: 40, borderTop: "2px dashed rgba(255,255,255,0.3)" }}>
+        <ShareField label="DEPARTURE" value={`${fmtDate(seg.departureDateTime)} · ${fmtTime(seg.departureDateTime)}`} />
+        <ShareField label="ARRIVAL" value={`${fmtDate(seg.arrivalDateTime)} · ${fmtTime(seg.arrivalDateTime)}`} />
+        <ShareField label="PNR" value={seg.bookingRef || "—"} />
+        <ShareField label="CLASS" value={seg.seatClass || "—"} />
+      </div>
+      <p style={{ marginTop: 60, fontSize: 22, opacity: 0.6, textAlign: "center" }}>
+        Shared via RufayQ — your AI companion for every journey
+      </p>
+    </div>
+  );
+});
+ShareCard.displayName = "ShareCard";
+
+const ShareField = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <p style={{ fontFamily: "'Courier Prime', monospace", fontSize: 20, letterSpacing: 3, opacity: 0.6, marginBottom: 8 }}>{label}</p>
+    <p style={{ fontSize: 32, fontWeight: 700 }}>{value}</p>
+  </div>
+);
+
