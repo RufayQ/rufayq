@@ -17,27 +17,8 @@ function fmtTime(dt: string) {
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-/* ─── Fake barcode SVG ─── */
-const BoardingBarcode = ({ code }: { code: string }) => {
-  const bars = Array.from({ length: 48 }, (_, i) => ({
-    w: [1, 2, 3, 1, 2][i % 5],
-    h: 48,
-    gap: [1, 1, 2, 1, 1][i % 5],
-  }));
-  let x = 0;
-  return (
-    <div className="flex flex-col items-center mt-4 mb-2">
-      <svg width={220} height={52} viewBox="0 0 220 52">
-        {bars.map((b, i) => {
-          const cx = x;
-          x += b.w + b.gap;
-          return <rect key={i} x={cx} y={2} width={b.w} height={b.h} fill="var(--navy)" rx={0.5} />;
-        })}
-      </svg>
-      <p className="font-mono text-[11px] tracking-[6px] mt-1" style={{ color: "var(--navy)" }}>{code}</p>
-    </div>
-  );
-};
+
+
 
 /* ─── Types ─── */
 export interface OverrideAnnotation {
