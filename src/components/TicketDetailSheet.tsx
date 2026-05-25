@@ -381,16 +381,48 @@ const TicketDetailSheet = ({
                   style={{ background: "white", border: "1px solid var(--gray-light)", minWidth: 200 }}
                 >
                 <button
+                  onClick={handleShareAsImage}
+                  disabled={isCapturingImage}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors disabled:opacity-60"
+                >
+                  <ImageIcon size={16} color="var(--gold)" />
+                  <div>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
+                      {isCapturingImage ? "Preparing image…" : "Share as image"}
+                    </p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the ticket as a picture · مشاركة كصورة</p>
+                  </div>
+                </button>
+                <div style={{ height: 1, background: "var(--gray-light)" }} />
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setIncludeShortLink((v) => !v); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <Link2 size={14} color={includeShortLink ? "var(--teal-deep)" : "var(--gray)"} />
+                  <div className="flex-1">
+                    <p className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>
+                      Include short link to original
+                    </p>
+                    <p className="text-[9px]" style={{ color: "var(--gray)" }}>
+                      رابط مختصر للمستند الأصلي (اختياري)
+                    </p>
+                  </div>
+                  {includeShortLink ? <ToggleRight size={20} color="var(--teal-deep)" /> : <ToggleLeft size={20} color="var(--gray)" />}
+                </button>
+                <div style={{ height: 1, background: "var(--gray-light)" }} />
+                <button
                   onClick={handleShareWhatsApp}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
                 >
                   <MessageCircle size={16} color="#25D366" />
                   <div>
-                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>WhatsApp</p>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>WhatsApp (text)</p>
                     <p className="text-[10px]" style={{ color: "var(--gray)" }}>Share flight details · مشاركة عبر واتساب</p>
                   </div>
                 </button>
                 <div style={{ height: 1, background: "var(--gray-light)" }} />
+
                 <button
                   onClick={handleShareEmail}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors"
