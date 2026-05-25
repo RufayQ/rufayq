@@ -691,20 +691,8 @@ const TicketDetailSheet = ({
                 </div>
               )}
 
-              {/* Export button */}
-              <button
-                onClick={handleExport}
-                disabled={isExporting}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white btn-press"
-                style={{ background: "var(--teal-deep)" }}
-              >
-                {isExporting ? (
-                  <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "white", borderTopColor: "transparent" }} />
-                ) : (
-                  <Download size={16} />
-                )}
-                {isExporting ? "Exporting..." : "Save Boarding Pass"} · <span className="font-arabic">{isExporting ? "جارٍ التصدير..." : "حفظ بطاقة الصعود"}</span>
-              </button>
+
+
             </div>
           )}
 
