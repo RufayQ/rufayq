@@ -195,6 +195,54 @@ const TicketDetailSheet = ({
     toast.success("Opening email… · جارٍ فتح البريد");
   }, [buildShareText, seg]);
 
+  const handleShareAsImage = useCallback(async () => {
+    if (!shareCardRef.current) return;
+    setIsCapturingImage(true);
+    try {
+      const canvas = await html2canvas(shareCardRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const blob: Blob | null = await new Promise((resolve) =>
+        canvas.toBlob((b) => resolve(b), "image/png", 0.95)
+      );
+      if (!blob) throw new Error("Could not generate image");
+      const route = `${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}`;
+      const filename = `RufayQ-${route}.png`;
+      const file = new File([blob], filename, { type: "image/png" });
+      const baseText = buildShareText();
+      const shareText = includeShortLink
+        ? `${baseText}\n\nℹ️ Short link to original document is not yet enabled. Ask RufayQ to set it up.`
+        : baseText;
+      const navAny = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
+      if (navAny.share && navAny.canShare?.({ files: [file] })) {
+        await navAny.share({ files: [file], text: shareText, title: "RufayQ Ticket" });
+        toast.success("Shared · تم المشاركة");
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Image downloaded · تم تنزيل الصورة", {
+          description: "Native share unavailable on this device",
+        });
+      }
+      setShowShareMenu(false);
+    } catch (e: any) {
+      toast.error("Could not share as image · تعذرت المشاركة", { description: e?.message });
+    } finally {
+      setIsCapturingImage(false);
+    }
+  }, [buildShareText, seg, includeShortLink]);
+
+
+
   // Override form state
   const [selectedField, setSelectedField] = useState("");
   const [overrideValue, setOverrideValue] = useState("");
