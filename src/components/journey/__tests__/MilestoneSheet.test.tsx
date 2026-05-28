@@ -83,8 +83,11 @@ describe("MilestoneSheet — Tap for details expand", () => {
     expect(screen.queryByTestId("milestone-sheet-items")).not.toBeInTheDocument();
   });
 
-  it("hides the toggle entirely when there is nothing to expand", () => {
+  it("still exposes the toggle for an empty milestone via its document scope", () => {
+    // Every milestone gets a canonical segmentRef (for record uploads), so the
+    // toggle should always be available even with zero inline items.
     render(<MilestoneSheet milestone={baseMilestone()} items={[]} />);
-    expect(screen.queryByTestId("milestone-sheet-expand")).not.toBeInTheDocument();
+    expect(screen.getByTestId("milestone-sheet-expand")).toBeInTheDocument();
   });
+
 });
