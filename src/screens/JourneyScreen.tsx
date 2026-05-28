@@ -721,32 +721,43 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   };
 
   const handleReplicateSegment = (seg: TransportSegment) => {
+    // Propose a new date 30 days out, but DON'T persist yet. Open the
+    // transport editor so the user can confirm/adjust the new dates,
+    // flight number, seat, etc. before the ticket is created.
     const newDep = new Date();
     newDep.setDate(newDep.getDate() + 30);
     const dur = new Date(seg.arrivalDateTime).getTime() - new Date(seg.departureDateTime).getTime();
-    const newArr = new Date(newDep.getTime() + dur);
-    const copy: TransportSegment = {
+    const newArr = new Date(newDep.getTime() + (Number.isFinite(dur) && dur > 0 ? dur : 2 * 60 * 60 * 1000));
+    const draft: TransportSegment = {
       ...seg,
       id: `${seg.id}-copy-${Date.now()}`,
+      groupId: seg.type === "flight" ? undefined : seg.groupId,
       status: "upcoming",
       departureDateTime: newDep.toISOString(),
       arrivalDateTime: newArr.toISOString(),
       bookingRef: undefined,
     };
+    setIsNewSegment(true);
+    setIsReplicating(true);
+    setEditingSegment(draft);
+    toast.info("Set the new date · حدّد التاريخ الجديد", { description: "Confirm the details, then Save to create the trip." });
+  };
+
+  /** Persist a replicated segment as a brand-new ticket / non-flight entry. */
+  const finalizeReplicatedSegment = (seg: TransportSegment) => {
     if (seg.type === "flight") {
-      // Build a one-segment ticket and persist it (so the copy survives nav).
       const fakeInfo = {
         airline: seg.airline || "",
         flightNumber: seg.flightNumber || "",
-        bookingRef: "",
+        bookingRef: seg.bookingRef || "",
         fromAirport: seg.fromCode || "",
         fromCity: seg.fromCity || "",
         fromAirportFull: seg.fromFull || "",
         toAirport: seg.toCode || "",
         toCity: seg.toCity || "",
         toAirportFull: seg.toFull || "",
-        departureDateTime: newDep.toISOString(),
-        arrivalDateTime: newArr.toISOString(),
+        departureDateTime: seg.departureDateTime,
+        arrivalDateTime: seg.arrivalDateTime,
         seatClass: seg.seatClass || "Economy",
         seatNumber: seg.seatNumber || "",
       } as FlightInfo;
@@ -760,7 +771,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         outboundSegments: [newSeg],
         returnSegments: [],
         passengerName: undefined,
-        bookingReference: undefined,
+        bookingReference: seg.bookingRef || undefined,
         saveToTransportTimeline: true,
         saveToMedicalRecords: false,
         sendToDoctor: false,
@@ -772,10 +783,13 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       };
       persistFlightTicketWithDuplicateGuard(ticket);
     } else {
-      setNonFlightSegments((prev) => [...prev, copy]);
+      setNonFlightSegments((prev) => [...prev, seg]);
     }
-    toast.success("Ticket replicated to future date · تم نسخ التذكرة لتاريخ مستقبلي", { description: `New trip: ${newDep.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` });
+    toast.success("Trip replicated · تم نسخ الرحلة", {
+      description: `New trip: ${new Date(seg.departureDateTime).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+    });
   };
+
   const applySegmentEditsToTicket = (ticket: TransportTicket, edited: TransportSegment): TransportTicket => {
     const patchSegment = (segment: FlightSegment): FlightSegment => ({
       ...segment,
