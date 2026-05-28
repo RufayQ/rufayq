@@ -740,6 +740,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     };
     setIsNewSegment(true);
     setIsReplicating(true);
+    setReplicateOriginalIso(seg.departureDateTime);
     setEditingSegment(draft);
     toast.info("Set the new date · حدّد التاريخ الجديد", { description: "Confirm the details, then Save to create the trip." });
   };
