@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import MilestoneSheet, { type SheetItem } from "@/components/journey/MilestoneSheet";
+import { withQcArtifacts } from "@/test/qcArtifacts";
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
 
 // Stub useArtifactCount — it would otherwise hit Supabase.
