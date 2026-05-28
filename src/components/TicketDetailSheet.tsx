@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Copy, Image as ImageIcon, Link2, FileImage } from "lucide-react";
 import { toast } from "sonner";
 import type { TransportSegment } from "./TransportCard";
@@ -153,6 +153,16 @@ const TicketDetailSheet = ({
   const [includeShortLink, setIncludeShortLink] = useState(false);
   const [isCapturingImage, setIsCapturingImage] = useState(false);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
+  // Prewarmed share files. We render html2canvas / fetch the signed URL the
+  // moment the share menu opens, then keep the resulting File so that the
+  // click handler can call navigator.share() *synchronously* inside the same
+  // user gesture. Awaiting any Promise before navigator.share consumes the
+  // gesture on Android Chrome and triggers:
+  //   "Must be handling a user gesture to perform a share request."
+  const preparedCardFileRef = useRef<File | null>(null);
+  const preparedOriginalFileRef = useRef<File | null>(null);
+  const [cardReady, setCardReady] = useState(false);
+  const [originalReady, setOriginalReady] = useState(false);
 
 
 
@@ -199,100 +209,181 @@ const TicketDetailSheet = ({
     toast.success("Opening email… · جارٍ فتح البريد");
   }, [buildShareText, seg]);
 
-  const handleShareAsImage = useCallback(async () => {
-    if (!shareCardRef.current) return;
-    setIsCapturingImage(true);
-    try {
-      const canvas = await html2canvas(shareCardRef.current, {
-        backgroundColor: null,
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-      const blob: Blob | null = await new Promise((resolve) =>
-        canvas.toBlob((b) => resolve(b), "image/png", 0.95)
-      );
-      if (!blob) throw new Error("Could not generate image");
-      const route = `${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}`;
-      const filename = `RufayQ-${route}.png`;
-      const file = new File([blob], filename, { type: "image/png" });
-      const baseText = buildShareText();
-      const shareText = includeShortLink
-        ? `${baseText}\n\nℹ️ Short link to original document is not yet enabled. Ask RufayQ to set it up.`
-        : baseText;
-      const navAny = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
-      if (navAny.share && navAny.canShare?.({ files: [file] })) {
-        await navAny.share({ files: [file], text: shareText, title: "RufayQ Ticket" });
-        toast.success("Shared · تم المشاركة");
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast.success("Image downloaded · تم تنزيل الصورة", {
-          description: "Native share unavailable on this device",
-        });
-      }
-      setShowShareMenu(false);
-    } catch (e: any) {
-      toast.error("Could not share as image · تعذرت المشاركة", { description: e?.message });
-    } finally {
-      setIsCapturingImage(false);
+  // Render the styled share-card to a PNG File. Called from the prewarm
+  // effect (no gesture) AND as a last-ditch fallback inside the click handler.
+  const buildCardFile = useCallback(async (): Promise<File | null> => {
+    if (!shareCardRef.current) return null;
+    const canvas = await html2canvas(shareCardRef.current, {
+      backgroundColor: null,
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/png", 0.95)
+    );
+    if (!blob) return null;
+    const route = `${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}`;
+    return new File([blob], `RufayQ-${route}.png`, { type: "image/png" });
+  }, [seg]);
+
+  // Prewarm the share-card File the moment the share menu opens so the
+  // eventual navigator.share() call sits inside the original user gesture.
+  useEffect(() => {
+    if (!showShareMenu) {
+      preparedCardFileRef.current = null;
+      setCardReady(false);
+      return;
     }
-  }, [buildShareText, seg, includeShortLink]);
+    let cancelled = false;
+    setCardReady(false);
+    // Defer one frame so the share menu and shareCardRef are mounted.
+    const raf = requestAnimationFrame(async () => {
+      try {
+        const file = await buildCardFile();
+        if (cancelled || !file) return;
+        preparedCardFileRef.current = file;
+        setCardReady(true);
+      } catch {
+        /* prewarm best-effort; click handler will retry/fallback */
+      }
+    });
+    return () => { cancelled = true; cancelAnimationFrame(raf); };
+  }, [showShareMenu, buildCardFile]);
+
+  const downloadBlobAsFile = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleShareAsImage = useCallback(() => {
+    const navAny = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
+    const baseText = buildShareText();
+    const shareText = includeShortLink
+      ? `${baseText}\n\nℹ️ Short link to original document is not yet enabled. Ask RufayQ to set it up.`
+      : baseText;
+    const file = preparedCardFileRef.current;
+
+    // Fast path — file is ready, share synchronously inside the gesture.
+    if (file && navAny.share && navAny.canShare?.({ files: [file] })) {
+      navAny.share({ files: [file], text: shareText, title: "RufayQ Ticket" })
+        .then(() => toast.success("Shared · تم المشاركة"))
+        .catch((e: any) => {
+          if (e?.name !== "AbortError") {
+            toast.error("Could not share as image · تعذرت المشاركة", { description: e?.message });
+          }
+        });
+      setShowShareMenu(false);
+      return;
+    }
+
+    // Slow path — prewarm hasn't finished (or share unsupported). Render
+    // now, then fall back to download because the gesture is already gone.
+    setIsCapturingImage(true);
+    (async () => {
+      try {
+        const built = file ?? (await buildCardFile());
+        if (!built) throw new Error("Could not generate image");
+        downloadBlobAsFile(built, built.name);
+        toast.success("Image downloaded · تم تنزيل الصورة", {
+          description: "Tap the share menu again for a direct share.",
+        });
+        setShowShareMenu(false);
+      } catch (e: any) {
+        toast.error("Could not share as image · تعذرت المشاركة", { description: e?.message });
+      } finally {
+        setIsCapturingImage(false);
+      }
+    })();
+  }, [buildCardFile, buildShareText, includeShortLink]);
 
   const originalImagePath = ticket?.sourceImagePaths?.[0];
   const hasOriginalImage = !!originalImagePath;
 
-  const handleShareOriginal = useCallback(async () => {
+  // Fetch + sign the original image (no gesture needed).
+  const buildOriginalFile = useCallback(async (): Promise<File | null> => {
+    if (!originalImagePath) return null;
+    const { data, error } = await (supabase as any).storage
+      .from(TRANSPORT_SCANS_BUCKET)
+      .createSignedUrl(originalImagePath, 60 * 5);
+    if (error || !data?.signedUrl) throw error || new Error("Could not sign original image");
+    const resp = await fetch(data.signedUrl);
+    if (!resp.ok) throw new Error(`Download failed (${resp.status})`);
+    const blob = await resp.blob();
+    const ext = (originalImagePath.split(".").pop() || "png").toLowerCase();
+    const route = `${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}`;
+    return new File([blob], `RufayQ-original-${route}.${ext}`, { type: blob.type || "image/png" });
+  }, [originalImagePath, seg]);
+
+  // Prewarm the original-image File when the share menu opens.
+  useEffect(() => {
+    if (!showShareMenu || !originalImagePath) {
+      preparedOriginalFileRef.current = null;
+      setOriginalReady(false);
+      return;
+    }
+    let cancelled = false;
+    setOriginalReady(false);
+    (async () => {
+      try {
+        const file = await buildOriginalFile();
+        if (cancelled || !file) return;
+        preparedOriginalFileRef.current = file;
+        setOriginalReady(true);
+      } catch {
+        /* best-effort prewarm */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showShareMenu, originalImagePath, buildOriginalFile]);
+
+  const handleShareOriginal = useCallback(() => {
     if (!originalImagePath) {
       toast.info("No original ticket image saved · لا توجد صورة أصلية محفوظة", {
         description: "Re-scan or re-upload the ticket to enable original-image sharing.",
       });
       return;
     }
-    setIsCapturingImage(true);
-    try {
-      const { data, error } = await (supabase as any).storage
-        .from(TRANSPORT_SCANS_BUCKET)
-        .createSignedUrl(originalImagePath, 60 * 5);
-      if (error || !data?.signedUrl) throw error || new Error("Could not sign original image");
-      const resp = await fetch(data.signedUrl);
-      if (!resp.ok) throw new Error(`Download failed (${resp.status})`);
-      const blob = await resp.blob();
-      const ext = (originalImagePath.split(".").pop() || "png").toLowerCase();
-      const route = `${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}`;
-      const filename = `RufayQ-original-${route}.${ext}`;
-      const file = new File([blob], filename, { type: blob.type || "image/png" });
-      const navAny = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
-      const text = buildShareText();
-      if (navAny.share && navAny.canShare?.({ files: [file] })) {
-        await navAny.share({ files: [file], text, title: "Original ticket image" });
-        toast.success("Shared original · تم مشاركة الأصلية");
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast.success("Original image downloaded · تم تنزيل الصورة الأصلية", {
-          description: "Native share unavailable on this device",
+    const navAny = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
+    const text = buildShareText();
+    const file = preparedOriginalFileRef.current;
+
+    if (file && navAny.share && navAny.canShare?.({ files: [file] })) {
+      navAny.share({ files: [file], text, title: "Original ticket image" })
+        .then(() => toast.success("Shared original · تم مشاركة الأصلية"))
+        .catch((e: any) => {
+          if (e?.name !== "AbortError") {
+            toast.error("Could not share original · تعذرت مشاركة الأصلية", { description: e?.message });
+          }
         });
-      }
       setShowShareMenu(false);
-    } catch (e: any) {
-      toast.error("Could not share original · تعذرت مشاركة الأصلية", { description: e?.message });
-    } finally {
-      setIsCapturingImage(false);
+      return;
     }
-  }, [originalImagePath, seg, buildShareText]);
+
+    // Prewarm not finished — fall back to download (gesture already lost).
+    setIsCapturingImage(true);
+    (async () => {
+      try {
+        const built = file ?? (await buildOriginalFile());
+        if (!built) throw new Error("Could not generate image");
+        downloadBlobAsFile(built, built.name);
+        toast.success("Original image downloaded · تم تنزيل الصورة الأصلية", {
+          description: "Tap the share menu again for a direct share.",
+        });
+        setShowShareMenu(false);
+      } catch (e: any) {
+        toast.error("Could not share original · تعذرت مشاركة الأصلية", { description: e?.message });
+      } finally {
+        setIsCapturingImage(false);
+      }
+    })();
+  }, [originalImagePath, buildOriginalFile, buildShareText]);
 
 
 
@@ -445,7 +536,7 @@ const TicketDetailSheet = ({
                       <FileImage size={16} color="var(--teal-deep)" />
                       <div>
                         <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
-                          {isCapturingImage ? "Preparing…" : "Share original ticket image"}
+                          {isCapturingImage ? "Preparing…" : originalReady ? "Share original ticket image" : "Preparing original…"}
                         </p>
                         <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the uploaded document · مشاركة المستند الأصلي</p>
                       </div>
@@ -461,7 +552,7 @@ const TicketDetailSheet = ({
                   <ImageIcon size={16} color="var(--gold)" />
                   <div>
                     <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
-                      {isCapturingImage ? "Preparing image…" : "Share as image (in-app card)"}
+                      {isCapturingImage ? "Preparing image…" : cardReady ? "Share as image (in-app card)" : "Preparing image…"}
                     </p>
                     <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the styled summary card · بطاقة ملخص</p>
                   </div>
