@@ -192,7 +192,7 @@ const RelatedDocumentsCard = ({
       }
 
       const rows = (data as TransportAttachment[]) ?? [];
-      setItems(rows);
+      setRawItems(rows);
 
       // Best-effort client backfill: relink rows that match by device but are
       // missing the new ownership fields. RLS allows this because the existing
