@@ -102,6 +102,7 @@ const RelatedDocumentsCard = ({
   title,
   compact,
   preferredLabels,
+  emptyHint,
 }: Props) => {
   const labelChips = preferredLabels && preferredLabels.length ? preferredLabels : DEFAULT_LABELS;
   const targetLabel = title?.replace(/·.*$/, "").trim() || segmentRef.replace(/^milestone-/, "Milestone ").replace(/^flight-/, "Flight ");
