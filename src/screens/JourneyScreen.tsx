@@ -1297,30 +1297,35 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
         onCancel={cancelDuplicateTicket}
       />
 
-      {/* Transport segment editor — handles draft creation + later edits */}
+      {/* Transport segment editor — handles draft creation, edits, and replication */}
       <EditTransportSheet
         open={!!editingSegment}
         segment={editingSegment}
-        onCancel={() => { setEditingSegment(null); setIsNewSegment(false); }}
+        onCancel={() => { setEditingSegment(null); setIsNewSegment(false); setIsReplicating(false); }}
         onSave={(seg) => {
-          if (seg.type === "flight" && seg.groupId) {
+          if (isReplicating) {
+            finalizeReplicatedSegment(seg);
+          } else if (seg.type === "flight" && seg.groupId) {
             void updateFlightTicket(seg.groupId, (ticket) => applySegmentEditsToTicket(ticket, seg));
+            toast.success("Transport updated · تم التحديث");
           } else {
             setNonFlightSegments(prev => {
               const exists = prev.some(p => p.id === seg.id);
               return exists ? prev.map(p => p.id === seg.id ? seg : p) : [...prev, seg];
             });
+            toast.success(isNewSegment ? "Transport added · تم الإضافة" : "Transport updated · تم التحديث");
           }
           setActiveSubTab("tickets");
-          toast.success(isNewSegment ? "Transport added · تم الإضافة" : "Transport updated · تم التحديث");
           setEditingSegment(null);
           setIsNewSegment(false);
+          setIsReplicating(false);
         }}
         onDelete={isNewSegment ? undefined : () => {
           if (editingSegment) handleDeleteTransportSegment(editingSegment);
           setEditingSegment(null);
         }}
       />
+
 
       {/* Duplicate-ticket confirmation */}
       <DuplicateTicketDialog
