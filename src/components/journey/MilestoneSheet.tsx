@@ -250,6 +250,7 @@ const MilestoneSheet = ({
                   userId={userId ?? null}
                   title={slot.title}
                   preferredLabels={slot.preferredLabels}
+                  emptyHint={slot.emptyHint}
                   compact
                 />
               ))}
