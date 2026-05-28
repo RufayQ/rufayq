@@ -306,51 +306,84 @@ const TicketDetailSheet = ({
   const originalImagePath = ticket?.sourceImagePaths?.[0];
   const hasOriginalImage = !!originalImagePath;
 
-  const handleShareOriginal = useCallback(async () => {
+  // Fetch + sign the original image (no gesture needed).
+  const buildOriginalFile = useCallback(async (): Promise<File | null> => {
+    if (!originalImagePath) return null;
+    const { data, error } = await (supabase as any).storage
+      .from(TRANSPORT_SCANS_BUCKET)
+      .createSignedUrl(originalImagePath, 60 * 5);
+    if (error || !data?.signedUrl) throw error || new Error("Could not sign original image");
+    const resp = await fetch(data.signedUrl);
+    if (!resp.ok) throw new Error(`Download failed (${resp.status})`);
+    const blob = await resp.blob();
+    const ext = (originalImagePath.split(".").pop() || "png").toLowerCase();
+    const route = `${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}`;
+    return new File([blob], `RufayQ-original-${route}.${ext}`, { type: blob.type || "image/png" });
+  }, [originalImagePath, seg]);
+
+  // Prewarm the original-image File when the share menu opens.
+  useEffect(() => {
+    if (!showShareMenu || !originalImagePath) {
+      preparedOriginalFileRef.current = null;
+      setOriginalReady(false);
+      return;
+    }
+    let cancelled = false;
+    setOriginalReady(false);
+    (async () => {
+      try {
+        const file = await buildOriginalFile();
+        if (cancelled || !file) return;
+        preparedOriginalFileRef.current = file;
+        setOriginalReady(true);
+      } catch {
+        /* best-effort prewarm */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showShareMenu, originalImagePath, buildOriginalFile]);
+
+  const handleShareOriginal = useCallback(() => {
     if (!originalImagePath) {
       toast.info("No original ticket image saved · لا توجد صورة أصلية محفوظة", {
         description: "Re-scan or re-upload the ticket to enable original-image sharing.",
       });
       return;
     }
-    setIsCapturingImage(true);
-    try {
-      const { data, error } = await (supabase as any).storage
-        .from(TRANSPORT_SCANS_BUCKET)
-        .createSignedUrl(originalImagePath, 60 * 5);
-      if (error || !data?.signedUrl) throw error || new Error("Could not sign original image");
-      const resp = await fetch(data.signedUrl);
-      if (!resp.ok) throw new Error(`Download failed (${resp.status})`);
-      const blob = await resp.blob();
-      const ext = (originalImagePath.split(".").pop() || "png").toLowerCase();
-      const route = `${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}`;
-      const filename = `RufayQ-original-${route}.${ext}`;
-      const file = new File([blob], filename, { type: blob.type || "image/png" });
-      const navAny = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
-      const text = buildShareText();
-      if (navAny.share && navAny.canShare?.({ files: [file] })) {
-        await navAny.share({ files: [file], text, title: "Original ticket image" });
-        toast.success("Shared original · تم مشاركة الأصلية");
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast.success("Original image downloaded · تم تنزيل الصورة الأصلية", {
-          description: "Native share unavailable on this device",
+    const navAny = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
+    const text = buildShareText();
+    const file = preparedOriginalFileRef.current;
+
+    if (file && navAny.share && navAny.canShare?.({ files: [file] })) {
+      navAny.share({ files: [file], text, title: "Original ticket image" })
+        .then(() => toast.success("Shared original · تم مشاركة الأصلية"))
+        .catch((e: any) => {
+          if (e?.name !== "AbortError") {
+            toast.error("Could not share original · تعذرت مشاركة الأصلية", { description: e?.message });
+          }
         });
-      }
       setShowShareMenu(false);
-    } catch (e: any) {
-      toast.error("Could not share original · تعذرت مشاركة الأصلية", { description: e?.message });
-    } finally {
-      setIsCapturingImage(false);
+      return;
     }
-  }, [originalImagePath, seg, buildShareText]);
+
+    // Prewarm not finished — fall back to download (gesture already lost).
+    setIsCapturingImage(true);
+    (async () => {
+      try {
+        const built = file ?? (await buildOriginalFile());
+        if (!built) throw new Error("Could not generate image");
+        downloadBlobAsFile(built, built.name);
+        toast.success("Original image downloaded · تم تنزيل الصورة الأصلية", {
+          description: "Tap the share menu again for a direct share.",
+        });
+        setShowShareMenu(false);
+      } catch (e: any) {
+        toast.error("Could not share original · تعذرت مشاركة الأصلية", { description: e?.message });
+      } finally {
+        setIsCapturingImage(false);
+      }
+    })();
+  }, [originalImagePath, buildOriginalFile, buildShareText]);
 
 
 
