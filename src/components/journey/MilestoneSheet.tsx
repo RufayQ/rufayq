@@ -30,9 +30,18 @@ interface MilestoneSheetProps {
   flightTicketId?: string | null;
   flightSegmentRef?: string | null;
   userId?: string | null;
+  /** Optional per-traveler upload slots (e.g. boarding pass per passenger).
+   *  When provided, each slot becomes its own RelatedDocumentsCard inside the
+   *  expanded sheet — keeping files separated per traveler. */
+  documentSlots?: Array<{
+    segmentRef: string;
+    title: string;
+    preferredLabels?: string[];
+  }>;
   /** Initial expanded state. Defaults to collapsed (false) per design spec. */
   defaultExpanded?: boolean;
 }
+
 
 const KIND_BG: Record<SheetItemKind, { bg: string; fg: string; Icon: any }> = {
   lab:    { bg: "var(--kind-lab-bg)",      fg: "var(--kind-lab-fg)",      Icon: FlaskConical },
