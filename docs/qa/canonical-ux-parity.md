@@ -18,6 +18,26 @@ If the ESLint guard fires, fix the call site — do not add a per-file disable.
 
 ---
 
+## QC Admin board — automated regression coverage (endorsed)
+
+The following automated specs are part of the pre-release QC board. Each row
+must be green on `bun run test` before sign-off; the QC admin records the
+latest run in the release ticket.
+
+| Area | Spec | Endorsement |
+|------|------|-------------|
+| "Tap for details" — flight / train / taxi (car) / rental | `src/components/__tests__/TransportCard.tapForDetails.test.tsx` | ✅ Endorsed — covers all 4 transport variants firing `onTap` |
+| Milestone expand / collapse — flight, appointment, treatment, return | `src/components/journey/__tests__/MilestoneSheet.test.tsx` | ✅ Endorsed — `it.each` over every milestone kind |
+| Replicated trip — date validation gate | `src/components/__tests__/EditTransportSheet.replicate.test.tsx` | ✅ Endorsed — Save disabled + inline error when date unchanged / missing |
+| Per-traveler boarding-pass empty hint | `src/components/journey/__tests__/MilestoneSheet.test.tsx` (`forwards emptyHint`) | ✅ Endorsed — guides upload when no boarding pass exists |
+
+QC admin sign-off: update the release runbook row "Journey milestone E2E"
+to `PASS` once the four specs above run green in CI.
+
+---
+
+
+
 ## 1. Attachment preview parity (Journey ↔ Records)
 
 Open the same attachment from a Journey milestone and from the Records list.

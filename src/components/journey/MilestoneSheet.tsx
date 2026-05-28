@@ -37,6 +37,7 @@ interface MilestoneSheetProps {
     segmentRef: string;
     title: string;
     preferredLabels?: string[];
+    emptyHint?: { en: string; ar: string };
   }>;
   /** Initial expanded state. Defaults to collapsed (false) per design spec. */
   defaultExpanded?: boolean;
@@ -249,6 +250,7 @@ const MilestoneSheet = ({
                   userId={userId ?? null}
                   title={slot.title}
                   preferredLabels={slot.preferredLabels}
+                  emptyHint={slot.emptyHint}
                   compact
                 />
               ))}

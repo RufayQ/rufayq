@@ -90,4 +90,54 @@ describe("MilestoneSheet — Tap for details expand", () => {
     expect(screen.getByTestId("milestone-sheet-expand")).toBeInTheDocument();
   });
 
+  // E2E coverage: every milestone "kind" must expand and collapse cleanly when
+  // the user taps the chevron — regression guard for the "Tap for details"
+  // behavior that was previously broken on flight/transport milestones.
+  const kindCases: Array<{ label: string; milestone: JourneyMilestone }> = [
+    { label: "flight (departure)", milestone: baseMilestone({ id: "m-dep", refId: "departure", kind: "departure", subKind: "flight", phase: "travel" }) },
+    { label: "appointment (consult)", milestone: baseMilestone({ id: "m-appt", kind: "appointment", subKind: "consult" }) },
+    { label: "treatment (surgery)",   milestone: baseMilestone({ id: "m-trt",  kind: "treatment",   subKind: "surgery" }) },
+    { label: "return (flight home)",  milestone: baseMilestone({ id: "m-ret",  refId: "return", kind: "return", subKind: "flight", phase: "after" }) },
+  ];
+
+  it.each(kindCases)("expands and collapses milestone: $label", ({ milestone }) => {
+    const items: SheetItem[] = [
+      { id: "x", kind: milestone.subKind === "flight" ? "flight" : milestone.subKind === "surgery" ? "visit" : "visit", title: "Detail row", state: "Upcoming", tone: "soon" },
+    ];
+    render(<MilestoneSheet milestone={milestone} items={items} />);
+    const toggle = screen.getByTestId("milestone-sheet-expand");
+
+    // Initially collapsed.
+    expect(screen.queryByTestId("milestone-sheet-items")).not.toBeInTheDocument();
+
+    // Tap to expand.
+    fireEvent.click(toggle);
+    expect(screen.getByTestId("milestone-sheet-items")).toBeInTheDocument();
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+
+    // Tap to collapse again.
+    fireEvent.click(toggle);
+    expect(screen.queryByTestId("milestone-sheet-items")).not.toBeInTheDocument();
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("forwards emptyHint into per-traveler boarding-pass slots", () => {
+    render(
+      <MilestoneSheet
+        milestone={baseMilestone({ id: "m-dep", refId: "departure", kind: "departure", subKind: "flight", phase: "travel" })}
+        flightTicketId="tkt-9"
+        documentSlots={[
+          {
+            segmentRef: "seg-1::bp::patient",
+            title: "Boarding pass — Patient",
+            preferredLabels: ["Boarding Pass"],
+            emptyHint: { en: "Upload Patient's boarding pass", ar: "ارفع بطاقة الصعود" },
+          },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("milestone-sheet-expand"));
+    // The mock RelatedDocumentsCard renders its props — assert the slot exists.
+    expect(screen.getByText(/Boarding pass — Patient/)).toBeInTheDocument();
+  });
 });

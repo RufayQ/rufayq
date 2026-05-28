@@ -425,6 +425,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   // ticket (replicated from a past one) rather than updating an existing
   // ticket by groupId. The user is given a chance to edit dates first.
   const [isReplicating, setIsReplicating] = useState(false);
+  const [replicateOriginalIso, setReplicateOriginalIso] = useState<string | null>(null);
 
   useEffect(() => {
     const consume = (raw?: any) => {
@@ -739,6 +740,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
     };
     setIsNewSegment(true);
     setIsReplicating(true);
+    setReplicateOriginalIso(seg.departureDateTime);
     setEditingSegment(draft);
     toast.info("Set the new date · حدّد التاريخ الجديد", { description: "Confirm the details, then Save to create the trip." });
   };
@@ -1101,7 +1103,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                     ? visibleAppointments.find((a) => a.id === m.refId)
                     : null;
                   // Per-traveler boarding-pass upload slots for flight milestones.
-                  let documentSlots: { segmentRef: string; title: string; preferredLabels?: string[] }[] | undefined;
+                  let documentSlots: { segmentRef: string; title: string; preferredLabels?: string[]; emptyHint?: { en: string; ar: string } }[] | undefined;
                   if ((m.kind === "departure" || m.kind === "return") && flightTicketId) {
                     const dir: "outbound" | "return" = m.kind === "departure" ? "outbound" : "return";
                     const matchingSeg = transportSegments.find(
@@ -1124,6 +1126,10 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                           segmentRef: `${matchingSeg.id}::bp::${key}`,
                           title: `Boarding pass — ${t.name} · بطاقة الصعود`,
                           preferredLabels: ["Boarding Pass", "Other"],
+                          emptyHint: {
+                            en: `Check in 24h before the flight, then upload ${t.name}'s boarding pass here.`,
+                            ar: `سجّل الدخول قبل 24 ساعة من الرحلة ثم ارفع بطاقة صعود ${t.name} هنا.`,
+                          },
                         };
                       });
                     }
@@ -1331,7 +1337,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       <EditTransportSheet
         open={!!editingSegment}
         segment={editingSegment}
-        onCancel={() => { setEditingSegment(null); setIsNewSegment(false); setIsReplicating(false); }}
+        isReplicating={isReplicating}
+        originalDepartureIso={replicateOriginalIso ?? undefined}
+        onCancel={() => { setEditingSegment(null); setIsNewSegment(false); setIsReplicating(false); setReplicateOriginalIso(null); }}
         onSave={(seg) => {
           if (isReplicating) {
             finalizeReplicatedSegment(seg);
@@ -1349,6 +1357,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
           setEditingSegment(null);
           setIsNewSegment(false);
           setIsReplicating(false);
+          setReplicateOriginalIso(null);
         }}
         onDelete={isNewSegment ? undefined : () => {
           if (editingSegment) handleDeleteTransportSegment(editingSegment);

@@ -55,6 +55,8 @@ interface Props {
   compact?: boolean;
   /** Override the quick-label chips. First entry becomes the default. */
   preferredLabels?: string[];
+  /** Optional empty-state hint shown when no attachments exist yet. */
+  emptyHint?: { en: string; ar: string };
 }
 
 const BUCKET = "transport-attachments";
@@ -100,6 +102,7 @@ const RelatedDocumentsCard = ({
   title,
   compact,
   preferredLabels,
+  emptyHint,
 }: Props) => {
   const labelChips = preferredLabels && preferredLabels.length ? preferredLabels : DEFAULT_LABELS;
   const targetLabel = title?.replace(/·.*$/, "").trim() || segmentRef.replace(/^milestone-/, "Milestone ").replace(/^flight-/, "Flight ");
@@ -410,6 +413,20 @@ const RelatedDocumentsCard = ({
           {items.length > 0 ? `${items.length} file${items.length > 1 ? "s" : ""}` : ""}
         </span>
       </div>
+
+      {emptyHint && !loading && items.length === 0 && (
+        <div
+          data-testid="related-docs-empty-hint"
+          className="rounded-lg px-2.5 py-2 mb-2 flex items-start gap-2"
+          style={{ background: "rgba(197,150,90,0.08)", border: "1px dashed rgba(197,150,90,0.4)" }}
+        >
+          <span aria-hidden style={{ color: "var(--gold)", fontSize: 12, lineHeight: "16px" }}>↑</span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>{emptyHint.en}</p>
+            <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>{emptyHint.ar}</p>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         {loading && items.length === 0 && (

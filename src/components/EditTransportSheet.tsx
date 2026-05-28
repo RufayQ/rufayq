@@ -13,6 +13,11 @@ interface Props {
   onCancel: () => void;
   onSave: (seg: TransportSegment) => void;
   onDelete?: (id: string) => void;
+  /** When true, the segment is a replicated draft. The user MUST pick a new
+   *  date (different from `originalDepartureIso`) before they can save. */
+  isReplicating?: boolean;
+  /** ISO timestamp of the original (replicated-from) departure. */
+  originalDepartureIso?: string;
 }
 
 const ipt: React.CSSProperties = {
@@ -47,7 +52,7 @@ const titles: Record<TransportSegment["type"], { en: string; ar: string; icon: s
   medical: { en: "Medical",  ar: "طبي",   icon: "🚑" },
 };
 
-const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete }: Props) => {
+const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete, isReplicating, originalDepartureIso }: Props) => {
   const [s, setS] = useState<TransportSegment | null>(segment);
   useEffect(() => { setS(segment); }, [segment, open]);
   if (!open || !s) return null;
@@ -59,6 +64,13 @@ const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete }: Props
   void fieldErrorMap(issues); // reserved for future inline highlighting
   const errors = issues.filter(i => i.level === "error");
   const warnings = issues.filter(i => i.level === "warning");
+  // Replication-specific gate: the user must pick a NEW departure date before
+  // saving a replicated trip. Comparing the date part (YYYY-MM-DD) keeps the
+  // check stable across timezone-driven time edits.
+  const originalDateOnly = originalDepartureIso ? splitDT(originalDepartureIso)[0] : "";
+  const replicateDateUnchanged = !!isReplicating && !!originalDateOnly && depD === originalDateOnly;
+  const replicateDateMissing = !!isReplicating && !depD;
+  const replicateBlocked = replicateDateUnchanged || replicateDateMissing;
   const t = titles[s.type];
 
   return (
@@ -93,6 +105,20 @@ const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete }: Props
               {warnings.map((w, i) => (
                 <p key={i} className="text-[11px]" style={{ color: "var(--gold)" }}>⚠ {w.message}</p>
               ))}
+            </div>
+          )}
+          {replicateBlocked && (
+            <div
+              data-testid="replicate-date-error"
+              className="rounded-xl p-2.5 flex gap-2"
+              style={{ background: "rgba(217,79,79,0.08)", border: "1px solid rgba(217,79,79,0.3)" }}
+            >
+              <AlertTriangle size={14} style={{ color: "var(--error)", flexShrink: 0, marginTop: 2 }} />
+              <p className="text-[11px]" style={{ color: "var(--error)" }}>
+                {replicateDateMissing
+                  ? "Pick a new departure date before saving · حدّد تاريخ المغادرة الجديد قبل الحفظ"
+                  : "Choose a NEW departure date — it can't match the original trip · اختر تاريخًا جديدًا يختلف عن الرحلة الأصلية"}
+              </p>
             </div>
           )}
 
@@ -162,11 +188,12 @@ const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete }: Props
         <div className="px-5 py-3 shrink-0 space-y-2" style={{ borderTop: "1px solid var(--gray-light)" }}>
           <button
             onClick={() => onSave(s)}
-            disabled={errors.length > 0}
+            disabled={errors.length > 0 || replicateBlocked}
+            data-testid="edit-transport-save"
             className="w-full py-3 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
             style={{
-              background: errors.length > 0 ? "var(--gray-light)" : "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))",
-              opacity: errors.length > 0 ? 0.7 : 1,
+              background: (errors.length > 0 || replicateBlocked) ? "var(--gray-light)" : "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))",
+              opacity: (errors.length > 0 || replicateBlocked) ? 0.7 : 1,
             }}
           >
             <CheckCircle2 size={16} /> Save · <span className="font-arabic">حفظ</span>
