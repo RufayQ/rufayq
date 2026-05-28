@@ -43,7 +43,7 @@ describe("EditTransportSheet — replicated trip date validation", () => {
     render(
       <EditTransportSheet
         open
-        segment={draft({ departureDateTime: "2026-02-14T10:00:00" })}
+        segment={draft({ departureDateTime: "2026-02-14T10:00:00", arrivalDateTime: "2026-02-14T16:00:00" })}
         originalDepartureIso="2026-01-10T10:00:00"
         isReplicating
         onCancel={() => {}}
