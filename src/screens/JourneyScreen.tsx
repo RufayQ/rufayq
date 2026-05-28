@@ -1659,6 +1659,9 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
                             userId={userId}
                             title={`Boarding pass — ${t.name} · بطاقة الصعود`}
                             preferredLabels={["Boarding Pass", "Other"]}
+                            // Strict so each traveler's slot only shows that
+                            // traveler's files (no echo via shared ticket_id).
+                            strictSegmentRef
                           />
                         );
                       })}
@@ -1667,9 +1670,12 @@ const TicketsTab = ({ segments, tickets, onRescanTicket, onEditSegment, onDelete
                         ticketId={seg.groupId}
                         userId={userId}
                         title="Other travel documents · مستندات سفر أخرى"
+                        // Boarding passes already render above per traveler.
+                        excludeSubcategories={["Boarding Pass"]}
                       />
                     </>
                   );
+
                 })()}
 
                 {group === "past" && (
