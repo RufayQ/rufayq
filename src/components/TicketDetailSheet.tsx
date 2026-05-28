@@ -435,6 +435,24 @@ const TicketDetailSheet = ({
                   className="absolute right-0 top-10 z-50 rounded-xl overflow-hidden shadow-lg"
                   style={{ background: "white", border: "1px solid var(--gray-light)", minWidth: 200 }}
                 >
+                {hasOriginalImage && (
+                  <>
+                    <button
+                      onClick={handleShareOriginal}
+                      disabled={isCapturingImage}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors disabled:opacity-60"
+                    >
+                      <FileImage size={16} color="var(--teal-deep)" />
+                      <div>
+                        <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
+                          {isCapturingImage ? "Preparing…" : "Share original ticket image"}
+                        </p>
+                        <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the uploaded document · مشاركة المستند الأصلي</p>
+                      </div>
+                    </button>
+                    <div style={{ height: 1, background: "var(--gray-light)" }} />
+                  </>
+                )}
                 <button
                   onClick={handleShareAsImage}
                   disabled={isCapturingImage}
@@ -443,12 +461,13 @@ const TicketDetailSheet = ({
                   <ImageIcon size={16} color="var(--gold)" />
                   <div>
                     <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
-                      {isCapturingImage ? "Preparing image…" : "Share as image"}
+                      {isCapturingImage ? "Preparing image…" : "Share as image (in-app card)"}
                     </p>
-                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the ticket as a picture · مشاركة كصورة</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the styled summary card · بطاقة ملخص</p>
                   </div>
                 </button>
                 <div style={{ height: 1, background: "var(--gray-light)" }} />
+
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setIncludeShortLink((v) => !v); }}
