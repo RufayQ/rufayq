@@ -245,6 +245,57 @@ const TicketDetailSheet = ({
     }
   }, [buildShareText, seg, includeShortLink]);
 
+  const originalImagePath = ticket?.sourceImagePaths?.[0];
+  const hasOriginalImage = !!originalImagePath;
+
+  const handleShareOriginal = useCallback(async () => {
+    if (!originalImagePath) {
+      toast.info("No original ticket image saved · لا توجد صورة أصلية محفوظة", {
+        description: "Re-scan or re-upload the ticket to enable original-image sharing.",
+      });
+      return;
+    }
+    setIsCapturingImage(true);
+    try {
+      const { data, error } = await (supabase as any).storage
+        .from(TRANSPORT_SCANS_BUCKET)
+        .createSignedUrl(originalImagePath, 60 * 5);
+      if (error || !data?.signedUrl) throw error || new Error("Could not sign original image");
+      const resp = await fetch(data.signedUrl);
+      if (!resp.ok) throw new Error(`Download failed (${resp.status})`);
+      const blob = await resp.blob();
+      const ext = (originalImagePath.split(".").pop() || "png").toLowerCase();
+      const route = `${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}`;
+      const filename = `RufayQ-original-${route}.${ext}`;
+      const file = new File([blob], filename, { type: blob.type || "image/png" });
+      const navAny = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
+      const text = buildShareText();
+      if (navAny.share && navAny.canShare?.({ files: [file] })) {
+        await navAny.share({ files: [file], text, title: "Original ticket image" });
+        toast.success("Shared original · تم مشاركة الأصلية");
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Original image downloaded · تم تنزيل الصورة الأصلية", {
+          description: "Native share unavailable on this device",
+        });
+      }
+      setShowShareMenu(false);
+    } catch (e: any) {
+      toast.error("Could not share original · تعذرت مشاركة الأصلية", { description: e?.message });
+    } finally {
+      setIsCapturingImage(false);
+    }
+  }, [originalImagePath, seg, buildShareText]);
+
+
+
 
 
   // Override form state
