@@ -13,6 +13,11 @@ interface Props {
   onCancel: () => void;
   onSave: (seg: TransportSegment) => void;
   onDelete?: (id: string) => void;
+  /** When true, the segment is a replicated draft. The user MUST pick a new
+   *  date (different from `originalDepartureIso`) before they can save. */
+  isReplicating?: boolean;
+  /** ISO timestamp of the original (replicated-from) departure. */
+  originalDepartureIso?: string;
 }
 
 const ipt: React.CSSProperties = {
