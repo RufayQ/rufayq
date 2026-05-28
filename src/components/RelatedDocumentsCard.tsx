@@ -55,6 +55,8 @@ interface Props {
   compact?: boolean;
   /** Override the quick-label chips. First entry becomes the default. */
   preferredLabels?: string[];
+  /** Optional empty-state hint shown when no attachments exist yet. */
+  emptyHint?: { en: string; ar: string };
 }
 
 const BUCKET = "transport-attachments";
