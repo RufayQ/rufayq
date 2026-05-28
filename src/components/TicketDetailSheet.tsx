@@ -536,7 +536,7 @@ const TicketDetailSheet = ({
                       <FileImage size={16} color="var(--teal-deep)" />
                       <div>
                         <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
-                          {isCapturingImage ? "Preparing…" : "Share original ticket image"}
+                          {isCapturingImage ? "Preparing…" : originalReady ? "Share original ticket image" : "Preparing original…"}
                         </p>
                         <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the uploaded document · مشاركة المستند الأصلي</p>
                       </div>
