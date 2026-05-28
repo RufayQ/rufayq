@@ -1143,6 +1143,11 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                         flightTicketId={flightTicketId}
                         userId={authUserId}
                         documentSlots={documentSlots}
+                        // Auto-expand flight milestones that expose per-traveler
+                        // boarding-pass slots so upcoming travelers can find
+                        // the upload entry point without hunting for the
+                        // chevron. Past/done milestones stay collapsed.
+                        defaultExpanded={!!documentSlots?.length && m.state !== "done"}
                         onReschedule={apptForReschedule ? () => { setActiveSubTab("appointments"); setAppointmentFormIntent((v) => v + 1); } : undefined}
                         onOpenMilestone={() => {
                           if (m.kind === "departure" || m.kind === "return") setActiveSubTab("tickets");
