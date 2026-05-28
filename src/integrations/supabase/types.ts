@@ -3639,6 +3639,7 @@ export type Database = {
           reporter_id: string | null
           result: Database["public"]["Enums"]["qc_run_result"]
           scenario: string
+          screenshot_paths: string[]
           smoke_report: string | null
         }
         Insert: {
@@ -3655,6 +3656,7 @@ export type Database = {
           reporter_id?: string | null
           result: Database["public"]["Enums"]["qc_run_result"]
           scenario: string
+          screenshot_paths?: string[]
           smoke_report?: string | null
         }
         Update: {
@@ -3671,6 +3673,7 @@ export type Database = {
           reporter_id?: string | null
           result?: Database["public"]["Enums"]["qc_run_result"]
           scenario?: string
+          screenshot_paths?: string[]
           smoke_report?: string | null
         }
         Relationships: []
