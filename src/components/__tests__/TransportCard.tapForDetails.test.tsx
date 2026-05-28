@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import TransportCard, { type TransportSegment } from "@/components/TransportCard";
+import { withQcArtifacts } from "@/test/qcArtifacts";
+
 
 // `toast` is invoked from action-row helpers but not from the tap path. Stub
 // to keep the test environment quiet.
