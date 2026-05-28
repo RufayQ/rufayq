@@ -1103,7 +1103,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                     ? visibleAppointments.find((a) => a.id === m.refId)
                     : null;
                   // Per-traveler boarding-pass upload slots for flight milestones.
-                  let documentSlots: { segmentRef: string; title: string; preferredLabels?: string[] }[] | undefined;
+                  let documentSlots: { segmentRef: string; title: string; preferredLabels?: string[]; emptyHint?: { en: string; ar: string } }[] | undefined;
                   if ((m.kind === "departure" || m.kind === "return") && flightTicketId) {
                     const dir: "outbound" | "return" = m.kind === "departure" ? "outbound" : "return";
                     const matchingSeg = transportSegments.find(
@@ -1126,6 +1126,10 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                           segmentRef: `${matchingSeg.id}::bp::${key}`,
                           title: `Boarding pass — ${t.name} · بطاقة الصعود`,
                           preferredLabels: ["Boarding Pass", "Other"],
+                          emptyHint: {
+                            en: `Check in 24h before the flight, then upload ${t.name}'s boarding pass here.`,
+                            ar: `سجّل الدخول قبل 24 ساعة من الرحلة ثم ارفع بطاقة صعود ${t.name} هنا.`,
+                          },
                         };
                       });
                     }
