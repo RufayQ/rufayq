@@ -188,11 +188,12 @@ const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete, isRepli
         <div className="px-5 py-3 shrink-0 space-y-2" style={{ borderTop: "1px solid var(--gray-light)" }}>
           <button
             onClick={() => onSave(s)}
-            disabled={errors.length > 0}
+            disabled={errors.length > 0 || replicateBlocked}
+            data-testid="edit-transport-save"
             className="w-full py-3 rounded-xl font-semibold text-white btn-press flex items-center justify-center gap-2"
             style={{
-              background: errors.length > 0 ? "var(--gray-light)" : "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))",
-              opacity: errors.length > 0 ? 0.7 : 1,
+              background: (errors.length > 0 || replicateBlocked) ? "var(--gray-light)" : "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))",
+              opacity: (errors.length > 0 || replicateBlocked) ? 0.7 : 1,
             }}
           >
             <CheckCircle2 size={16} /> Save · <span className="font-arabic">حفظ</span>
