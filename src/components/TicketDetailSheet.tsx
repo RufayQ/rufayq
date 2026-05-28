@@ -1,10 +1,14 @@
 import React, { useState, useCallback, useRef } from "react";
-import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Copy, Image as ImageIcon, Link2 } from "lucide-react";
+import { X, Bell, BellOff, StickyNote, Clock, AlertTriangle, Share2, Edit3, ToggleLeft, ToggleRight, Shield, ShieldOff, Trash2, Mail, MessageCircle, Copy, Image as ImageIcon, Link2, FileImage } from "lucide-react";
 import { toast } from "sonner";
 import type { TransportSegment } from "./TransportCard";
 import type { TransportTicket } from "@/lib/transportTickets";
 import OverlayLayer from "@/shared/ui/overlay/OverlayLayer";
 import html2canvas from "html2canvas";
+import { supabase } from "@/integrations/supabase/client";
+import { TRANSPORT_SCANS_BUCKET } from "@/lib/transportScanStorage";
+
+
 
 
 
@@ -241,6 +245,57 @@ const TicketDetailSheet = ({
     }
   }, [buildShareText, seg, includeShortLink]);
 
+  const originalImagePath = ticket?.sourceImagePaths?.[0];
+  const hasOriginalImage = !!originalImagePath;
+
+  const handleShareOriginal = useCallback(async () => {
+    if (!originalImagePath) {
+      toast.info("No original ticket image saved · لا توجد صورة أصلية محفوظة", {
+        description: "Re-scan or re-upload the ticket to enable original-image sharing.",
+      });
+      return;
+    }
+    setIsCapturingImage(true);
+    try {
+      const { data, error } = await (supabase as any).storage
+        .from(TRANSPORT_SCANS_BUCKET)
+        .createSignedUrl(originalImagePath, 60 * 5);
+      if (error || !data?.signedUrl) throw error || new Error("Could not sign original image");
+      const resp = await fetch(data.signedUrl);
+      if (!resp.ok) throw new Error(`Download failed (${resp.status})`);
+      const blob = await resp.blob();
+      const ext = (originalImagePath.split(".").pop() || "png").toLowerCase();
+      const route = `${seg.fromCode || seg.fromCity}-${seg.toCode || seg.toCity}`;
+      const filename = `RufayQ-original-${route}.${ext}`;
+      const file = new File([blob], filename, { type: blob.type || "image/png" });
+      const navAny = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
+      const text = buildShareText();
+      if (navAny.share && navAny.canShare?.({ files: [file] })) {
+        await navAny.share({ files: [file], text, title: "Original ticket image" });
+        toast.success("Shared original · تم مشاركة الأصلية");
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Original image downloaded · تم تنزيل الصورة الأصلية", {
+          description: "Native share unavailable on this device",
+        });
+      }
+      setShowShareMenu(false);
+    } catch (e: any) {
+      toast.error("Could not share original · تعذرت مشاركة الأصلية", { description: e?.message });
+    } finally {
+      setIsCapturingImage(false);
+    }
+  }, [originalImagePath, seg, buildShareText]);
+
+
+
 
 
   // Override form state
@@ -380,6 +435,24 @@ const TicketDetailSheet = ({
                   className="absolute right-0 top-10 z-50 rounded-xl overflow-hidden shadow-lg"
                   style={{ background: "white", border: "1px solid var(--gray-light)", minWidth: 200 }}
                 >
+                {hasOriginalImage && (
+                  <>
+                    <button
+                      onClick={handleShareOriginal}
+                      disabled={isCapturingImage}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left btn-press hover:bg-gray-50 transition-colors disabled:opacity-60"
+                    >
+                      <FileImage size={16} color="var(--teal-deep)" />
+                      <div>
+                        <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
+                          {isCapturingImage ? "Preparing…" : "Share original ticket image"}
+                        </p>
+                        <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the uploaded document · مشاركة المستند الأصلي</p>
+                      </div>
+                    </button>
+                    <div style={{ height: 1, background: "var(--gray-light)" }} />
+                  </>
+                )}
                 <button
                   onClick={handleShareAsImage}
                   disabled={isCapturingImage}
@@ -388,12 +461,13 @@ const TicketDetailSheet = ({
                   <ImageIcon size={16} color="var(--gold)" />
                   <div>
                     <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
-                      {isCapturingImage ? "Preparing image…" : "Share as image"}
+                      {isCapturingImage ? "Preparing image…" : "Share as image (in-app card)"}
                     </p>
-                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the ticket as a picture · مشاركة كصورة</p>
+                    <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the styled summary card · بطاقة ملخص</p>
                   </div>
                 </button>
                 <div style={{ height: 1, background: "var(--gray-light)" }} />
+
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setIncludeShortLink((v) => !v); }}

@@ -38,7 +38,12 @@ interface MilestoneSheetProps {
     title: string;
     preferredLabels?: string[];
     emptyHint?: { en: string; ar: string };
+    /** When true, this slot only shows files whose segment_ref matches exactly
+     *  (avoids per-traveler boarding-pass slots echoing other travelers' files
+     *  via the shared ticket_id durability branch). Defaults to true. */
+    strictSegmentRef?: boolean;
   }>;
+
   /** Initial expanded state. Defaults to collapsed (false) per design spec. */
   defaultExpanded?: boolean;
 }
@@ -251,9 +256,11 @@ const MilestoneSheet = ({
                   title={slot.title}
                   preferredLabels={slot.preferredLabels}
                   emptyHint={slot.emptyHint}
+                  strictSegmentRef={slot.strictSegmentRef !== false}
                   compact
                 />
               ))}
+
             </div>
           )}
 
@@ -263,10 +270,15 @@ const MilestoneSheet = ({
                 segmentRef={resolvedSegmentRef}
                 ticketId={resolvedTicketId ?? undefined}
                 userId={userId ?? null}
+                // For flight milestones, dedicated per-traveler boarding-pass
+                // slots already render boarding passes above. Hide them from
+                // the catch-all card so users don't see duplicates.
+                excludeSubcategories={hasExtraSlots ? ["Boarding Pass"] : undefined}
                 compact
               />
             </div>
           )}
+
 
         </>
 
