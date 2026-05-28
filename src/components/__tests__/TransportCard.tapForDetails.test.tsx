@@ -29,15 +29,19 @@ const cases: { label: string; over: Partial<TransportSegment> }[] = [
 ];
 
 describe("TransportCard — Tap for details (E2E expand)", () => {
-  it.each(cases)("fires onTap when the $label card is tapped", ({ over }) => {
-    const onTap = vi.fn();
-    render(<TransportCard seg={baseSeg(over)} onTap={onTap} />);
-    // The whole card is the tap target — find the "Tap for details" affordance
-    // and click an ancestor to mimic a real user tap.
-    const hint = screen.getByText(/Tap for details/i);
-    fireEvent.click(hint.closest("div.card-press") || hint);
-    expect(onTap).toHaveBeenCalledTimes(1);
-  });
+  // On failure each variant dumps an HTML + SVG snapshot under
+  // `test-artifacts/qc/transport-<label>/` so the QC portal upload script can
+  // categorize the screenshot by milestone (flight/train/taxi/rental).
+  it.each(cases)("fires onTap when the $label card is tapped", async ({ over, label }) =>
+    withQcArtifacts(`transport-${label}`, () => {
+      const onTap = vi.fn();
+      render(<TransportCard seg={baseSeg(over)} onTap={onTap} />);
+      const hint = screen.getByText(/Tap for details/i);
+      fireEvent.click(hint.closest("div.card-press") || hint);
+      expect(onTap).toHaveBeenCalledTimes(1);
+    })(),
+  );
+
 
   it("does not throw when onTap is undefined", () => {
     render(<TransportCard seg={baseSeg({ type: "flight" })} />);
