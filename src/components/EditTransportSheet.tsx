@@ -52,7 +52,7 @@ const titles: Record<TransportSegment["type"], { en: string; ar: string; icon: s
   medical: { en: "Medical",  ar: "طبي",   icon: "🚑" },
 };
 
-const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete }: Props) => {
+const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete, isReplicating, originalDepartureIso }: Props) => {
   const [s, setS] = useState<TransportSegment | null>(segment);
   useEffect(() => { setS(segment); }, [segment, open]);
   if (!open || !s) return null;
@@ -64,6 +64,13 @@ const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete }: Props
   void fieldErrorMap(issues); // reserved for future inline highlighting
   const errors = issues.filter(i => i.level === "error");
   const warnings = issues.filter(i => i.level === "warning");
+  // Replication-specific gate: the user must pick a NEW departure date before
+  // saving a replicated trip. Comparing the date part (YYYY-MM-DD) keeps the
+  // check stable across timezone-driven time edits.
+  const originalDateOnly = originalDepartureIso ? splitDT(originalDepartureIso)[0] : "";
+  const replicateDateUnchanged = !!isReplicating && !!originalDateOnly && depD === originalDateOnly;
+  const replicateDateMissing = !!isReplicating && !depD;
+  const replicateBlocked = replicateDateUnchanged || replicateDateMissing;
   const t = titles[s.type];
 
   return (
