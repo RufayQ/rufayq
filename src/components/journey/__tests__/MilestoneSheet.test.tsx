@@ -100,15 +100,11 @@ describe("MilestoneSheet — Tap for details expand", () => {
     { label: "return (flight home)",  milestone: baseMilestone({ id: "m-ret",  refId: "return", kind: "return", subKind: "flight", phase: "after" }) },
   ];
 
-  it.each(kindCases)("expands and collapses milestone: $label", withQcArtifacts("$label", () => null) && (({ milestone, label }: any) => {
-    // dummy — replaced below
-  }) as any);
-
-  // Real per-kind block: each case wraps the body with withQcArtifacts so
-  // failures dump an HTML + SVG snapshot under
-  // `test-artifacts/qc/<milestone-kind>/` for QC portal upload.
-  it.each(kindCases)("expands and collapses milestone: $label (with artifacts)", async ({ milestone, label }) => {
-    await withQcArtifacts(label, () => {
+  // Each kind wraps the body with withQcArtifacts so failures dump an HTML +
+  // SVG snapshot under `test-artifacts/qc/<milestone-kind>/` for upload to the
+  // QC admin portal via scripts/qa/upload-qc-artifacts.mjs.
+  it.each(kindCases)("expands and collapses milestone: $label", async ({ milestone, label }) =>
+    withQcArtifacts(label, () => {
       const items: SheetItem[] = [
         { id: "x", kind: milestone.subKind === "flight" ? "flight" : "visit", title: "Detail row", state: "Upcoming", tone: "soon" },
       ];
@@ -121,8 +117,9 @@ describe("MilestoneSheet — Tap for details expand", () => {
       fireEvent.click(toggle);
       expect(screen.queryByTestId("milestone-sheet-items")).not.toBeInTheDocument();
       expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    })();
-  });
+    })(),
+  );
+
 
 
   it("forwards emptyHint into per-traveler boarding-pass slots", () => {
