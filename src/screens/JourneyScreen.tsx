@@ -421,6 +421,10 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   // and validated before being saved into the timeline.
   const [editingSegment, setEditingSegment] = useState<TransportSegment | null>(null);
   const [isNewSegment, setIsNewSegment] = useState(false);
+  // When true, saving `editingSegment` should persist it as a brand-new
+  // ticket (replicated from a past one) rather than updating an existing
+  // ticket by groupId. The user is given a chance to edit dates first.
+  const [isReplicating, setIsReplicating] = useState(false);
 
   useEffect(() => {
     const consume = (raw?: any) => {
