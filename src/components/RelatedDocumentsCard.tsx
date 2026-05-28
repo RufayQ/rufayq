@@ -57,6 +57,17 @@ interface Props {
   preferredLabels?: string[];
   /** Optional empty-state hint shown when no attachments exist yet. */
   emptyHint?: { en: string; ar: string };
+  /** When true, ONLY show rows whose `segment_ref` matches `segmentRef` exactly
+   *  (ticket_id-only matches are excluded from the visible list). Use this for
+   *  per-slot cards like per-traveler boarding passes, so siblings sharing the
+   *  same parent ticket don't echo each other's files. The ticket_id OR-branch
+   *  is still used by the underlying query for durability/relink. */
+  strictSegmentRef?: boolean;
+  /** Hide rows whose subcategory (or, if missing, label) is in this list. Used
+   *  by the catch-all "Other travel documents" card to exclude items that are
+   *  already shown in dedicated per-traveler boarding-pass cards. */
+  excludeSubcategories?: string[];
+
 }
 
 const BUCKET = "transport-attachments";
@@ -103,10 +114,31 @@ const RelatedDocumentsCard = ({
   compact,
   preferredLabels,
   emptyHint,
+  strictSegmentRef,
+  excludeSubcategories,
 }: Props) => {
   const labelChips = preferredLabels && preferredLabels.length ? preferredLabels : DEFAULT_LABELS;
   const targetLabel = title?.replace(/·.*$/, "").trim() || segmentRef.replace(/^milestone-/, "Milestone ").replace(/^flight-/, "Flight ");
-  const [items, setItems] = useState<TransportAttachment[]>([]);
+  const [rawItems, setRawItems] = useState<TransportAttachment[]>([]);
+  const excludeSet = useMemo(
+    () => new Set((excludeSubcategories || []).map((s) => s.toLowerCase())),
+    [excludeSubcategories],
+  );
+  // Apply the visibility filters (strict segment_ref / excluded subcategories)
+  // AFTER the durable OR-query so the query still benefits from ticket_id-based
+  // recovery, but each slot only renders the rows that truly belong to it.
+  const items = useMemo(() => {
+    return rawItems.filter((r) => {
+      if (strictSegmentRef && r.segment_ref !== segmentRef) return false;
+      if (excludeSet.size > 0) {
+        const tag = (r.subcategory || "").toLowerCase()
+          || (r.label || "").toLowerCase();
+        if (excludeSet.has(tag)) return false;
+      }
+      return true;
+    });
+  }, [rawItems, strictSegmentRef, segmentRef, excludeSet]);
+
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [picking, setPicking] = useState<File | null>(null);
