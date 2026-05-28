@@ -153,6 +153,16 @@ const TicketDetailSheet = ({
   const [includeShortLink, setIncludeShortLink] = useState(false);
   const [isCapturingImage, setIsCapturingImage] = useState(false);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
+  // Prewarmed share files. We render html2canvas / fetch the signed URL the
+  // moment the share menu opens, then keep the resulting File so that the
+  // click handler can call navigator.share() *synchronously* inside the same
+  // user gesture. Awaiting any Promise before navigator.share consumes the
+  // gesture on Android Chrome and triggers:
+  //   "Must be handling a user gesture to perform a share request."
+  const preparedCardFileRef = useRef<File | null>(null);
+  const preparedOriginalFileRef = useRef<File | null>(null);
+  const [cardReady, setCardReady] = useState(false);
+  const [originalReady, setOriginalReady] = useState(false);
 
 
 
