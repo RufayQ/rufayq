@@ -30,9 +30,18 @@ interface MilestoneSheetProps {
   flightTicketId?: string | null;
   flightSegmentRef?: string | null;
   userId?: string | null;
+  /** Optional per-traveler upload slots (e.g. boarding pass per passenger).
+   *  When provided, each slot becomes its own RelatedDocumentsCard inside the
+   *  expanded sheet — keeping files separated per traveler. */
+  documentSlots?: Array<{
+    segmentRef: string;
+    title: string;
+    preferredLabels?: string[];
+  }>;
   /** Initial expanded state. Defaults to collapsed (false) per design spec. */
   defaultExpanded?: boolean;
 }
+
 
 const KIND_BG: Record<SheetItemKind, { bg: string; fg: string; Icon: any }> = {
   lab:    { bg: "var(--kind-lab-bg)",      fg: "var(--kind-lab-fg)",      Icon: FlaskConical },
@@ -66,8 +75,10 @@ const MilestoneSheet = ({
   flightTicketId,
   flightSegmentRef,
   userId,
+  documentSlots,
   defaultExpanded = false,
 }: MilestoneSheetProps) => {
+
   // Canonical scope for THIS milestone's attachments. For flight milestones
   // this resolves to the parent ticket; for any other milestone it falls back
   // to a stable milestone-scoped segment_ref so non-flight stops (appointments,
@@ -98,7 +109,8 @@ const MilestoneSheet = ({
       : milestone.date
       ? formatChipDate(milestone.date)
       : "TBD";
-  const hasExpandable = visible.length > 0 || !!resolvedSegmentRef;
+  const hasExtraSlots = (documentSlots?.length ?? 0) > 0;
+  const hasExpandable = visible.length > 0 || !!resolvedSegmentRef || hasExtraSlots;
 
 
   return (
@@ -223,6 +235,26 @@ const MilestoneSheet = ({
             </button>
           )}
 
+          {hasExtraSlots && (
+            <div
+              className="mt-3 -mx-2 space-y-2 animate-fade-in"
+              data-testid="milestone-sheet-extra-slots"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {documentSlots!.map((slot) => (
+                <RelatedDocumentsCard
+                  key={slot.segmentRef}
+                  segmentRef={slot.segmentRef}
+                  ticketId={resolvedTicketId ?? undefined}
+                  userId={userId ?? null}
+                  title={slot.title}
+                  preferredLabels={slot.preferredLabels}
+                  compact
+                />
+              ))}
+            </div>
+          )}
+
           {resolvedSegmentRef && (
             <div className="mt-3 -mx-2 animate-fade-in" onClick={(e) => e.stopPropagation()}>
               <RelatedDocumentsCard
@@ -235,6 +267,7 @@ const MilestoneSheet = ({
           )}
 
         </>
+
       )}
 
       {/* CTAs */}
