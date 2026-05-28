@@ -1100,6 +1100,34 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                   const apptForReschedule = m.kind !== "departure" && m.kind !== "return"
                     ? visibleAppointments.find((a) => a.id === m.refId)
                     : null;
+                  // Per-traveler boarding-pass upload slots for flight milestones.
+                  let documentSlots: { segmentRef: string; title: string; preferredLabels?: string[] }[] | undefined;
+                  if ((m.kind === "departure" || m.kind === "return") && flightTicketId) {
+                    const dir: "outbound" | "return" = m.kind === "departure" ? "outbound" : "return";
+                    const matchingSeg = transportSegments.find(
+                      (s) => s.type === "flight" && s.direction === dir && s.groupId === flightTicketId,
+                    );
+                    const parentTicket = flightTickets.find((t) => t.id === flightTicketId);
+                    if (matchingSeg) {
+                      const passenger = (parentTicket?.passengerName || "").trim() || "Passenger";
+                      const travelers: { name: string }[] = [
+                        { name: passenger },
+                        ...((matchingSeg.companions || []).map((c) => ({ name: c.name || c.relation || "Companion" }))),
+                      ];
+                      const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "traveler";
+                      const seen = new Set<string>();
+                      documentSlots = travelers.map((t, i) => {
+                        let key = slug(t.name);
+                        if (seen.has(key)) key = `${key}-${i}`;
+                        seen.add(key);
+                        return {
+                          segmentRef: `${matchingSeg.id}::bp::${key}`,
+                          title: `Boarding pass — ${t.name} · بطاقة الصعود`,
+                          preferredLabels: ["Boarding Pass", "Other"],
+                        };
+                      });
+                    }
+                  }
                   return (
                     <div ref={milestoneSheetRef} data-testid="milestone-sheet-anchor">
                       <MilestoneSheet
@@ -1108,6 +1136,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                         location={location || activeTrip.hospital}
                         flightTicketId={flightTicketId}
                         userId={authUserId}
+                        documentSlots={documentSlots}
                         onReschedule={apptForReschedule ? () => { setActiveSubTab("appointments"); setAppointmentFormIntent((v) => v + 1); } : undefined}
                         onOpenMilestone={() => {
                           if (m.kind === "departure" || m.kind === "return") setActiveSubTab("tickets");
@@ -1118,6 +1147,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                       />
                     </div>
                   );
+
                 })()}
                 <div className="px-4 pt-3">
                   <OtherJourneysList trips={overview.otherTrips} onSelect={() => setActiveSubTab("steps")} />
