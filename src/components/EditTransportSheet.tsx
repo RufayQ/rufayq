@@ -107,6 +107,20 @@ const EditTransportSheet = ({ open, segment, onCancel, onSave, onDelete, isRepli
               ))}
             </div>
           )}
+          {replicateBlocked && (
+            <div
+              data-testid="replicate-date-error"
+              className="rounded-xl p-2.5 flex gap-2"
+              style={{ background: "rgba(217,79,79,0.08)", border: "1px solid rgba(217,79,79,0.3)" }}
+            >
+              <AlertTriangle size={14} style={{ color: "var(--error)", flexShrink: 0, marginTop: 2 }} />
+              <p className="text-[11px]" style={{ color: "var(--error)" }}>
+                {replicateDateMissing
+                  ? "Pick a new departure date before saving · حدّد تاريخ المغادرة الجديد قبل الحفظ"
+                  : "Choose a NEW departure date — it can't match the original trip · اختر تاريخًا جديدًا يختلف عن الرحلة الأصلية"}
+              </p>
+            </div>
+          )}
 
           <div className="rounded-xl p-3 space-y-2.5" style={{ background: "var(--off-white)", border: "1px solid var(--gray-light)" }}>
             <div className="grid grid-cols-2 gap-2">
