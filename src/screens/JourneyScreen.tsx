@@ -425,6 +425,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
   // ticket (replicated from a past one) rather than updating an existing
   // ticket by groupId. The user is given a chance to edit dates first.
   const [isReplicating, setIsReplicating] = useState(false);
+  const [replicateOriginalIso, setReplicateOriginalIso] = useState<string | null>(null);
 
   useEffect(() => {
     const consume = (raw?: any) => {
