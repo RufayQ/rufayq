@@ -552,7 +552,7 @@ const TicketDetailSheet = ({
                   <ImageIcon size={16} color="var(--gold)" />
                   <div>
                     <p className="text-[13px] font-semibold" style={{ color: "var(--navy)", fontFamily: "'DM Sans'" }}>
-                      {isCapturingImage ? "Preparing image…" : "Share as image (in-app card)"}
+                      {isCapturingImage ? "Preparing image…" : cardReady ? "Share as image (in-app card)" : "Preparing image…"}
                     </p>
                     <p className="text-[10px]" style={{ color: "var(--gray)" }}>Send the styled summary card · بطاقة ملخص</p>
                   </div>
