@@ -34,6 +34,33 @@ latest run in the release ticket.
 QC admin sign-off: update the release runbook row "Journey milestone E2E"
 to `PASS` once the four specs above run green in CI.
 
+### Failure-artifact capture & QC portal upload
+
+The two tap-for-details specs above wrap each variant with
+`withQcArtifacts(<milestone>, …)` from `src/test/qcArtifacts.ts`. On failure
+(or when `QC_ARTIFACTS_ALWAYS=1` is set) the helper writes:
+
+- `test-artifacts/qc/<milestone>/<test>-fail-<ts>.html` — full DOM snapshot of
+  the expanded panel for debugging
+- `test-artifacts/qc/<milestone>/<test>-fail-<ts>.svg` — inline-previewable
+  screenshot wrapper of the same DOM
+- `test-artifacts/qc/manifest.jsonl` — one JSON line per dumped test
+
+CI then runs `node scripts/qa/upload-qc-artifacts.mjs` (requires
+`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`). The script uploads every
+artifact to the **`qc-attachments`** bucket under
+`e2e/<milestone-category>/<ts>/…` and inserts a `qc_test_runs` row with:
+
+- `scenario`: `Tap-for-details · <category> · <test name>`
+- `case_subtags`: `['e2e','tap-for-details','<category>']`
+- `screenshot_paths`: the uploaded storage paths
+
+Milestone categories supported out of the box: `flight`, `train`, `taxi`,
+`rental`, `appointment`, `treatment`, `return` (transport variants are
+recorded after stripping the `transport-` prefix). New categories only
+require passing a new milestone slug to `withQcArtifacts`.
+
+
 ---
 
 

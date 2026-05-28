@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import MilestoneSheet, { type SheetItem } from "@/components/journey/MilestoneSheet";
+import { withQcArtifacts } from "@/test/qcArtifacts";
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
 
 // Stub useArtifactCount — it would otherwise hit Supabase.
@@ -100,26 +101,27 @@ describe("MilestoneSheet — Tap for details expand", () => {
     { label: "return (flight home)",  milestone: baseMilestone({ id: "m-ret",  refId: "return", kind: "return", subKind: "flight", phase: "after" }) },
   ];
 
-  it.each(kindCases)("expands and collapses milestone: $label", ({ milestone }) => {
-    const items: SheetItem[] = [
-      { id: "x", kind: milestone.subKind === "flight" ? "flight" : milestone.subKind === "surgery" ? "visit" : "visit", title: "Detail row", state: "Upcoming", tone: "soon" },
-    ];
-    render(<MilestoneSheet milestone={milestone} items={items} />);
-    const toggle = screen.getByTestId("milestone-sheet-expand");
+  // Each kind wraps the body with withQcArtifacts so failures dump an HTML +
+  // SVG snapshot under `test-artifacts/qc/<milestone-kind>/` for upload to the
+  // QC admin portal via scripts/qa/upload-qc-artifacts.mjs.
+  it.each(kindCases)("expands and collapses milestone: $label", async ({ milestone, label }) =>
+    withQcArtifacts(label, () => {
+      const items: SheetItem[] = [
+        { id: "x", kind: milestone.subKind === "flight" ? "flight" : "visit", title: "Detail row", state: "Upcoming", tone: "soon" },
+      ];
+      render(<MilestoneSheet milestone={milestone} items={items} />);
+      const toggle = screen.getByTestId("milestone-sheet-expand");
+      expect(screen.queryByTestId("milestone-sheet-items")).not.toBeInTheDocument();
+      fireEvent.click(toggle);
+      expect(screen.getByTestId("milestone-sheet-items")).toBeInTheDocument();
+      expect(toggle.getAttribute("aria-expanded")).toBe("true");
+      fireEvent.click(toggle);
+      expect(screen.queryByTestId("milestone-sheet-items")).not.toBeInTheDocument();
+      expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    })(),
+  );
 
-    // Initially collapsed.
-    expect(screen.queryByTestId("milestone-sheet-items")).not.toBeInTheDocument();
 
-    // Tap to expand.
-    fireEvent.click(toggle);
-    expect(screen.getByTestId("milestone-sheet-items")).toBeInTheDocument();
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
-
-    // Tap to collapse again.
-    fireEvent.click(toggle);
-    expect(screen.queryByTestId("milestone-sheet-items")).not.toBeInTheDocument();
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
-  });
 
   it("forwards emptyHint into per-traveler boarding-pass slots", () => {
     render(
