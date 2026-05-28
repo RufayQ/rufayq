@@ -109,7 +109,8 @@ const MilestoneSheet = ({
       : milestone.date
       ? formatChipDate(milestone.date)
       : "TBD";
-  const hasExpandable = visible.length > 0 || !!resolvedSegmentRef;
+  const hasExtraSlots = (documentSlots?.length ?? 0) > 0;
+  const hasExpandable = visible.length > 0 || !!resolvedSegmentRef || hasExtraSlots;
 
 
   return (
