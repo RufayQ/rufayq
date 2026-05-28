@@ -1333,7 +1333,9 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
       <EditTransportSheet
         open={!!editingSegment}
         segment={editingSegment}
-        onCancel={() => { setEditingSegment(null); setIsNewSegment(false); setIsReplicating(false); }}
+        isReplicating={isReplicating}
+        originalDepartureIso={replicateOriginalIso ?? undefined}
+        onCancel={() => { setEditingSegment(null); setIsNewSegment(false); setIsReplicating(false); setReplicateOriginalIso(null); }}
         onSave={(seg) => {
           if (isReplicating) {
             finalizeReplicatedSegment(seg);
@@ -1351,6 +1353,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
           setEditingSegment(null);
           setIsNewSegment(false);
           setIsReplicating(false);
+          setReplicateOriginalIso(null);
         }}
         onDelete={isNewSegment ? undefined : () => {
           if (editingSegment) handleDeleteTransportSegment(editingSegment);
