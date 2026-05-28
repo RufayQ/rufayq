@@ -235,6 +235,26 @@ const MilestoneSheet = ({
             </button>
           )}
 
+          {hasExtraSlots && (
+            <div
+              className="mt-3 -mx-2 space-y-2 animate-fade-in"
+              data-testid="milestone-sheet-extra-slots"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {documentSlots!.map((slot) => (
+                <RelatedDocumentsCard
+                  key={slot.segmentRef}
+                  segmentRef={slot.segmentRef}
+                  ticketId={resolvedTicketId ?? undefined}
+                  userId={userId ?? null}
+                  title={slot.title}
+                  preferredLabels={slot.preferredLabels}
+                  compact
+                />
+              ))}
+            </div>
+          )}
+
           {resolvedSegmentRef && (
             <div className="mt-3 -mx-2 animate-fade-in" onClick={(e) => e.stopPropagation()}>
               <RelatedDocumentsCard
@@ -247,6 +267,7 @@ const MilestoneSheet = ({
           )}
 
         </>
+
       )}
 
       {/* CTAs */}
