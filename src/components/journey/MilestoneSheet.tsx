@@ -75,8 +75,10 @@ const MilestoneSheet = ({
   flightTicketId,
   flightSegmentRef,
   userId,
+  documentSlots,
   defaultExpanded = false,
 }: MilestoneSheetProps) => {
+
   // Canonical scope for THIS milestone's attachments. For flight milestones
   // this resolves to the parent ticket; for any other milestone it falls back
   // to a stable milestone-scoped segment_ref so non-flight stops (appointments,
