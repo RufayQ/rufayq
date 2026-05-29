@@ -64,7 +64,7 @@ describe("MilestoneSheet — Tap for details expand", () => {
     expect(screen.getByText("Dr Müller")).toBeInTheDocument();
   });
 
-  it("renders per-traveler boarding-pass slots for flight milestones when expanded", () => {
+  it("forwards per-traveler boarding-pass slots into the merged Related Documents card", () => {
     render(
       <MilestoneSheet
         milestone={baseMilestone({ id: "m-dep", refId: "departure", kind: "departure", subKind: "flight", phase: "travel" })}
@@ -76,9 +76,8 @@ describe("MilestoneSheet — Tap for details expand", () => {
       />,
     );
     fireEvent.click(screen.getByTestId("milestone-sheet-expand"));
-    const slots = screen.getByTestId("milestone-sheet-extra-slots");
-    expect(slots).toBeInTheDocument();
-    expect(slots.querySelectorAll('[data-testid="related-docs"]').length).toBe(2);
+    const card = screen.getByTestId("related-docs");
+    expect(card.getAttribute("data-upload-slot-count")).toBe("2");
     expect(screen.getByText(/Boarding pass — Patient/)).toBeInTheDocument();
     expect(screen.getByText(/Boarding pass — Spouse/)).toBeInTheDocument();
   });
@@ -87,7 +86,7 @@ describe("MilestoneSheet — Tap for details expand", () => {
     const items: SheetItem[] = [
       { id: "x", kind: "lab", title: "Blood panel", state: "Done", tone: "done" },
     ];
-    render(<MilestoneSheet milestone={baseMilestone()} items={items} defaultExpanded />);
+    render(<MilestoneSheet milestone={baseMilestone({ id: "m-collapse" })} items={items} defaultExpanded />);
     expect(screen.getByTestId("milestone-sheet-items")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("milestone-sheet-expand"));
     expect(screen.queryByTestId("milestone-sheet-items")).not.toBeInTheDocument();
