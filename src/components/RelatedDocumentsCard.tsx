@@ -854,7 +854,7 @@ const RelatedDocumentsCard = ({
         }}
         onDelete={() => {
           if (!previewItem) return;
-          void removeItem(previewItem);
+          setPendingDelete(previewItem);
           setPreviewUrl(null);
           setPreviewItem(null);
         }}
