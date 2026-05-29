@@ -571,7 +571,7 @@ const RelatedDocumentsCard = ({
               </p>
             </button>
             <button
-              onClick={() => removeItem(item)}
+              onClick={() => setPendingDelete(item)}
               className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
               style={{ background: "var(--navy)", color: "white" }}
               aria-label="Remove attachment"
