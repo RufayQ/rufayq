@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen, Camera, Upload } from "lucide-react";
+import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen, Camera, Upload, RotateCcw, Check } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
