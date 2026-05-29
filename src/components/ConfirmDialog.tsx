@@ -1,4 +1,5 @@
 import { AlertTriangle, X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -26,8 +27,9 @@ const ConfirmDialog = ({
   destructive = false, onConfirm, onClose,
 }: ConfirmDialogProps) => {
   if (!open) return null;
-  return (
-    <div className="absolute inset-0 z-[60] flex items-center justify-center px-6" onClick={onClose}>
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[var(--z-overlay-preview)] flex items-center justify-center px-6" onClick={onClose}>
       <div className="absolute inset-0 animate-fade-in" style={{ background: "rgba(7,18,30,0.55)" }} />
       <div
         className="relative w-full rounded-2xl p-5 animate-scale-in"
@@ -83,7 +85,8 @@ const ConfirmDialog = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

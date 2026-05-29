@@ -97,6 +97,7 @@ const LABEL_TO_SUBCATEGORY: Record<string, string> = {
 
 
 const isScannableFile = (file: File) => file.type.startsWith("image/") || isPdf(file.type, file.name);
+const storagePathOf = (path: string) => path.replace(new RegExp(`^${BUCKET}/`), "");
 
 const keyFieldsOf = (item: Pick<TransportAttachment, "key_fields"> | null | undefined) =>
   (Array.isArray(item?.key_fields) ? item!.key_fields : [])
@@ -159,7 +160,8 @@ const RelatedDocumentsCard = ({
   // When the user taps an inline boarding-pass slot tile, this captures the
   // slot's segmentRef + title so the next upload is routed there instead of
   // the parent card's segmentRef.
-  const [activeSlot, setActiveSlot] = useState<{ segmentRef: string; title: string } | null>(null);
+  const [activeSlot, setActiveSlot] = useState<{ segmentRef: string; title: string; preferredLabels?: string[] } | null>(null);
+  const activeLabelChips = activeSlot?.preferredLabels?.length ? activeSlot.preferredLabels : labelChips;
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
@@ -272,7 +274,7 @@ const RelatedDocumentsCard = ({
       // Defensive: storage paths must NOT start with the bucket name. Some
       // legacy rows accidentally stored "transport-attachments/<deviceId>/…";
       // strip that prefix so createSignedUrls doesn't 404 silently.
-      const paths = pending.map((p) => p.file_path.replace(new RegExp(`^${BUCKET}/`), ""));
+      const paths = pending.map((p) => storagePathOf(p.file_path));
       const { data, error } = await storageWithDeviceHeader(BUCKET, deviceId)
         .createSignedUrls(paths, 60 * 30);
       if (cancelled) return;
@@ -309,7 +311,7 @@ const RelatedDocumentsCard = ({
     // pass per traveler), default the label to "Boarding Pass" so the scanner
     // picks the right schema and the row lands under the slot's segment_ref.
     setPicking(file);
-    setLabelDraft(activeSlot ? "Boarding Pass" : "VISA");
+    setLabelDraft(activeSlot ? (activeLabelChips[0] || "Boarding Pass") : (labelChips[0] || "VISA"));
   };
 
   // Persist a scanner-edited attachment: upload the (possibly rasterized)
@@ -415,7 +417,7 @@ const RelatedDocumentsCard = ({
 
   const openPreview = async (item: TransportAttachment) => {
     const { data, error } = await storageWithDeviceHeader(BUCKET, deviceId)
-      .createSignedUrl(item.file_path, 60 * 5);
+      .createSignedUrl(storagePathOf(item.file_path), 60 * 5);
     if (error || !data?.signedUrl) {
       toast.error("Could not open file");
       return;
@@ -445,7 +447,7 @@ const RelatedDocumentsCard = ({
 
 
   const shareItem = async (item: TransportAttachment) => {
-    const { data } = await storageWithDeviceHeader(BUCKET, deviceId).createSignedUrl(item.file_path, 60 * 60);
+    const { data } = await storageWithDeviceHeader(BUCKET, deviceId).createSignedUrl(storagePathOf(item.file_path), 60 * 60);
     const url = data?.signedUrl;
     const text = `📄 ${item.label} — ${item.file_name}${url ? `\n${url}` : ""}`;
     if (navigator.share) {
@@ -593,7 +595,7 @@ const RelatedDocumentsCard = ({
               data-slot-ref={slot.segmentRef}
               onClick={() => {
                 if (isBusy) return;
-                setActiveSlot({ segmentRef: slot.segmentRef, title: slot.title });
+                setActiveSlot({ segmentRef: slot.segmentRef, title: slot.title, preferredLabels: slot.preferredLabels });
                 setChooserSlot({ segmentRef: slot.segmentRef, title: slot.title });
               }}
               disabled={isBusy}
@@ -780,7 +782,7 @@ const RelatedDocumentsCard = ({
               </p>
             )}
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {labelChips.map((l) => (
+              {activeLabelChips.map((l) => (
                 <button
                   key={l}
                   onClick={() => setLabelDraft(l)}

@@ -241,7 +241,7 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
             <div
               ref={markerRef}
               aria-hidden="true"
-              className="pointer-events-none absolute top-0 bottom-2 left-0 flex flex-col items-center"
+              className="pointer-events-none absolute -top-7 bottom-2 left-0 flex flex-col items-center"
               style={{
                 transform: "translateX(0) translateX(-50%)",
                 transition: "transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 200ms ease",
