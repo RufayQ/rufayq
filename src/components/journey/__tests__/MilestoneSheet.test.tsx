@@ -43,6 +43,9 @@ const baseMilestone = (over: Partial<JourneyMilestone> = {}): JourneyMilestone =
 describe("MilestoneSheet — Tap for details expand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Per-milestone expand state is persisted in localStorage — reset between
+    // tests so the previous test's toggle doesn't leak into the next.
+    try { window.localStorage.clear(); } catch { /* noop */ }
   });
 
   it("renders the expand toggle when there are items", () => {
