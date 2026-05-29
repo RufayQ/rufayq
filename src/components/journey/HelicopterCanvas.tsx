@@ -402,7 +402,7 @@ const HelicopterCanvas = ({ milestones, selectedId, onSelect, rtl = false }: Hel
                     letterSpacing: "0.04em",
                   }}
                 >
-                  {isCurrent ? "TODAY" : formatChipDate(m.date)}
+                  {isCurrent ? "NEXT" : formatChipDate(m.date)}
                 </span>
               )}
             </button>
