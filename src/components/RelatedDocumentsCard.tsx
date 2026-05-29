@@ -309,13 +309,16 @@ const RelatedDocumentsCard = ({
       (f) => f.label.trim().length > 0 && f.value.trim().length > 0,
     );
     const label = sub || (payload?.fileName ? payload.fileName.replace(/\.\w+$/, "") : "Document");
+    // When the user tapped an inline boarding-pass slot, route the row under
+    // that slot's segment_ref so it satisfies the slot's "already filled" check.
+    const targetSegmentRef = activeSlot?.segmentRef ?? segmentRef;
     setUploading(true);
     try {
       const ext = fileToUpload.name.split(".").pop() || "bin";
-      const folderRef = ticketId || segmentRef;
+      const folderRef = ticketId || targetSegmentRef;
       const path = userId
         ? `user/${userId}/${folderRef}/${crypto.randomUUID()}.${ext}`
-        : `${deviceId}/${segmentRef}/${crypto.randomUUID()}.${ext}`;
+        : `${deviceId}/${targetSegmentRef}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await storageWithDeviceHeader(BUCKET, deviceId)
         .upload(path, fileToUpload, { contentType: fileToUpload.type, upsert: false });
       if (upErr) throw upErr;
@@ -324,7 +327,7 @@ const RelatedDocumentsCard = ({
         user_id: userId ?? null,
         ticket_id: ticketId ?? null,
         source_document_id: sourceDocumentId ?? null,
-        segment_ref: segmentRef,
+        segment_ref: targetSegmentRef,
         label,
         file_name: fileToUpload.name,
         file_path: path,
@@ -336,6 +339,7 @@ const RelatedDocumentsCard = ({
       if (insErr) throw insErr;
       toast.success(`${label} attached`, { description: fileToUpload.name });
       setScanFile(null);
+      setActiveSlot(null);
       await refresh();
     } catch (e: any) {
       console.error("[RelatedDocumentsCard] scanner save failed", e);
