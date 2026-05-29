@@ -102,7 +102,7 @@ const MilestoneSheet = ({
     ticketId: resolvedTicketId,
     enabled: !!resolvedSegmentRef || !!resolvedTicketId,
   });
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [expanded, setExpanded] = useExpandedMilestone(milestone?.id ?? null, defaultExpanded);
 
   if (!milestone) return null;
   const visible = items.slice(0, 4);
