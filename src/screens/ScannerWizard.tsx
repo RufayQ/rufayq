@@ -87,7 +87,7 @@ interface ScannerWizardProps {
   attachmentMode?: boolean;
   /** Called on save. For flights, payload contains the parsed legs so the
    * caller can inject them into the Journey timeline. */
-  onSave?: (category: string | null, payload?: ScannerSavePayload) => void;
+  onSave?: (category: string | null, payload?: ScannerSavePayload) => void | Promise<void>;
   /** Called on multi-record Save All with fully-finalized payloads (one per
    *  file). When omitted, multi-record falls back to repeated `onSave` calls
    *  with a single end-of-loop close. */
@@ -328,7 +328,7 @@ const ScannerWizard = ({
 
   const runSave = async (payload: ScannerSavePayload | undefined) => {
     const finalized = await finalizePayload(payload);
-    onSave?.(selectedCategory, finalized);
+    await onSave?.(selectedCategory, finalized);
   };
 
   const handleFileCapture = (accept: string) => {
@@ -613,9 +613,7 @@ const ScannerWizard = ({
             onParsed={handleParsed}
             onSave={() => {
               if (attachmentMode) {
-                setTimeout(() => {
-                  void runSave(enrichedPayload(scannedPayloadRef.current ?? scannedPayload)).then(() => onClose());
-                }, 0);
+                void runSave(enrichedPayload(scannedPayloadRef.current ?? scannedPayload)).then(() => onClose());
               } else {
                 setStep(5);
               }
