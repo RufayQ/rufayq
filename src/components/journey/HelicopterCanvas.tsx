@@ -265,7 +265,7 @@ const HelicopterCanvas = ({ milestones, selectedId, onSelect, rtl = false }: Hel
                 data-testid="helicopter-now-flag"
                 style={{
                   position: "absolute",
-                  bottom: `calc(100% + 4px)`,
+                  bottom: `calc(100% + 14px)`,
                   left: "50%",
                   transform: "translateX(-50%)",
                   background: "var(--kind-rad-fg)",
