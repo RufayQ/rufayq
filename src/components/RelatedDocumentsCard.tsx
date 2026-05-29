@@ -359,16 +359,17 @@ const RelatedDocumentsCard = ({
       return;
     }
     const label = labelDraft.trim() || "Document";
+    const targetSegmentRef = activeSlot?.segmentRef ?? segmentRef;
     setUploading(true);
     try {
       const ext = picking.name.split(".").pop() || "bin";
       // Path scheme:
       //   signed-in: user/<uid>/<ticketId||segmentRef>/<uuid>.<ext>
       //   guest:     <deviceId>/<segmentRef>/<uuid>.<ext>   (legacy convention)
-      const folderRef = ticketId || segmentRef;
+      const folderRef = ticketId || targetSegmentRef;
       const path = userId
         ? `user/${userId}/${folderRef}/${crypto.randomUUID()}.${ext}`
-        : `${deviceId}/${segmentRef}/${crypto.randomUUID()}.${ext}`;
+        : `${deviceId}/${targetSegmentRef}/${crypto.randomUUID()}.${ext}`;
 
       const { error: upErr } = await storageWithDeviceHeader(BUCKET, deviceId)
         .upload(path, picking, { contentType: picking.type, upsert: false });
@@ -379,7 +380,7 @@ const RelatedDocumentsCard = ({
         user_id: userId ?? null,
         ticket_id: ticketId ?? null,
         source_document_id: sourceDocumentId ?? null,
-        segment_ref: segmentRef,
+        segment_ref: targetSegmentRef,
         label,
         file_name: picking.name,
         file_path: path,
@@ -389,6 +390,7 @@ const RelatedDocumentsCard = ({
       if (insErr) throw insErr;
       toast.success(`${label} attached`, { description: picking.name });
       setPicking(null);
+      setActiveSlot(null);
       await refresh();
     } catch (e: any) {
       console.error(e);
