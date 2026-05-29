@@ -10,10 +10,19 @@ vi.mock("@/hooks/useArtifactCount", () => ({
 }));
 
 // Stub RelatedDocumentsCard — the real one talks to Supabase storage.
+// Surface uploadSlots so tests can assert that boarding-pass slots are
+// forwarded inline (no dedicated section).
 vi.mock("@/components/RelatedDocumentsCard", () => ({
   default: (props: any) => (
-    <div data-testid="related-docs" data-segref={props.segmentRef}>
+    <div
+      data-testid="related-docs"
+      data-segref={props.segmentRef}
+      data-upload-slot-count={(props.uploadSlots ?? []).length}
+    >
       {props.title || "docs"}
+      {(props.uploadSlots ?? []).map((s: any) => (
+        <span key={s.segmentRef} data-testid="related-docs-slot">{s.title}</span>
+      ))}
     </div>
   ),
 }));
@@ -34,6 +43,9 @@ const baseMilestone = (over: Partial<JourneyMilestone> = {}): JourneyMilestone =
 describe("MilestoneSheet — Tap for details expand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Per-milestone expand state is persisted in localStorage — reset between
+    // tests so the previous test's toggle doesn't leak into the next.
+    try { window.localStorage.clear(); } catch { /* noop */ }
   });
 
   it("renders the expand toggle when there are items", () => {
@@ -55,7 +67,7 @@ describe("MilestoneSheet — Tap for details expand", () => {
     expect(screen.getByText("Dr Müller")).toBeInTheDocument();
   });
 
-  it("renders per-traveler boarding-pass slots for flight milestones when expanded", () => {
+  it("forwards per-traveler boarding-pass slots into the merged Related Documents card", () => {
     render(
       <MilestoneSheet
         milestone={baseMilestone({ id: "m-dep", refId: "departure", kind: "departure", subKind: "flight", phase: "travel" })}
@@ -67,9 +79,8 @@ describe("MilestoneSheet — Tap for details expand", () => {
       />,
     );
     fireEvent.click(screen.getByTestId("milestone-sheet-expand"));
-    const slots = screen.getByTestId("milestone-sheet-extra-slots");
-    expect(slots).toBeInTheDocument();
-    expect(slots.querySelectorAll('[data-testid="related-docs"]').length).toBe(2);
+    const card = screen.getByTestId("related-docs");
+    expect(card.getAttribute("data-upload-slot-count")).toBe("2");
     expect(screen.getByText(/Boarding pass — Patient/)).toBeInTheDocument();
     expect(screen.getByText(/Boarding pass — Spouse/)).toBeInTheDocument();
   });
@@ -78,7 +89,7 @@ describe("MilestoneSheet — Tap for details expand", () => {
     const items: SheetItem[] = [
       { id: "x", kind: "lab", title: "Blood panel", state: "Done", tone: "done" },
     ];
-    render(<MilestoneSheet milestone={baseMilestone()} items={items} defaultExpanded />);
+    render(<MilestoneSheet milestone={baseMilestone({ id: "m-collapse" })} items={items} defaultExpanded />);
     expect(screen.getByTestId("milestone-sheet-items")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("milestone-sheet-expand"));
     expect(screen.queryByTestId("milestone-sheet-items")).not.toBeInTheDocument();

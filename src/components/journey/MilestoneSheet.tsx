@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { ArrowUpRight, CalendarClock, ChevronDown, FlaskConical, MoreHorizontal, Pill, PlaneTakeoff, Stethoscope, Activity, FlaskConical as _ } from "lucide-react";
 import type { JourneyMilestone } from "@/hooks/useJourneyOverview";
 import { formatChipDate } from "@/lib/journeyOverview";
 import RelatedDocumentsCard from "@/components/RelatedDocumentsCard";
 import { useArtifactCount } from "@/hooks/useArtifactCount";
 import { milestoneKeyFor } from "@/lib/records/milestoneKey";
+import { useExpandedMilestone } from "@/hooks/useExpandedMilestones";
 
 
 export type SheetItemKind = "lab" | "rad" | "med" | "visit" | "flight";
@@ -66,7 +66,7 @@ const TONE_BG: Record<SheetItemTone, { bg: string; fg: string; border?: string }
 };
 
 const headerPill = (state: JourneyMilestone["state"]) => {
-  if (state === "current") return { label: "Today", bg: "linear-gradient(135deg, rgba(197,150,90,0.18), rgba(197,150,90,0.08))", fg: "var(--gold)", border: "1px solid rgba(197,150,90,0.35)" };
+  if (state === "current") return { label: "Next", bg: "linear-gradient(135deg, rgba(197,150,90,0.18), rgba(197,150,90,0.08))", fg: "var(--gold)", border: "1px solid rgba(197,150,90,0.35)" };
   if (state === "done")    return { label: "Past",  bg: "var(--kind-consult-bg)", fg: "var(--kind-consult-fg)", border: "1px solid transparent" };
   return                       { label: "Upcoming", bg: "var(--off-white)", fg: "var(--gray)", border: "1px solid var(--gray-light)" };
 };
@@ -102,7 +102,7 @@ const MilestoneSheet = ({
     ticketId: resolvedTicketId,
     enabled: !!resolvedSegmentRef || !!resolvedTicketId,
   });
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [expanded, setExpanded] = useExpandedMilestone(milestone?.id ?? null, defaultExpanded);
 
   if (!milestone) return null;
   const visible = items.slice(0, 4);
@@ -111,7 +111,7 @@ const MilestoneSheet = ({
   const pill = headerPill(milestone.state);
   const dateLabel =
     milestone.state === "current"
-      ? `Today · ${milestone.date ? formatChipDate(milestone.date) : ""}`.trim()
+      ? `Next · ${milestone.date ? formatChipDate(milestone.date) : ""}`.trim()
       : milestone.date
       ? formatChipDate(milestone.date)
       : "TBD";
@@ -241,39 +241,20 @@ const MilestoneSheet = ({
             </button>
           )}
 
-          {hasExtraSlots && (
-            <div
-              className="mt-3 -mx-2 space-y-2 animate-fade-in"
-              data-testid="milestone-sheet-extra-slots"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {documentSlots!.map((slot) => (
-                <RelatedDocumentsCard
-                  key={slot.segmentRef}
-                  segmentRef={slot.segmentRef}
-                  ticketId={resolvedTicketId ?? undefined}
-                  userId={userId ?? null}
-                  title={slot.title}
-                  preferredLabels={slot.preferredLabels}
-                  emptyHint={slot.emptyHint}
-                  strictSegmentRef={slot.strictSegmentRef !== false}
-                  compact
-                />
-              ))}
-
-            </div>
-          )}
-
-          {resolvedSegmentRef && (
+          {(resolvedSegmentRef || hasExtraSlots) && (
             <div className="mt-3 -mx-2 animate-fade-in" onClick={(e) => e.stopPropagation()}>
               <RelatedDocumentsCard
-                segmentRef={resolvedSegmentRef}
+                segmentRef={resolvedSegmentRef ?? `milestone-${milestone.id}`}
                 ticketId={resolvedTicketId ?? undefined}
                 userId={userId ?? null}
-                // For flight milestones, dedicated per-traveler boarding-pass
-                // slots already render boarding passes above. Hide them from
-                // the catch-all card so users don't see duplicates.
-                excludeSubcategories={hasExtraSlots ? ["Boarding Pass"] : undefined}
+                // Boarding-pass slots are now inline tiles inside the same card
+                // (per the "no dedicated section" UX) — pass them through.
+                uploadSlots={hasExtraSlots ? documentSlots!.map((s) => ({
+                  segmentRef: s.segmentRef,
+                  title: s.title,
+                  hint: s.emptyHint,
+                  preferredLabels: s.preferredLabels,
+                })) : undefined}
                 compact
               />
             </div>

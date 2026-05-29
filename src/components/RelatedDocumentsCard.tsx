@@ -67,6 +67,17 @@ interface Props {
    *  by the catch-all "Other travel documents" card to exclude items that are
    *  already shown in dedicated per-traveler boarding-pass cards. */
   excludeSubcategories?: string[];
+  /** Optional inline upload entry points rendered alongside the thumbnails.
+   *  Each slot becomes an "Attach boarding pass — {name}" tile that disappears
+   *  once a row with the matching segment_ref already exists. This is how the
+   *  Journey screen folds per-traveler boarding-pass uploads into the single
+   *  Related Documents card (no separate dedicated section). */
+  uploadSlots?: Array<{
+    segmentRef: string;
+    title: string;
+    hint?: { en: string; ar: string };
+    preferredLabels?: string[];
+  }>;
 
 }
 
@@ -116,6 +127,7 @@ const RelatedDocumentsCard = ({
   emptyHint,
   strictSegmentRef,
   excludeSubcategories,
+  uploadSlots,
 }: Props) => {
   const labelChips = preferredLabels && preferredLabels.length ? preferredLabels : DEFAULT_LABELS;
   const targetLabel = title?.replace(/·.*$/, "").trim() || segmentRef.replace(/^milestone-/, "Milestone ").replace(/^flight-/, "Flight ");
@@ -143,6 +155,10 @@ const RelatedDocumentsCard = ({
   const [uploading, setUploading] = useState(false);
   const [picking, setPicking] = useState<File | null>(null);
   const [labelDraft, setLabelDraft] = useState(labelChips[0] || "Other");
+  // When the user taps an inline boarding-pass slot tile, this captures the
+  // slot's segmentRef + title so the next upload is routed there instead of
+  // the parent card's segmentRef.
+  const [activeSlot, setActiveSlot] = useState<{ segmentRef: string; title: string } | null>(null);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
@@ -228,20 +244,39 @@ const RelatedDocumentsCard = ({
   }, [segmentRef, ticketId, userId]);
 
   // Resolve signed URLs for image attachments so tiles show real thumbnails.
+  // Keyed by the *stable* set of image-row ids — using `items` directly causes
+  // a re-run on every refresh (new array reference) which races with the
+  // cleanup `cancelled = true` and intermittently blanks the thumbnails.
+  const imageRowsKey = useMemo(
+    () => items.filter((it) => isImage(it.mime_type) && it.file_path).map((it) => `${it.id}:${it.file_path}`).join("|"),
+    [items],
+  );
   useEffect(() => {
     const pending = items.filter(
-      (it) => isImage(it.mime_type) && !thumbs[it.id] && it.file_path,
+      (it) => isImage(it.mime_type) && !thumbs[it.id] && !!it.file_path,
     );
     if (pending.length === 0) return;
     let cancelled = false;
     (async () => {
+      // Defensive: storage paths must NOT start with the bucket name. Some
+      // legacy rows accidentally stored "transport-attachments/<deviceId>/…";
+      // strip that prefix so createSignedUrls doesn't 404 silently.
+      const paths = pending.map((p) => p.file_path.replace(new RegExp(`^${BUCKET}/`), ""));
       const { data, error } = await storageWithDeviceHeader(BUCKET, deviceId)
-        .createSignedUrls(pending.map((p) => p.file_path), 60 * 30);
-      if (cancelled || error || !data) return;
+        .createSignedUrls(paths, 60 * 30);
+      if (cancelled) return;
+      if (error) {
+        console.warn("[RelatedDocumentsCard] thumbnail signing failed", error);
+        return;
+      }
+      if (!data) return;
       const next: Record<string, string> = {};
       data.forEach((row, idx) => {
         const id = pending[idx]?.id;
         if (id && row.signedUrl) next[id] = row.signedUrl;
+        else if (pending[idx] && row.error) {
+          console.warn("[RelatedDocumentsCard] thumbnail row error", { id, error: row.error });
+        }
       });
       if (Object.keys(next).length > 0) {
         setThumbs((prev) => ({ ...prev, ...next }));
@@ -249,7 +284,7 @@ const RelatedDocumentsCard = ({
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  }, [imageRowsKey]);
 
   const onPickFile = (file: File) => {
     if (isBusy) return;
@@ -259,9 +294,11 @@ const RelatedDocumentsCard = ({
     }
     // Always show the label sheet first so the user picks the doc type
     // (VISA / Passport / Insurance / Hotel / Other) BEFORE the scanner opens.
-    // This fixes flight-ticket attachments getting locked into the Visa schema.
+    // When the upload was initiated from an inline slot tile (e.g. boarding
+    // pass per traveler), default the label to "Boarding Pass" so the scanner
+    // picks the right schema and the row lands under the slot's segment_ref.
     setPicking(file);
-    setLabelDraft("VISA");
+    setLabelDraft(activeSlot ? "Boarding Pass" : "VISA");
   };
 
   // Persist a scanner-edited attachment: upload the (possibly rasterized)
@@ -274,13 +311,16 @@ const RelatedDocumentsCard = ({
       (f) => f.label.trim().length > 0 && f.value.trim().length > 0,
     );
     const label = sub || (payload?.fileName ? payload.fileName.replace(/\.\w+$/, "") : "Document");
+    // When the user tapped an inline boarding-pass slot, route the row under
+    // that slot's segment_ref so it satisfies the slot's "already filled" check.
+    const targetSegmentRef = activeSlot?.segmentRef ?? segmentRef;
     setUploading(true);
     try {
       const ext = fileToUpload.name.split(".").pop() || "bin";
-      const folderRef = ticketId || segmentRef;
+      const folderRef = ticketId || targetSegmentRef;
       const path = userId
         ? `user/${userId}/${folderRef}/${crypto.randomUUID()}.${ext}`
-        : `${deviceId}/${segmentRef}/${crypto.randomUUID()}.${ext}`;
+        : `${deviceId}/${targetSegmentRef}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await storageWithDeviceHeader(BUCKET, deviceId)
         .upload(path, fileToUpload, { contentType: fileToUpload.type, upsert: false });
       if (upErr) throw upErr;
@@ -289,7 +329,7 @@ const RelatedDocumentsCard = ({
         user_id: userId ?? null,
         ticket_id: ticketId ?? null,
         source_document_id: sourceDocumentId ?? null,
-        segment_ref: segmentRef,
+        segment_ref: targetSegmentRef,
         label,
         file_name: fileToUpload.name,
         file_path: path,
@@ -301,6 +341,7 @@ const RelatedDocumentsCard = ({
       if (insErr) throw insErr;
       toast.success(`${label} attached`, { description: fileToUpload.name });
       setScanFile(null);
+      setActiveSlot(null);
       await refresh();
     } catch (e: any) {
       console.error("[RelatedDocumentsCard] scanner save failed", e);
@@ -320,16 +361,17 @@ const RelatedDocumentsCard = ({
       return;
     }
     const label = labelDraft.trim() || "Document";
+    const targetSegmentRef = activeSlot?.segmentRef ?? segmentRef;
     setUploading(true);
     try {
       const ext = picking.name.split(".").pop() || "bin";
       // Path scheme:
       //   signed-in: user/<uid>/<ticketId||segmentRef>/<uuid>.<ext>
       //   guest:     <deviceId>/<segmentRef>/<uuid>.<ext>   (legacy convention)
-      const folderRef = ticketId || segmentRef;
+      const folderRef = ticketId || targetSegmentRef;
       const path = userId
         ? `user/${userId}/${folderRef}/${crypto.randomUUID()}.${ext}`
-        : `${deviceId}/${segmentRef}/${crypto.randomUUID()}.${ext}`;
+        : `${deviceId}/${targetSegmentRef}/${crypto.randomUUID()}.${ext}`;
 
       const { error: upErr } = await storageWithDeviceHeader(BUCKET, deviceId)
         .upload(path, picking, { contentType: picking.type, upsert: false });
@@ -340,7 +382,7 @@ const RelatedDocumentsCard = ({
         user_id: userId ?? null,
         ticket_id: ticketId ?? null,
         source_document_id: sourceDocumentId ?? null,
-        segment_ref: segmentRef,
+        segment_ref: targetSegmentRef,
         label,
         file_name: picking.name,
         file_path: path,
@@ -350,6 +392,7 @@ const RelatedDocumentsCard = ({
       if (insErr) throw insErr;
       toast.success(`${label} attached`, { description: picking.name });
       setPicking(null);
+      setActiveSlot(null);
       await refresh();
     } catch (e: any) {
       console.error(e);
@@ -525,9 +568,48 @@ const RelatedDocumentsCard = ({
           </div>
         ))}
 
+        {/* Inline per-traveler upload slots (e.g. boarding pass per passenger).
+            Each slot is hidden once a row with the matching segment_ref exists,
+            so the tile acts as a one-shot empty-state for that traveler. */}
+        {(uploadSlots || [])
+          .filter((slot) => !rawItems.some((r) => r.segment_ref === slot.segmentRef))
+          .map((slot) => (
+            <button
+              key={`slot-${slot.segmentRef}`}
+              data-testid="related-docs-slot-tile"
+              data-slot-ref={slot.segmentRef}
+              onClick={() => {
+                if (isBusy) return;
+                setActiveSlot({ segmentRef: slot.segmentRef, title: slot.title });
+                fileInputRef.current?.click();
+              }}
+              disabled={isBusy}
+              className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 px-2 btn-press"
+              style={{
+                width: 130,
+                height: 92,
+                border: "1.5px dashed var(--gold)",
+                background: "rgba(197,150,90,0.12)",
+                color: "var(--gold)",
+              }}
+              title={slot.hint?.en}
+            >
+              <Plus size={18} />
+              <span className="text-[10px] font-bold text-center leading-tight px-1" style={{ color: "var(--navy)" }}>
+                {slot.title.split("·")[0].trim()}
+              </span>
+              <span className="font-arabic text-[9px]" dir="rtl" style={{ color: "var(--gray)" }}>
+                ارفع بطاقة الصعود
+              </span>
+            </button>
+          ))}
+
         {/* Add tile */}
         <button
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => {
+            setActiveSlot(null);
+            fileInputRef.current?.click();
+          }}
           disabled={isBusy}
           className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 btn-press"
           style={{
@@ -574,7 +656,7 @@ const RelatedDocumentsCard = ({
       {/* Label prompt sheet — uses the canonical overlay primitive. */}
       <OverlayLayer
         open={!!picking}
-        onClose={() => { if (!uploading) setPicking(null); }}
+        onClose={() => { if (!uploading) { setPicking(null); setActiveSlot(null); } }}
         layer="sheet"
         ariaLabel="Label this document"
         backdropClassName="bg-black/50"
@@ -620,7 +702,7 @@ const RelatedDocumentsCard = ({
             />
             <div className="flex gap-2">
               <button
-                onClick={() => setPicking(null)}
+                onClick={() => { setPicking(null); setActiveSlot(null); }}
                 disabled={uploading}
                 className="flex-1 py-3 rounded-xl text-[13px] font-bold btn-press"
                 style={{ background: "var(--off-white)", color: "var(--navy)" }}

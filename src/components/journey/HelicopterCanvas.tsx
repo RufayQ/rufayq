@@ -280,7 +280,7 @@ const HelicopterCanvas = ({ milestones, selectedId, onSelect, rtl = false }: Hel
                   zIndex: 4,
                 }}
               >
-                NOW · {m.date ? formatChipDate(m.date) : "TODAY"}
+                NEXT · {m.date ? formatChipDate(m.date) : "TODAY"}
                 <span
                   aria-hidden
                   style={{
@@ -402,7 +402,7 @@ const HelicopterCanvas = ({ milestones, selectedId, onSelect, rtl = false }: Hel
                     letterSpacing: "0.04em",
                   }}
                 >
-                  {isCurrent ? "TODAY" : formatChipDate(m.date)}
+                  {isCurrent ? "NEXT" : formatChipDate(m.date)}
                 </span>
               )}
             </button>
