@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen, Camera, Upload } from "lucide-react";
+import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen, Camera, Upload, RotateCcw, Check } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
@@ -170,6 +171,11 @@ const RelatedDocumentsCard = ({
   // (From Records / Upload from Device / Scan with Camera) before any
   // file/picker action. Used by per-traveler boarding-pass slot tiles.
   const [chooserSlot, setChooserSlot] = useState<{ segmentRef: string; title: string } | null>(null);
+  // Camera capture preview — shows the captured image with Retake / Use Photo
+  // before handing off to the regular upload pipeline.
+  const [cameraPreview, setCameraPreview] = useState<{ file: File; url: string } | null>(null);
+  // Branded per-item delete confirmation (replaces window.confirm).
+  const [pendingDelete, setPendingDelete] = useState<TransportAttachment | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
@@ -424,7 +430,6 @@ const RelatedDocumentsCard = ({
 
 
   const removeItem = async (item: TransportAttachment) => {
-    if (!confirm(`Remove "${item.label} · ${item.file_name}"?`)) return;
     // Soft-delete only — file stays in the bucket so accidental taps are recoverable.
     const { error } = await withDeviceHeader(supabase
       .from("transport_attachments")
@@ -566,7 +571,7 @@ const RelatedDocumentsCard = ({
               </p>
             </button>
             <button
-              onClick={() => removeItem(item)}
+              onClick={() => setPendingDelete(item)}
               className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
               style={{ background: "var(--navy)", color: "white" }}
               aria-label="Remove attachment"
@@ -667,7 +672,10 @@ const RelatedDocumentsCard = ({
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) onPickFile(f);
+            if (f) {
+              // Show preview/retake before routing through the normal upload pipeline.
+              setCameraPreview({ file: f, url: URL.createObjectURL(f) });
+            }
             e.target.value = "";
           }}
         />
@@ -846,7 +854,7 @@ const RelatedDocumentsCard = ({
         }}
         onDelete={() => {
           if (!previewItem) return;
-          void removeItem(previewItem);
+          setPendingDelete(previewItem);
           setPreviewUrl(null);
           setPreviewItem(null);
         }}
@@ -882,6 +890,84 @@ const RelatedDocumentsCard = ({
           onSave={saveScannedAttachment}
         />
       )}
+
+      {/* Camera capture preview — lets the user retake before any upload. */}
+      <OverlayLayer
+        open={!!cameraPreview}
+        onClose={() => {
+          if (cameraPreview) URL.revokeObjectURL(cameraPreview.url);
+          setCameraPreview(null);
+        }}
+        layer="sheet"
+        ariaLabel="Review capture · مراجعة اللقطة"
+        backdropClassName="bg-black/80"
+      >
+        <div className="flex h-full w-full flex-col items-center justify-center p-4">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[420px] rounded-2xl overflow-hidden flex flex-col"
+            style={{ background: "var(--white)" }}
+          >
+            <div className="px-4 pt-4 pb-2">
+              <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>
+                Review capture
+              </p>
+              <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>
+                راجع الصورة قبل الرفع
+              </p>
+            </div>
+            {cameraPreview && (
+              <img
+                src={cameraPreview.url}
+                alt="Capture preview"
+                className="w-full max-h-[60vh] object-contain bg-black"
+              />
+            )}
+            <div className="flex gap-2 p-4">
+              <button
+                data-testid="camera-preview-retake"
+                onClick={() => {
+                  if (cameraPreview) URL.revokeObjectURL(cameraPreview.url);
+                  setCameraPreview(null);
+                  // Re-open camera for another try.
+                  setTimeout(() => cameraInputRef.current?.click(), 50);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold btn-press"
+                style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+              >
+                <RotateCcw size={14} /> Retake · <span className="font-arabic">إعادة</span>
+              </button>
+              <button
+                data-testid="camera-preview-use"
+                onClick={() => {
+                  const f = cameraPreview?.file;
+                  if (cameraPreview) URL.revokeObjectURL(cameraPreview.url);
+                  setCameraPreview(null);
+                  if (f) onPickFile(f);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold text-white btn-press"
+                style={{ background: "var(--gold)" }}
+              >
+                <Check size={14} /> Use photo · <span className="font-arabic">استخدام</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </OverlayLayer>
+
+      {/* Branded per-item delete confirmation. */}
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="Remove document?"
+        titleAr="حذف المستند؟"
+        description={pendingDelete ? `"${pendingDelete.label} · ${pendingDelete.file_name}" will be removed from this trip. The file stays recoverable in your vault.` : undefined}
+        descriptionAr="سيتم حذف المستند من هذه الرحلة. يبقى الملف قابلًا للاسترجاع من الخزانة."
+        confirmLabel="Remove"
+        confirmLabelAr="حذف"
+        destructive
+        onConfirm={() => { if (pendingDelete) void removeItem(pendingDelete); }}
+        onClose={() => setPendingDelete(null)}
+      />
     </div>
   );
 };
