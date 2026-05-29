@@ -589,7 +589,7 @@ const RelatedDocumentsCard = ({
               onClick={() => {
                 if (isBusy) return;
                 setActiveSlot({ segmentRef: slot.segmentRef, title: slot.title });
-                fileInputRef.current?.click();
+                setChooserSlot({ segmentRef: slot.segmentRef, title: slot.title });
               }}
               disabled={isBusy}
               className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 px-2 btn-press"
