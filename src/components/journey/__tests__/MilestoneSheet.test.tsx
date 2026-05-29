@@ -10,10 +10,19 @@ vi.mock("@/hooks/useArtifactCount", () => ({
 }));
 
 // Stub RelatedDocumentsCard — the real one talks to Supabase storage.
+// Surface uploadSlots so tests can assert that boarding-pass slots are
+// forwarded inline (no dedicated section).
 vi.mock("@/components/RelatedDocumentsCard", () => ({
   default: (props: any) => (
-    <div data-testid="related-docs" data-segref={props.segmentRef}>
+    <div
+      data-testid="related-docs"
+      data-segref={props.segmentRef}
+      data-upload-slot-count={(props.uploadSlots ?? []).length}
+    >
       {props.title || "docs"}
+      {(props.uploadSlots ?? []).map((s: any) => (
+        <span key={s.segmentRef} data-testid="related-docs-slot">{s.title}</span>
+      ))}
     </div>
   ),
 }));
