@@ -566,9 +566,48 @@ const RelatedDocumentsCard = ({
           </div>
         ))}
 
+        {/* Inline per-traveler upload slots (e.g. boarding pass per passenger).
+            Each slot is hidden once a row with the matching segment_ref exists,
+            so the tile acts as a one-shot empty-state for that traveler. */}
+        {(uploadSlots || [])
+          .filter((slot) => !rawItems.some((r) => r.segment_ref === slot.segmentRef))
+          .map((slot) => (
+            <button
+              key={`slot-${slot.segmentRef}`}
+              data-testid="related-docs-slot-tile"
+              data-slot-ref={slot.segmentRef}
+              onClick={() => {
+                if (isBusy) return;
+                setActiveSlot({ segmentRef: slot.segmentRef, title: slot.title });
+                fileInputRef.current?.click();
+              }}
+              disabled={isBusy}
+              className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 px-2 btn-press"
+              style={{
+                width: 130,
+                height: 92,
+                border: "1.5px dashed var(--gold)",
+                background: "rgba(197,150,90,0.12)",
+                color: "var(--gold)",
+              }}
+              title={slot.hint?.en}
+            >
+              <Plus size={18} />
+              <span className="text-[10px] font-bold text-center leading-tight px-1" style={{ color: "var(--navy)" }}>
+                {slot.title.split("·")[0].trim()}
+              </span>
+              <span className="font-arabic text-[9px]" dir="rtl" style={{ color: "var(--gray)" }}>
+                ارفع بطاقة الصعود
+              </span>
+            </button>
+          ))}
+
         {/* Add tile */}
         <button
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => {
+            setActiveSlot(null);
+            fileInputRef.current?.click();
+          }}
           disabled={isBusy}
           className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 btn-press"
           style={{
