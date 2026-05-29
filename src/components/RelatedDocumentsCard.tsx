@@ -890,6 +890,84 @@ const RelatedDocumentsCard = ({
           onSave={saveScannedAttachment}
         />
       )}
+
+      {/* Camera capture preview — lets the user retake before any upload. */}
+      <OverlayLayer
+        open={!!cameraPreview}
+        onClose={() => {
+          if (cameraPreview) URL.revokeObjectURL(cameraPreview.url);
+          setCameraPreview(null);
+        }}
+        layer="sheet"
+        ariaLabel="Review capture · مراجعة اللقطة"
+        backdropClassName="bg-black/80"
+      >
+        <div className="flex h-full w-full flex-col items-center justify-center p-4">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[420px] rounded-2xl overflow-hidden flex flex-col"
+            style={{ background: "var(--white)" }}
+          >
+            <div className="px-4 pt-4 pb-2">
+              <p className="text-[14px] font-bold" style={{ color: "var(--navy)" }}>
+                Review capture
+              </p>
+              <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>
+                راجع الصورة قبل الرفع
+              </p>
+            </div>
+            {cameraPreview && (
+              <img
+                src={cameraPreview.url}
+                alt="Capture preview"
+                className="w-full max-h-[60vh] object-contain bg-black"
+              />
+            )}
+            <div className="flex gap-2 p-4">
+              <button
+                data-testid="camera-preview-retake"
+                onClick={() => {
+                  if (cameraPreview) URL.revokeObjectURL(cameraPreview.url);
+                  setCameraPreview(null);
+                  // Re-open camera for another try.
+                  setTimeout(() => cameraInputRef.current?.click(), 50);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold btn-press"
+                style={{ background: "var(--off-white)", color: "var(--navy)", border: "1px solid var(--gray-light)" }}
+              >
+                <RotateCcw size={14} /> Retake · <span className="font-arabic">إعادة</span>
+              </button>
+              <button
+                data-testid="camera-preview-use"
+                onClick={() => {
+                  const f = cameraPreview?.file;
+                  if (cameraPreview) URL.revokeObjectURL(cameraPreview.url);
+                  setCameraPreview(null);
+                  if (f) onPickFile(f);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold text-white btn-press"
+                style={{ background: "var(--gold)" }}
+              >
+                <Check size={14} /> Use photo · <span className="font-arabic">استخدام</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </OverlayLayer>
+
+      {/* Branded per-item delete confirmation. */}
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="Remove document?"
+        titleAr="حذف المستند؟"
+        description={pendingDelete ? `"${pendingDelete.label} · ${pendingDelete.file_name}" will be removed from this trip. The file stays recoverable in your vault.` : undefined}
+        descriptionAr="سيتم حذف المستند من هذه الرحلة. يبقى الملف قابلًا للاسترجاع من الخزانة."
+        confirmLabel="Remove"
+        confirmLabelAr="حذف"
+        destructive
+        onConfirm={() => { if (pendingDelete) void removeItem(pendingDelete); }}
+        onClose={() => setPendingDelete(null)}
+      />
     </div>
   );
 };
