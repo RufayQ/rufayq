@@ -244,20 +244,39 @@ const RelatedDocumentsCard = ({
   }, [segmentRef, ticketId, userId]);
 
   // Resolve signed URLs for image attachments so tiles show real thumbnails.
+  // Keyed by the *stable* set of image-row ids — using `items` directly causes
+  // a re-run on every refresh (new array reference) which races with the
+  // cleanup `cancelled = true` and intermittently blanks the thumbnails.
+  const imageRowsKey = useMemo(
+    () => items.filter((it) => isImage(it.mime_type) && it.file_path).map((it) => `${it.id}:${it.file_path}`).join("|"),
+    [items],
+  );
   useEffect(() => {
     const pending = items.filter(
-      (it) => isImage(it.mime_type) && !thumbs[it.id] && it.file_path,
+      (it) => isImage(it.mime_type) && !thumbs[it.id] && !!it.file_path,
     );
     if (pending.length === 0) return;
     let cancelled = false;
     (async () => {
+      // Defensive: storage paths must NOT start with the bucket name. Some
+      // legacy rows accidentally stored "transport-attachments/<deviceId>/…";
+      // strip that prefix so createSignedUrls doesn't 404 silently.
+      const paths = pending.map((p) => p.file_path.replace(new RegExp(`^${BUCKET}/`), ""));
       const { data, error } = await storageWithDeviceHeader(BUCKET, deviceId)
-        .createSignedUrls(pending.map((p) => p.file_path), 60 * 30);
-      if (cancelled || error || !data) return;
+        .createSignedUrls(paths, 60 * 30);
+      if (cancelled) return;
+      if (error) {
+        console.warn("[RelatedDocumentsCard] thumbnail signing failed", error);
+        return;
+      }
+      if (!data) return;
       const next: Record<string, string> = {};
       data.forEach((row, idx) => {
         const id = pending[idx]?.id;
         if (id && row.signedUrl) next[id] = row.signedUrl;
+        else if (pending[idx] && row.error) {
+          console.warn("[RelatedDocumentsCard] thumbnail row error", { id, error: row.error });
+        }
       });
       if (Object.keys(next).length > 0) {
         setThumbs((prev) => ({ ...prev, ...next }));
@@ -265,7 +284,7 @@ const RelatedDocumentsCard = ({
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  }, [imageRowsKey]);
 
   const onPickFile = (file: File) => {
     if (isBusy) return;
