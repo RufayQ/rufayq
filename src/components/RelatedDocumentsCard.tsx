@@ -702,7 +702,7 @@ const RelatedDocumentsCard = ({
             />
             <div className="flex gap-2">
               <button
-                onClick={() => setPicking(null)}
+                onClick={() => { setPicking(null); setActiveSlot(null); }}
                 disabled={uploading}
                 className="flex-1 py-3 rounded-xl text-[13px] font-bold btn-press"
                 style={{ background: "var(--off-white)", color: "var(--navy)" }}
