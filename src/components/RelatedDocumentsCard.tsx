@@ -461,17 +461,20 @@ const RelatedDocumentsCard = ({
       toast.error("Could not link · تعذّر الربط", { description: shortCause(error) });
       return;
     }
+    // Slot-aware target: when the picker was opened from a per-traveler
+    // boarding-pass slot, route the link under that slot's segment_ref so
+    // the slot's "already filled" check trips and the tile disappears.
+    const targetSegmentRef = activeSlot?.segmentRef ?? segmentRef;
     try {
       await linkRecordToMilestone(
         src,
-        // Synthesize a milestone-like input from this card's context.
-        // For "flight-XYZ" segment refs we still want a ticket_id.
         ticketId
-          ? { id: segmentRef, refId: ticketId, kind: "departure" }
-          : { id: segmentRef.replace(/^milestone-/, ""), refId: segmentRef, kind: "appointment" },
+          ? { id: targetSegmentRef, refId: ticketId, kind: "departure" }
+          : { id: targetSegmentRef.replace(/^milestone-/, ""), refId: targetSegmentRef, kind: "appointment" },
         { userId: userId ?? null, deviceId, sourceDocumentId: sourceDocumentId ?? null },
       );
       toast.success(`${src.label} attached`);
+      setActiveSlot(null);
       refresh();
     } catch (e: any) {
       void logAttachErrorTelemetry({ stage: "linkRecordToMilestone", route: "journey-from-records", deviceId, rowId: src.id, error: e });
