@@ -445,7 +445,7 @@ const JourneyConstellation = ({
                     className="mt-1 px-2 py-[1px] rounded-full font-mono text-[8.5px] tracking-[0.14em]"
                     style={{ background: s.ring, color: "#fff" }}
                   >
-                    {showEn ? "TODAY" : "اليوم"}
+                    {showEn ? "NEXT" : "التالي"}
                   </span>
                 ) : n.m.date ? (
                   <span
