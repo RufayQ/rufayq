@@ -656,7 +656,7 @@ const RelatedDocumentsCard = ({
       {/* Label prompt sheet — uses the canonical overlay primitive. */}
       <OverlayLayer
         open={!!picking}
-        onClose={() => { if (!uploading) setPicking(null); }}
+        onClose={() => { if (!uploading) { setPicking(null); setActiveSlot(null); } }}
         layer="sheet"
         ariaLabel="Label this document"
         backdropClassName="bg-black/50"
