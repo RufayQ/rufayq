@@ -294,9 +294,11 @@ const RelatedDocumentsCard = ({
     }
     // Always show the label sheet first so the user picks the doc type
     // (VISA / Passport / Insurance / Hotel / Other) BEFORE the scanner opens.
-    // This fixes flight-ticket attachments getting locked into the Visa schema.
+    // When the upload was initiated from an inline slot tile (e.g. boarding
+    // pass per traveler), default the label to "Boarding Pass" so the scanner
+    // picks the right schema and the row lands under the slot's segment_ref.
     setPicking(file);
-    setLabelDraft("VISA");
+    setLabelDraft(activeSlot ? "Boarding Pass" : "VISA");
   };
 
   // Persist a scanner-edited attachment: upload the (possibly rasterized)
