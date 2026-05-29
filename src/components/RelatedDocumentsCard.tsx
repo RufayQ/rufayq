@@ -166,7 +166,12 @@ const RelatedDocumentsCard = ({
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   // Smart-scan flow: when set, opens ScannerWizard with this file pre-seeded.
   const [scanFile, setScanFile] = useState<File | null>(null);
+  // When set, shows a 3-way "How would you like to add this?" chooser
+  // (From Records / Upload from Device / Scan with Camera) before any
+  // file/picker action. Used by per-traveler boarding-pass slot tiles.
+  const [chooserSlot, setChooserSlot] = useState<{ segmentRef: string; title: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
   const isBusy = uploading || !!scanFile;
   const linkedFilePaths = useMemo(() => new Set(items.map((i) => i.file_path)), [items]);
