@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen } from "lucide-react";
+import { Plus, FileText, Image as ImageIcon, X, Loader2, FolderOpen, Camera, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
@@ -166,7 +166,12 @@ const RelatedDocumentsCard = ({
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   // Smart-scan flow: when set, opens ScannerWizard with this file pre-seeded.
   const [scanFile, setScanFile] = useState<File | null>(null);
+  // When set, shows a 3-way "How would you like to add this?" chooser
+  // (From Records / Upload from Device / Scan with Camera) before any
+  // file/picker action. Used by per-traveler boarding-pass slot tiles.
+  const [chooserSlot, setChooserSlot] = useState<{ segmentRef: string; title: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
   const isBusy = uploading || !!scanFile;
   const linkedFilePaths = useMemo(() => new Set(items.map((i) => i.file_path)), [items]);
@@ -456,17 +461,20 @@ const RelatedDocumentsCard = ({
       toast.error("Could not link · تعذّر الربط", { description: shortCause(error) });
       return;
     }
+    // Slot-aware target: when the picker was opened from a per-traveler
+    // boarding-pass slot, route the link under that slot's segment_ref so
+    // the slot's "already filled" check trips and the tile disappears.
+    const targetSegmentRef = activeSlot?.segmentRef ?? segmentRef;
     try {
       await linkRecordToMilestone(
         src,
-        // Synthesize a milestone-like input from this card's context.
-        // For "flight-XYZ" segment refs we still want a ticket_id.
         ticketId
-          ? { id: segmentRef, refId: ticketId, kind: "departure" }
-          : { id: segmentRef.replace(/^milestone-/, ""), refId: segmentRef, kind: "appointment" },
+          ? { id: targetSegmentRef, refId: ticketId, kind: "departure" }
+          : { id: targetSegmentRef.replace(/^milestone-/, ""), refId: targetSegmentRef, kind: "appointment" },
         { userId: userId ?? null, deviceId, sourceDocumentId: sourceDocumentId ?? null },
       );
       toast.success(`${src.label} attached`);
+      setActiveSlot(null);
       refresh();
     } catch (e: any) {
       void logAttachErrorTelemetry({ stage: "linkRecordToMilestone", route: "journey-from-records", deviceId, rowId: src.id, error: e });
@@ -581,7 +589,7 @@ const RelatedDocumentsCard = ({
               onClick={() => {
                 if (isBusy) return;
                 setActiveSlot({ segmentRef: slot.segmentRef, title: slot.title });
-                fileInputRef.current?.click();
+                setChooserSlot({ segmentRef: slot.segmentRef, title: slot.title });
               }}
               disabled={isBusy}
               className="shrink-0 rounded-xl flex flex-col items-center justify-center gap-1 px-2 btn-press"
@@ -651,7 +659,92 @@ const RelatedDocumentsCard = ({
             e.target.value = "";
           }}
         />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onPickFile(f);
+            e.target.value = "";
+          }}
+        />
       </div>
+
+      {/* Source chooser sheet — shown when tapping a per-traveler slot tile.
+          Offers From Records / Upload from Device / Scan with Camera, then
+          dispatches to the matching existing flow. */}
+      <OverlayLayer
+        open={!!chooserSlot}
+        onClose={() => { setChooserSlot(null); setActiveSlot(null); }}
+        layer="sheet"
+        ariaLabel="Add boarding pass · إضافة بطاقة الصعود"
+        backdropClassName="bg-black/50"
+      >
+        <div className="flex h-full w-full items-end justify-center">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[420px] rounded-t-3xl p-5"
+            style={{ background: "var(--white)" }}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--gray-light)" }} />
+            <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>
+              {chooserSlot?.title.split("·")[0].trim() || "Add document"}
+            </p>
+            <p className="font-arabic text-[11px] mb-4" dir="rtl" style={{ color: "var(--gray)" }}>
+              اختر طريقة الإضافة
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                data-testid="chooser-from-records"
+                onClick={() => { setChooserSlot(null); setFromRecordsOpen(true); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl btn-press text-left"
+                style={{ background: "rgba(0,77,91,0.06)", border: "1px solid rgba(0,77,91,0.18)" }}
+              >
+                <FolderOpen size={18} style={{ color: "var(--teal-deep)" }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12.5px] font-bold" style={{ color: "var(--navy)" }}>From My Records</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>من سجلاتي</p>
+                </div>
+              </button>
+              <button
+                data-testid="chooser-from-device"
+                onClick={() => { setChooserSlot(null); fileInputRef.current?.click(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl btn-press text-left"
+                style={{ background: "rgba(197,150,90,0.10)", border: "1px solid rgba(197,150,90,0.35)" }}
+              >
+                <Upload size={18} style={{ color: "var(--gold)" }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12.5px] font-bold" style={{ color: "var(--navy)" }}>Upload from Device</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>رفع من الجهاز</p>
+                </div>
+              </button>
+              <button
+                data-testid="chooser-from-camera"
+                onClick={() => { setChooserSlot(null); cameraInputRef.current?.click(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl btn-press text-left"
+                style={{ background: "rgba(197,150,90,0.10)", border: "1px solid rgba(197,150,90,0.35)" }}
+              >
+                <Camera size={18} style={{ color: "var(--gold)" }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12.5px] font-bold" style={{ color: "var(--navy)" }}>Scan with Camera</p>
+                  <p className="font-arabic text-[10px]" dir="rtl" style={{ color: "var(--gray)" }}>التقاط بالكاميرا</p>
+                </div>
+              </button>
+              <button
+                onClick={() => { setChooserSlot(null); setActiveSlot(null); }}
+                className="w-full py-3 rounded-xl text-[13px] font-bold btn-press mt-1"
+                style={{ background: "var(--off-white)", color: "var(--navy)" }}
+              >
+                Cancel · إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      </OverlayLayer>
+
 
       {/* Label prompt sheet — uses the canonical overlay primitive. */}
       <OverlayLayer

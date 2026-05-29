@@ -1,46 +1,57 @@
-## I — Milestone fixes
+# Plan — Boarding-pass UX polish + upload validation
 
-### 1. Merge boarding-pass into Related Documents (no dedicated section)
-- `src/components/journey/MilestoneSheet.tsx`: stop rendering separate `RelatedDocumentsCard` instances per `documentSlots[]`. Remove the `hasExtraSlots` block and the `excludeSubcategories=["Boarding Pass"]` exclusion below it.
-- `src/components/RelatedDocumentsCard.tsx`: add an optional `uploadSlots` prop (`{ segmentRef, title, hint }[]`). Render these as compact "Attach boarding pass — {Traveler}" tiles inline alongside the existing thumbnails (same grid), each wired to the existing `onPickFile` flow but tagging the upload with the slot's `segment_ref` + `Boarding Pass` subcategory. Slot tiles disappear once a matching boarding pass exists for that traveler.
-- `JourneyScreen.tsx`: pass the existing per-traveler slot list via the new `uploadSlots` prop on the single Related Documents card instead of `documentSlots`.
+## 1) Unified source chooser when attaching a boarding pass
 
-### 2. Dashboard wording (`Home → Journey Map`)
-- In `src/components/home/*` (Journey Map preview), change the current-milestone chip from `TODAY` to `NEXT` when the milestone is the next upcoming one (today or future). Past stays as date.
+Today, tapping the inline **Attach boarding pass — {Traveler}** tile in `RelatedDocumentsCard.tsx` immediately opens the OS file picker. We will instead open a small bottom-sheet ("How would you like to add this?") with three options, matching the conventions already used elsewhere in the app:
 
-### 3. Helicopter view wording
-- `src/components/journey/HelicopterCanvas.tsx` line ~283: `NOW · …` → `NEXT · …` (and Arabic `الآن` → `التالي`).
-- `src/components/journey/HelicopterTimelineRail.tsx` line ~256: `NOW · الآن` → `NEXT · التالي`.
-- `MilestoneSheet.tsx` header pill: keep "Today" for the in-progress current step, but rename the upcoming-but-soon header label from "Today · {date}" to "Next · {date}" when state is `upcoming` and milestone is the soonest one.
+1. **From My Records** → opens `UnifiedRecordsPicker` (same component currently behind the "From Records" tile).
+2. **Upload from Device** → triggers the existing hidden `<input type="file">` (image / PDF / doc).
+3. **Scan with Camera** → triggers a separate hidden `<input type="file" accept="image/*" capture="environment">` so Android/iOS open the camera directly; the captured photo then flows into the existing `ScannerWizard` (same review/crop/key-fields step).
 
-## II — Thumbnail loading regression
+Sheet styling will reuse the existing `OverlayLayer` "sheet" layer and the same visual language as the current "Label this document" sheet (gold accents, rounded-top, btn-press). EN + AR labels.
 
-Symptoms: tiles show only the placeholder icon. Likely causes to verify and fix in `RelatedDocumentsCard.tsx`:
-- The `useEffect` on `[items]` depends on the array reference, which changes every refresh and triggers re-signing in a loop, often racing with cleanup (`cancelled = true`) before `setThumbs` runs. Switch the dep to a stable key (e.g. `items.map(i=>i.id).join(",")`).
-- `createSignedUrls` is called with the *raw* `file_path`. If `file_path` already includes the bucket prefix the call returns `{ error }` silently. Normalise paths (strip leading bucket name) and log errors to console in dev.
-- Filter `pending` to entries that actually have `file_path` AND a known image mime; today some PDFs slip through `isImage` when `mime_type` is null.
-- Also pre-resolve thumbnails for PDFs by reusing the first-page render path already in `UniversalDocumentPreview` (optional, fallback to existing icon if it fails).
+Scope of reuse: we **don't** rebuild the ScannerWizard's own internal source step. The new sheet sits **in front of** the per-traveler slot tile only, since the slot needs the extra "From Records" entry the wizard doesn't expose. The generic `Attach` and `From Records` tiles keep their current single-tap behaviour (no regression for non-slot uploads).
 
-Add a Vitest case in `src/components/__tests__/RelatedDocumentsCard.thumbs.test.tsx` that mounts the card with two image rows and asserts the tiles receive a `src` attribute after `createSignedUrls` resolves.
+Behaviour preserved:
+- Selected source still goes through the existing `Label this document` sheet for non-image files, or the `ScannerWizard` for image/PDF, so labelling + key-fields capture is unchanged.
+- `activeSlot` continues to route the upload under the slot's `segmentRef` and pre-selects the `Boarding Pass` subcategory.
 
-## III — Visible upload entry + remember expansion per milestone
+## 2) Fix "From Records" routing for slot tiles
 
-- `MilestoneSheet.tsx`: replace local `useState(defaultExpanded)` with a `useExpandedMilestones(id)` hook backed by `localStorage` (`rufayq:milestone-expanded:{milestoneId}`). Fall back to `defaultExpanded` when no stored value exists.
-- `JourneyScreen.tsx`: for every flight milestone in `state !== "done"` that has traveler slots, set `defaultExpanded={true}` (already partly done) AND ensure the merged Related Documents card always shows the "Attach boarding pass" slot tiles from item I.1 so the entry point is visible without expansion of an inner card. The persistence hook from above then keeps the user's manual collapse/expand choice sticky.
+`linkExisting()` currently hard-codes the parent card's `segmentRef`/`ticketId`, so picking a record from the per-traveler slot would attach to the wrong scope. We will:
+- Capture `activeSlot` when the user enters the chooser from a slot tile.
+- Pass `activeSlot?.segmentRef ?? segmentRef` into `linkRecordToMilestone(...)` so the linked record lands under the traveler's slot and disappears from the slot empty-state on refresh.
+- Clear `activeSlot` after success/cancel.
 
-## Technical notes
+## 3) Raise the helicopter "NEXT · التالي" badge
 
-- Strings are bilingual: update EN + AR copies in the same spot. Keep design tokens; no new colors.
-- No DB / RLS / edge-function changes.
-- Update existing tests: `MilestoneSheet.test.tsx` (slot card removed → assert merged tiles), `TransportCard.tapForDetails.test.tsx` (unaffected, sanity run), and add the new thumbnail test.
+In `src/components/journey/HelicopterCanvas.tsx` (lines ~263–296) the `helicopter-now-flag` sits at `bottom: calc(100% + 4px)` and overlaps the station circle (visible in the screenshot). We will:
+- Increase the offset to `calc(100% + 12px)`.
+- Add a tiny `marginBottom: 2` on the pointer arrow so the tail no longer punches into the medallion.
+
+No change to copy or other timeline screens; the `HelicopterTimelineRail.tsx` "NEXT · التالي" already sits above the rail with clearance.
+
+## 4) Validate + test the upload process
+
+Manual + automated checks to add/run:
+
+- **Manual smoke on the Return Home milestone** (the screenshot's case):
+  - Tap boarding-pass slot → chooser appears with 3 options.
+  - From Records → pick an existing IQAMA/boarding scan → slot tile disappears, file appears in the strip with traveler's name as label.
+  - Upload from Device → image flows into ScannerWizard, save → row inserted with `subcategory = "Boarding Pass"` and `segment_ref = slot.segmentRef`.
+  - Scan with Camera → camera opens on Android (capture attr), capture → same ScannerWizard flow.
+  - Error paths: oversized file (>10MB) still shows the existing toast; cancel from any step rolls back `activeSlot`.
+
+- **Automated test additions:**
+  - Extend `src/components/journey/__tests__/MilestoneSheet.test.tsx` with a case that taps `[data-testid="related-docs-slot-tile"]`, asserts the new chooser sheet renders three buttons, and that the "From Records" button opens `UnifiedRecordsPicker`.
+  - New test in `RelatedDocumentsCard` (or extend existing) that mocks `linkRecordToMilestone` and verifies the slot path passes `segmentRef = slot.segmentRef` (not the parent card's).
+  - Existing thumbnail and upload tests remain untouched.
 
 ## Files to touch
-- `src/components/journey/MilestoneSheet.tsx`
-- `src/components/RelatedDocumentsCard.tsx`
-- `src/components/journey/HelicopterCanvas.tsx`
-- `src/components/journey/HelicopterTimelineRail.tsx`
-- `src/components/home/TodayCard.tsx` (or the Journey Map preview component used by HomeScreen)
-- `src/screens/JourneyScreen.tsx`
-- `src/hooks/useExpandedMilestones.ts` (new)
-- `src/components/__tests__/RelatedDocumentsCard.thumbs.test.tsx` (new)
-- `src/components/journey/__tests__/MilestoneSheet.test.tsx` (update)
+
+- `src/components/RelatedDocumentsCard.tsx` — new source-chooser sheet, camera input, slot-aware `linkExisting`.
+- `src/components/journey/HelicopterCanvas.tsx` — raise NEXT badge offset.
+- `src/components/journey/__tests__/MilestoneSheet.test.tsx` — chooser-flow test.
+- (Optional) small test for slot-aware From Records routing.
+
+No DB, RLS, edge function, or schema changes.
