@@ -66,7 +66,7 @@ const TONE_BG: Record<SheetItemTone, { bg: string; fg: string; border?: string }
 };
 
 const headerPill = (state: JourneyMilestone["state"]) => {
-  if (state === "current") return { label: "Today", bg: "linear-gradient(135deg, rgba(197,150,90,0.18), rgba(197,150,90,0.08))", fg: "var(--gold)", border: "1px solid rgba(197,150,90,0.35)" };
+  if (state === "current") return { label: "Next", bg: "linear-gradient(135deg, rgba(197,150,90,0.18), rgba(197,150,90,0.08))", fg: "var(--gold)", border: "1px solid rgba(197,150,90,0.35)" };
   if (state === "done")    return { label: "Past",  bg: "var(--kind-consult-bg)", fg: "var(--kind-consult-fg)", border: "1px solid transparent" };
   return                       { label: "Upcoming", bg: "var(--off-white)", fg: "var(--gray)", border: "1px solid var(--gray-light)" };
 };
