@@ -67,6 +67,17 @@ interface Props {
    *  by the catch-all "Other travel documents" card to exclude items that are
    *  already shown in dedicated per-traveler boarding-pass cards. */
   excludeSubcategories?: string[];
+  /** Optional inline upload entry points rendered alongside the thumbnails.
+   *  Each slot becomes an "Attach boarding pass — {name}" tile that disappears
+   *  once a row with the matching segment_ref already exists. This is how the
+   *  Journey screen folds per-traveler boarding-pass uploads into the single
+   *  Related Documents card (no separate dedicated section). */
+  uploadSlots?: Array<{
+    segmentRef: string;
+    title: string;
+    hint?: { en: string; ar: string };
+    preferredLabels?: string[];
+  }>;
 
 }
 
