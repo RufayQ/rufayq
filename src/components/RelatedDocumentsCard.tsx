@@ -127,6 +127,7 @@ const RelatedDocumentsCard = ({
   emptyHint,
   strictSegmentRef,
   excludeSubcategories,
+  uploadSlots,
 }: Props) => {
   const labelChips = preferredLabels && preferredLabels.length ? preferredLabels : DEFAULT_LABELS;
   const targetLabel = title?.replace(/·.*$/, "").trim() || segmentRef.replace(/^milestone-/, "Milestone ").replace(/^flight-/, "Flight ");
