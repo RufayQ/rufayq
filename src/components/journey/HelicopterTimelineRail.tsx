@@ -253,7 +253,7 @@ const HelicopterTimelineRail = ({ milestones, selectedId, onSelect }: Props) => 
                 className="rounded-full px-2 py-[2px] text-[9px] font-bold tracking-wider uppercase shadow"
                 style={{ background: "var(--gold)", color: "var(--white)" }}
               >
-                NOW · الآن
+                NEXT · التالي
               </span>
               <span
                 className="mt-1 flex-1 w-[2px] rounded-full"
