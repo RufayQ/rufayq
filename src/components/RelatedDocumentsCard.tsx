@@ -155,6 +155,10 @@ const RelatedDocumentsCard = ({
   const [uploading, setUploading] = useState(false);
   const [picking, setPicking] = useState<File | null>(null);
   const [labelDraft, setLabelDraft] = useState(labelChips[0] || "Other");
+  // When the user taps an inline boarding-pass slot tile, this captures the
+  // slot's segmentRef + title so the next upload is routed there instead of
+  // the parent card's segmentRef.
+  const [activeSlot, setActiveSlot] = useState<{ segmentRef: string; title: string } | null>(null);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<TransportAttachment | null>(null);
