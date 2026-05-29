@@ -171,6 +171,11 @@ const RelatedDocumentsCard = ({
   // (From Records / Upload from Device / Scan with Camera) before any
   // file/picker action. Used by per-traveler boarding-pass slot tiles.
   const [chooserSlot, setChooserSlot] = useState<{ segmentRef: string; title: string } | null>(null);
+  // Camera capture preview — shows the captured image with Retake / Use Photo
+  // before handing off to the regular upload pipeline.
+  const [cameraPreview, setCameraPreview] = useState<{ file: File; url: string } | null>(null);
+  // Branded per-item delete confirmation (replaces window.confirm).
+  const [pendingDelete, setPendingDelete] = useState<TransportAttachment | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const deviceId = getDeviceId();
