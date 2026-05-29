@@ -1,87 +1,46 @@
-## Scope
+## I — Milestone fixes
 
-Four related fixes around the Journey → Tickets card and the linked record actions sheet (the one you screenshotted).
+### 1. Merge boarding-pass into Related Documents (no dedicated section)
+- `src/components/journey/MilestoneSheet.tsx`: stop rendering separate `RelatedDocumentsCard` instances per `documentSlots[]`. Remove the `hasExtraSlots` block and the `excludeSubcategories=["Boarding Pass"]` exclusion below it.
+- `src/components/RelatedDocumentsCard.tsx`: add an optional `uploadSlots` prop (`{ segmentRef, title, hint }[]`). Render these as compact "Attach boarding pass — {Traveler}" tiles inline alongside the existing thumbnails (same grid), each wired to the existing `onPickFile` flow but tagging the upload with the slot's `segment_ref` + `Boarding Pass` subcategory. Slot tiles disappear once a matching boarding pass exists for that traveler.
+- `JourneyScreen.tsx`: pass the existing per-traveler slot list via the new `uploadSlots` prop on the single Related Documents card instead of `documentSlots`.
 
----
+### 2. Dashboard wording (`Home → Journey Map`)
+- In `src/components/home/*` (Journey Map preview), change the current-milestone chip from `TODAY` to `NEXT` when the milestone is the next upcoming one (today or future). Past stays as date.
 
-## 1. Fix "Tap for details" on the flight card
+### 3. Helicopter view wording
+- `src/components/journey/HelicopterCanvas.tsx` line ~283: `NOW · …` → `NEXT · …` (and Arabic `الآن` → `التالي`).
+- `src/components/journey/HelicopterTimelineRail.tsx` line ~256: `NOW · الآن` → `NEXT · التالي`.
+- `MilestoneSheet.tsx` header pill: keep "Today" for the in-progress current step, but rename the upcoming-but-soon header label from "Today · {date}" to "Next · {date}" when state is `upcoming` and milestone is the soonest one.
 
-**Symptom:** Tapping the teal flight card (or its "Tap for details →" pill) does nothing.
+## II — Thumbnail loading regression
 
-**Likely cause:** `TicketDetailSheet` was edited in the previous turn (boarding-pass removal, disclaimer card added). The `setSelectedSeg` call in `JourneyScreen.tsx` still fires, but the sheet either throws on render (broken JSX after the `BoardingBarcode` removal) or its overlay is mounted under the `RelatedDocumentsCard` per-traveler stack and never visible. I'll reproduce in the browser, read the console, then:
-- Verify the `onTap` handler runs (add a one-shot toast guard if needed during diagnosis, removed before commit).
-- Re-check `TicketDetailSheet.tsx` for any dangling refs/state from the boarding-pass removal (`captureRef`, `isExporting`, unused imports) and fix render errors.
-- Ensure the sheet uses the shared `OverlayLayer` z-index so it sits above the new per-traveler boarding-pass cards.
+Symptoms: tiles show only the placeholder icon. Likely causes to verify and fix in `RelatedDocumentsCard.tsx`:
+- The `useEffect` on `[items]` depends on the array reference, which changes every refresh and triggers re-signing in a loop, often racing with cleanup (`cancelled = true`) before `setThumbs` runs. Switch the dep to a stable key (e.g. `items.map(i=>i.id).join(",")`).
+- `createSignedUrls` is called with the *raw* `file_path`. If `file_path` already includes the bucket prefix the call returns `{ error }` silently. Normalise paths (strip leading bucket name) and log errors to console in dev.
+- Filter `pending` to entries that actually have `file_path` AND a known image mime; today some PDFs slip through `isImage` when `mime_type` is null.
+- Also pre-resolve thumbnails for PDFs by reusing the first-page render path already in `UniversalDocumentPreview` (optional, fallback to existing icon if it fails).
 
-**E2E sweep on all milestone-related buttons** (Journey tab):
-- Flight/Train/Car/Hotel card body tap → detail sheet opens
-- "Tap for details →" pill (make it `pointer-events-none` since the whole card is the hit target — avoids double-fire)
-- Replicate (past tickets), Add Transport, Add Accommodation, Scan ticket
-- Per-traveler "Boarding pass — {name}" card upload/preview
-- "Other travel documents" card upload/preview
-- Home-screen milestone canvas → "Tap for details" routes to `journey?milestone:{id}` and the Journey screen scrolls/highlights the matching ticket
+Add a Vitest case in `src/components/__tests__/RelatedDocumentsCard.thumbs.test.tsx` that mounts the card with two image rows and asserts the tiles receive a `src` attribute after `createSignedUrls` resolves.
 
-Each path verified with a browser interaction; failures fixed inline.
+## III — Visible upload entry + remember expansion per milestone
 
----
-
-## 2. Capture per-leg flight duration
-
-Today `JourneyTimeline` shows Departs/Arrives and a layover pill, but the **flight duration itself** (1h 30m / 4h 15m in your itinerary screenshot) is not displayed.
-
-Changes in `src/components/JourneyTimeline.tsx`:
-- Compute `durationMinutes = arrival − departure` per leg using the existing `formatDuration` helper from `@/lib/flightJourney`.
-- Render it inline on the collapsed row (next to flight number) and as a dedicated "Duration" detail row when expanded.
-- Show it on the flight `TransportCard` mid-section too (between origin/destination), styled like the existing layover pill but in gold-on-teal.
-- Add unit tests in `src/lib/__tests__/flightJourney.duration.test.ts` for the new `legDuration` helper if extracted.
-
-Edge case: when arrival < departure (overnight, timezone gap), still compute on absolute timestamps — `Date.parse` already handles the ISO zone suffix used by the extractor.
-
----
-
-## 3. Redesign the flight-ticket Share UI
-
-Replace the current plain-text WhatsApp/Email/Copy share with an **image-of-the-ticket** share that mirrors the in-app card (the teal DMM → SHJ card in your screenshot).
-
-In `TicketDetailSheet.tsx` (Share menu):
-- New primary action: **"Share as image"** — renders a hidden 1080×1350 React node styled exactly like the in-app `TransportCard` (origin/destination, dates, PNR/seat, RufayQ wordmark footer), captured via `html2canvas` (already a dep), then `navigator.share({ files: [...] })` with text fallback to download.
-- Secondary action: **"Include short link to original document"** — a toggle (default OFF). When ON and the ticket has an attached PDF in `transport_attachments`, generate a 7-day signed URL and shorten via a new lightweight `shorten-link` edge function (stores the long URL keyed by a short code in a new `short_links` table; returns `https://rufayq.com/s/{code}`).
-- Existing WhatsApp / Email / Copy options stay, but consume the new image + optional short link.
-- Privacy: short-link generation is gated by the user toggle in the share sheet (one-time, per-share). No auto-generation.
-
-Backend (only if user approves option B short links): one migration for `public.short_links (code text pk, url text, user_id uuid, expires_at timestamptz)` with RLS (owner-only read/write, public read by code via security-definer RPC) and a `shorten-link` edge function.
-
----
-
-## 4. Expand record "Edit" beyond just renaming
-
-Right now the actions sheet for a flight-ticket record (screenshot 4) only allows **Edit name**. You want full edit of the underlying milestone/ticket.
-
-Changes in `src/components/records/RecordActionsSheet.tsx` and callers:
-- Rename the row from "Edit name" → **"Edit details"** with sub-mode `editFull`.
-- When the underlying record is linked to a `transport_attachments` row → open the existing `TicketDetailSheet` in edit mode (airline, flight #, PNR, dep/arr times, passenger, companions, seat class). Save persists to `transport_tickets` (and re-derives the linked attachment label).
-- When linked to an appointment/medical record → open the existing appointment/record edit sheet.
-- When standalone (no linked entity) → keep today's rename input as a fallback.
-- New prop on `RecordActionsSheetProps`: `onEditDetails?: (target) => void` resolved by the caller (Records screen) to the right edit sheet based on `target.kind`.
-
----
+- `MilestoneSheet.tsx`: replace local `useState(defaultExpanded)` with a `useExpandedMilestones(id)` hook backed by `localStorage` (`rufayq:milestone-expanded:{milestoneId}`). Fall back to `defaultExpanded` when no stored value exists.
+- `JourneyScreen.tsx`: for every flight milestone in `state !== "done"` that has traveler slots, set `defaultExpanded={true}` (already partly done) AND ensure the merged Related Documents card always shows the "Attach boarding pass" slot tiles from item I.1 so the entry point is visible without expansion of an inner card. The persistence hook from above then keeps the user's manual collapse/expand choice sticky.
 
 ## Technical notes
 
-- All work stays in the existing mobile shell (390px scroll root rules).
-- Bilingual EN/AR labels for every new string.
-- No changes to `auth.users` or Supabase-reserved schemas; only one new public table (`short_links`) if option 3 short-link toggle is approved.
-- Verification: browser walk-through of every button enumerated in §1, plus one round-trip share-as-image on a real flight ticket.
+- Strings are bilingual: update EN + AR copies in the same spot. Keep design tokens; no new colors.
+- No DB / RLS / edge-function changes.
+- Update existing tests: `MilestoneSheet.test.tsx` (slot card removed → assert merged tiles), `TransportCard.tapForDetails.test.tsx` (unaffected, sanity run), and add the new thumbnail test.
 
----
-
-## Files touched
-
-- `src/components/TicketDetailSheet.tsx` — fix render, add Share-as-image + short-link toggle, expose edit mode
-- `src/components/TransportCard.tsx` — flight duration pill, make "Tap for details" non-interactive child
-- `src/components/JourneyTimeline.tsx` — per-leg duration on row + detail
-- `src/screens/JourneyScreen.tsx` — wire `onEditDetails` on record actions, verify highlight/scroll
-- `src/components/records/RecordActionsSheet.tsx` — Edit details mode, prop, fallbacks
-- `src/screens/RecordsScreen.tsx` — resolve `onEditDetails` per record kind
-- `src/lib/flightJourney.ts` (+ test) — optional `legDuration` helper
-- `supabase/migrations/*` + `supabase/functions/shorten-link/` — only if short-link toggle approved
+## Files to touch
+- `src/components/journey/MilestoneSheet.tsx`
+- `src/components/RelatedDocumentsCard.tsx`
+- `src/components/journey/HelicopterCanvas.tsx`
+- `src/components/journey/HelicopterTimelineRail.tsx`
+- `src/components/home/TodayCard.tsx` (or the Journey Map preview component used by HomeScreen)
+- `src/screens/JourneyScreen.tsx`
+- `src/hooks/useExpandedMilestones.ts` (new)
+- `src/components/__tests__/RelatedDocumentsCard.thumbs.test.tsx` (new)
+- `src/components/journey/__tests__/MilestoneSheet.test.tsx` (update)
