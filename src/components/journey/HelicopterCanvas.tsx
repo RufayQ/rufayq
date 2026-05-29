@@ -280,7 +280,7 @@ const HelicopterCanvas = ({ milestones, selectedId, onSelect, rtl = false }: Hel
                   zIndex: 4,
                 }}
               >
-                NOW · {m.date ? formatChipDate(m.date) : "TODAY"}
+                NEXT · {m.date ? formatChipDate(m.date) : "TODAY"}
                 <span
                   aria-hidden
                   style={{
