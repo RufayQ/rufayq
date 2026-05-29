@@ -672,7 +672,10 @@ const RelatedDocumentsCard = ({
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) onPickFile(f);
+            if (f) {
+              // Show preview/retake before routing through the normal upload pipeline.
+              setCameraPreview({ file: f, url: URL.createObjectURL(f) });
+            }
             e.target.value = "";
           }}
         />
