@@ -430,7 +430,6 @@ const RelatedDocumentsCard = ({
 
 
   const removeItem = async (item: TransportAttachment) => {
-    if (!confirm(`Remove "${item.label} · ${item.file_name}"?`)) return;
     // Soft-delete only — file stays in the bucket so accidental taps are recoverable.
     const { error } = await withDeviceHeader(supabase
       .from("transport_attachments")
