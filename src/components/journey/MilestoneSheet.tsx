@@ -111,7 +111,7 @@ const MilestoneSheet = ({
   const pill = headerPill(milestone.state);
   const dateLabel =
     milestone.state === "current"
-      ? `Today · ${milestone.date ? formatChipDate(milestone.date) : ""}`.trim()
+      ? `Next · ${milestone.date ? formatChipDate(milestone.date) : ""}`.trim()
       : milestone.date
       ? formatChipDate(milestone.date)
       : "TBD";
