@@ -241,39 +241,20 @@ const MilestoneSheet = ({
             </button>
           )}
 
-          {hasExtraSlots && (
-            <div
-              className="mt-3 -mx-2 space-y-2 animate-fade-in"
-              data-testid="milestone-sheet-extra-slots"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {documentSlots!.map((slot) => (
-                <RelatedDocumentsCard
-                  key={slot.segmentRef}
-                  segmentRef={slot.segmentRef}
-                  ticketId={resolvedTicketId ?? undefined}
-                  userId={userId ?? null}
-                  title={slot.title}
-                  preferredLabels={slot.preferredLabels}
-                  emptyHint={slot.emptyHint}
-                  strictSegmentRef={slot.strictSegmentRef !== false}
-                  compact
-                />
-              ))}
-
-            </div>
-          )}
-
-          {resolvedSegmentRef && (
+          {(resolvedSegmentRef || hasExtraSlots) && (
             <div className="mt-3 -mx-2 animate-fade-in" onClick={(e) => e.stopPropagation()}>
               <RelatedDocumentsCard
-                segmentRef={resolvedSegmentRef}
+                segmentRef={resolvedSegmentRef ?? `milestone-${milestone.id}`}
                 ticketId={resolvedTicketId ?? undefined}
                 userId={userId ?? null}
-                // For flight milestones, dedicated per-traveler boarding-pass
-                // slots already render boarding passes above. Hide them from
-                // the catch-all card so users don't see duplicates.
-                excludeSubcategories={hasExtraSlots ? ["Boarding Pass"] : undefined}
+                // Boarding-pass slots are now inline tiles inside the same card
+                // (per the "no dedicated section" UX) — pass them through.
+                uploadSlots={hasExtraSlots ? documentSlots!.map((s) => ({
+                  segmentRef: s.segmentRef,
+                  title: s.title,
+                  hint: s.emptyHint,
+                  preferredLabels: s.preferredLabels,
+                })) : undefined}
                 compact
               />
             </div>
