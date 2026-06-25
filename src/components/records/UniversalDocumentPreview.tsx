@@ -443,7 +443,12 @@ const PdfPreview = ({
       aria-label={`PDF preview: ${title}`}
       tabIndex={0}
       onKeyDown={onKeyDown}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ touchAction: "pan-y" }}
     >
+
       {/* Toolbar */}
       <div
         role="toolbar"
