@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
-import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2, ScanLine, CreditCard, ChevronRight } from "lucide-react";
+import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2, ScanLine, CreditCard, ChevronRight, Pencil } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet from "@/components/records/RecordActionsSheet";
+import EditRecordSheet, { type EditRecordTarget } from "@/components/records/EditRecordSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
 import { stashChatAttachment } from "@/lib/records/chatAttachmentHandoff";
@@ -167,6 +168,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
   const [scannedViewer, setScannedViewer] = useState<TravelScannedRecord | null>(null);
   const [cat, setCat] = useState<TravelCat>("all");
   const [clearPinOpen, setClearPinOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<EditRecordTarget | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
