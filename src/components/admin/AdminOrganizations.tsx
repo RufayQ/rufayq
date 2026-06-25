@@ -7,6 +7,7 @@ import {
   RefreshCw, Receipt, Download, ShieldCheck, Send, ChevronRight, Maximize2, FileDown,
 } from "lucide-react";
 import CountrySelect from "./CountrySelect";
+import UniversalDocumentPreview from "@/components/records/UniversalDocumentPreview";
 import CitySelect from "./CitySelect";
 import { COUNTRIES } from "@/data/countries";
 import { usePermissions } from "@/features/auth";
@@ -1390,11 +1391,14 @@ const PaymentProofRow = ({ sub, orgId, onChanged }: { sub: any; orgId: string; o
                 <button onClick={(e) => { e.stopPropagation(); setLightbox(false); }} className="p-1.5 rounded bg-slate-800 hover:bg-slate-700"><X size={13} /></button>
               </div>
             </div>
-            {/\.(pdf)(\?|$)/i.test(sub.payment_receipt_url) ? (
-              <iframe src={signed} className="flex-1 w-full bg-white rounded-lg" title="Receipt" onClick={(e) => e.stopPropagation()} />
-            ) : (
-              <img src={signed} alt={sub.payment_receipt_filename || "Receipt"} className="max-h-[85vh] w-full object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
-            )}
+            <div className="flex-1 w-full bg-white rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <UniversalDocumentPreview
+                url={signed}
+                fileName={sub.payment_receipt_filename || "receipt"}
+                title="Receipt"
+                className="h-full w-full bg-white"
+              />
+            </div>
           </div>
         </div>
       )}

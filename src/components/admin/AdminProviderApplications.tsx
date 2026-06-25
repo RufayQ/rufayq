@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Building2, FileText, Check, X, MessageSquare, ExternalLink, Loader2, Zap, Copy } from "lucide-react";
+import UniversalDocumentPreview from "@/components/records/UniversalDocumentPreview";
 
 interface ProviderApp {
   id: string;
@@ -316,8 +317,7 @@ const DocPreview = ({ url, label }: { url: string | null; label: string }) => {
       Loading {label}…
     </div>
   );
-  const isPdf = /\.pdf(\?|$)/i.test(signedUrl) || /\.pdf$/i.test(url);
-  const isImg = /\.(jpe?g|png|webp)(\?|$)/i.test(signedUrl) || /\.(jpe?g|png|webp)$/i.test(url);
+  const fileName = (url.split("/").pop() || label) as string;
   return (
     <div className="rounded-lg border border-slate-800 overflow-hidden bg-slate-900">
       <div className="px-3 py-2 flex items-center justify-between border-b border-slate-800">
@@ -326,13 +326,14 @@ const DocPreview = ({ url, label }: { url: string | null; label: string }) => {
           Open <ExternalLink size={10}/>
         </a>
       </div>
-      {isPdf ? (
-        <iframe src={signedUrl} className="w-full h-56" title={label}/>
-      ) : isImg ? (
-        <img src={signedUrl} alt={label} className="w-full h-56 object-contain bg-slate-950"/>
-      ) : (
-        <div className="p-6 text-center text-xs text-slate-400">Preview not available</div>
-      )}
+      <div className="h-56 bg-slate-950">
+        <UniversalDocumentPreview
+          url={signedUrl}
+          fileName={fileName}
+          title={label}
+          className="h-full w-full bg-slate-950"
+        />
+      </div>
     </div>
   );
 };
