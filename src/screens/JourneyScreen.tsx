@@ -12,6 +12,7 @@ import { useGuestCategories } from "@/hooks/useGuestCategories";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AddTripSheet, { type TripData } from "@/components/AddTripSheet";
 import EditTripSheet from "@/components/EditTripSheet";
+import JourneyCompleteCard from "@/components/journey/JourneyCompleteCard";
 import { useTransportTimeline } from "@/hooks/useTransportTimeline";
 import {
   type TransportTicket,
