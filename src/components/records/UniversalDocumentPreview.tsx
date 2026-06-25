@@ -456,16 +456,17 @@ const PdfPreview = ({
         className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold shadow"
         style={{ background: "rgba(0,0,0,0.65)", color: "#fff", backdropFilter: "blur(4px)" }}
       >
-        <button type="button" aria-label="Zoom out" onClick={() => { setZoomMode("manual"); setZoom((z) => clampZoom(z - ZOOM_STEP)); }} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
+        <button type="button" aria-label="Zoom out" onClick={() => applyZoomDelta(-ZOOM_STEP)} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
           <ZoomOut size={12} aria-hidden />
         </button>
         <span data-testid="pdf-zoom-indicator" aria-live="polite">{Math.round((zoomMode === "fit" ? 1 : zoom) * 100)}%</span>
-        <button type="button" aria-label="Zoom in" onClick={() => { setZoomMode("manual"); setZoom((z) => clampZoom(z + ZOOM_STEP)); }} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
+        <button type="button" aria-label="Zoom in" onClick={() => applyZoomDelta(ZOOM_STEP)} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
           <ZoomIn size={12} aria-hidden />
         </button>
-        <button type="button" aria-label="Fit to width" aria-pressed={zoomMode === "fit"} onClick={() => { setZoomMode("fit"); setZoom(1); }} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
+        <button type="button" aria-label="Fit to width" aria-pressed={zoomMode === "fit"} onClick={() => { setZoomMode("fit"); setZoom(1); emitPdfAnalytics({ event: "pdf_zoom_change", urlHash, fileName, zoom: 1 }); }} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
           <Maximize2 size={12} aria-hidden />
         </button>
+
         <button type="button" aria-label="Search in document" aria-pressed={searchOpen} onClick={() => { setSearchOpen((v) => !v); setTimeout(() => searchInputRef.current?.focus(), 10); }} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
           <Search size={12} aria-hidden />
         </button>
