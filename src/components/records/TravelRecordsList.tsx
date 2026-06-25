@@ -639,6 +639,25 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
             )}
           </button>
           <Eye size={16} style={{ color: "var(--gold)" }} />
+          {item.kind !== "lounge-card" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditTarget({
+                  id: item.id,
+                  kind: item.kind,
+                  label: item.label,
+                  subcategory: item.kind === "attachment" ? (item.subcategory ?? null) : null,
+                });
+              }}
+              className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
+              style={{ background: "var(--off-white)" }}
+              aria-label="Edit details · تعديل"
+              title="Edit details"
+            >
+              <Pencil size={13} style={{ color: "var(--teal-deep)" }} />
+            </button>
+          )}
           <button
             onClick={() => setMenuItem(item)}
             className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
