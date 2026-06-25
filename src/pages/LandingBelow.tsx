@@ -129,7 +129,7 @@ const LandingBelow = ({ goToApp, theme }: Props) => {
                   {isAr ? <span className="font-arabic" dir="rtl">{a.descAr}</span> : a.descEn}
                 </p>
                 <span className="text-[11px] font-mono tracking-wide mt-auto" style={{ color: a.color }}>
-                  {isAr ? "اعرف أكثر ←" : "Learn more →"}
+                  {isAr ? `تفاصيل ${a.ar} ←` : `See ${a.en} details →`}
                 </span>
               </a>
             ))}

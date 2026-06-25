@@ -209,7 +209,7 @@ const AddMedicationSheet = ({ open, onClose, onSubmit, allergies = [] }: AddMedi
             <label className="font-mono text-[9px] tracking-widest" style={{ color: "var(--gold)" }}>PILL IMAGE · صورة الدواء</label>
             {imageUrl ? (
               <div className="mt-1 relative rounded-xl overflow-hidden" style={{ border: "1px solid var(--gray-light)" }}>
-                <img src={imageUrl} alt="Medication" className="w-full h-32 object-cover" />
+                <img src={imageUrl} alt="Photo of medication pill or packaging" className="w-full h-32 object-cover" />
                 <button onClick={() => setImageUrl("")} className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center btn-press" style={{ background: "rgba(0,0,0,0.6)" }}>
                   <Trash2 size={12} color="white" />
                 </button>
