@@ -7,6 +7,7 @@ import {
   RefreshCw, Receipt, Download, ShieldCheck, Send, ChevronRight, Maximize2, FileDown,
 } from "lucide-react";
 import CountrySelect from "./CountrySelect";
+import UniversalDocumentPreview from "@/components/records/UniversalDocumentPreview";
 import CitySelect from "./CitySelect";
 import { COUNTRIES } from "@/data/countries";
 import { usePermissions } from "@/features/auth";
