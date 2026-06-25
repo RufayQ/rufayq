@@ -552,6 +552,9 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
       : [];
     const scannedFields = isScanned && item.kind === "scanned-travel" ? (item.record.keyFields ?? []).filter((f) => f.value.trim().length > 0) : [];
     const cardFields = scannedFields.length ? scannedFields : attachmentFields;
+    const rowCat = classifyRow(item);
+    const catDef = CAT_DEFS.find((c) => c.key === rowCat);
+    const typeLabel = catDef && rowCat !== "all" && rowCat !== "lounge" ? `${catDef.en} · ${catDef.ar}` : null;
     return (
       <div
         key={item.id}
@@ -601,6 +604,11 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
               ) : (
                 <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(197,150,90,0.12)", color: "var(--gold)" }}>
                   <Plane size={9} /> Travel
+                </span>
+              )}
+              {typeLabel && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: "rgba(0,77,91,0.10)", color: "var(--teal-deep)" }}>
+                  {typeLabel}
                 </span>
               )}
               <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
