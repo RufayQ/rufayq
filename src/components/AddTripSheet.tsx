@@ -630,12 +630,22 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
           )}
 
           {/* Submit */}
-          <button onClick={handleSubmit} className="w-full btn-press" style={{
-            height: 52, borderRadius: 14,
-            background: "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))",
-            boxShadow: "0 6px 20px rgba(0,77,91,0.35)",
-            color: "white", fontFamily: "'DM Sans'", fontSize: 16, fontWeight: 700,
-          }}>
+          <button
+            onClick={handleSubmit}
+            disabled={!isFormComplete}
+            data-testid="add-trip-submit"
+            className="w-full btn-press"
+            style={{
+              height: 52, borderRadius: 14,
+              background: isFormComplete
+                ? "linear-gradient(135deg, var(--teal-deep), var(--teal-mid))"
+                : "var(--gray-light)",
+              boxShadow: isFormComplete ? "0 6px 20px rgba(0,77,91,0.35)" : "none",
+              color: isFormComplete ? "white" : "var(--gray)",
+              fontFamily: "'DM Sans'", fontSize: 16, fontWeight: 700,
+              cursor: isFormComplete ? "pointer" : "not-allowed",
+            }}
+          >
             Start My Journey
             <br />
             <span className="font-arabic text-[13px]" style={{ opacity: 0.8 }}>ابدأ رحلتي</span>
