@@ -63,6 +63,7 @@ const URL_A = "https://signed.example/big.pdf?sig=abc";
 beforeEach(() => {
   shouldFailLoad = false;
   lastLoadingTask = null;
+  deferredResolver = null;
   window.localStorage.clear();
 });
 
