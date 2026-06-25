@@ -1048,7 +1048,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                   const journeyFinished = all.length > 0 && all.every((m) => m.state === "done");
                   if (!journeyFinished) return null;
                   const notes: string[] = [];
-                  journeySteps.forEach((s) => { if (s.note) notes.push(s.note); });
+                  journeySteps.forEach((s) => { if (s.details) notes.push(s.details); });
                   return (
                     <JourneyCompleteCard
                       trip={activeTrip}
