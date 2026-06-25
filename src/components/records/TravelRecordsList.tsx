@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import UnifiedAttachmentPreview from "@/shared/ui/attachments/UnifiedAttachmentPreview";
-import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2, ScanLine, CreditCard, ChevronRight } from "lucide-react";
+import { FileText, Image as ImageIcon, Eye, X, Loader2, Plane, MoreVertical, Pin, Sofa, Trash2, ScanLine, CreditCard, ChevronRight, Pencil } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/hooks/useDeviceId";
 import type { TransportAttachment } from "@/components/RelatedDocumentsCard";
 import RecordActionsSheet from "@/components/records/RecordActionsSheet";
+import EditRecordSheet, { type EditRecordTarget } from "@/components/records/EditRecordSheet";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { linkRecordToMilestone } from "@/lib/records/linkRecordToMilestone";
 import { stashChatAttachment } from "@/lib/records/chatAttachmentHandoff";
@@ -167,6 +168,7 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
   const [scannedViewer, setScannedViewer] = useState<TravelScannedRecord | null>(null);
   const [cat, setCat] = useState<TravelCat>("all");
   const [clearPinOpen, setClearPinOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<EditRecordTarget | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -637,6 +639,25 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
             )}
           </button>
           <Eye size={16} style={{ color: "var(--gold)" }} />
+          {item.kind !== "lounge-card" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditTarget({
+                  id: item.id,
+                  kind: item.kind,
+                  label: item.label,
+                  subcategory: item.kind === "attachment" ? (item.subcategory ?? null) : null,
+                });
+              }}
+              className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
+              style={{ background: "var(--off-white)" }}
+              aria-label="Edit details · تعديل"
+              title="Edit details"
+            >
+              <Pencil size={13} style={{ color: "var(--teal-deep)" }} />
+            </button>
+          )}
           <button
             onClick={() => setMenuItem(item)}
             className="w-7 h-7 rounded-full flex items-center justify-center btn-press"
@@ -909,6 +930,35 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
           }}
         />
       )}
+
+      <EditRecordSheet
+        open={!!editTarget}
+        target={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSave={async (values) => {
+          if (!editTarget) return;
+          try {
+            if (editTarget.kind === "attachment") {
+              const { error } = await withDeviceHeader(
+                supabase
+                  .from("transport_attachments")
+                  .update({ label: values.label, subcategory: values.subcategory })
+                  .eq("id", editTarget.id),
+                deviceId,
+              );
+              if (error) throw error;
+              await fetchAll();
+            } else if (editTarget.kind === "scanned-travel") {
+              const recordId = editTarget.id.replace(/^scanned:/, "");
+              updateTravelScannedRecord(recordId, { title: values.label });
+              setScannedTravel(listTravelScannedRecords());
+            }
+            toast.success("Saved · تم الحفظ", { duration: 1400 });
+          } catch (e: any) {
+            toast.error(e?.message || "Could not update");
+          }
+        }}
+      />
     </>
   );
 };
