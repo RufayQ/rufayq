@@ -489,26 +489,31 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
           <div>
             <Label en="Destination Country *" ar="بلد الوجهة" />
             <input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="e.g. Germany, USA, UK" style={inputStyle("destination")} />
+            <FieldError field="destination" />
           </div>
 
           <div>
             <Label en="City & Hospital *" ar="المدينة والمستشفى" />
             <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="e.g. Berlin — Charité Hospital" style={inputStyle("hospital")} />
+            <FieldError field="hospital" />
           </div>
 
           <div>
             <Label en="Medical Specialty *" ar="التخصص الطبي" />
             {renderDropdown(specialties, showSpecialtyDrop, setShowSpecialtyDrop, specialty ? `${specialtyEmoji} ${specialty}` : "", (en, emoji) => { setSpecialty(en); setSpecialtyEmoji(emoji); })}
+            <FieldError field="specialty" />
           </div>
 
           <div>
             <Label en="Departure Date *" ar="تاريخ المغادرة" />
             <input type="date" value={departureDate} onChange={(e) => setDepartureDate(e.target.value)} style={inputStyle("departureDate")} />
+            <FieldError field="departureDate" />
           </div>
 
           <div>
             <Label en="Expected Return Date" ar="تاريخ العودة المتوقع" />
-            <input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} style={inputStyle("")} />
+            <input type="date" value={returnDate} min={departureDate || undefined} onChange={(e) => setReturnDate(e.target.value)} style={inputStyle("returnDate")} />
+            <FieldError field="returnDate" />
             <p className="text-[10px] mt-1" style={{ color: "var(--gray)" }}>You can update this later · <span className="font-arabic" dir="rtl">يمكنك تعديله لاحقاً</span></p>
           </div>
 
