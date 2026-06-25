@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Download, Eye, FileText, Loader2, Maximize2, RefreshCw, Search, X, ZoomIn, ZoomOut } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { emitPdfAnalytics, hashUrl } from "@/lib/pdfAnalytics";
+import { loadPdfViewerState, savePdfViewerState } from "@/lib/pdfViewerState";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -128,37 +130,60 @@ const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 const PdfPreview = ({
   url, fileName, title, page, className, onError,
 }: { url: string; fileName: string; title: string; page: number; className?: string; onError?: Props["onError"] }) => {
+  // Hydrate persisted state synchronously on first render.
+  const persisted = useMemo(() => loadPdfViewerState(url) ?? {}, [url]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
-  const [currentPage, setCurrentPage] = useState<number>(Math.max(1, page));
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [currentPage, setCurrentPage] = useState<number>(Math.max(1, persisted.page ?? page));
   const [numPages, setNumPages] = useState<number>(1);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [zoomMode, setZoomMode] = useState<"fit" | "manual">("fit");
-  const [zoom, setZoom] = useState<number>(1);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [zoomMode, setZoomMode] = useState<"fit" | "manual">(persisted.zoomMode ?? "fit");
+  const [zoom, setZoom] = useState<number>(persisted.zoom ?? 1);
+  const [searchOpen, setSearchOpen] = useState(persisted.searchOpen ?? false);
+  const [searchTerm, setSearchTerm] = useState(persisted.searchTerm ?? "");
   const [matches, setMatches] = useState<Array<{ page: number; index: number }>>([]);
   const [matchCursor, setMatchCursor] = useState(0);
   const [pageText, setPageText] = useState<string>("");
+  /** 0..1 — progressive load percentage from pdfjs onProgress · مؤشر التحميل */
+  const [loadProgress, setLoadProgress] = useState<number>(0);
   const timerRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pdfRef = useRef<any>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const loadStartedAt = useRef<number>(0);
 
-  useEffect(() => { setCurrentPage(Math.max(1, page)); }, [url, page]);
+  const urlHash = useMemo(() => hashUrl(url), [url]);
 
-  // Render current page → image
+  useEffect(() => { setCurrentPage(Math.max(1, persisted.page ?? page)); }, [url, page]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist viewer state (debounced) whenever it changes.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      savePdfViewerState(url, { page: currentPage, zoom, zoomMode, searchTerm, searchOpen });
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [url, currentPage, zoom, zoomMode, searchTerm, searchOpen]);
+
+  // Lazy render — only the current page is decoded. Cached document is
+  // reused across page / zoom changes (see pdfRef invalidation below).
   useEffect(() => {
     let cancelled = false;
     setStatus("loading");
     setImageSrc(null);
+    setLoadProgress(0);
+    loadStartedAt.current = performance.now();
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
       setStatus((s) => {
         if (s === "loading") {
           setErrorMessage("Loading timed out after 12 seconds.");
           logError(onError, { kind: "pdf", message: "timeout", url });
+          emitPdfAnalytics({
+            event: "pdf_load_failed", urlHash, fileName,
+            errorMessage: "timeout", retryAttempt,
+          });
           return "error";
         }
         return s;
@@ -168,6 +193,7 @@ const PdfPreview = ({
       try {
         let pdf = pdfRef.current;
         if (!pdf) {
+          emitPdfAnalytics({ event: "pdf_load_started", urlHash, fileName, retryAttempt });
           let source: any;
           if (url.startsWith("data:")) {
             const b64 = url.split(",")[1] || "";
@@ -178,10 +204,23 @@ const PdfPreview = ({
           } else {
             source = { url, withCredentials: false };
           }
-          pdf = await pdfjsLib.getDocument(source).promise;
+          const loadingTask: any = pdfjsLib.getDocument(source);
+          // Progressive skeleton — bytes-received feedback for large PDFs.
+          if (loadingTask && typeof loadingTask === "object") {
+            loadingTask.onProgress = (p: { loaded: number; total: number }) => {
+              if (cancelled || !p?.total) return;
+              setLoadProgress(Math.max(0, Math.min(1, p.loaded / p.total)));
+            };
+          }
+          pdf = await loadingTask.promise;
           pdfRef.current = pdf;
           if (cancelled) return;
           setNumPages(pdf.numPages);
+          emitPdfAnalytics({
+            event: "pdf_load_succeeded", urlHash, fileName,
+            numPages: pdf.numPages,
+            durationMs: Math.round(performance.now() - loadStartedAt.current),
+          });
         }
         const safePage = Math.min(Math.max(1, currentPage), pdf.numPages);
         const pdfPage = await pdf.getPage(safePage);
@@ -199,7 +238,6 @@ const PdfPreview = ({
         if (!ctx) throw new Error("no-canvas");
         await pdfPage.render({ canvasContext: ctx, viewport }).promise;
         if (cancelled) return;
-        // Collect text for in-document search
         try {
           const tc = await pdfPage.getTextContent();
           const text = tc.items.map((it: any) => it.str).join(" ");
@@ -208,9 +246,14 @@ const PdfPreview = ({
         if (timerRef.current) window.clearTimeout(timerRef.current);
         setImageSrc(canvas.toDataURL("image/jpeg", 0.88));
         setStatus("ready");
+        emitPdfAnalytics({ event: "pdf_page_view", urlHash, fileName, page: safePage });
       } catch (e: any) {
         const msg = e?.message || "Render failed";
         logError(onError, { kind: "pdf", message: msg, url });
+        emitPdfAnalytics({
+          event: "pdf_load_failed", urlHash, fileName,
+          errorMessage: msg, retryAttempt,
+        });
         if (!cancelled) {
           setErrorMessage(msg);
           setStatus("error");
@@ -218,9 +261,9 @@ const PdfPreview = ({
       }
     })();
     return () => { cancelled = true; if (timerRef.current) window.clearTimeout(timerRef.current); };
-  }, [url, currentPage, nonce, zoom, zoomMode, onError]);
+  }, [url, currentPage, nonce, zoom, zoomMode, onError, urlHash, fileName, retryAttempt]);
 
-  // Drop cached pdf when url/nonce changes
+  // Drop cached pdf when url/nonce changes so retry re-fetches.
   useEffect(() => { pdfRef.current = null; }, [url, nonce]);
 
   const runSearch = useCallback(async (term: string) => {
@@ -248,7 +291,11 @@ const PdfPreview = ({
     }
     setMatches(results);
     if (results.length > 0) setCurrentPage(results[0].page);
-  }, []);
+    emitPdfAnalytics({
+      event: "pdf_search", urlHash, fileName,
+      searchTerm: term, searchMatches: results.length,
+    });
+  }, [urlHash, fileName]);
 
   const gotoMatch = (delta: number) => {
     if (!matches.length) return;
@@ -257,7 +304,6 @@ const PdfPreview = ({
     setCurrentPage(matches[next].page);
   };
 
-  // Build highlighted snippet for current page
   const highlightedSnippet = useMemo(() => {
     if (!searchTerm.trim() || !pageText) return null;
     const text = pageText;
@@ -274,6 +320,89 @@ const PdfPreview = ({
     };
   }, [pageText, searchTerm]);
 
+  // Wrap the zoom setters so they emit analytics + flip mode consistently.
+  const applyZoomDelta = useCallback((delta: number) => {
+    setZoomMode("manual");
+    setZoom((z) => {
+      const next = clampZoom(z + delta);
+      emitPdfAnalytics({ event: "pdf_zoom_change", urlHash, fileName, zoom: next });
+      return next;
+    });
+  }, [urlHash, fileName]);
+
+  const applyZoomAbsolute = useCallback((value: number) => {
+    setZoomMode("manual");
+    const next = clampZoom(value);
+    setZoom(next);
+    emitPdfAnalytics({ event: "pdf_zoom_change", urlHash, fileName, zoom: next });
+  }, [urlHash, fileName]);
+
+  // ---------------- Touch gestures (mobile usability) -----------------------
+  // Pinch-to-zoom: track initial two-finger distance + zoom. While the gesture
+  // continues, update zoom by the ratio. Swipe: single-finger horizontal
+  // displacement past 60px → previous/next page.
+  const touchRef = useRef<{
+    pinchStartDist: number | null;
+    pinchStartZoom: number;
+    swipeStartX: number | null;
+    swipeStartY: number | null;
+    swipeStartT: number;
+  }>({ pinchStartDist: null, pinchStartZoom: 1, swipeStartX: null, swipeStartY: null, swipeStartT: 0 });
+
+  const distance = (t: React.TouchList) => {
+    if (t.length < 2) return 0;
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.hypot(dx, dy);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length >= 2) {
+      touchRef.current.pinchStartDist = distance(e.touches);
+      touchRef.current.pinchStartZoom = zoomMode === "fit" ? 1 : zoom;
+      touchRef.current.swipeStartX = null;
+    } else if (e.touches.length === 1) {
+      touchRef.current.swipeStartX = e.touches[0].clientX;
+      touchRef.current.swipeStartY = e.touches[0].clientY;
+      touchRef.current.swipeStartT = performance.now();
+      touchRef.current.pinchStartDist = null;
+    }
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length >= 2 && touchRef.current.pinchStartDist) {
+      const d = distance(e.touches);
+      const ratio = d / touchRef.current.pinchStartDist;
+      const next = clampZoom(touchRef.current.pinchStartZoom * ratio);
+      setZoomMode("manual");
+      setZoom(next);
+    }
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    // Finalize pinch — emit one analytics event for the gesture
+    if (touchRef.current.pinchStartDist) {
+      emitPdfAnalytics({ event: "pdf_zoom_change", urlHash, fileName, zoom });
+      touchRef.current.pinchStartDist = null;
+      return;
+    }
+    // Swipe — horizontal-only, ignore if we're zoomed and likely panning.
+    const startX = touchRef.current.swipeStartX;
+    const startY = touchRef.current.swipeStartY;
+    if (startX != null && startY != null && e.changedTouches.length === 1) {
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      const dt = performance.now() - touchRef.current.swipeStartT;
+      const horizontal = Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6 && dt < 600;
+      if (horizontal && (zoomMode === "fit" || zoom <= 1.01)) {
+        if (dx < 0) setCurrentPage((p) => Math.min(numPages, p + 1));
+        else setCurrentPage((p) => Math.max(1, p - 1));
+      }
+    }
+    touchRef.current.swipeStartX = null;
+    touchRef.current.swipeStartY = null;
+  };
+
   // Keyboard navigation
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (status !== "ready") return;
@@ -285,10 +414,10 @@ const PdfPreview = ({
       setCurrentPage((p) => Math.max(1, p - 1));
     } else if (e.key === "+" || e.key === "=") {
       e.preventDefault();
-      setZoomMode("manual"); setZoom((z) => clampZoom(z + ZOOM_STEP));
+      applyZoomDelta(ZOOM_STEP);
     } else if (e.key === "-") {
       e.preventDefault();
-      setZoomMode("manual"); setZoom((z) => clampZoom(z - ZOOM_STEP));
+      applyZoomDelta(-ZOOM_STEP);
     } else if (e.key === "0") {
       e.preventDefault();
       setZoomMode("fit"); setZoom(1);
@@ -303,6 +432,8 @@ const PdfPreview = ({
   };
 
   const canPaginate = status === "ready" && numPages > 1;
+  const progressPct = Math.round(loadProgress * 100);
+
 
   return (
     <div
@@ -312,7 +443,12 @@ const PdfPreview = ({
       aria-label={`PDF preview: ${title}`}
       tabIndex={0}
       onKeyDown={onKeyDown}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ touchAction: "pan-y" }}
     >
+
       {/* Toolbar */}
       <div
         role="toolbar"
@@ -320,16 +456,17 @@ const PdfPreview = ({
         className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold shadow"
         style={{ background: "rgba(0,0,0,0.65)", color: "#fff", backdropFilter: "blur(4px)" }}
       >
-        <button type="button" aria-label="Zoom out" onClick={() => { setZoomMode("manual"); setZoom((z) => clampZoom(z - ZOOM_STEP)); }} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
+        <button type="button" aria-label="Zoom out" onClick={() => applyZoomDelta(-ZOOM_STEP)} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
           <ZoomOut size={12} aria-hidden />
         </button>
         <span data-testid="pdf-zoom-indicator" aria-live="polite">{Math.round((zoomMode === "fit" ? 1 : zoom) * 100)}%</span>
-        <button type="button" aria-label="Zoom in" onClick={() => { setZoomMode("manual"); setZoom((z) => clampZoom(z + ZOOM_STEP)); }} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
+        <button type="button" aria-label="Zoom in" onClick={() => applyZoomDelta(ZOOM_STEP)} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
           <ZoomIn size={12} aria-hidden />
         </button>
-        <button type="button" aria-label="Fit to width" aria-pressed={zoomMode === "fit"} onClick={() => { setZoomMode("fit"); setZoom(1); }} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
+        <button type="button" aria-label="Fit to width" aria-pressed={zoomMode === "fit"} onClick={() => { setZoomMode("fit"); setZoom(1); emitPdfAnalytics({ event: "pdf_zoom_change", urlHash, fileName, zoom: 1 }); }} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
           <Maximize2 size={12} aria-hidden />
         </button>
+
         <button type="button" aria-label="Search in document" aria-pressed={searchOpen} onClick={() => { setSearchOpen((v) => !v); setTimeout(() => searchInputRef.current?.focus(), 10); }} className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
           <Search size={12} aria-hidden />
         </button>
@@ -383,7 +520,43 @@ const PdfPreview = ({
       )}
 
       {status === "loading" && (
-        <div className="absolute inset-0"><LoadingPanel label="Loading PDF preview…" /></div>
+        <div className="absolute inset-0">
+          <div
+            role="status"
+            aria-live="polite"
+            aria-label="Loading PDF"
+            className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-lg px-6"
+            style={{ background: "var(--off-white)" }}
+          >
+            <Loader2 size={22} className="animate-spin" style={{ color: "var(--teal-deep)" }} aria-hidden />
+            <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+              Loading PDF preview{progressPct ? `… ${progressPct}%` : "…"}
+            </p>
+            {/* Progressive page skeletons — visual cue for large PDFs */}
+            <div className="flex w-full max-w-xs flex-col gap-1.5" aria-hidden>
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  data-testid="pdf-progress-skeleton"
+                  className="h-2.5 w-full overflow-hidden rounded-full"
+                  style={{ background: "var(--gray-light)" }}
+                >
+                  <div
+                    className="h-full transition-[width] duration-300 ease-out"
+                    style={{
+                      width: `${Math.max(8, progressPct)}%`,
+                      background: "var(--teal-deep)",
+                      opacity: 1 - i * 0.25,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>
+              {progressPct ? `جارٍ التحميل ${progressPct}%` : "جارٍ تحميل المعاينة…"}
+            </p>
+          </div>
+        </div>
       )}
       {status === "error" && (
         <div className="absolute inset-0">
@@ -393,10 +566,16 @@ const PdfPreview = ({
             message={errorMessage ?? (url.startsWith("blob:")
               ? "This preview link expired after the app reloaded. Please re-scan or re-upload the document."
               : "Your browser couldn't render this PDF inline.")}
-            onRetry={() => { setStatus("loading"); setErrorMessage(null); setNonce((n) => n + 1); }}
+            onRetry={() => {
+              const next = retryAttempt + 1;
+              setRetryAttempt(next);
+              emitPdfAnalytics({ event: "pdf_retry", urlHash, fileName, retryAttempt: next });
+              setStatus("loading"); setErrorMessage(null); setNonce((n) => n + 1);
+            }}
           />
         </div>
       )}
+
 
       {canPaginate && (
         <div
@@ -428,10 +607,14 @@ const PdfPreview = ({
             aria-label="Download PDF"
             className="ml-1 px-2 py-0.5 rounded-full"
             style={{ background: "rgba(255,255,255,0.15)" }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              emitPdfAnalytics({ event: "pdf_download", urlHash, fileName, numPages });
+            }}
           >
             <Download size={11} aria-hidden />
           </a>
+
         </div>
       )}
     </div>
