@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Download, Eye, FileText, Loader2, Maximize2, RefreshCw, Search, X, ZoomIn, ZoomOut } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { emitPdfAnalytics, hashUrl } from "@/lib/pdfAnalytics";
+import { loadPdfViewerState, savePdfViewerState } from "@/lib/pdfViewerState";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerUrl;
 
