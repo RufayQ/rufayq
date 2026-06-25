@@ -1047,40 +1047,24 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                   const all = overview.milestones;
                   const journeyFinished = all.length > 0 && all.every((m) => m.state === "done");
                   if (!journeyFinished) return null;
+                  const notes: string[] = [];
+                  journeySteps.forEach((s) => { if (s.note) notes.push(s.note); });
                   return (
-                    <section className="px-4 pt-3" aria-label="Journey complete · اكتملت الرحلة">
-                      <div
-                        className="rounded-2xl p-4 flex flex-col gap-3"
-                        style={{
-                          background: "linear-gradient(135deg, rgba(0,77,91,0.10), rgba(197,150,90,0.14))",
-                          border: "1px solid rgba(197,150,90,0.40)",
-                        }}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--white)" }}>
-                            <span aria-hidden="true">🏁</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-bold leading-tight" style={{ color: "var(--navy)" }}>
-                              Journey complete
-                            </p>
-                            <p className="font-arabic text-[12px] leading-tight mt-0.5" dir="rtl" style={{ color: "var(--teal-deep)" }}>
-                              اكتملت رحلة العلاج
-                            </p>
-                            <p className="text-[11px] mt-1.5" style={{ color: "var(--gray)" }}>
-                              All milestones are done. Start a new journey to track your next trip.
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => { if (requireProForAddTrip()) setShowAddTrip(true); }}
-                          className="w-full rounded-full py-2.5 text-[12px] font-bold btn-press flex items-center justify-center gap-2"
-                          style={{ background: "var(--teal-deep)", color: "var(--white)" }}
-                        >
-                          <Plus size={14} /> Create new journey · رحلة جديدة
-                        </button>
-                      </div>
-                    </section>
+                    <JourneyCompleteCard
+                      trip={activeTrip}
+                      milestones={all}
+                      totalDays={overview.totalDays}
+                      notes={notes}
+                      onCreateNewJourney={() => {
+                        if (!requireProForAddTrip()) return;
+                        // Archive the completed trip so the new one becomes the
+                        // sole active journey. Archive is soft (deleted_at).
+                        archiveTrip(activeTrip.id).catch((e) =>
+                          console.warn("[journey] archive on new-journey failed", e),
+                        );
+                        setShowAddTrip(true);
+                      }}
+                    />
                   );
                 })()}
                  <HelicopterTimelineRail
