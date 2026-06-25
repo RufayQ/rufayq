@@ -93,7 +93,7 @@ describe("TravelScannedRecordViewer · Visa", () => {
     expect(screen.getByText("2 / 3")).toBeInTheDocument();
   });
 
-  it("falls back to PDF preview when pageImages is empty but pdfUrl is supplied", () => {
+  it("falls back to the unified PDF preview when pageImages is empty but pdfUrl is supplied", async () => {
     const record = addTravelScannedRecord({
       category: "legal",
       subcategory: "Visa",
@@ -105,10 +105,12 @@ describe("TravelScannedRecordViewer · Visa", () => {
 
     render(<TravelScannedRecordViewer record={record} onClose={() => {}} />);
 
-    const obj = document.body.querySelector('object[type="application/pdf"]') as HTMLObjectElement | null;
-    expect(obj).not.toBeNull();
-    expect(obj!.getAttribute("data")).toContain("https://example.com/visa.pdf");
-    // Iframe fallback is present inside the object element.
-    expect(within(obj as unknown as HTMLElement).getByTitle(/PDF$/i)).toBeInTheDocument();
+    // The unified previewer mounts the pdfjs loading panel. In jsdom the
+    // worker import fails, so the preview surfaces its ErrorPanel with an
+    // "Open in new tab" link to the original signed URL.
+    const open = await screen.findByText(/Open in new tab/i, undefined, { timeout: 5000 });
+    expect(open.closest("a")).toHaveAttribute("href", "https://example.com/visa.pdf");
+    // Legacy <object> fallback must not be used anymore.
+    expect(document.body.querySelector('object[type="application/pdf"]')).toBeNull();
   });
 });
