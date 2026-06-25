@@ -121,16 +121,18 @@ describe("UniversalDocumentPreview · analytics + persistence + gestures", () =>
   });
 
   it("shows progressive skeleton bars that fill as onProgress reports bytes", async () => {
+    // Sentinel — switches the mock into deferred-resolve mode.
+    deferredResolver = (() => {}) as any;
     renderPdf();
-    // Initial loading panel + skeleton rows render immediately.
     expect(screen.getAllByTestId("pdf-progress-skeleton").length).toBeGreaterThan(0);
-    // Drive onProgress before the load resolves.
     await waitFor(() => expect(lastLoadingTask?.onProgress).toBeTypeOf("function"));
     act(() => { lastLoadingTask.onProgress({ loaded: 50, total: 100 }); });
     await waitFor(() => expect(screen.getByText(/50%/)).toBeInTheDocument());
-    // After load completes, skeleton goes away.
+    // Now let the document promise resolve.
+    act(() => { (deferredResolver as any)(lastLoadingTask._doc); });
     await waitFor(() => expect(screen.queryByTestId("pdf-progress-skeleton")).toBeNull());
   });
+
 
   it("persists page / zoom / search across remounts via localStorage", async () => {
     const { unmount } = renderPdf();
