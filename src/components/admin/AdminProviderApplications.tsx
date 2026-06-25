@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Building2, FileText, Check, X, MessageSquare, ExternalLink, Loader2, Zap, Copy } from "lucide-react";
+import UniversalDocumentPreview from "@/components/records/UniversalDocumentPreview";
 
 interface ProviderApp {
   id: string;
