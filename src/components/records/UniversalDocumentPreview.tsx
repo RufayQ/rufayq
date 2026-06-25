@@ -520,7 +520,43 @@ const PdfPreview = ({
       )}
 
       {status === "loading" && (
-        <div className="absolute inset-0"><LoadingPanel label="Loading PDF preview…" /></div>
+        <div className="absolute inset-0">
+          <div
+            role="status"
+            aria-live="polite"
+            aria-label="Loading PDF"
+            className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-lg px-6"
+            style={{ background: "var(--off-white)" }}
+          >
+            <Loader2 size={22} className="animate-spin" style={{ color: "var(--teal-deep)" }} aria-hidden />
+            <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+              Loading PDF preview{progressPct ? `… ${progressPct}%` : "…"}
+            </p>
+            {/* Progressive page skeletons — visual cue for large PDFs */}
+            <div className="flex w-full max-w-xs flex-col gap-1.5" aria-hidden>
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  data-testid="pdf-progress-skeleton"
+                  className="h-2.5 w-full overflow-hidden rounded-full"
+                  style={{ background: "var(--gray-light)" }}
+                >
+                  <div
+                    className="h-full transition-[width] duration-300 ease-out"
+                    style={{
+                      width: `${Math.max(8, progressPct)}%`,
+                      background: "var(--teal-deep)",
+                      opacity: 1 - i * 0.25,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="font-arabic text-[11px]" dir="rtl" style={{ color: "var(--gray)" }}>
+              {progressPct ? `جارٍ التحميل ${progressPct}%` : "جارٍ تحميل المعاينة…"}
+            </p>
+          </div>
+        </div>
       )}
       {status === "error" && (
         <div className="absolute inset-0">
@@ -530,10 +566,16 @@ const PdfPreview = ({
             message={errorMessage ?? (url.startsWith("blob:")
               ? "This preview link expired after the app reloaded. Please re-scan or re-upload the document."
               : "Your browser couldn't render this PDF inline.")}
-            onRetry={() => { setStatus("loading"); setErrorMessage(null); setNonce((n) => n + 1); }}
+            onRetry={() => {
+              const next = retryAttempt + 1;
+              setRetryAttempt(next);
+              emitPdfAnalytics({ event: "pdf_retry", urlHash, fileName, retryAttempt: next });
+              setStatus("loading"); setErrorMessage(null); setNonce((n) => n + 1);
+            }}
           />
         </div>
       )}
+
 
       {canPaginate && (
         <div
