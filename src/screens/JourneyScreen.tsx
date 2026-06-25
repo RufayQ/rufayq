@@ -1055,6 +1055,7 @@ const JourneyScreen = ({ onOpenScanner, onNavigate, initialIntent, onIntentHandl
                       milestones={all}
                       totalDays={overview.totalDays}
                       notes={notes}
+                      onOpenMilestone={(id) => handleMilestoneSelect(id)}
                       onCreateNewJourney={() => {
                         if (!requireProForAddTrip()) return;
                         // Archive the completed trip so the new one becomes the
