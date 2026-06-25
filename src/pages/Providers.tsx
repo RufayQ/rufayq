@@ -7,6 +7,20 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { Seo } from "@/seo/Seo";
+import { faqSchema, breadcrumbSchema } from "@/seo/schema";
+
+const PROVIDER_FAQ_EN = [
+  { q: "Which organizations can apply?", a: "Hospitals, clinics, physician practices, medical vendors, insurance companies and patient organizations serving Gulf or international patients." },
+  { q: "How long does review take?", a: "Our partnerships and compliance team typically reviews applications within 3–5 business days." },
+  { q: "What can providers do inside RufayQ?", a: "Approved providers access a dedicated portal to follow up with their patients — sending health instructions, updating medications, and scheduling appointments bilingually (English/Arabic)." },
+  { q: "Is there a fee to onboard?", a: "Onboarding is free. Paid provider tiers unlock multi-clinician seats, analytics, and EHR integrations." },
+];
+const PROVIDER_FAQ_AR = [
+  { q: "ما المؤسسات التي يمكنها التقديم؟", a: "المستشفيات والعيادات والأطباء والموردون الطبيون وشركات التأمين ومنظمات المرضى التي تخدم مرضى الخليج أو المرضى الدوليين." },
+  { q: "كم تستغرق المراجعة؟", a: "يراجع فريق الشراكات والامتثال الطلبات عادةً خلال 3 إلى 5 أيام عمل." },
+  { q: "ماذا يستطيع المزودون فعله داخل رُفَيِّق؟", a: "يحصل المزودون المعتمدون على بوابة مخصصة لمتابعة مرضاهم — إرسال التعليمات الصحية، وتحديث الأدوية، وجدولة المواعيد بالعربية والإنجليزية." },
+  { q: "هل هناك رسوم للانضمام؟", a: "الانضمام مجاني. الباقات المدفوعة تفتح مقاعد متعددة للأطباء والتحليلات والتكاملات." },
+];
 
 const BG = "#06101A", BG2 = "#0B1A28", BORDER = "rgba(197,150,90,0.12)";
 const TEXT = "#E8ECF0", MUTED = "rgba(232,236,240,0.6)", GOLD = "#C5965A", TEAL = "#1FB6A7";
@@ -171,6 +185,13 @@ const Providers = () => {
         description={mode === "ar"
           ? "تستطيع المستشفيات والعيادات والأطباء وشركات التأمين التقدّم لمتابعة مرضاهم على رُفَيِّق."
           : "Hospitals, clinics, physicians, vendors and insurance companies can apply to follow up with their patients on RufayQ."}
+        jsonLd={[
+          breadcrumbSchema([
+            { name: mode === "ar" ? "الرئيسية" : "Home", path: mode === "ar" ? "/ar" : "/" },
+            { name: mode === "ar" ? "للمزودين" : "For Providers", path: mode === "ar" ? "/ar/providers" : "/providers" },
+          ]),
+          faqSchema(mode === "ar" ? PROVIDER_FAQ_AR : PROVIDER_FAQ_EN),
+        ]}
       />
     <div className="min-h-screen" style={{ background: BG, color: TEXT, fontFamily: "'DM Sans', system-ui" }} dir={mode === "ar" ? "rtl" : "ltr"}>
       <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: "rgba(6,16,26,0.85)", borderBottom: `1px solid ${BORDER}` }}>
