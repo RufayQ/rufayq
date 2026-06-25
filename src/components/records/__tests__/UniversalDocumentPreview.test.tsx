@@ -22,6 +22,17 @@ vi.mock("pdfjs-dist", () => {
 });
 vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?url", () => ({ default: "stub-worker.js" }));
 
+// jsdom returns null for getContext("2d"); stub so PdfPreview reaches the
+// "ready" state.
+beforeAll(() => {
+  (HTMLCanvasElement.prototype as any).getContext = function () {
+    return {} as any;
+  };
+  (HTMLCanvasElement.prototype as any).toDataURL = function () {
+    return "data:image/jpeg;base64,AAA";
+  };
+});
+
 import UniversalDocumentPreview from "@/components/records/UniversalDocumentPreview";
 
 describe("UniversalDocumentPreview · unified PDF viewer", () => {
