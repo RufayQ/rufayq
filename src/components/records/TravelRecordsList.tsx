@@ -930,6 +930,35 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
           }}
         />
       )}
+
+      <EditRecordSheet
+        open={!!editTarget}
+        target={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSave={async (values) => {
+          if (!editTarget) return;
+          try {
+            if (editTarget.kind === "attachment") {
+              const { error } = await withDeviceHeader(
+                supabase
+                  .from("transport_attachments")
+                  .update({ label: values.label, subcategory: values.subcategory })
+                  .eq("id", editTarget.id),
+                deviceId,
+              );
+              if (error) throw error;
+              await fetchAll();
+            } else if (editTarget.kind === "scanned-travel") {
+              const recordId = editTarget.id.replace(/^scanned:/, "");
+              updateTravelScannedRecord(recordId, { title: values.label });
+              setScannedTravel(listTravelScannedRecords());
+            }
+            toast.success("Saved · تم الحفظ", { duration: 1400 });
+          } catch (e: any) {
+            toast.error(e?.message || "Could not update");
+          }
+        }}
+      />
     </>
   );
 };
