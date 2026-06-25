@@ -51,7 +51,7 @@ const FileUploadPreview = ({ file, onRemove, lang = "both", maxHeight = 224, com
       {/* Preview area */}
       {isImage && url && (
         <div className="bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-          <img src={url} alt={file.name} className="w-full object-contain" style={{ maxHeight }} />
+          <img src={url} alt={`Uploaded document preview: ${file.name}`} className="w-full object-contain" style={{ maxHeight }} />
         </div>
       )}
       {isPdf && url && (

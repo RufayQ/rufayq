@@ -86,7 +86,7 @@ export default function AvatarUploader() {
         aria-label="Change profile photo"
       >
         {url ? (
-          <img src={url} alt="Profile" className="w-full h-full object-cover" />
+          <img src={url} alt="Your profile photo" className="w-full h-full object-cover" />
         ) : (
           <User size={28} />
         )}
