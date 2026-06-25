@@ -607,10 +607,14 @@ const PdfPreview = ({
             aria-label="Download PDF"
             className="ml-1 px-2 py-0.5 rounded-full"
             style={{ background: "rgba(255,255,255,0.15)" }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              emitPdfAnalytics({ event: "pdf_download", urlHash, fileName, numPages });
+            }}
           >
             <Download size={11} aria-hidden />
           </a>
+
         </div>
       )}
     </div>
