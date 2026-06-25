@@ -552,6 +552,9 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
       : [];
     const scannedFields = isScanned && item.kind === "scanned-travel" ? (item.record.keyFields ?? []).filter((f) => f.value.trim().length > 0) : [];
     const cardFields = scannedFields.length ? scannedFields : attachmentFields;
+    const rowCat = classifyRow(item);
+    const catDef = CAT_DEFS.find((c) => c.key === rowCat);
+    const typeLabel = catDef && rowCat !== "all" && rowCat !== "lounge" ? `${catDef.en} · ${catDef.ar}` : null;
     return (
       <div
         key={item.id}
