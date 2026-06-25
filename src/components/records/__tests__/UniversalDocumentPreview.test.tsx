@@ -5,7 +5,7 @@
  * (regression: previously unknown types were rendered through pdfjs).
  */
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 
 // pdfjs stub that pretends to load a 3-page PDF.
 vi.mock("pdfjs-dist", () => {
