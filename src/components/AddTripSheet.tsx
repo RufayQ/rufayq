@@ -134,7 +134,7 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
   const [retClass, setRetClass] = useState("");
   const [retSeat, setRetSeat] = useState("");
 
-  const [errors, setErrors] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string, { en: string; ar: string }>>({});
   const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -254,19 +254,35 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
   };
 
 
+  const computeErrors = (): Record<string, { en: string; ar: string }> => {
+    const e: Record<string, { en: string; ar: string }> = {};
+    if (!destination.trim()) e.destination = { en: "Destination country is required", ar: "بلد الوجهة مطلوب" };
+    else if (destination.trim().length < 2) e.destination = { en: "Enter a valid destination", ar: "أدخل وجهة صحيحة" };
+    if (!hospital.trim()) e.hospital = { en: "City & hospital are required", ar: "المدينة والمستشفى مطلوبة" };
+    if (!specialty) e.specialty = { en: "Pick a medical specialty", ar: "اختر التخصص الطبي" };
+    if (!departureDate) e.departureDate = { en: "Departure date is required", ar: "تاريخ المغادرة مطلوب" };
+    if (departureDate && returnDate) {
+      const dep = new Date(departureDate);
+      const ret = new Date(returnDate);
+      if (!Number.isNaN(dep.getTime()) && !Number.isNaN(ret.getTime()) && ret < dep) {
+        e.returnDate = { en: "Return date must be on or after departure", ar: "تاريخ العودة يجب أن يكون بعد المغادرة" };
+      }
+    }
+    return e;
+  };
+
+  const currentErrors = computeErrors();
+  const isFormComplete = Object.keys(currentErrors).length === 0;
+
   const validate = () => {
-    const e: string[] = [];
-    if (!destination) e.push("destination");
-    if (!hospital) e.push("hospital");
-    if (!specialty) e.push("specialty");
-    if (!departureDate) e.push("departureDate");
+    const e = computeErrors();
     setErrors(e);
-    return e.length === 0;
+    return Object.keys(e).length === 0;
   };
 
   const handleSubmit = () => {
     if (!validate()) {
-      toast.error("Please fill in all required fields / يرجى تعبئة الحقول المطلوبة");
+      toast.error("Please fix the highlighted fields / يرجى تصحيح الحقول المظللة");
       return;
     }
 
@@ -331,11 +347,22 @@ const AddTripSheet = ({ open, onClose, onSubmit }: Props) => {
 
   const inputStyle = (field: string) => ({
     background: "var(--white)",
-    border: `1px solid ${errors.includes(field) ? "var(--error)" : "var(--gray-light)"}`,
+    border: `1px solid ${errors[field] ? "var(--error)" : "var(--gray-light)"}`,
     borderRadius: 12, height: 52, padding: "0 16px",
     fontFamily: "'DM Sans', system-ui", fontSize: 14, color: "var(--ink)",
     width: "100%", outline: "none",
   });
+
+  const FieldError = ({ field }: { field: string }) => {
+    const err = errors[field];
+    if (!err) return null;
+    return (
+      <div className="mt-1 flex items-start gap-1" role="alert" data-testid={`error-${field}`}>
+        <span className="text-[11px]" style={{ color: "var(--error)" }}>{err.en}</span>
+        <span className="font-arabic text-[10px] ml-auto" dir="rtl" style={{ color: "var(--error)" }}>{err.ar}</span>
+      </div>
+    );
+  };
 
   const renderDropdown = (items: { emoji: string; en: string; ar: string }[], show: boolean, setShow: (v: boolean) => void, selected: string, onSelect: (en: string, emoji: string) => void) => (
     <div className="relative">
