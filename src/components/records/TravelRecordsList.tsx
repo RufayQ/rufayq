@@ -606,6 +606,11 @@ const TravelRecordsList = ({ userId, searchQuery, onCountsChange, onVisibleItems
                   <Plane size={9} /> Travel
                 </span>
               )}
+              {typeLabel && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: "rgba(0,77,91,0.10)", color: "var(--teal-deep)" }}>
+                  {typeLabel}
+                </span>
+              )}
               <span className="font-mono text-[9px]" style={{ color: "var(--gray)" }}>
                 {new Date(item.created_at).toLocaleDateString()}
               </span>
