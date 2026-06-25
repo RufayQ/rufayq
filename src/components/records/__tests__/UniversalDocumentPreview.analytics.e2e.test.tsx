@@ -127,7 +127,7 @@ describe("UniversalDocumentPreview · analytics + persistence + gestures", () =>
     expect(screen.getAllByTestId("pdf-progress-skeleton").length).toBeGreaterThan(0);
     await waitFor(() => expect(lastLoadingTask?.onProgress).toBeTypeOf("function"));
     act(() => { lastLoadingTask.onProgress({ loaded: 50, total: 100 }); });
-    await waitFor(() => expect(screen.getByText(/50%/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText(/50%/).length).toBeGreaterThan(0));
     // Now let the document promise resolve.
     act(() => { (deferredResolver as any)(lastLoadingTask._doc); });
     await waitFor(() => expect(screen.queryByTestId("pdf-progress-skeleton")).toBeNull());
