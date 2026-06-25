@@ -16,6 +16,7 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 
 let shouldFailLoad = false;
 let lastLoadingTask: any = null;
+let deferredResolver: ((doc: any) => void) | null = null;
 
 vi.mock("pdfjs-dist", () => {
   const makePage = (n: number) => ({
@@ -29,14 +30,23 @@ vi.mock("pdfjs-dist", () => {
     GlobalWorkerOptions: { workerSrc: "" },
     getDocument: () => {
       const task: any = {};
-      task.promise = shouldFailLoad
-        ? Promise.reject(new Error("network-fail"))
-        : Promise.resolve({ numPages: 4, getPage: (n: number) => Promise.resolve(makePage(n)) });
+      const doc = { numPages: 4, getPage: (n: number) => Promise.resolve(makePage(n)) };
+      if (shouldFailLoad) {
+        task.promise = Promise.reject(new Error("network-fail"));
+      } else if (deferredResolver !== null) {
+        // Test wants control over when load resolves.
+        task.promise = new Promise<any>((resolve) => { deferredResolver = resolve; });
+      } else {
+        task.promise = Promise.resolve(doc);
+      }
+      // expose the doc for deferred resolution
+      task._doc = doc;
       lastLoadingTask = task;
       return task;
     },
   };
 });
+
 vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?url", () => ({ default: "stub-worker.js" }));
 
 beforeAll(() => {
