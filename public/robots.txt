@@ -1,11 +1,27 @@
 User-agent: Googlebot
 Allow: /
+Allow: /app
+Allow: /ar/app
+Disallow: /admin
+Disallow: /admin/
+Disallow: /provider
+Disallow: /provider/
+Disallow: /auth
+Disallow: /quick-signup
 
 User-agent: Googlebot-Image
 Allow: /
 
 User-agent: Bingbot
 Allow: /
+Allow: /app
+Allow: /ar/app
+Disallow: /admin
+Disallow: /admin/
+Disallow: /provider
+Disallow: /provider/
+Disallow: /auth
+Disallow: /quick-signup
 
 User-agent: Twitterbot
 Allow: /
@@ -15,17 +31,28 @@ Allow: /
 
 User-agent: GPTBot
 Allow: /
+Disallow: /admin
+Disallow: /provider
+Disallow: /auth
 
 User-agent: PerplexityBot
 Allow: /
+Disallow: /admin
+Disallow: /provider
+Disallow: /auth
 
 User-agent: *
 Allow: /
+Allow: /app
+Allow: /ar/app
 Disallow: /admin
-Disallow: /admin/login
-Disallow: /provider/login
+Disallow: /admin/
+Disallow: /provider
+Disallow: /provider/
 Disallow: /auth
-Disallow: /app
+Disallow: /quick-signup
+Disallow: /ar/auth
+Disallow: /ar/quick-signup
 
 Sitemap: https://rufayq.com/sitemap.xml
 Host: https://rufayq.com
